@@ -1,20 +1,37 @@
-// ロック解除中のメモとノートブック。手元の暗号文を開いてメモリに持ち、
-// 変更は暗号化して手元に書き、「送っていない」の印を付ける（送るのは SyncEngine）。
+// ロック解除中のメモとノートブック。記録ごとに Yjs の文書をメモリに持ち、変更を暗号化して
+// 手元に書き、「送っていない」の印を付ける（送るのは SyncEngine）。
+//
+// 手元の記録の書き込みは、すべてここを通す。同期で取り込むときは
+// 「開いている文書へマージ → 手元へ保存 → ETag を記録」を 1 つの処理にする。ETag だけを
+// 先に進めると、次に If-Match で送る中身が同期先の中身を含まなくなり、ほかのデバイスの
+// 編集を黙って消してしまう。
 
+import * as Y from "yjs";
 import { newRandomId } from "../crypto/randomId";
 import { open, seal } from "../crypto/sealedBox";
-import type { LocalStore } from "../local/localStore";
+import type { LocalRecordEntry, LocalStore } from "../local/localStore";
 import type { SerialQueue } from "../local/serialQueue";
 import { blobBinding } from "../sync/remoteLayout";
-import type {
-  AttachmentReference,
-  LiveNote,
-  LiveNotebook,
-  NoteContent,
-  NotebookContent,
-  SyncedRecord,
-} from "./noteRecords";
-import { openRecord, sealRecord } from "./recordCodec";
+import { bodyAttachments } from "./bodyText";
+import type { AttachmentReference, LiveNote, LiveNotebook, NotebookContent } from "./noteRecords";
+import { openRecordPayload, type RecordPayload, sealRecordPayload } from "./recordCodec";
+import {
+  encodeRecordState,
+  FIELD_ORIGIN,
+  fieldNames,
+  latestFieldTime,
+  readField,
+  recordBody,
+  recordDocumentFromState,
+  type RecordKind,
+  REMOTE_ORIGIN,
+  writeField,
+} from "./recordDocument";
+
+// 打ち終わってからこれだけ待って手元に保存する。毎打鍵の暗号化と書き込みを避ける。
+const PERSIST_DELAY_MILLISECONDS = 400;
+// ノートブックへの所属の項目名の先頭。後ろにノートブックの ID が続く。
+const NOTEBOOK_MEMBERSHIP_PREFIX = "notebook:";
 
 export type NoteRepositoryDependencies = {
   localStore: LocalStore;
@@ -23,25 +40,31 @@ export type NoteRepositoryDependencies = {
   writeQueue: SerialQueue;
   // 手元に無い添付を同期先から取る。同期先を設定していなければ null を返す。
   downloadBlob: (id: string) => Promise<Uint8Array | null>;
-  // 競合コピーのタイトル。画面の言語で決める。
-  conflictCopyTitle: (originalTitle: string) => string;
   now?: () => Date;
 };
 
-export type NoteChanges = Partial<Omit<NoteContent, "createdAt">>;
-
-// エディタが最後に読んだ（または書いた）タイトルと本文。
-export type EditorBase = { title: string; document: unknown };
-
-export type EditorSaveOutcome =
-  | { kind: "saved"; note: LiveNote }
-  // 打っている間にほかのデバイスで本文が変わっていた。同期先の方を残し、
-  // エディタの内容は競合コピーの別のメモにした。
-  | { kind: "kept_as_copy"; note: LiveNote; copy: LiveNote };
+export type NoteChanges = Partial<{
+  title: string;
+  notebookIds: string[];
+  pinned: boolean;
+  bookmarked: boolean;
+  trashedAt: string | null;
+}>;
 
 // local は、このデバイスで変えたもの（同期で送る必要がある）。stored は、手元の保存や
 // 同期から読み直したもの。
 export type RepositoryChangeOrigin = "local" | "stored";
+
+type LiveHolder = {
+  state: "live";
+  doc: Y.Doc;
+  revision: number;
+  cachedView: LiveNote | LiveNotebook | null;
+  // 本文を変えて、まだ「編集した時刻」を書いていない。
+  bodyEdited: boolean;
+};
+type RemovedHolder = { state: "removed"; removedAt: string; attachmentIds: string[] };
+type Holder = LiveHolder | RemovedHolder;
 
 export class RecordNotFoundError extends Error {
   constructor(id: string) {
@@ -52,32 +75,31 @@ export class RecordNotFoundError extends Error {
 
 export class NoteRepository {
   readonly #dependencies: NoteRepositoryDependencies;
-  readonly #records = new Map<string, SyncedRecord>();
+  readonly #holders = new Map<string, Holder>();
   readonly #listeners = new Set<(origin: RepositoryChangeOrigin) => void>();
+  // このデバイスで変えて、まだ手元に保存していない記録。
+  readonly #unsavedIds = new Set<string>();
+  // 手元に保存して、まだ同期先へ送っていない記録。
+  readonly #waitingForPushIds = new Set<string>();
   #unreadableIds: string[] = [];
+  #persistTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(dependencies: NoteRepositoryDependencies) {
     this.#dependencies = dependencies;
   }
 
   async load(): Promise<void> {
-    this.#records.clear();
+    this.#holders.clear();
     this.#unreadableIds = [];
+    this.#waitingForPushIds.clear();
     for (const entry of await this.#dependencies.localStore.listRecordEntries()) {
-      await this.#openIntoMemory(entry.id, entry.sealed);
-    }
-    this.#notify("stored");
-  }
-
-  // 同期で取り込んだ記録を開き直す。
-  async reloadRecords(ids: string[]): Promise<void> {
-    if (ids.length === 0) {
-      return;
-    }
-    for (const id of ids) {
-      const entry = await this.#dependencies.localStore.getRecordEntry(id);
-      if (entry) {
-        await this.#openIntoMemory(id, entry.sealed);
+      try {
+        this.#hold(entry.id, await openRecordPayload(this.#dependencies.masterKey, entry.id, entry.sealed));
+        if (entry.waitingForPush) {
+          this.#waitingForPushIds.add(entry.id);
+        }
+      } catch {
+        this.#unreadableIds.push(entry.id);
       }
     }
     this.#notify("stored");
@@ -89,129 +111,86 @@ export class NoteRepository {
   }
 
   notes(): LiveNote[] {
-    return [...this.#records.values()].filter((record): record is LiveNote => record.kind === "note" && !record.removed);
+    return this.#views().filter((view): view is LiveNote => view.kind === "note");
   }
 
   notebooks(): LiveNotebook[] {
-    return [...this.#records.values()].filter(
-      (record): record is LiveNotebook => record.kind === "notebook" && !record.removed,
-    );
+    return this.#views().filter((view): view is LiveNotebook => view.kind === "notebook");
+  }
+
+  note(id: string): LiveNote | undefined {
+    const view = this.#view(id);
+    return view?.kind === "note" ? view : undefined;
   }
 
   unreadableIds(): string[] {
     return [...this.#unreadableIds];
   }
 
-  note(id: string): LiveNote | undefined {
-    const record = this.#records.get(id);
-    return record?.kind === "note" && !record.removed ? record : undefined;
+  // まだ同期先へ送っていない記録の ID（手元に保存する前のものも含む）。
+  unsyncedIds(): ReadonlySet<string> {
+    return new Set([...this.#waitingForPushIds, ...this.#unsavedIds]);
   }
 
-  async createNote(initial: Partial<Omit<NoteContent, "createdAt">> = {}): Promise<LiveNote> {
-    const createdAt = this.#now();
-    const content: NoteContent = {
-      title: "",
-      document: null,
-      notebookIds: [],
-      pinned: false,
-      bookmarked: false,
-      trashedAt: null,
-      attachments: [],
-      ...initial,
-      createdAt,
-    };
-    const note: LiveNote = { id: newRandomId(), kind: "note", updatedAt: createdAt, updatedBy: this.#dependencies.deviceId, removed: false, content };
-    await this.#write(note);
-    return note;
+  async createNote(initial: NoteChanges = {}): Promise<LiveNote> {
+    const id = newRandomId();
+    const doc = this.#newDocument(id, "note");
+    // 本文には最初から空の段落を 1 つ入れておく。空のままだと、開いたデバイスごとにエディタが
+    // 段落を足し、マージしたときに空の段落が重なる。
+    recordBody(doc).insert(0, [new Y.XmlElement("paragraph")]);
+    this.#writeNoteChanges(doc, { title: "", pinned: false, bookmarked: false, trashedAt: null, notebookIds: [], ...initial });
+    await this.flush();
+    return this.note(id)!;
   }
 
-  async updateNote(id: string, changes: NoteChanges): Promise<LiveNote> {
-    const current = this.note(id);
-    if (!current) {
-      throw new RecordNotFoundError(id);
-    }
-    const updated: LiveNote = { ...current, ...this.#stamp(), content: { ...current.content, ...changes } };
-    await this.#write(updated);
-    return updated;
-  }
-
-  // エディタの保存。エディタが読んだあとに、ほかのデバイスの変更がタイトルか本文を
-  // 変えていたら、上書きせずに競合コピーを作る（ピン留めなどの変更は上書きしてよい）。
-  async saveEditorChanges(id: string, changes: Pick<NoteChanges, "title" | "document">, base: EditorBase): Promise<EditorSaveOutcome> {
-    const current = this.note(id);
-    if (!current) {
-      throw new RecordNotFoundError(id);
-    }
-    const textUnchangedSinceBase = current.content.title === base.title &&
-      JSON.stringify(current.content.document) === JSON.stringify(base.document);
-    if (textUnchangedSinceBase) {
-      return { kind: "saved", note: await this.updateNote(id, changes) };
-    }
-    const copy = await this.createNote({
-      ...current.content,
-      ...changes,
-      title: this.#dependencies.conflictCopyTitle(changes.title ?? base.title),
-      pinned: false,
-    });
-    return { kind: "kept_as_copy", note: current, copy };
+  async updateNote(id: string, changes: NoteChanges): Promise<void> {
+    this.#writeNoteChanges(this.#liveDocument(id, "note"), changes);
   }
 
   async moveNoteToTrash(id: string): Promise<void> {
-    await this.updateNote(id, { trashedAt: this.#now(), pinned: false });
+    await this.updateNote(id, { trashedAt: this.#now().toISOString(), pinned: false });
   }
 
   async restoreNoteFromTrash(id: string): Promise<void> {
     await this.updateNote(id, { trashedAt: null });
   }
 
-  // 完全に削除する。ほかのデバイスに伝えるため、中身を空にした記録を残す。
+  // 完全に削除する。ほかのデバイスに伝えるため、削除の印を残す。貼ってあった添付も消す。
   async removeNotePermanently(id: string): Promise<void> {
-    const current = this.note(id);
-    if (!current) {
-      throw new RecordNotFoundError(id);
-    }
-    await this.#write({ id, kind: "note", ...this.#stamp(), removed: true, content: null });
+    const attachmentIds = bodyAttachments(recordBody(this.#liveDocument(id, "note"))).map((attachment) => attachment.id);
+    await this.#removeRecord(id, attachmentIds);
   }
 
   async createNotebook(name: string, parentId: string | null = null): Promise<LiveNotebook> {
-    const createdAt = this.#now();
-    const content: NotebookContent = { name, parentId, createdAt };
-    const notebook: LiveNotebook = { id: newRandomId(), kind: "notebook", updatedAt: createdAt, updatedBy: this.#dependencies.deviceId, removed: false, content };
-    await this.#write(notebook);
-    return notebook;
+    const id = newRandomId();
+    const doc = this.#newDocument(id, "notebook");
+    this.#writeFields(doc, { name, parentId });
+    await this.flush();
+    return this.#view(id) as LiveNotebook;
   }
 
-  async updateNotebook(id: string, changes: Partial<Omit<NotebookContent, "createdAt">>): Promise<LiveNotebook> {
-    const current = this.#records.get(id);
-    if (current?.kind !== "notebook" || current.removed) {
-      throw new RecordNotFoundError(id);
-    }
-    const updated: LiveNotebook = { ...current, ...this.#stamp(), content: { ...current.content, ...changes } };
-    await this.#write(updated);
-    return updated;
+  async updateNotebook(id: string, changes: Partial<Omit<NotebookContent, "createdAt">>): Promise<void> {
+    this.#writeFields(this.#liveDocument(id, "notebook"), changes);
   }
 
   // ノートブックを消す。中のメモは消さず、そのノートブックから外すだけにする。
   async removeNotebook(id: string): Promise<void> {
-    const current = this.#records.get(id);
-    if (current?.kind !== "notebook" || current.removed) {
-      throw new RecordNotFoundError(id);
-    }
+    const parentId = readField<string | null>(this.#liveDocument(id, "notebook"), "parentId") ?? null;
     for (const note of this.notes().filter((candidate) => candidate.content.notebookIds.includes(id))) {
       await this.updateNote(note.id, { notebookIds: note.content.notebookIds.filter((notebookId) => notebookId !== id) });
     }
     for (const child of this.notebooks().filter((candidate) => candidate.content.parentId === id)) {
-      await this.updateNotebook(child.id, { parentId: current.content.parentId });
+      await this.updateNotebook(child.id, { parentId });
     }
-    await this.#write({ id, kind: "notebook", ...this.#stamp(), removed: true, content: null });
+    await this.#removeRecord(id, []);
   }
 
-  // 写真などを暗号化して手元に置く。メモへの参照は呼び出し側が updateNote で足す。
+  // 写真などを暗号化して手元に置く。本文への貼り付けは呼び出し側（エディタ）が行う。
   async storeAttachment(input: { bytes: Uint8Array; mimeType: string; fileName: string }): Promise<AttachmentReference> {
     const id = newRandomId();
     const sealed = await seal(this.#dependencies.masterKey, input.bytes, blobBinding(id));
     await this.#dependencies.localStore.putBlob({ id, sealed, uploaded: false });
-    return { id, mimeType: input.mimeType, fileName: input.fileName, byteLength: input.bytes.length };
+    return { id, mimeType: input.mimeType, fileName: input.fileName };
   }
 
   async readAttachment(id: string): Promise<Uint8Array | null> {
@@ -220,34 +199,249 @@ export class NoteRepository {
     return sealed === null ? null : open(this.#dependencies.masterKey, sealed, blobBinding(id));
   }
 
-  async #write(record: SyncedRecord): Promise<void> {
-    const { localStore, masterKey, writeQueue } = this.#dependencies;
-    const sealed = await sealRecord(masterKey, record);
-    await writeQueue.run(async () => {
-      const current = await localStore.getRecordEntry(record.id);
-      await localStore.putRecordEntry({ id: record.id, sealed, remoteEtag: current?.remoteEtag ?? null, waitingForPush: true });
-    });
-    this.#records.set(record.id, record);
-    this.#notify("local");
+  // まだ手元に保存していない変更を、待たずに保存する。画面を離れるときと、同期の前に呼ぶ。
+  async flush(): Promise<void> {
+    if (this.#persistTimer !== null) {
+      clearTimeout(this.#persistTimer);
+      this.#persistTimer = null;
+    }
+    const ids = [...this.#unsavedIds];
+    for (const id of ids) {
+      await this.#dependencies.writeQueue.run(() => this.#persistLive(id, { remoteEtag: undefined }));
+    }
+    if (ids.length > 0) {
+      this.#notify("local");
+    }
   }
 
-  async #openIntoMemory(id: string, sealed: Uint8Array): Promise<void> {
-    try {
-      this.#records.set(id, await openRecord(this.#dependencies.masterKey, id, sealed));
-      this.#unreadableIds = this.#unreadableIds.filter((unreadableId) => unreadableId !== id);
-    } catch {
-      if (!this.#unreadableIds.includes(id)) {
-        this.#unreadableIds.push(id);
+  // ── 同期（SyncEngine）から使うもの ──────────────────────────
+
+  async entriesWaitingForPush(): Promise<LocalRecordEntry[]> {
+    await this.flush();
+    return (await this.#dependencies.localStore.listRecordEntries()).filter((entry) => entry.waitingForPush);
+  }
+
+  // 同期先の記録を取り込む。開けなければ InvalidRecordError か SealedBoxError を投げる。
+  async applyRemote(id: string, sealed: Uint8Array, remoteEtag: string): Promise<void> {
+    const payload = await openRecordPayload(this.#dependencies.masterKey, id, sealed);
+    await this.#dependencies.writeQueue.run(async () => {
+      const entry = await this.#dependencies.localStore.getRecordEntry(id);
+      const holder = this.#holders.get(id);
+      const hasLocalChanges = (entry?.waitingForPush ?? false) || this.#unsavedIds.has(id);
+      if (payload.kind === "state" && holder?.state === "live") {
+        Y.applyUpdate(holder.doc, payload.state, REMOTE_ORIGIN);
+        this.#touch(holder);
+        await this.#persistLive(id, { remoteEtag, waitingForPush: hasLocalChanges });
+        return;
+      }
+      if (payload.kind === "removed" && holder?.state === "live" && hasLocalChanges) {
+        // ほかのデバイスで完全に削除されたが、このデバイスには送っていない編集がある。編集を残し、
+        // 削除の印の上へ送り直す。同期先の添付は消されているので、手元にある分を送り直す。
+        await this.#markAttachmentsForUpload(bodyAttachments(recordBody(holder.doc)));
+        await this.#persistLive(id, { remoteEtag, waitingForPush: true });
+        return;
+      }
+      // 手元に無い記録、手元で消した記録への編集、または削除の受け入れ。同期先の中身をそのまま採る。
+      if (holder?.state === "live") {
+        holder.doc.destroy();
+      }
+      this.#unsavedIds.delete(id);
+      this.#hold(id, payload);
+      if (payload.kind === "removed") {
+        await this.#deleteLocalBlobs(payload.attachmentIds);
+      }
+      await this.#putEntry({ id, sealed, remoteEtag, waitingForPush: false });
+    });
+    this.#notify("stored");
+  }
+
+  // 送り終えた記録に ETag を記録する。送っている間に変わっていなければ「揃った」にする。
+  // 削除の印を送り終えたときは、同期先から消してよい添付の ID を返す。
+  async confirmPushed(sent: LocalRecordEntry, remoteEtag: string): Promise<{ removedAttachmentIds: string[] }> {
+    await this.#dependencies.writeQueue.run(async () => {
+      const latest = await this.#dependencies.localStore.getRecordEntry(sent.id);
+      const unchanged = latest !== undefined && sameBytes(latest.sealed, sent.sealed) && !this.#unsavedIds.has(sent.id);
+      await this.#putEntry({ id: sent.id, sealed: latest?.sealed ?? sent.sealed, remoteEtag, waitingForPush: !unchanged });
+    });
+    this.#notify("stored");
+    const holder = this.#holders.get(sent.id);
+    return { removedAttachmentIds: holder?.state === "removed" && !this.#waitingForPushIds.has(sent.id) ? holder.attachmentIds : [] };
+  }
+
+  // 同期先から消えた記録を、手元の写しから送り直す対象にする（どこかで消えても、データを失わない）。
+  async markMissingRemotely(id: string): Promise<void> {
+    await this.#dependencies.writeQueue.run(async () => {
+      const latest = await this.#dependencies.localStore.getRecordEntry(id);
+      if (latest) {
+        await this.#putEntry({ ...latest, remoteEtag: null, waitingForPush: true });
+      }
+    });
+  }
+
+  // ── 内部 ──────────────────────────────────────────
+
+  #newDocument(id: string, kind: RecordKind): Y.Doc {
+    const doc = new Y.Doc();
+    this.#holders.set(id, { state: "live", doc, revision: 0, cachedView: null, bodyEdited: false });
+    this.#watch(id, doc);
+    this.#writeFields(doc, { kind, createdAt: this.#now().toISOString() });
+    return doc;
+  }
+
+  #hold(id: string, payload: RecordPayload): void {
+    if (payload.kind === "removed") {
+      this.#holders.set(id, { state: "removed", removedAt: payload.removedAt, attachmentIds: payload.attachmentIds });
+      return;
+    }
+    const doc = recordDocumentFromState(payload.state);
+    this.#holders.set(id, { state: "live", doc, revision: 0, cachedView: null, bodyEdited: false });
+    this.#watch(id, doc);
+  }
+
+  // このデバイスでの変更（エディタの入力と項目の書き込み）を見張り、保存を予約する。
+  #watch(id: string, doc: Y.Doc): void {
+    doc.on("update", (_update: Uint8Array, origin: unknown) => {
+      const holder = this.#holders.get(id);
+      if (origin === REMOTE_ORIGIN || holder?.state !== "live") {
+        return;
+      }
+      this.#touch(holder);
+      if (origin !== FIELD_ORIGIN) {
+        holder.bodyEdited = true;
+      }
+      this.#unsavedIds.add(id);
+      this.#persistTimer ??= setTimeout(() => void this.flush(), PERSIST_DELAY_MILLISECONDS);
+      if (origin === FIELD_ORIGIN) {
+        // タイトルやピン留めは、一覧やタブにすぐ出す。本文の変更は保存のときに知らせる。
+        this.#notify("stored");
+      }
+    });
+  }
+
+  #touch(holder: LiveHolder): void {
+    holder.revision += 1;
+    holder.cachedView = null;
+  }
+
+  #liveDocument(id: string, kind: RecordKind): Y.Doc {
+    const holder = this.#holders.get(id);
+    if (holder?.state !== "live" || readField<RecordKind>(holder.doc, "kind") !== kind) {
+      throw new RecordNotFoundError(id);
+    }
+    return holder.doc;
+  }
+
+  #writeFields(doc: Y.Doc, values: Record<string, unknown>): void {
+    const writer = { deviceId: this.#dependencies.deviceId, now: this.#now() };
+    for (const [name, value] of Object.entries(values)) {
+      if (value !== undefined) {
+        writeField(doc, name, value, writer);
       }
     }
   }
 
-  #stamp(): { updatedAt: string; updatedBy: string } {
-    return { updatedAt: this.#now(), updatedBy: this.#dependencies.deviceId };
+  #writeNoteChanges(doc: Y.Doc, changes: NoteChanges): void {
+    const { notebookIds, ...fields } = changes;
+    const membership: Record<string, boolean> = {};
+    if (notebookIds !== undefined) {
+      // ノートブックごとに別の項目にする。1 つの配列だと、2 台で別のノートブックへ入れたときに片方が消える。
+      for (const current of notebookIdsOf(doc)) {
+        membership[NOTEBOOK_MEMBERSHIP_PREFIX + current] = false;
+      }
+      for (const notebookId of notebookIds) {
+        membership[NOTEBOOK_MEMBERSHIP_PREFIX + notebookId] = true;
+      }
+      for (const name of Object.keys(membership)) {
+        if ((readField<boolean>(doc, name) ?? false) === membership[name]) {
+          delete membership[name];
+        }
+      }
+    }
+    this.#writeFields(doc, { ...fields, ...membership });
   }
 
-  #now(): string {
-    return (this.#dependencies.now?.() ?? new Date()).toISOString();
+  async #removeRecord(id: string, attachmentIds: string[]): Promise<void> {
+    const holder = this.#holders.get(id);
+    if (holder?.state === "live") {
+      holder.doc.destroy();
+    }
+    const payload: RecordPayload = { kind: "removed", removedAt: this.#now().toISOString(), attachmentIds };
+    this.#unsavedIds.delete(id);
+    this.#hold(id, payload);
+    const sealed = await sealRecordPayload(this.#dependencies.masterKey, id, payload);
+    await this.#dependencies.writeQueue.run(async () => {
+      const current = await this.#dependencies.localStore.getRecordEntry(id);
+      await this.#putEntry({ id, sealed, remoteEtag: current?.remoteEtag ?? null, waitingForPush: true });
+      await this.#deleteLocalBlobs(attachmentIds);
+    });
+    this.#notify("local");
+  }
+
+  // 開いている文書の今の状態を暗号化して手元に書く。writeQueue の中から呼ぶ。
+  // remoteEtag が undefined なら、手元の記録の ETag をそのまま保つ。
+  async #persistLive(id: string, bookkeeping: { remoteEtag: string | null | undefined; waitingForPush?: boolean }): Promise<void> {
+    const holder = this.#holders.get(id);
+    if (holder?.state !== "live") {
+      return;
+    }
+    if (holder.bodyEdited) {
+      holder.bodyEdited = false;
+      this.#writeFields(holder.doc, { editedAt: this.#now().toISOString() });
+    }
+    this.#unsavedIds.delete(id);
+    const sealed = await sealRecordPayload(this.#dependencies.masterKey, id, { kind: "state", state: encodeRecordState(holder.doc) });
+    const remoteEtag = bookkeeping.remoteEtag === undefined
+      ? (await this.#dependencies.localStore.getRecordEntry(id))?.remoteEtag ?? null
+      : bookkeeping.remoteEtag;
+    await this.#putEntry({ id, sealed, remoteEtag, waitingForPush: bookkeeping.waitingForPush ?? true });
+  }
+
+  async #putEntry(entry: LocalRecordEntry): Promise<void> {
+    await this.#dependencies.localStore.putRecordEntry(entry);
+    if (entry.waitingForPush) {
+      this.#waitingForPushIds.add(entry.id);
+    } else {
+      this.#waitingForPushIds.delete(entry.id);
+    }
+  }
+
+  async #markAttachmentsForUpload(attachments: AttachmentReference[]): Promise<void> {
+    for (const attachment of attachments) {
+      const blob = await this.#dependencies.localStore.getBlob(attachment.id);
+      if (blob) {
+        await this.#dependencies.localStore.putBlob({ ...blob, uploaded: false });
+      }
+    }
+  }
+
+  async #deleteLocalBlobs(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      await this.#dependencies.localStore.deleteBlob(id);
+    }
+  }
+
+  #views(): Array<LiveNote | LiveNotebook> {
+    const views: Array<LiveNote | LiveNotebook> = [];
+    for (const id of this.#holders.keys()) {
+      const view = this.#view(id);
+      if (view) {
+        views.push(view);
+      }
+    }
+    return views;
+  }
+
+  #view(id: string): LiveNote | LiveNotebook | undefined {
+    const holder = this.#holders.get(id);
+    if (holder?.state !== "live") {
+      return undefined;
+    }
+    holder.cachedView ??= buildView(id, holder);
+    return holder.cachedView ?? undefined;
+  }
+
+  #now(): Date {
+    return this.#dependencies.now?.() ?? new Date();
   }
 
   #notify(origin: RepositoryChangeOrigin): void {
@@ -255,4 +449,46 @@ export class NoteRepository {
       listener(origin);
     }
   }
+}
+
+function notebookIdsOf(doc: Y.Doc): string[] {
+  return [...fieldNames(doc)]
+    .filter((name) => name.startsWith(NOTEBOOK_MEMBERSHIP_PREFIX) && readField<boolean>(doc, name) === true)
+    .map((name) => name.slice(NOTEBOOK_MEMBERSHIP_PREFIX.length));
+}
+
+function buildView(id: string, holder: LiveHolder): LiveNote | LiveNotebook | null {
+  const { doc, revision } = holder;
+  const header = { id, updatedAt: latestFieldTime(doc), revision };
+  const createdAt = readField<string>(doc, "createdAt") ?? header.updatedAt;
+  const kind = readField<RecordKind>(doc, "kind");
+  if (kind === "notebook") {
+    return {
+      ...header,
+      kind,
+      content: { name: readField<string>(doc, "name") ?? "", parentId: readField<string | null>(doc, "parentId") ?? null, createdAt },
+    };
+  }
+  if (kind !== "note") {
+    return null;
+  }
+  const body = recordBody(doc);
+  return {
+    ...header,
+    kind,
+    body,
+    content: {
+      title: readField<string>(doc, "title") ?? "",
+      notebookIds: notebookIdsOf(doc),
+      pinned: readField<boolean>(doc, "pinned") ?? false,
+      bookmarked: readField<boolean>(doc, "bookmarked") ?? false,
+      trashedAt: readField<string | null>(doc, "trashedAt") ?? null,
+      attachments: bodyAttachments(body),
+      createdAt,
+    },
+  };
+}
+
+function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
+  return left.length === right.length && left.every((byte, index) => byte === right[index]);
 }

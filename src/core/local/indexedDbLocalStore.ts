@@ -57,6 +57,10 @@ export class IndexedDbLocalStore implements LocalStore {
     await (await this.#database).put("blobs", stored);
   }
 
+  async deleteBlob(id: string): Promise<void> {
+    await (await this.#database).delete("blobs", id);
+  }
+
   async listBlobsWaitingForUpload(): Promise<LocalBlobEntry[]> {
     const stored = await (await this.#database).getAllFromIndex("blobs", "byUploaded", 0);
     return stored.map((blob) => withoutUploadedFlag(blob as StoredBlob));

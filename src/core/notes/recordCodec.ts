@@ -1,14 +1,24 @@
-// 記録を暗号文にする・暗号文から記録に戻す。
+// 記録を暗号文にする・暗号文から戻す。
 //
-// binding に記録の ID を入れるので、S3 の上で別の ID のオブジェクトへ暗号文を
-// 写しても開けない。開いたあとも、中の ID が置き場所の ID と同じかを確かめる。
+// 暗号化する前の中身は 2 種類。
+//   状態      Yjs の文書のバイナリの状態。JSON に直して作り直すと、マージで本文が二重になるので、
+//             保存も同期もこのバイナリのまま扱う
+//   削除の印  完全に削除した記録。ほかのデバイスに削除を伝えるため、オブジェクトは消さずにこれを置く
+//
+// binding に記録の ID を入れるので、S3 の上で別の ID のオブジェクトへ暗号文を写しても開けない。
 
-import { isRandomId } from "../crypto/randomId";
 import { open, seal } from "../crypto/sealedBox";
-import type { SyncedRecord } from "./noteRecords";
+
+const STATE_TAG = 1;
+const REMOVED_TAG = 2;
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
+
+export type RecordPayload =
+  | { kind: "state"; state: Uint8Array }
+  // attachmentIds は、消した記録に貼ってあった添付。同期先と手元の添付を消すのに使う。
+  | { kind: "removed"; removedAt: string; attachmentIds: string[] };
 
 export class InvalidRecordError extends Error {
   constructor(message: string) {
@@ -21,59 +31,35 @@ export function recordBinding(id: string): string {
   return `record:${id}`;
 }
 
-export async function sealRecord(masterKey: CryptoKey, record: SyncedRecord): Promise<Uint8Array> {
-  return seal(masterKey, textEncoder.encode(JSON.stringify(record)), recordBinding(record.id));
+export async function sealRecordPayload(masterKey: CryptoKey, id: string, payload: RecordPayload): Promise<Uint8Array> {
+  const body = payload.kind === "state"
+    ? payload.state
+    : textEncoder.encode(JSON.stringify({ removedAt: payload.removedAt, attachmentIds: payload.attachmentIds }));
+  const plaintext = new Uint8Array(1 + body.length);
+  plaintext[0] = payload.kind === "state" ? STATE_TAG : REMOVED_TAG;
+  plaintext.set(body, 1);
+  return seal(masterKey, plaintext, recordBinding(id));
 }
 
-export async function openRecord(masterKey: CryptoKey, id: string, sealed: Uint8Array): Promise<SyncedRecord> {
+export async function openRecordPayload(masterKey: CryptoKey, id: string, sealed: Uint8Array): Promise<RecordPayload> {
   const plaintext = await open(masterKey, sealed, recordBinding(id));
-  const value: unknown = JSON.parse(textDecoder.decode(plaintext));
-  const record = checkRecordShape(value);
-  if (record.id !== id) {
-    throw new InvalidRecordError("the record's id does not match where it was stored");
+  const body = plaintext.subarray(1);
+  if (plaintext[0] === STATE_TAG) {
+    return { kind: "state", state: body };
   }
-  return record;
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-// 暗号文は同じキーを持つデバイスしか作れないが、古いバージョンや壊れた書き込みで
-// 形が違う記録が混ざっても、画面を落とさずにその 1 件だけを断る。
-function checkRecordShape(value: unknown): SyncedRecord {
-  if (!isObject(value) || typeof value.id !== "string" || !isRandomId(value.id) ||
-    typeof value.updatedAt !== "string" || typeof value.updatedBy !== "string" ||
-    typeof value.removed !== "boolean" || (value.kind !== "note" && value.kind !== "notebook")) {
-    throw new InvalidRecordError("the record header is malformed");
+  if (plaintext[0] !== REMOVED_TAG) {
+    throw new InvalidRecordError("the record is of an unknown kind");
   }
-  if (value.removed) {
-    if (value.content !== null) {
-      throw new InvalidRecordError("a removed record still has content");
-    }
-    return value as SyncedRecord;
+  let value: unknown;
+  try {
+    value = JSON.parse(textDecoder.decode(body));
+  } catch {
+    throw new InvalidRecordError("the removal marker is malformed");
   }
-  const content = value.content;
-  if (!isObject(content) || typeof content.createdAt !== "string") {
-    throw new InvalidRecordError("the record content is malformed");
+  const marker = value as { removedAt?: unknown; attachmentIds?: unknown };
+  if (typeof marker.removedAt !== "string" || !Array.isArray(marker.attachmentIds) ||
+    !marker.attachmentIds.every((attachmentId) => typeof attachmentId === "string")) {
+    throw new InvalidRecordError("the removal marker is malformed");
   }
-  if (value.kind === "note") {
-    const valid = typeof content.title === "string" && Array.isArray(content.notebookIds) &&
-      content.notebookIds.every((notebookId) => typeof notebookId === "string") &&
-      typeof content.pinned === "boolean" && typeof content.bookmarked === "boolean" &&
-      (content.trashedAt === null || typeof content.trashedAt === "string") &&
-      Array.isArray(content.attachments) && content.attachments.every(isAttachmentReference);
-    if (!valid) {
-      throw new InvalidRecordError("the note content is malformed");
-    }
-  } else if (typeof content.name !== "string" || (content.parentId !== null && typeof content.parentId !== "string")) {
-    throw new InvalidRecordError("the notebook content is malformed");
-  }
-  return value as SyncedRecord;
-}
-
-function isAttachmentReference(value: unknown): boolean {
-  return isObject(value) && typeof value.id === "string" && isRandomId(value.id) &&
-    typeof value.mimeType === "string" && typeof value.fileName === "string" &&
-    typeof value.byteLength === "number";
+  return { kind: "removed", removedAt: marker.removedAt, attachmentIds: marker.attachmentIds as string[] };
 }

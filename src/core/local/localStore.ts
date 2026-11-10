@@ -1,7 +1,7 @@
 // 手元の保存先。S3 に置くのと同じ暗号文をそのまま持つので、平文は保存しない。
 //
-// 検索のための平文の索引は、ロック解除のあとにメモリの中だけで作る
-// （notes/noteRepository.ts）。
+// 記録の中身は Yjs の文書の状態（notes/recordCodec.ts）。検索のための平文は、
+// ロック解除のあとにメモリの中だけで作る（notes/noteRepository.ts）。
 
 export type LocalRecordEntry = {
   id: string;
@@ -29,6 +29,8 @@ export interface LocalStore {
   putRecordEntry(entry: LocalRecordEntry): Promise<void>;
   getBlob(id: string): Promise<LocalBlobEntry | undefined>;
   putBlob(entry: LocalBlobEntry): Promise<void>;
+  // 無くても成功にする。
+  deleteBlob(id: string): Promise<void>;
   listBlobsWaitingForUpload(): Promise<LocalBlobEntry[]>;
   // ロック解除をやり直す（このデバイスから全部消す）ときに使う。同期先は消さない。
   clearEverything(): Promise<void>;

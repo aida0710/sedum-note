@@ -1,34 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { documentHashtags, documentPlainText } from "./documentText";
+import * as Y from "yjs";
+import { appendParagraph } from "./bodyFixtures";
+import { bodyPlainText, plainTextHashtags } from "./bodyText";
 import type { LiveNote, LiveNotebook } from "./noteRecords";
 import { buildNotebookTree, countTags, selectNotes, summarizeNote } from "./noteQueries";
 
-function paragraph(text: string) {
-  return { type: "paragraph", content: [{ type: "text", text }] };
+function bodyWith(...paragraphs: string[]): Y.XmlFragment {
+  const body = new Y.Doc().getXmlFragment("body");
+  paragraphs.forEach((text) => appendParagraph(body, text));
+  return body;
 }
 
-function note(id: string, overrides: Partial<LiveNote["content"]>, updatedAt: string): LiveNote {
+function note(id: string, overrides: Partial<LiveNote["content"]>, updatedAt: string, body = bodyWith()): LiveNote {
   return {
-    id, kind: "note", updatedAt, updatedBy: "d", removed: false,
-    content: { title: "", document: null, notebookIds: [], pinned: false, bookmarked: false, trashedAt: null, attachments: [], createdAt: updatedAt, ...overrides },
+    id, kind: "note", updatedAt, revision: 0, body,
+    content: { title: "", notebookIds: [], pinned: false, bookmarked: false, trashedAt: null, attachments: [], createdAt: updatedAt, ...overrides },
   };
 }
 
-describe("documentPlainText", () => {
+describe("bodyPlainText", () => {
   it("段落ごとに改行を入れて本文の文字を取り出す", () => {
-    expect(documentPlainText({ type: "doc", content: [paragraph("一行目"), paragraph("二行目")] })).toBe("一行目\n二行目");
+    expect(bodyPlainText(bodyWith("一行目", "二行目"))).toBe("一行目\n二行目");
   });
 });
 
-describe("documentHashtags", () => {
+describe("plainTextHashtags", () => {
   it("#の直後に言葉が続くものだけをタグにする", () => {
-    expect(documentHashtags("買う物 #todo と #沖縄 、見出しの # は除く")).toEqual(["todo", "沖縄"]);
+    expect(plainTextHashtags("買う物 #todo と #沖縄 、見出しの # は除く")).toEqual(["todo", "沖縄"]);
   });
 });
 
 describe("selectNotes", () => {
   const summaries = [
-    note("a", { title: "古いメモ", document: { type: "doc", content: [paragraph("#todo 牛乳")] } }, "2026-11-01T00:00:00Z"),
+    note("a", { title: "古いメモ" }, "2026-11-01T00:00:00Z", bodyWith("#todo 牛乳")),
     note("b", { title: "新しいメモ", notebookIds: ["n1"] }, "2026-11-09T00:00:00Z"),
     note("c", { title: "ピン留め", pinned: true }, "2026-10-01T00:00:00Z"),
     note("d", { title: "捨てたメモ", trashedAt: "2026-11-09T00:00:00Z" }, "2026-11-09T00:00:00Z"),
@@ -56,7 +60,7 @@ describe("selectNotes", () => {
 describe("buildNotebookTree", () => {
   it("親を指すノートブックを子として入れ、親が消えたものは最上位に出す", () => {
     const notebook = (id: string, name: string, parentId: string | null): LiveNotebook => ({
-      id, kind: "notebook", updatedAt: "", updatedBy: "d", removed: false, content: { name, parentId, createdAt: "" },
+      id, kind: "notebook", updatedAt: "", revision: 0, content: { name, parentId, createdAt: "" },
     });
     const tree = buildNotebookTree([notebook("w", "仕事", null), notebook("m", "議事録", "w"), notebook("o", "旅行", "gone")]);
     expect(tree.map((node) => [node.notebook.content.name, node.children.map((child) => child.notebook.content.name)])).toEqual([

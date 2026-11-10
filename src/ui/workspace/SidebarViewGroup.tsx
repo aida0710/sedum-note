@@ -1,9 +1,10 @@
 // 左の列の 1 行（すべて・お気に入り・ノートブック・タグ・ゴミ箱）と、開いたときに並ぶメモ。
 
 import { ChevronDown, ChevronRight } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useContext } from "react";
 import { type NoteSummary, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import { translate } from "../i18n/translate";
+import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { viewKey, type WorkspaceNavigation } from "./useWorkspaceNavigation";
 
 // 木の 1 段ごとの字下げ。開閉の印（12px）とアイコンの間が揃う幅。
@@ -62,12 +63,14 @@ export function ViewGroup({ view, icon, label, summaries, navigation, depth = 0,
 }
 
 export function NoteRows({ notes, navigation, depth }: { notes: NoteSummary[]; navigation: WorkspaceNavigation; depth: number }) {
+  const unsyncedIds = useContext(UnsyncedRecordsContext);
   if (notes.length === 0) {
     return <div className="tree-empty" style={{ paddingLeft: NOTE_ROW_PADDING_LEFT + depth * TREE_INDENT_STEP }}>{translate("sidebar.noNotes")}</div>;
   }
   return notes.map(({ note }) => (
     <button key={note.id} className={`tree-note${navigation.activeTab === note.id ? " active" : ""}`} style={{ paddingLeft: NOTE_ROW_PADDING_LEFT + depth * TREE_INDENT_STEP }}
       onClick={() => navigation.openNote(note.id)}>
+      {unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}
       {note.content.title || translate("sidebar.untitled")}
     </button>
   ));

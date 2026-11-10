@@ -18,7 +18,8 @@ export function SetupScreen({ session }: { session: VaultSession }) {
   const [mode, setMode] = useState<SetupMode>("new");
   const [passphrase, setPassphrase] = useState("");
   const [passphraseConfirm, setPassphraseConfirm] = useState("");
-  const [syncLater, setSyncLater] = useState(false);
+  // 同期は付け足しの機能。最初はこのデバイスだけに保存する形を既定にする。
+  const [useSync, setUseSync] = useState(false);
   const [remoteConfig, setRemoteConfig] = useState(EMPTY_REMOTE_CONFIG);
   const [inputProblem, setInputProblem] = useState<string | null>(null);
   const action = useAsyncAction(async (input: SetupInput) => {
@@ -28,7 +29,7 @@ export function SetupScreen({ session }: { session: VaultSession }) {
       await session.createVault({ passphrase: input.passphrase, remoteConfig: input.remoteConfig });
     }
   });
-  const usesRemote = mode === "join" || !syncLater;
+  const usesRemote = mode === "join" || useSync;
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -71,10 +72,13 @@ export function SetupScreen({ session }: { session: VaultSession }) {
           </div>
         )}
         {mode === "new" && (
-          <label className="checkbox-line">
-            <input type="checkbox" checked={syncLater} onChange={(event) => setSyncLater(event.target.checked)} />
-            {translate("setup.syncLater")}
-          </label>
+          <div className="field">
+            <label className="checkbox-line">
+              <input type="checkbox" checked={useSync} onChange={(event) => setUseSync(event.target.checked)} />
+              {translate("setup.useSync")}
+            </label>
+            <span className="hint">{translate("setup.useSyncHint")}</span>
+          </div>
         )}
         {usesRemote && <RemoteConfigFields value={remoteConfig} onChange={setRemoteConfig} />}
         {message && <div className="form-error" role="alert">{message}</div>}

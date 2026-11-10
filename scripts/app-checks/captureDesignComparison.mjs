@@ -23,7 +23,6 @@ async function fillWorkspace(page) {
   await page.goto("http://127.0.0.1:5173/");
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await page.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
-  await page.getByLabel("同期はあとで設定する").check();
   await page.getByRole("button", { name: "作成" }).click();
   for (const name of NOTEBOOKS) {
     await page.getByRole("button", { name: "ノートブックを追加" }).click();

@@ -1,7 +1,7 @@
 // 同期をいつ流すかを決める。編集のあと少し待って流し、ほかのデバイスの変更を
 // 拾うために一定の間隔でも流す。回線が戻ったときと画面に戻ったときにも流す。
 
-import type { SyncEngine, SyncReport } from "./syncEngine";
+import type { SyncEngine } from "./syncEngine";
 
 // 打ち続けている間に何度も送らないよう、最後の編集からこれだけ待って送る。
 export const PUSH_DELAY_MILLISECONDS = 2_000;
@@ -14,7 +14,6 @@ export type SyncStatus =
   | { state: "failed"; lastSyncedAt: Date | null; error: unknown };
 
 export type AutoSyncCallbacks = {
-  onReport: (report: SyncReport) => void | Promise<void>;
   onStatus: (status: SyncStatus) => void;
 };
 
@@ -65,9 +64,8 @@ export class AutoSync {
   async syncNow(): Promise<void> {
     this.#callbacks.onStatus({ state: "syncing", lastSyncedAt: this.#lastSyncedAt });
     try {
-      const report = await this.#engine.syncOnce();
+      await this.#engine.syncOnce();
       this.#lastSyncedAt = new Date();
-      await this.#callbacks.onReport(report);
       this.#callbacks.onStatus({ state: "idle", lastSyncedAt: this.#lastSyncedAt });
     } catch (error) {
       this.#callbacks.onStatus({ state: "failed", lastSyncedAt: this.#lastSyncedAt, error });

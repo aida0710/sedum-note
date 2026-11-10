@@ -18,7 +18,7 @@ import {
 const remoteConfig: RemoteConfig = { endpoint: "https://s3.example.com", bucket: "notes", region: "auto", prefix: "", accessKeyId: "k", secretAccessKey: "s" };
 
 function environment(store: MemoryObjectStore): VaultSessionEnvironment {
-  return { localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: () => store, conflictCopyTitle: (title) => title };
+  return { localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: () => store };
 }
 
 describe("vaultSession", () => {
@@ -31,7 +31,7 @@ describe("vaultSession", () => {
     await connected.repository.createNote({ title: "同期してから書いた" });
     await connected.syncEngine!.syncOnce();
     const phone = await joinExistingVault(environment(store), { passphrase: "correct horse battery", remoteConfig });
-    await phone.repository.reloadRecords((await phone.syncEngine!.syncOnce()).pulledIds);
+    await phone.syncEngine!.syncOnce();
     expect(phone.repository.notes().map((note) => note.content.title)).toEqual(["同期してから書いた"]);
   });
 

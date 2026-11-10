@@ -46,16 +46,29 @@ export function useVaultSession(): VaultSession {
 
   const vault = state.phase === "unlocked" ? state.vault : null;
 
-  // 解除中は、この端末での変更のたびに送る予約をし、同期で取り込んだものを開き直す。
+  // アプリを裏へ回す・閉じるときは、保存を待っている入力をすぐ手元に書く。
+  useEffect(() => {
+    if (!vault) {
+      return;
+    }
+    const saveNow = () => void vault.repository.flush();
+    const saveWhenHidden = () => document.visibilityState === "hidden" && saveNow();
+    document.addEventListener("visibilitychange", saveWhenHidden);
+    window.addEventListener("pagehide", saveNow);
+    return () => {
+      document.removeEventListener("visibilitychange", saveWhenHidden);
+      window.removeEventListener("pagehide", saveNow);
+    };
+  }, [vault]);
+
+  // 解除中は、このデバイスでの変更のたびに送る予約をする。取り込んだ変更は、同期の中で
+  // 開いている文書に入るので、ここで読み直すものは無い。
   useEffect(() => {
     if (!vault?.syncEngine) {
       setSyncStatus(null);
       return;
     }
-    const autoSync = new AutoSync(vault.syncEngine, {
-      onReport: (report) => vault.repository.reloadRecords(report.pulledIds),
-      onStatus: setSyncStatus,
-    });
+    const autoSync = new AutoSync(vault.syncEngine, { onStatus: setSyncStatus });
     const unsubscribe = vault.repository.subscribe((origin) => {
       if (origin === "local") {
         autoSync.noteLocalChange();

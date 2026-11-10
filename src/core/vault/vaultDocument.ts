@@ -16,7 +16,8 @@ import { isRandomId, newRandomId } from "../crypto/randomId";
 import { importAesKey, open, seal, SealedBoxError } from "../crypto/sealedBox";
 
 const VAULT_FORMAT = "sedum-note-vault";
-const VAULT_VERSION = 1;
+// 2 から、記録の中身が Yjs の文書の状態になった。1 の同期先とは混ぜられない。
+const VAULT_VERSION = 2;
 const MASTER_KEY_LENGTH = 32;
 
 export type VaultDocument = {

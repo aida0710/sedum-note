@@ -36,6 +36,7 @@ export async function startBrowserDevice(remote) {
   await page.goto("http://127.0.0.1:5173/");
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await page.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
+  await page.getByLabel("ほかのデバイスと同期する").check();
   for (const [label, , field] of REMOTE_FIELDS) {
     await page.getByLabel(label).fill(remote[field]);
   }

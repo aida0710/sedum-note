@@ -1,13 +1,13 @@
 // 1 件のメモの編集画面（タイトル・タグとノートブックの表示・本文）。
-// 打ったものは少し待ってからまとめて暗号化して保存する。
 
-import { type Editor, EditorContent, useEditor } from "@tiptap/react";
-import { ChevronLeft, Lock, MoreHorizontal, Star, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { documentHashtags, documentPlainText } from "../../core/notes/documentText";
+import { EditorContent, useEditor } from "@tiptap/react";
+import { ChevronLeft, Lock, MoreHorizontal, Star } from "lucide-react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { bodyPlainText, plainTextHashtags } from "../../core/notes/bodyText";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
+import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { useDialogs } from "../shared/DialogProvider";
 import { formatDateTime } from "../shared/formatTime";
 import { assignNotebookColors } from "../shared/notebookColor";
@@ -15,7 +15,6 @@ import { EditorToolbar } from "./EditorToolbar";
 import { createEditorExtensions } from "./editorExtensions";
 import { imageFilesOf, insertImageFiles } from "./imageFiles";
 import { NoteActionsMenu } from "./NoteActionsMenu";
-import { useEditorAutosave } from "./useEditorAutosave";
 
 type NoteEditorProps = {
   note: LiveNote;
@@ -30,61 +29,44 @@ type NoteEditorProps = {
 export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobile, onBack }: NoteEditorProps) {
   const [title, setTitle] = useState(note.content.title);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
-  const [keptCopyTitle, setKeptCopyTitle] = useState<string | null>(null);
+  const titleInput = useRef<HTMLInputElement>(null);
   const dialogs = useDialogs();
+  const unsyncedIds = useContext(UnsyncedRecordsContext);
   const noteId = note.id;
   const inTrash = note.content.trashedAt !== null;
-  const editorRef = useRef<Editor | null>(null);
-  const autosave = useEditorAutosave({
-    repository,
-    noteId,
-    initialBase: { title: note.content.title, document: note.content.document },
-    onKeptAsCopy: (current, copy) => {
-      editorRef.current?.commands.setContent((current.content.document as object | null) ?? "", { emitUpdate: false });
-      setTitle(current.content.title);
-      setKeptCopyTitle(copy.content.title);
-    },
-  });
 
+  // 本文は、メモの Yjs の文書をエディタが直接読み書きする。保存と同期は NoteRepository が文書の
+  // 変更を見て行い、ほかのデバイスの変更も同じ文書に入るので、開いたまま画面に出る。
   const editor = useEditor({
-    extensions: createEditorExtensions(),
-    content: (note.content.document as object | null) ?? "",
+    extensions: createEditorExtensions(note.body),
     editable: !inTrash,
-    onUpdate: ({ editor: current }) => autosave.schedule({ document: current.getJSON() }),
     editorProps: {
       handlePaste: (_view, event) => takeImageFiles(imageFilesOf(event.clipboardData?.files)),
       handleDrop: (_view, event) => takeImageFiles(imageFilesOf((event as DragEvent).dataTransfer?.files)),
     },
   }, [noteId]);
-  editorRef.current = editor;
 
   function takeImageFiles(files: File[]): boolean {
     if (files.length === 0 || !editor) {
       return false;
     }
-    void insertImageFiles({ files, editor, repository, noteId });
+    void insertImageFiles({ files, editor, repository });
     return true;
   }
 
-  // ほかのデバイスの変更を同期で取り込んだら、編集中でなければ表示を差し替える。
-  // 打っている途中のときは差し替えず、保存のときに競合として扱う。
+  // ほかのデバイスがタイトルを変えたら、打っている最中でなければ表示を差し替える。
   useEffect(() => {
-    if (!editor || autosave.hasPendingChanges()) {
-      return;
+    if (document.activeElement !== titleInput.current) {
+      setTitle(note.content.title);
     }
-    if (note.content.document !== null && JSON.stringify(editor.getJSON()) !== JSON.stringify(note.content.document)) {
-      editor.commands.setContent(note.content.document as object, { emitUpdate: false });
-    }
-    setTitle(note.content.title);
-    autosave.adoptStoredContent({ title: note.content.title, document: note.content.document });
-  }, [editor, autosave, note.content.document, note.content.title]);
+  }, [note.content.title]);
 
   useEffect(() => {
     editor?.setEditable(!inTrash);
   }, [editor, inTrash]);
 
-  const plainText = useMemo(() => documentPlainText(note.content.document), [note.content.document]);
-  const tags = useMemo(() => documentHashtags(plainText), [plainText]);
+  // note は本文が変わるたびに作り直されるので、タグもそのたびに取り直す。
+  const tags = useMemo(() => plainTextHashtags(bodyPlainText(note.body)), [note]);
   const notebookColors = assignNotebookColors(notebooks);
   const noteNotebooks = notebooks.filter((notebook) => note.content.notebookIds.includes(notebook.id));
 
@@ -139,23 +121,18 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
               </span>
             </div>
           )}
-          {keptCopyTitle && (
-            <div className="notice" role="status">
-              {translate("editor.keptAsCopy", { title: keptCopyTitle })}
-              <button className="icon-button" aria-label={translate("common.close")} onClick={() => setKeptCopyTitle(null)}><X size={14} /></button>
-            </div>
-          )}
           <div className="document-meta">
             {noteNotebooks.map((notebook) => (
               <span key={notebook.id} className="chip"><span className="dot" style={{ background: notebookColors.colorOf(notebook.id) }} />{notebook.content.name}</span>
             ))}
             {tags.map((tag) => <span key={tag} className="chip">#{tag}</span>)}
+            {unsyncedIds.has(noteId) && <span className="chip unsynced">{translate("editor.unsynced")}</span>}
             <span className="updated">{translate("editor.updatedAt", { time: formatDateTime(note.updatedAt) })}</span>
           </div>
           {/* 作ったばかりの空のメモは、すぐ打てるようにタイトルにカーソルを置く。 */}
-          <input className="title-input" value={title} placeholder={translate("editor.titlePlaceholder")} readOnly={inTrash}
-            autoFocus={note.content.title === "" && note.content.document === null}
-            onChange={(event) => { setTitle(event.target.value); autosave.schedule({ title: event.target.value }); }}
+          <input ref={titleInput} className="title-input" value={title} placeholder={translate("editor.titlePlaceholder")} readOnly={inTrash}
+            autoFocus={note.content.title === "" && bodyPlainText(note.body) === "" && note.content.attachments.length === 0}
+            onChange={(event) => { setTitle(event.target.value); void repository.updateNote(noteId, { title: event.target.value }); }}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.nativeEvent.isComposing) {
                 event.preventDefault();

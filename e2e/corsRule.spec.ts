@@ -11,6 +11,7 @@ async function startNewVault(page: Page, config: RemoteConfig): Promise<void> {
   await page.goto("/");
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await page.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
+  await page.getByLabel("ほかのデバイスと同期する").check();
   await page.getByLabel("エンドポイント").fill(config.endpoint);
   await page.getByLabel("バケット").fill(config.bucket);
   await page.getByLabel("リージョン").fill(config.region);

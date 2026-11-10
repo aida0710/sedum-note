@@ -207,11 +207,12 @@ jobs:
           path: src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
           if-no-files-found: error
 
-  # Web 版。main の画面を GitHub Pages（https://aida0710.github.io/sedum-note/）に置く。
+  # Web 版。リリースのタグのときだけ、その画面を GitHub Pages（https://aida0710.github.io/sedum-note/）に置く。
+  # main の push ごとに置くと、保存の形式を変えている途中の画面が、使っている人の手元のデータに当たる。
   pages:
     name: Web (GitHub Pages)
     needs: checks
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: read

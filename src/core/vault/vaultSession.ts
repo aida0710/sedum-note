@@ -12,7 +12,6 @@ import { ensureConditionalWrites } from "../remote/conditionalWriteCheck";
 import type { ObjectStore } from "../remote/objectStore";
 import { PreconditionFailedError } from "../remote/objectStore";
 import type { RemoteConfig } from "../remote/remoteConfig";
-import type { ConflictCopyFactory } from "../sync/conflictResolution";
 import { SyncEngine } from "../sync/syncEngine";
 import { readRemoteVault, writeRemoteVault } from "./remoteVault";
 import { changeVaultPassphrase, createVault, unlockVault, type VaultDocument } from "./vaultDocument";
@@ -38,7 +37,6 @@ export class VaultNotFoundError extends Error {
 export type VaultSessionEnvironment = {
   localStore: LocalStore;
   createObjectStore: (config: RemoteConfig) => ObjectStore;
-  conflictCopyTitle: (originalTitle: string) => string;
 };
 
 export type UnlockedVault = {
@@ -122,19 +120,19 @@ async function assembleUnlockedVault(
 ): Promise<UnlockedVault> {
   const { localStore } = environment;
   const deviceId = (await localStore.readSetting<string>("deviceId")) ?? newRandomId();
-  const writeQueue = new SerialQueue();
-  const conflictCopies: ConflictCopyFactory = { newId: newRandomId, copyTitle: environment.conflictCopyTitle };
-  const syncEngine = remoteConfig
-    ? new SyncEngine({ localStore, objectStore: environment.createObjectStore(remoteConfig), masterKey, writeQueue, conflictCopies })
-    : null;
+  // 添付の取得は同期の部品が行い、同期の部品は記録の書き込みに repository を使う。
+  // 互いを使うので、repository を先に作り、添付の取得はあとから作る syncEngine へ回す。
+  let syncEngine: SyncEngine | null = null;
   const repository = new NoteRepository({
     localStore,
     masterKey,
     deviceId,
-    writeQueue,
+    writeQueue: new SerialQueue(),
     downloadBlob: (id) => syncEngine?.downloadBlob(id) ?? Promise.resolve(null),
-    conflictCopyTitle: environment.conflictCopyTitle,
   });
+  if (remoteConfig) {
+    syncEngine = new SyncEngine({ localStore, objectStore: environment.createObjectStore(remoteConfig), repository });
+  }
   await repository.load();
   return { masterKey, repository, syncEngine, remoteConfig };
 }

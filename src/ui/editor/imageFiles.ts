@@ -2,7 +2,8 @@
 
 import type { Editor } from "@tiptap/react";
 import type { NoteRepository } from "../../core/notes/noteRepository";
-import { ATTACHMENT_IMAGE_NODE, type AttachmentImageAttributes } from "./attachmentImageNode";
+import { ATTACHMENT_IMAGE_NODE } from "../../core/notes/bodyText";
+import type { AttachmentImageAttributes } from "./attachmentImageNode";
 
 export function imageFilesOf(files: FileList | null | undefined): File[] {
   return Array.from(files ?? []).filter((file) => file.type.startsWith("image/"));
@@ -12,21 +13,15 @@ type InsertImageFilesInput = {
   files: File[];
   editor: Editor;
   repository: NoteRepository;
-  noteId: string;
 };
 
-export async function insertImageFiles({ files, editor, repository, noteId }: InsertImageFilesInput): Promise<void> {
+export async function insertImageFiles({ files, editor, repository }: InsertImageFilesInput): Promise<void> {
   for (const file of files) {
     const reference = await repository.storeAttachment({
       bytes: new Uint8Array(await file.arrayBuffer()),
       mimeType: file.type,
       fileName: file.name,
     });
-    const note = repository.note(noteId);
-    if (!note) {
-      return;
-    }
-    await repository.updateNote(noteId, { attachments: [...note.content.attachments, reference] });
     const attributes: AttachmentImageAttributes = { attachmentId: reference.id, fileName: reference.fileName, mimeType: reference.mimeType };
     // 画像だけを入れると画像が選ばれたままになり、続けて打つ文字や書式のボタンが
     // 効かない。後ろに空の段落を足して、そこへ移る。本文にカーソルが無いとき

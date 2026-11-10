@@ -5,7 +5,7 @@ import { UnlockScreen } from "./entry/UnlockScreen";
 import { DialogProvider } from "./shared/DialogProvider";
 import { AttachmentReaderContext } from "./editor/attachmentReader";
 import { MobileWorkspace } from "./mobile/MobileWorkspace";
-import { useRepositorySnapshot } from "./session/useRepositorySnapshot";
+import { UnsyncedRecordsContext, useRepositorySnapshot } from "./session/useRepositorySnapshot";
 import { useVaultSession, type VaultSession } from "./session/useVaultSession";
 import { MOBILE_LAYOUT_QUERY, useMediaQuery } from "./shared/useMediaQuery";
 import { DesktopWorkspace } from "./workspace/DesktopWorkspace";
@@ -26,6 +26,9 @@ export function App() {
   }
 }
 
+// 同期を設定していなければ、未送信の印は出さない（送る先が無い）。
+const NO_UNSYNCED_RECORDS: ReadonlySet<string> = new Set();
+
 function UnlockedApp({ session, vault }: { session: VaultSession; vault: UnlockedVault }) {
   const snapshot = useRepositorySnapshot(vault.repository);
   const navigation = useWorkspaceNavigation();
@@ -33,9 +36,11 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   const props = { session, vault, snapshot, navigation };
   return (
     <AttachmentReaderContext.Provider value={vault.repository.readAttachment.bind(vault.repository)}>
-      <DialogProvider>
-        {isMobile ? <MobileWorkspace {...props} /> : <DesktopWorkspace {...props} />}
-      </DialogProvider>
+      <UnsyncedRecordsContext.Provider value={vault.syncEngine ? snapshot.unsyncedIds : NO_UNSYNCED_RECORDS}>
+        <DialogProvider>
+          {isMobile ? <MobileWorkspace {...props} /> : <DesktopWorkspace {...props} />}
+        </DialogProvider>
+      </UnsyncedRecordsContext.Provider>
     </AttachmentReaderContext.Provider>
   );
 }

@@ -1,6 +1,6 @@
 // 画面に並べるメモの絞り込みと並べ替え。画面の部品から切り離して試験できるようにする。
 
-import { documentHashtags, documentPlainText } from "./documentText";
+import { bodyPlainText, plainTextHashtags } from "./bodyText";
 import type { LiveNote, LiveNotebook } from "./noteRecords";
 
 export type NoteView =
@@ -17,8 +17,8 @@ export type NoteSummary = {
 };
 
 export function summarizeNote(note: LiveNote): NoteSummary {
-  const plainText = documentPlainText(note.content.document);
-  return { note, plainText, tags: documentHashtags(plainText) };
+  const plainText = bodyPlainText(note.body);
+  return { note, plainText, tags: plainTextHashtags(plainText) };
 }
 
 function belongsToView(summary: NoteSummary, view: NoteView): boolean {

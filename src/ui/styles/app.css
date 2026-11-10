@@ -104,6 +104,8 @@ button:disabled { cursor: default; opacity: .55; }
 .document-meta { color: var(--muted); font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; min-height: 22px; }
 .document-meta .updated { margin-left: auto; }
 .chip { background: var(--tag); border-radius: 999px; padding: 2px 9px; font-size: 11.5px; color: var(--text); display: inline-flex; align-items: center; gap: 5px; }
+.unsynced-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 6px; vertical-align: middle; flex: none; }
+.chip.unsynced { background: var(--accent-soft); color: var(--accent); }
 .title-input { font-size: 26px; font-weight: 700; border: 0; outline: 0; width: 100%; background: none; margin-bottom: 14px; padding: 0; }
 .title-input::placeholder { color: var(--muted); opacity: .6; }
 .trash-banner { background: var(--tag); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; color: var(--muted); }

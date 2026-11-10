@@ -3,7 +3,6 @@
 import { IndexedDbLocalStore } from "../../core/local/indexedDbLocalStore";
 import { S3ObjectStore } from "../../core/remote/s3ObjectStore";
 import type { VaultSessionEnvironment } from "../../core/vault/vaultSession";
-import { translate } from "../i18n/translate";
 
 const LOCAL_DATABASE_NAME = "sedum-note";
 
@@ -11,6 +10,5 @@ export function createAppEnvironment(): VaultSessionEnvironment {
   return {
     localStore: new IndexedDbLocalStore(LOCAL_DATABASE_NAME),
     createObjectStore: (config) => new S3ObjectStore(config),
-    conflictCopyTitle: (title) => `${title || translate("sidebar.untitled")}（競合コピー）`,
   };
 }

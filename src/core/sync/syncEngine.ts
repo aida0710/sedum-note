@@ -1,18 +1,16 @@
 // 手元の記録と同期先を揃える。1 回の syncOnce で次の順に行う。
 //
-// 1. 送っていない添付を送る（記録より先に置き、参照先の無いメモを見せない）
-// 2. 同期先の一覧と手元の ETag を比べ、変わった記録を取り込む
-// 3. 手元で変えた記録を条件付き PUT で送る。先に変えられていたら競合を解く
+// 1. 同期先の vault.json を確かめる（ほかのデバイスでのパスフレーズの変更を取り込む）
+// 2. 送っていない添付を送る（記録より先に置き、参照先の無いメモを見せない）
+// 3. 同期先の一覧と手元の ETag を比べ、変わった記録を取り込んでマージする
+// 4. 手元で変えた記録を条件付き PUT で送る。先に変えられていたら、取り込んでマージしてから送り直す
 //
-// 記録はオブジェクトごとに条件付きで書くので、ロックは要らない。同期先から
-// 消えた記録は、手元の写しから送り直す（どこかで消えても、データを失わない）。
+// 記録は Yjs の文書なので、2 台の変更はマージで 1 つになり、競合は起きない。条件付き PUT は
+// 「マージしていない中身で上書きしない」ために使う。手元の記録の書き込みは NoteRepository が行う。
 
 import type { LocalRecordEntry, LocalStore } from "../local/localStore";
-import type { SerialQueue } from "../local/serialQueue";
-import type { SyncedRecord } from "../notes/noteRecords";
-import { openRecord, sealRecord } from "../notes/recordCodec";
+import type { NoteRepository } from "../notes/noteRepository";
 import { type ObjectStore, PreconditionFailedError, type WriteCondition } from "../remote/objectStore";
-import { type ConflictCopyFactory, resolveConflict } from "./conflictResolution";
 import { readRemoteVault } from "../vault/remoteVault";
 import type { VaultDocument } from "../vault/vaultDocument";
 import { blobObjectKey, RECORDS_PREFIX, recordIdFromObjectKey, recordObjectKey } from "./remoteLayout";
@@ -27,10 +25,9 @@ export class VaultReplacedError extends Error {
 }
 
 export type SyncReport = {
-  // 同期先から取り込んだ記録の ID。画面の表示を更新するのに使う。
-  pulledIds: string[];
+  // 同期先から取り込んだ記録の数。
+  pulledCount: number;
   pushedCount: number;
-  conflictCopyIds: string[];
   // 開けなかった記録（壊れている、または別のキーで暗号化されている）。
   unreadableIds: string[];
 };
@@ -38,9 +35,7 @@ export type SyncReport = {
 export type SyncEngineDependencies = {
   localStore: LocalStore;
   objectStore: ObjectStore;
-  masterKey: CryptoKey;
-  writeQueue: SerialQueue;
-  conflictCopies: ConflictCopyFactory;
+  repository: NoteRepository;
 };
 
 export class SyncEngine {
@@ -60,12 +55,14 @@ export class SyncEngine {
   }
 
   async #sync(): Promise<SyncReport> {
-    const report: SyncReport = { pulledIds: [], pushedCount: 0, conflictCopyIds: [], unreadableIds: [] };
+    const report: SyncReport = { pulledCount: 0, pushedCount: 0, unreadableIds: [] };
     await this.#adoptRemoteVaultDocument();
     await this.#uploadWaitingBlobs();
     const remoteEtags = await this.#listRemoteRecords();
     await this.#pullChangedRecords(remoteEtags, report);
     await this.#pushWaitingRecords(remoteEtags, report);
+    // 記録を送る間に貼られた添付や、削除の印の上へ送り直すことになった添付を送る。
+    await this.#uploadWaitingBlobs();
     return report;
   }
 
@@ -75,15 +72,11 @@ export class SyncEngine {
     const { localStore, objectStore } = this.#dependencies;
     const stored = await readRemoteVault(objectStore);
     const local = await localStore.readSetting<VaultDocument>("vault");
-    if (stored === null || !local) {
+    if (stored === null || !local || stored.document.vaultId !== local.vaultId) {
       throw new VaultReplacedError();
     }
-    const remote = stored.document;
-    if (remote.vaultId !== local.vaultId) {
-      throw new VaultReplacedError();
-    }
-    if (remote.wrappedMasterKey !== local.wrappedMasterKey) {
-      await localStore.writeSetting("vault", remote);
+    if (stored.document.wrappedMasterKey !== local.wrappedMasterKey) {
+      await localStore.writeSetting("vault", stored.document);
     }
   }
 
@@ -114,130 +107,81 @@ export class SyncEngine {
   }
 
   async #pullChangedRecords(remoteEtags: Map<string, string>, report: SyncReport): Promise<void> {
-    const { localStore, objectStore, writeQueue } = this.#dependencies;
+    const { localStore, repository } = this.#dependencies;
     const localEntries = new Map((await localStore.listRecordEntries()).map((entry) => [entry.id, entry]));
     for (const [id, etag] of remoteEtags) {
-      const local = localEntries.get(id);
-      if (local && (local.remoteEtag === etag || local.waitingForPush)) {
-        // 揃っている。または手元の変更を送るときに競合として扱う。
+      if (localEntries.get(id)?.remoteEtag === etag) {
         continue;
       }
-      const remote = await objectStore.get(recordObjectKey(id));
-      if (remote === null) {
-        continue;
-      }
-      if (!(await this.#canOpen(id, remote.body))) {
-        report.unreadableIds.push(id);
-        continue;
-      }
-      const stored = await writeQueue.run(async () => {
-        const latest = await localStore.getRecordEntry(id);
-        if (latest?.waitingForPush) {
-          return false;
-        }
-        await localStore.putRecordEntry({ id, sealed: remote.body, remoteEtag: remote.etag, waitingForPush: false });
-        return true;
-      });
-      if (stored) {
-        report.pulledIds.push(id);
+      if (await this.#fetchAndMerge(id, report)) {
+        report.pulledCount += 1;
       }
     }
-    // 同期先から消えた記録は、手元の写しから送り直す。
     for (const entry of localEntries.values()) {
       if (entry.remoteEtag !== null && !remoteEtags.has(entry.id)) {
-        await writeQueue.run(async () => {
-          const latest = await localStore.getRecordEntry(entry.id);
-          if (latest) {
-            await localStore.putRecordEntry({ ...latest, remoteEtag: null, waitingForPush: true });
-          }
-        });
+        await repository.markMissingRemotely(entry.id);
       }
     }
   }
 
+  // 同期先の記録を取ってきて、手元の記録へマージする。取り込めたら true。
+  async #fetchAndMerge(id: string, report: SyncReport): Promise<boolean> {
+    const remote = await this.#dependencies.objectStore.get(recordObjectKey(id));
+    if (remote === null) {
+      return false;
+    }
+    try {
+      await this.#dependencies.repository.applyRemote(id, remote.body, remote.etag);
+      return true;
+    } catch {
+      if (!report.unreadableIds.includes(id)) {
+        report.unreadableIds.push(id);
+      }
+      return false;
+    }
+  }
+
   async #pushWaitingRecords(remoteEtags: Map<string, string>, report: SyncReport): Promise<void> {
-    const { localStore } = this.#dependencies;
-    const waiting = (await localStore.listRecordEntries()).filter((entry) => entry.waitingForPush);
-    for (const entry of waiting) {
-      const condition: WriteCondition =
-        entry.remoteEtag !== null && remoteEtags.has(entry.id) ? { ifMatch: entry.remoteEtag } : { ifAbsent: true };
+    const { repository } = this.#dependencies;
+    for (const entry of await repository.entriesWaitingForPush()) {
       try {
-        await this.#pushEntry(entry, condition);
+        await this.#pushEntry(entry, remoteEtags.has(entry.id));
         report.pushedCount += 1;
       } catch (error) {
         if (!(error instanceof PreconditionFailedError)) {
           throw error;
         }
-        await this.#resolvePushConflict(entry, report);
+        // 一覧を取ったあとに、ほかのデバイスが先に書いた。取り込んでマージし、その上へ送り直す。
+        // それも先を越されたら、次の周回に回す。
+        if (!(await this.#fetchAndMerge(entry.id, report))) {
+          continue;
+        }
+        report.pulledCount += 1;
+        const merged = (await repository.entriesWaitingForPush()).find((candidate) => candidate.id === entry.id);
+        if (!merged) {
+          continue;
+        }
+        try {
+          await this.#pushEntry(merged, true);
+          report.pushedCount += 1;
+        } catch (retryError) {
+          if (!(retryError instanceof PreconditionFailedError)) {
+            throw retryError;
+          }
+        }
       }
     }
   }
 
-  // 送ったあと、送っている間に手元で書き換えられていなければ「揃った」にする。
-  async #pushEntry(entry: LocalRecordEntry, condition: WriteCondition): Promise<void> {
-    const { localStore, objectStore, writeQueue } = this.#dependencies;
+  async #pushEntry(entry: LocalRecordEntry, existsRemotely: boolean): Promise<void> {
+    const { objectStore, repository } = this.#dependencies;
+    const condition: WriteCondition =
+      entry.remoteEtag !== null && existsRemotely ? { ifMatch: entry.remoteEtag } : { ifAbsent: true };
     const { etag } = await objectStore.put(recordObjectKey(entry.id), entry.sealed, condition);
-    await writeQueue.run(async () => {
-      const latest = await localStore.getRecordEntry(entry.id);
-      const unchanged = latest !== undefined && sameBytes(latest.sealed, entry.sealed);
-      await localStore.putRecordEntry({
-        id: entry.id,
-        sealed: latest?.sealed ?? entry.sealed,
-        remoteEtag: etag,
-        waitingForPush: !unchanged,
-      });
-    });
-  }
-
-  async #resolvePushConflict(entry: LocalRecordEntry, report: SyncReport): Promise<void> {
-    const { localStore, objectStore, masterKey, writeQueue, conflictCopies } = this.#dependencies;
-    const remote = await objectStore.get(recordObjectKey(entry.id));
-    if (remote === null) {
-      // 一覧のあとに消された。次の周回で送り直す。
-      return;
-    }
-    let remoteRecord: SyncedRecord;
-    try {
-      remoteRecord = await openRecord(masterKey, entry.id, remote.body);
-    } catch {
-      // 同期先の方が開けないなら、手元の方で置き換える。
-      await this.#pushEntry(entry, { ifMatch: remote.etag });
-      report.pushedCount += 1;
-      return;
-    }
-    const localRecord = await openRecord(masterKey, entry.id, entry.sealed);
-    const outcome = resolveConflict(localRecord, remoteRecord, conflictCopies);
-    if (outcome.kind === "push_local") {
-      await this.#pushEntry(entry, { ifMatch: remote.etag });
-      report.pushedCount += 1;
-      return;
-    }
-    const copySealed = outcome.kind === "accept_remote_and_add_copy" ? await sealRecord(masterKey, outcome.copy) : null;
-    await writeQueue.run(async () => {
-      const latest = await localStore.getRecordEntry(entry.id);
-      if (latest && !sameBytes(latest.sealed, entry.sealed)) {
-        // 解いている間にまた編集された。その編集を次の周回で同じように扱う。
-        await localStore.putRecordEntry({ ...latest, remoteEtag: remote.etag });
-        return;
-      }
-      await localStore.putRecordEntry({ id: entry.id, sealed: remote.body, remoteEtag: remote.etag, waitingForPush: false });
-    });
-    report.pulledIds.push(entry.id);
-    if (outcome.kind === "accept_remote_and_add_copy" && copySealed !== null) {
-      const copyEntry: LocalRecordEntry = { id: outcome.copy.id, sealed: copySealed, remoteEtag: null, waitingForPush: true };
-      await writeQueue.run(() => localStore.putRecordEntry(copyEntry));
-      await this.#pushEntry(copyEntry, { ifAbsent: true });
-      report.conflictCopyIds.push(outcome.copy.id);
-      report.pulledIds.push(outcome.copy.id);
-    }
-  }
-
-  async #canOpen(id: string, sealed: Uint8Array): Promise<boolean> {
-    try {
-      await openRecord(this.#dependencies.masterKey, id, sealed);
-      return true;
-    } catch {
-      return false;
+    const { removedAttachmentIds } = await repository.confirmPushed(entry, etag);
+    // 削除の印が同期先に入ってから、貼ってあった添付を消す（消したら戻せない）。
+    for (const attachmentId of removedAttachmentIds) {
+      await objectStore.delete(blobObjectKey(attachmentId));
     }
   }
 
@@ -251,16 +195,4 @@ export class SyncEngine {
     await localStore.putBlob({ id, sealed: remote.body, uploaded: true });
     return remote.body;
   }
-}
-
-function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
-  if (left.length !== right.length) {
-    return false;
-  }
-  for (let index = 0; index < left.length; index += 1) {
-    if (left[index] !== right[index]) {
-      return false;
-    }
-  }
-  return true;
 }

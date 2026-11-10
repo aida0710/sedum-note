@@ -52,6 +52,7 @@ test("PC で書いた写真付きのメモが、スマホの大きさのもう 1
   await laptop.goto("/");
   await laptop.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await laptop.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
+  await laptop.getByLabel("ほかのデバイスと同期する").check();
   await fillRemoteConfig(laptop, remoteConfig);
   await laptop.getByRole("button", { name: "作成" }).click();
 
@@ -110,7 +111,6 @@ test("写真は貼り付けとドロップでも本文に入る", async ({ brows
   await page.goto("/");
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await page.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
-  await page.getByLabel("同期はあとで設定する").check();
   await page.getByRole("button", { name: "作成" }).click();
   await page.getByRole("button", { name: "新しいメモ" }).click();
   await page.locator(".ProseMirror").click();

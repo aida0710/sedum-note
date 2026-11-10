@@ -14,18 +14,21 @@
   },
   "dependencies": {
     "@tauri-apps/api": "2.12.4",
+    "@tiptap/extension-collaboration": "3.32.0",
     "@tiptap/extension-image": "3.32.0",
     "@tiptap/extension-list": "3.32.0",
     "@tiptap/extensions": "3.32.0",
     "@tiptap/pm": "3.32.0",
     "@tiptap/react": "3.32.0",
     "@tiptap/starter-kit": "3.32.0",
+    "@tiptap/y-tiptap": "3.0.10",
     "aws4fetch": "1.0.20",
     "hash-wasm": "4.13.0",
     "idb": "8.0.4",
     "lucide-react": "1.48.0",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "yjs": "13.6.33"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",

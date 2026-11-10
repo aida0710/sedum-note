@@ -2,10 +2,9 @@
 // 添付（blobs/<id>）として別に暗号化して置く。
 
 import { mergeAttributes, Node, NodeViewWrapper, type ReactNodeViewProps, ReactNodeViewRenderer } from "@tiptap/react";
+import { ATTACHMENT_IMAGE_NODE } from "../../core/notes/bodyText";
 import { translate } from "../i18n/translate";
 import { useAttachmentUrl } from "./attachmentReader";
-
-export const ATTACHMENT_IMAGE_NODE = "attachmentImage";
 
 export type AttachmentImageAttributes = { attachmentId: string; fileName: string; mimeType: string };
 

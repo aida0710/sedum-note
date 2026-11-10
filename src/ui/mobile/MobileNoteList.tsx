@@ -1,9 +1,11 @@
 // スマホのメモの一覧（検索・ノートブックの切り替え・要約とサムネイル）。
 
 import { Pin, Search } from "lucide-react";
+import { useContext } from "react";
 import type { NoteSummary, NoteView } from "../../core/notes/noteQueries";
 import { useAttachmentUrl } from "../editor/attachmentReader";
 import { translate } from "../i18n/translate";
+import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { formatShortDate } from "../shared/formatTime";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
 
@@ -56,12 +58,13 @@ export function NoteList({ title, summaries, notebooks, view, showChips, navigat
 
 function NoteListItem({ summary, notebooks, onOpen }: { summary: NoteSummary; notebooks: NotebookChoice[]; onOpen: (noteId: string) => void }) {
   const { note, plainText } = summary;
+  const unsyncedIds = useContext(UnsyncedRecordsContext);
   const firstImage = note.content.attachments.find((attachment) => attachment.mimeType.startsWith("image/")) ?? null;
   const thumbnail = useAttachmentUrl(firstImage?.id ?? null, firstImage?.mimeType);
   const notebookNames = notebooks.filter((notebook) => note.content.notebookIds.includes(notebook.id)).map((notebook) => notebook.name);
   return (
     <button className="note-item" onClick={() => onOpen(note.id)}>
-      <h3>{note.content.pinned && <Pin size={13} className="pin" />}{note.content.title || translate("sidebar.untitled")}</h3>
+      <h3>{unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}{note.content.pinned && <Pin size={13} className="pin" />}{note.content.title || translate("sidebar.untitled")}</h3>
       {firstImage && thumbnail.state === "ready" && <img className="thumb" src={thumbnail.url} alt="" />}
       <p>{plainText}</p>
       <span className="meta">{[formatShortDate(note.updatedAt), ...notebookNames].join(" · ")}</span>
