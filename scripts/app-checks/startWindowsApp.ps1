@@ -1,3 +1,4 @@
+﻿# Windows PowerShell 5.1 が日本語のコメントを読み違えないよう、このファイルは BOM 付きの UTF-8 で保存する。
 # Windows の試験用の VM で、CI が作ったインストーラーを黙って入れ、WebView2 の DevTools を
 # 開いた状態でアプリを起動する。SSH のセッションからは画面に起動できないので、
 # ログオン中の利用者の対話のタスクとして起動する。手で流す確認の道具。
@@ -24,7 +25,10 @@ Set-Content -Path $launcher -Encoding ASCII -Value @(
   "set WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=$DebugPort",
   "start """" ""$app"""
 )
+# 対話のログオンのタスクなら、SSH のセッションからでもパスワードなしでログオン中の画面に起動できる。
 $taskName = "memo-app-check"
-schtasks /Create /F /TN $taskName /TR $launcher /SC ONCE /ST 00:00 /RU $env:USERNAME /IT | Out-Null
-schtasks /Run /TN $taskName | Out-Null
+$action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c `"$launcher`""
+$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive
+Register-ScheduledTask -TaskName $taskName -Action $action -Principal $principal -Force | Out-Null
+Start-ScheduledTask -TaskName $taskName
 Write-Output "started $app with DevTools on port $DebugPort"

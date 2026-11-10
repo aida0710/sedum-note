@@ -120,6 +120,35 @@ jobs:
             linux-app.log
           if-no-files-found: error
 
+  # 確認専用の Windows のビルド。WebView2 の DevTools を 127.0.0.1:9222 に開き、組み立てたアプリを
+  # 外から操作して確かめる（scripts/app-checks/syncWithApp.mjs）。配布するビルドには DevTools の口を
+  # 入れない（動いている間、このマシンのほかのプロセスから復号したメモが読めてしまう）。
+  # WebView2 157 は、アプリが引数を渡すと WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS を使わないので、
+  # 窓の設定（additionalBrowserArgs）で渡す。手で起動したときだけ作り、リリースには載せない。
+  windows-check-build:
+    name: Windows check build (DevTools)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm install -g npm@${{ env.NPM_VERSION }}
+      - run: npm ci
+      - run: rustup toolchain install stable --profile minimal
+      - name: Build with DevTools on 127.0.0.1:9222
+        shell: bash
+        run: |
+          window=$(jq -c '.app.windows[0] + {additionalBrowserArgs: "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --remote-debugging-port=9222"}' src-tauri/tauri.conf.json)
+          npx tauri build --no-bundle --config "{\"app\":{\"windows\":[$window]}}"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: memo-app-Windows-check
+          path: src-tauri/target/release/memo-app.exe
+          if-no-files-found: error
+
   android:
     name: Android
     needs: checks
