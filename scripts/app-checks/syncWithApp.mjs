@@ -58,5 +58,34 @@ await screenshotDevice(app, "app-editor");
 await app.waitForTimeout(4_000);
 await expectNoteFromApp(laptop.page, `${outputDirectory}/browser-after-app.png`);
 console.log("both directions synced");
+
+// 4. 同じメモを両方で開いたまま書き足し、1 つのメモにマージされるか。
+await laptop.page.getByRole("button", { name: /アプリで書いたメモ/ }).first().click();
+await laptop.page.locator(".ProseMirror").getByText("アプリから同期").click();
+await laptop.page.keyboard.press("Home");
+await laptop.page.keyboard.type("PCから追記。");
+await app.locator(".ProseMirror").getByText("アプリから同期").click();
+await app.keyboard.press("End");
+await app.keyboard.type("。アプリから追記");
+// どちらも編集の 2 秒後に送る。先に送った方は、もう一度書いたときに相手の分を取り込む。
+await app.waitForTimeout(6_000);
+await laptop.page.keyboard.press("End");
+await laptop.page.keyboard.type("！");
+await app.waitForTimeout(6_000);
+await app.keyboard.type("？");
+await app.waitForTimeout(6_000);
+// ほかのデバイスの変更を取りに行くのは 60 秒おきなので、画面に戻ったときの同期を起こして待つ。
+await laptop.page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+await laptop.page.waitForTimeout(4_000);
+// 同時に書いた文字の並び順は決まっていないので、両方が同じ本文で、どの書き込みも含むことを見る。
+const browserText = await laptop.page.locator(".ProseMirror").innerText();
+const appText = await app.locator(".ProseMirror").innerText();
+const written = ["PCから追記。", "アプリから同期", "。アプリから追記", "！", "？"];
+if (browserText !== appText || !written.every((part) => browserText.includes(part))) {
+  throw new Error(`not merged. browser: ${browserText} / app: ${appText}`);
+}
+await screenshotDevice(app, "app-merged");
+await laptop.page.screenshot({ path: `${outputDirectory}/browser-merged.png` });
+console.log("concurrent edits merged");
 await laptop.browser.close();
 await appBrowser.close();
