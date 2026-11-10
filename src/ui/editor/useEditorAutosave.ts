@@ -35,7 +35,7 @@ export function useEditorAutosave({ repository, noteId, initialBase, onKeptAsCop
   const onKeptAsCopyRef = useRef(onKeptAsCopy);
   onKeptAsCopyRef.current = onKeptAsCopy;
 
-  const flush = useRef(async () => {
+  const saveChanges = async () => {
     if (timer.current !== null) {
       clearTimeout(timer.current);
       timer.current = null;
@@ -46,12 +46,17 @@ export function useEditorAutosave({ repository, noteId, initialBase, onKeptAsCop
       return;
     }
     const outcome = await repository.saveEditorChanges(noteId, changes, base.current);
-    if (outcome.kind === "saved") {
-      base.current = { title: outcome.note.content.title, document: outcome.note.content.document };
-      return;
-    }
     base.current = { title: outcome.note.content.title, document: outcome.note.content.document };
-    onKeptAsCopyRef.current(outcome.note, outcome.copy);
+    if (outcome.kind === "kept_as_copy") {
+      onKeptAsCopyRef.current(outcome.note, outcome.copy);
+    }
+  };
+  // 保存は 1 つずつ順に流す。重なると、後の保存が前の保存の前の base と比べてしまい、
+  // 自分の書いた内容を「ほかのデバイスの変更」と取り違えて競合コピーを作る。
+  const saving = useRef<Promise<void>>(Promise.resolve());
+  const flush = useRef(() => {
+    saving.current = saving.current.then(saveChanges, saveChanges);
+    return saving.current;
   }).current;
 
   useEffect(() => {

@@ -5,7 +5,7 @@
 
 import { chromium } from "@playwright/test";
 
-const browser = await chromium.connectOverCDP("http://127.0.0.1:9333", { noDefaults: true });
+const browser = await chromium.connectOverCDP(process.env.CDP_ENDPOINT ?? "http://127.0.0.1:9333", { noDefaults: true });
 const page = browser.contexts()[0].pages()[0];
 await page.evaluate(() => {
   window.__cspViolations = [];

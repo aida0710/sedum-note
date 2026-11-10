@@ -1,34 +1,40 @@
 ﻿# Windows PowerShell 5.1 が日本語のコメントを読み違えないよう、このファイルは BOM 付きの UTF-8 で保存する。
-# Windows の試験用の VM で、CI が作ったインストーラーを黙って入れ、WebView2 の DevTools を
-# 開いた状態でアプリを起動する。SSH のセッションからは画面に起動できないので、
-# ログオン中の利用者の対話のタスクとして起動する。手で流す確認の道具。
+# Windows の試験用の VM で、アプリを起動する。-Installer を渡せば先に黙って入れる。
+# 外から操作するには、CI の確認用のビルド（成果物 memo-app-Windows-check、DevTools を
+# 127.0.0.1:9222 に開く）を -App に渡す。配布するビルドは DevTools を開かない。
+# SSH のセッションからは画面に起動できないので、ログオン中の利用者の対話のタスクとして起動する。
+# -Fresh を付けると、アプリの保存（WebView2 の IndexedDB）を消してから起動する。手で流す確認の道具。
 #
-# 使い方: powershell -File startWindowsApp.ps1 -Installer C:\Users\<名前>\memo-app-setup.exe
+# 使い方: powershell -File startWindowsApp.ps1 -Installer <setup.exe>
+#         powershell -File startWindowsApp.ps1 -App <確認用の memo-app.exe> -Fresh
 param(
-  [Parameter(Mandatory = $true)][string]$Installer,
-  # WebView2 の DevTools を開く VM の中のポート。手元へは ssh -L で転送する。
-  [int]$DebugPort = 9222
+  [string]$Installer,
+  [string]$App,
+  [switch]$Fresh
 )
 $ErrorActionPreference = "Stop"
 
-Start-Process -FilePath $Installer -ArgumentList "/S" -Wait
-$app = Join-Path $env:LOCALAPPDATA "memo-app\memo-app.exe"
-if (-not (Test-Path $app)) {
-  $app = Join-Path $env:ProgramFiles "memo-app\memo-app.exe"
+if ($Installer) {
+  Start-Process -FilePath $Installer -ArgumentList "/S" -Wait
 }
-if (-not (Test-Path $app)) {
-  throw "memo-app.exe was not installed where expected"
+if (-not $App) {
+  $App = Join-Path $env:LOCALAPPDATA "memo-app\memo-app.exe"
+}
+if (-not (Test-Path $App)) {
+  throw "memo-app.exe was not found at $App"
+}
+Stop-Process -Name memo-app -Force -ErrorAction SilentlyContinue
+if ($Fresh) {
+  Start-Sleep 2
+  Remove-Item (Join-Path $env:LOCALAPPDATA "com.github.aida0710.memoapp") -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 $launcher = Join-Path $env:TEMP "start-memo-app.cmd"
-Set-Content -Path $launcher -Encoding ASCII -Value @(
-  "set WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=$DebugPort",
-  "start """" ""$app"""
-)
+Set-Content -Path $launcher -Encoding ASCII -Value @("start """" ""$App""")
 # 対話のログオンのタスクなら、SSH のセッションからでもパスワードなしでログオン中の画面に起動できる。
 $taskName = "memo-app-check"
 $action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c `"$launcher`""
 $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive
 Register-ScheduledTask -TaskName $taskName -Action $action -Principal $principal -Force | Out-Null
 Start-ScheduledTask -TaskName $taskName
-Write-Output "started $app with DevTools on port $DebugPort"
+Write-Output "started $App"
