@@ -106,11 +106,51 @@ jobs:
       - run: npm ci
       - run: rustup toolchain install stable --profile minimal && rustup target add aarch64-linux-android
       - run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION" > /dev/null
-      # 署名の鍵をまだ用意していないので、そのまま入れられるデバッグ版を作る。
       # 全 ABI を入れると 1 GB を超えるので、今のスマホの 64 ビット ARM だけにする。
-      - run: NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION" npx tauri android build --debug --apk --target aarch64
+      # 配布用の鍵で署名し、入れたアプリを次の版で上書きできるようにする。鍵は Actions の
+      # シークレットにあり、フォークからの PR では渡らないので、そのときは署名せずに作る。
+      - name: Build the signed release APK
+        env:
+          MEMO_ANDROID_KEYSTORE_BASE64: ${{ secrets.MEMO_ANDROID_KEYSTORE_BASE64 }}
+          MEMO_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.MEMO_ANDROID_KEYSTORE_PASSWORD }}
+          MEMO_ANDROID_KEY_ALIAS: ${{ secrets.MEMO_ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -n "$MEMO_ANDROID_KEYSTORE_BASE64" ]; then
+            export MEMO_ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/release.p12"
+            printf '%s' "$MEMO_ANDROID_KEYSTORE_BASE64" | base64 -d > "$MEMO_ANDROID_KEYSTORE_PATH"
+          fi
+          NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION" npx tauri android build --apk --target aarch64
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: memo-app-Android
-          path: src-tauri/gen/android/app/build/outputs/apk/universal/debug/*.apk
+          path: src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
           if-no-files-found: error
+
+  # Web 版。main の画面を GitHub Pages（https://aida0710.github.io/memo-app/）に置く。
+  pages:
+    name: Web (GitHub Pages)
+    needs: checks
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm install -g npm@${{ env.NPM_VERSION }}
+      - run: npm ci
+      - run: npm run build -- --base /memo-app/
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -1,6 +1,6 @@
 # memo-app（仮の名前）
 
-S3 互換のストレージで同期する、エンドツーエンド暗号化（E2EE）のメモ帳です。Windows・macOS・Android のアプリ（Tauri）と、ブラウザで動く Web 版があります。
+S3 互換のストレージで同期する、エンドツーエンド暗号化（E2EE）のメモ帳です。Windows・macOS・Android のアプリ（Tauri）と、ブラウザで動く [Web 版](https://aida0710.github.io/memo-app/)があります。アプリは [CI](https://github.com/aida0710/memo-app/actions/workflows/ci.yml) の成果物から入れられます。
 
 - メモ・ノートブック・写真は、このデバイスで暗号化してからストレージへ送ります。ストレージに置かれるのは暗号文とランダムな ID だけで、タイトルやノートブックの名前も見えません。
 - オフラインでも書けます。つながったら、編集の 2 秒後と 60 秒おきに同期します。
@@ -22,7 +22,7 @@ S3 互換で、条件付き書き込み（`If-Match`・`If-None-Match`）を守�
 ]
 ```
 
-Web 版を使うときは、その URL の origin も `AllowedOrigins` に足してください。アプリの「設定」に、開いている画面の origin を入れた例が出ます。
+Web 版を使うときは、`https://aida0710.github.io` も `AllowedOrigins` に足してください。アプリの「設定」に、開いている画面の origin を入れた例が出ます。
 
 ## 暗号化の形
 

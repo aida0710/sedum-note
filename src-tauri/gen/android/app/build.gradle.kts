@@ -14,6 +14,10 @@ val tauriProperties = Properties().apply {
     }
 }
 
+// 配布用の署名の鍵。CI だけが環境変数で渡す（値は Actions のシークレット）。
+// 渡さなければ release は署名せずに組み立てる。
+val releaseKeystorePath: String? = System.getenv("MEMO_ANDROID_KEYSTORE_PATH")
+
 android {
     compileSdk = 37
     namespace = "com.github.aida0710.memoapp"
@@ -24,6 +28,18 @@ android {
         targetSdk = 37
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
+    }
+    signingConfigs {
+        if (releaseKeystorePath != null) {
+            create("release") {
+                storeFile = file(releaseKeystorePath)
+                storeType = "pkcs12"
+                storePassword = System.getenv("MEMO_ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("MEMO_ANDROID_KEY_ALIAS")
+                // PKCS12 では鍵のパスワードは保管庫のパスワードと同じ。
+                keyPassword = System.getenv("MEMO_ANDROID_KEYSTORE_PASSWORD")
+            }
+        }
     }
     buildTypes {
         getByName("debug") {
@@ -40,6 +56,9 @@ android {
             }
         }
         getByName("release") {
+            if (releaseKeystorePath != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             optimization {
                enable = true
             }
