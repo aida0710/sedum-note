@@ -13,14 +13,17 @@ class MainActivity : TauriActivity() {
     keepContentAboveKeyboard(findViewById(android.R.id.content))
   }
 
-  // edge-to-edge では、キーボードが開いても WebView が縮まず、画面の下に置いた書式の
-  // ツールバーがキーボードに隠れる。キーボードの高さだけ下を空けて WebView を縮める。
-  // 上と下のシステムバーの分は、画面の側で env(safe-area-inset-*) を使って空ける。
+  // edge-to-edge では、WebView が画面いっぱいに広がり、ステータスバー・ナビゲーション
+  // バーと重なる。キーボードが開いても縮まないので、下に置いた書式のツールバーも隠れる。
+  // この WebView（Chrome 133）の env(safe-area-inset-*) は、WebView の大きさによって
+  // 0 を返すことがあり当てにできないので、システムバーとキーボードの分をここで空ける。
   private fun keepContentAboveKeyboard(content: View) {
     ViewCompat.setOnApplyWindowInsetsListener(content) { view, insets ->
+      val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
       // キーボードの高さは画面の下端から測るので、ナビゲーションバーの分も入っている。
-      view.setPadding(0, 0, 0, insets.getInsets(WindowInsetsCompat.Type.ime()).bottom)
-      insets
+      val keyboard = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+      view.setPadding(bars.left, bars.top, bars.right, maxOf(keyboard, bars.bottom))
+      WindowInsetsCompat.CONSUMED
     }
   }
 }

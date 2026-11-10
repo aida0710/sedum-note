@@ -35,8 +35,10 @@ jobs:
       - name: Start the S3-compatible test server
         run: integration/s3-up.sh
       - run: npm run test:integration
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium webkit
       - run: npm run e2e
+        env:
+          E2E_WEBKIT: "1"
       - run: npm run build
 
   desktop:
@@ -65,6 +67,14 @@ jobs:
       - run: npm ci
       - run: rustup toolchain install stable --profile minimal && rustup target add ${{ matrix.rust-targets }}
       - run: npx tauri build ${{ matrix.tauri-arguments }}
+      # 手元に Mac が無いので、組み立てたアプリを起動して最初の画面を撮り、成果物に入れる。
+      - name: Launch the app and capture the first screen
+        if: matrix.name == 'macOS'
+        run: |
+          open src-tauri/target/universal-apple-darwin/release/bundle/macos/memo-app.app
+          sleep 20
+          screencapture -x mac-first-screen.png
+          pgrep -x memo-app
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: memo-app-${{ matrix.name }}
@@ -72,6 +82,7 @@ jobs:
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+            mac-first-screen.png
           if-no-files-found: error
 
   android:

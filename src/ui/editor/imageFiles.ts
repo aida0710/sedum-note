@@ -29,7 +29,9 @@ export async function insertImageFiles({ files, editor, repository, noteId }: In
     await repository.updateNote(noteId, { attachments: [...note.content.attachments, reference] });
     const attributes: AttachmentImageAttributes = { attachmentId: reference.id, fileName: reference.fileName, mimeType: reference.mimeType };
     // 画像だけを入れると画像が選ばれたままになり、続けて打つ文字や書式のボタンが
-    // 効かない。後ろに空の段落を足して、そこへ移る。
-    editor.chain().focus().insertContent([{ type: ATTACHMENT_IMAGE_NODE, attrs: attributes }, { type: "paragraph" }]).run();
+    // 効かない。後ろに空の段落を足して、そこへ移る。本文にカーソルが無いとき
+    // （スマホで写真の選択画面から戻ったときなど）は、先頭ではなく末尾に入れる。
+    const position = editor.isFocused ? undefined : "end";
+    editor.chain().focus(position).insertContent([{ type: ATTACHMENT_IMAGE_NODE, attrs: attributes }, { type: "paragraph" }]).run();
   }
 }
