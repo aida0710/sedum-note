@@ -7,6 +7,7 @@ import { translate } from "../i18n/translate";
 
 // 「n分前」を更新する間隔。
 const RELATIVE_TIME_REFRESH_MILLISECONDS = 30_000;
+const MILLISECONDS_PER_MINUTE = 60_000;
 
 export function describeSyncStatus(status: SyncStatus | null, now: Date): { text: string; dotClass: string } {
   if (status === null) {
@@ -21,7 +22,7 @@ export function describeSyncStatus(status: SyncStatus | null, now: Date): { text
   if (status.lastSyncedAt === null) {
     return { text: translate("sync.never"), dotClass: "off" };
   }
-  const minutes = Math.floor((now.getTime() - status.lastSyncedAt.getTime()) / 60_000);
+  const minutes = Math.floor((now.getTime() - status.lastSyncedAt.getTime()) / MILLISECONDS_PER_MINUTE);
   const time = minutes < 1 ? translate("sync.justNow") : translate("sync.minutesAgo", { count: minutes });
   return { text: translate("sync.synced", { time }), dotClass: "" };
 }

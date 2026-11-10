@@ -6,6 +6,13 @@ import { type NoteSummary, type NoteView, selectNotes } from "../../core/notes/n
 import { translate } from "../i18n/translate";
 import { viewKey, type WorkspaceNavigation } from "./useWorkspaceNavigation";
 
+// 木の 1 段ごとの字下げ。開閉の印（12px）とアイコンの間が揃う幅。
+const TREE_INDENT_STEP = 14;
+// 一覧の行の左の余白。.nav の padding と同じ。
+const ROW_PADDING_LEFT = 8;
+// メモの行は、一覧の行の開閉の印とアイコンの分だけ右に置く。
+const NOTE_ROW_PADDING_LEFT = 30;
+
 export type ViewGroupProps = {
   view: NoteView;
   icon: ReactNode;
@@ -23,7 +30,7 @@ export function ViewGroup({ view, icon, label, summaries, navigation, depth = 0,
   const expanded = navigation.expandedIds.has(key);
   const notes = selectNotes(summaries, view);
   const isActive = viewKey(navigation.view) === key;
-  const indent = { paddingLeft: 8 + depth * 14 };
+  const indent = { paddingLeft: ROW_PADDING_LEFT + depth * TREE_INDENT_STEP };
   return (
     <>
       <div className="nav-row">
@@ -54,10 +61,10 @@ export function ViewGroup({ view, icon, label, summaries, navigation, depth = 0,
 
 export function NoteRows({ notes, navigation, depth }: { notes: NoteSummary[]; navigation: WorkspaceNavigation; depth: number }) {
   if (notes.length === 0) {
-    return <div className="tree-empty" style={{ paddingLeft: 30 + depth * 14 }}>{translate("sidebar.noNotes")}</div>;
+    return <div className="tree-empty" style={{ paddingLeft: NOTE_ROW_PADDING_LEFT + depth * TREE_INDENT_STEP }}>{translate("sidebar.noNotes")}</div>;
   }
   return notes.map(({ note }) => (
-    <button key={note.id} className={`tree-note${navigation.activeTab === note.id ? " active" : ""}`} style={{ paddingLeft: 30 + depth * 14 }}
+    <button key={note.id} className={`tree-note${navigation.activeTab === note.id ? " active" : ""}`} style={{ paddingLeft: NOTE_ROW_PADDING_LEFT + depth * TREE_INDENT_STEP }}
       onClick={() => navigation.openNote(note.id)}>
       {note.content.title || translate("sidebar.untitled")}
     </button>

@@ -7,7 +7,7 @@ import type { WorkspaceProps } from "./workspaceProps";
 import { NoteTabs } from "./NoteTabs";
 import { Sidebar } from "./Sidebar";
 import { SyncStatusLine } from "./SyncStatusLine";
-import { createNoteInView } from "./useNoteCreation";
+import { createNoteInView } from "./createNoteInView";
 import { SETTINGS_TAB } from "./useWorkspaceNavigation";
 
 export function DesktopWorkspace({ session, vault, snapshot, navigation }: WorkspaceProps) {

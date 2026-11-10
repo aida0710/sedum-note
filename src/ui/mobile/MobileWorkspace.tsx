@@ -6,7 +6,7 @@ import { selectNotes, type NoteView } from "../../core/notes/noteQueries";
 import { NoteEditor } from "../editor/NoteEditor";
 import { translate } from "../i18n/translate";
 import { SettingsPanel } from "../settings/SettingsPanel";
-import { createNoteInView } from "../workspace/useNoteCreation";
+import { createNoteInView } from "../workspace/createNoteInView";
 import { MobileLibrary } from "./MobileLibrary";
 import { listTitle, NoteList } from "./MobileNoteList";
 import { useBackGestureToClose } from "./useBackGestureToClose";

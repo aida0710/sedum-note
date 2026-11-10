@@ -13,16 +13,9 @@ import type { ObjectStore } from "../remote/objectStore";
 import { PreconditionFailedError } from "../remote/objectStore";
 import type { RemoteConfig } from "../remote/remoteConfig";
 import type { ConflictCopyFactory } from "../sync/conflictResolution";
-import { VAULT_OBJECT_KEY } from "../sync/remoteLayout";
 import { SyncEngine } from "../sync/syncEngine";
-import {
-  changeVaultPassphrase,
-  createVault,
-  parseVaultDocument,
-  serializeVaultDocument,
-  unlockVault,
-  type VaultDocument,
-} from "./vaultDocument";
+import { readRemoteVault, writeRemoteVault } from "./remoteVault";
+import { changeVaultPassphrase, createVault, unlockVault, type VaultDocument } from "./vaultDocument";
 
 const REMOTE_CONFIG_BINDING = "settings:remote-config";
 const textEncoder = new TextEncoder();
@@ -73,7 +66,7 @@ export async function createNewVault(
     const objectStore = environment.createObjectStore(input.remoteConfig);
     await ensureConditionalWrites(objectStore);
     try {
-      await objectStore.put(VAULT_OBJECT_KEY, textEncoder.encode(serializeVaultDocument(document)), { ifAbsent: true });
+      await writeRemoteVault(objectStore, document, { ifAbsent: true });
     } catch (error) {
       throw error instanceof PreconditionFailedError ? new VaultAlreadyExistsError() : error;
     }
@@ -89,11 +82,11 @@ export async function joinExistingVault(
 ): Promise<UnlockedVault> {
   const objectStore = environment.createObjectStore(input.remoteConfig);
   await ensureConditionalWrites(objectStore);
-  const stored = await objectStore.get(VAULT_OBJECT_KEY);
+  const stored = await readRemoteVault(objectStore);
   if (stored === null) {
     throw new VaultNotFoundError();
   }
-  const document = parseVaultDocument(textDecoder.decode(stored.body));
+  const { document } = stored;
   const masterKey = await unlockVault(document, input.passphrase);
   await saveVaultLocally(environment.localStore, { document, masterKey, remoteConfig: input.remoteConfig });
   return assembleUnlockedVault(environment, masterKey, input.remoteConfig);
@@ -157,13 +150,13 @@ export async function connectRemote(
   const objectStore = environment.createObjectStore(remoteConfig);
   await ensureConditionalWrites(objectStore);
   try {
-    await objectStore.put(VAULT_OBJECT_KEY, textEncoder.encode(serializeVaultDocument(document)), { ifAbsent: true });
+    await writeRemoteVault(objectStore, document, { ifAbsent: true });
   } catch (error) {
     if (!(error instanceof PreconditionFailedError)) {
       throw error;
     }
-    const existing = await objectStore.get(VAULT_OBJECT_KEY);
-    if (existing === null || parseVaultDocument(textDecoder.decode(existing.body)).vaultId !== document.vaultId) {
+    const existing = await readRemoteVault(objectStore);
+    if (existing?.document.vaultId !== document.vaultId) {
       throw new VaultAlreadyExistsError();
     }
   }
@@ -181,11 +174,11 @@ export async function changePassphrase(
   const changed = await changeVaultPassphrase(document, passphrases.current, passphrases.next);
   if (unlocked.remoteConfig) {
     const objectStore = environment.createObjectStore(unlocked.remoteConfig);
-    const existing = await objectStore.get(VAULT_OBJECT_KEY);
-    if (existing === null || parseVaultDocument(textDecoder.decode(existing.body)).vaultId !== document.vaultId) {
+    const existing = await readRemoteVault(objectStore);
+    if (existing?.document.vaultId !== document.vaultId) {
       throw new VaultNotFoundError();
     }
-    await objectStore.put(VAULT_OBJECT_KEY, textEncoder.encode(serializeVaultDocument(changed)), { ifMatch: existing.etag });
+    await writeRemoteVault(objectStore, changed, { ifMatch: existing.etag });
   }
   await environment.localStore.writeSetting("vault", changed);
 }

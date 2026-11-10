@@ -1,7 +1,7 @@
-// エミュレーターのアプリで、CSP に断られたものが無いかと、エディタの見た目の
+// 組み立てたアプリ（Android・Windows）で、CSP に断られたものが無いかと、エディタの見た目の
 // スタイル（Tiptap が差し込むもの）が効いているかを確かめる。手で流す確認の道具。
 //
-// 前提: syncWithEmulator.mjs と同じ。ロックを解除できる vault がアプリにあること。
+// 前提: syncWithApp.mjs と同じ。ロックを解除できる vault がアプリにあること。
 
 import { chromium } from "@playwright/test";
 
@@ -17,7 +17,7 @@ if (locked) {
   await page.getByLabel("パスフレーズ").fill("correct horse battery");
   await page.getByRole("button", { name: "解除" }).click();
 }
-await page.getByRole("button", { name: /Androidで書いたメモ/ }).click();
+await page.getByRole("button", { name: /で書いたメモ/ }).first().click();
 await page.locator(".ProseMirror").waitFor();
 const result = await page.evaluate(() => ({
   cspViolations: window.__cspViolations,

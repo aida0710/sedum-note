@@ -13,10 +13,9 @@ import type { SyncedRecord } from "../notes/noteRecords";
 import { openRecord, sealRecord } from "../notes/recordCodec";
 import { type ObjectStore, PreconditionFailedError, type WriteCondition } from "../remote/objectStore";
 import { type ConflictCopyFactory, resolveConflict } from "./conflictResolution";
-import { parseVaultDocument, type VaultDocument } from "../vault/vaultDocument";
-import { blobObjectKey, RECORDS_PREFIX, recordIdFromObjectKey, recordObjectKey, VAULT_OBJECT_KEY } from "./remoteLayout";
-
-const textDecoder = new TextDecoder();
+import { readRemoteVault } from "../vault/remoteVault";
+import type { VaultDocument } from "../vault/vaultDocument";
+import { blobObjectKey, RECORDS_PREFIX, recordIdFromObjectKey, recordObjectKey } from "./remoteLayout";
 
 // 同期先の vault.json が消えたか、別の vault に置き換わった。混ぜると開けない記録が
 // 増えるので、同期を止めて知らせる。
@@ -74,12 +73,12 @@ export class SyncEngine {
   // 同じ vault のものなら手元の写しを差し替え、次のロック解除から新しいパスフレーズにする。
   async #adoptRemoteVaultDocument(): Promise<void> {
     const { localStore, objectStore } = this.#dependencies;
-    const stored = await objectStore.get(VAULT_OBJECT_KEY);
+    const stored = await readRemoteVault(objectStore);
     const local = await localStore.readSetting<VaultDocument>("vault");
     if (stored === null || !local) {
       throw new VaultReplacedError();
     }
-    const remote = parseVaultDocument(textDecoder.decode(stored.body));
+    const remote = stored.document;
     if (remote.vaultId !== local.vaultId) {
       throw new VaultReplacedError();
     }
