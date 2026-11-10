@@ -1,0 +1,53 @@
+// メモの「…」メニュー: ピン留め、ノートブックの付け外し、ゴミ箱。
+
+import { Check, Pin, PinOff, Trash2 } from "lucide-react";
+import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
+import type { NoteRepository } from "../../core/notes/noteRepository";
+import { translate } from "../i18n/translate";
+import { PopupMenu } from "../shared/PopupMenu";
+
+type NoteActionsMenuProps = {
+  anchor: HTMLElement;
+  note: LiveNote;
+  notebooks: LiveNotebook[];
+  repository: NoteRepository;
+  onClose: () => void;
+};
+
+export function NoteActionsMenu({ anchor, note, notebooks, repository, onClose }: NoteActionsMenuProps) {
+  const { content } = note;
+  const toggleNotebook = (notebookId: string) => {
+    const notebookIds = content.notebookIds.includes(notebookId)
+      ? content.notebookIds.filter((id) => id !== notebookId)
+      : [...content.notebookIds, notebookId];
+    void repository.updateNote(note.id, { notebookIds });
+  };
+  const runAndClose = (action: () => Promise<unknown>) => () => {
+    onClose();
+    void action();
+  };
+  return (
+    <PopupMenu anchor={anchor} onClose={onClose}>
+      <button className="menu-item" role="menuitem" onClick={runAndClose(() => repository.updateNote(note.id, { pinned: !content.pinned }))}>
+        {content.pinned ? <PinOff size={15} /> : <Pin size={15} />}
+        {translate(content.pinned ? "editor.unpin" : "editor.pin")}
+      </button>
+      {notebooks.length > 0 && (
+        <>
+          <div className="menu-separator" />
+          <div className="menu-heading">{translate("editor.notebooks")}</div>
+          {notebooks.map((notebook) => (
+            <button key={notebook.id} className="menu-item" role="menuitemcheckbox" aria-checked={content.notebookIds.includes(notebook.id)} onClick={() => toggleNotebook(notebook.id)}>
+              <span className="nav-label">{notebook.content.name}</span>
+              {content.notebookIds.includes(notebook.id) && <Check size={15} className="menu-check" />}
+            </button>
+          ))}
+        </>
+      )}
+      <div className="menu-separator" />
+      <button className="menu-item danger" role="menuitem" onClick={runAndClose(() => repository.moveNoteToTrash(note.id))}>
+        <Trash2 size={15} />{translate("editor.moveToTrash")}
+      </button>
+    </PopupMenu>
+  );
+}

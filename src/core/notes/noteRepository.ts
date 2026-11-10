@@ -28,6 +28,10 @@ export type NoteRepositoryDependencies = {
 
 export type NoteChanges = Partial<Omit<NoteContent, "createdAt">>;
 
+// local は、このデバイスで変えたもの（同期で送る必要がある）。stored は、手元の保存や
+// 同期から読み直したもの。
+export type RepositoryChangeOrigin = "local" | "stored";
+
 export class RecordNotFoundError extends Error {
   constructor(id: string) {
     super(`no record ${id}`);
@@ -38,7 +42,7 @@ export class RecordNotFoundError extends Error {
 export class NoteRepository {
   readonly #dependencies: NoteRepositoryDependencies;
   readonly #records = new Map<string, SyncedRecord>();
-  readonly #listeners = new Set<() => void>();
+  readonly #listeners = new Set<(origin: RepositoryChangeOrigin) => void>();
   #unreadableIds: string[] = [];
 
   constructor(dependencies: NoteRepositoryDependencies) {
@@ -51,21 +55,24 @@ export class NoteRepository {
     for (const entry of await this.#dependencies.localStore.listRecordEntries()) {
       await this.#openIntoMemory(entry.id, entry.sealed);
     }
-    this.#notify();
+    this.#notify("stored");
   }
 
   // 同期で取り込んだ記録を開き直す。
   async reloadRecords(ids: string[]): Promise<void> {
+    if (ids.length === 0) {
+      return;
+    }
     for (const id of ids) {
       const entry = await this.#dependencies.localStore.getRecordEntry(id);
       if (entry) {
         await this.#openIntoMemory(id, entry.sealed);
       }
     }
-    this.#notify();
+    this.#notify("stored");
   }
 
-  subscribe(listener: () => void): () => void {
+  subscribe(listener: (origin: RepositoryChangeOrigin) => void): () => void {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
   }
@@ -189,7 +196,7 @@ export class NoteRepository {
       await localStore.putRecordEntry({ id: record.id, sealed, remoteEtag: current?.remoteEtag ?? null, waitingForPush: true });
     });
     this.#records.set(record.id, record);
-    this.#notify();
+    this.#notify("local");
   }
 
   async #openIntoMemory(id: string, sealed: Uint8Array): Promise<void> {
@@ -211,9 +218,9 @@ export class NoteRepository {
     return (this.#dependencies.now?.() ?? new Date()).toISOString();
   }
 
-  #notify(): void {
+  #notify(origin: RepositoryChangeOrigin): void {
     for (const listener of this.#listeners) {
-      listener();
+      listener(origin);
     }
   }
 }

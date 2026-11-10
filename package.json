@@ -9,17 +9,26 @@
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@tauri-apps/api": "2.12.4",
+    "@tiptap/extension-image": "3.32.0",
+    "@tiptap/extension-list": "3.32.0",
+    "@tiptap/extensions": "3.32.0",
+    "@tiptap/pm": "3.32.0",
+    "@tiptap/react": "3.32.0",
+    "@tiptap/starter-kit": "3.32.0",
     "aws4fetch": "1.0.20",
     "hash-wasm": "4.13.0",
     "idb": "8.0.4",
+    "lucide-react": "1.48.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@tauri-apps/cli": "2.12.4",
     "@types/node": "22.20.1",
     "@types/react": "19.2.17",
