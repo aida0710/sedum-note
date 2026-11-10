@@ -91,7 +91,6 @@ export const japaneseMessages = {
   "editor.orderedList": "番号付きリスト",
   "editor.taskList": "チェックリスト",
   "editor.image": "画像を貼る",
-  "editor.camera": "写真を撮る",
   "editor.link": "リンク",
   "editor.linkPrompt": "リンク先の URL",
   "editor.code": "コード",

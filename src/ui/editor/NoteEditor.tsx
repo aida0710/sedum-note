@@ -113,7 +113,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
   }
   return (
     <>
-      {!isMobile && <EditorToolbar editor={editor} showCamera={false} onImageFiles={takeImageFiles} onAskLink={askLink} trailing={trailing} />}
+      {!isMobile && <EditorToolbar editor={editor} onImageFiles={takeImageFiles} onAskLink={askLink} trailing={trailing} />}
       {isMobile && (
         <div className="phone-top">
           <button className="phone-back" onClick={onBack}><ChevronLeft size={20} />{translate("editor.back")}</button>
@@ -165,7 +165,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
           <EditorContent editor={editor} />
         </div>
       </div>
-      {isMobile && !inTrash && <EditorToolbar editor={editor} showCamera onImageFiles={takeImageFiles} onAskLink={askLink} />}
+      {isMobile && !inTrash && <EditorToolbar editor={editor} onImageFiles={takeImageFiles} onAskLink={askLink} />}
       {menuAnchor && (
         <NoteActionsMenu anchor={menuAnchor} note={note} notebooks={notebooks} repository={repository} onClose={() => setMenuAnchor(null)} />
       )}

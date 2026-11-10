@@ -1,7 +1,7 @@
 // 本文の書式と、写真を貼るボタン。PC では本文の上、スマホでは画面の下に出す。
 
 import { type Editor, useEditorState } from "@tiptap/react";
-import { Bold, Camera, Code, Heading, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, Underline } from "lucide-react";
+import { Bold, Code, Heading, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, Underline } from "lucide-react";
 import { type ReactNode, useRef } from "react";
 import { translate, type MessageKey } from "../i18n/translate";
 import { imageFilesOf } from "./imageFiles";
@@ -11,16 +11,13 @@ type EditorToolbarProps = {
   onImageFiles: (files: File[]) => void;
   // リンク先を聞く。やめたら null。
   onAskLink: () => Promise<string | null>;
-  // スマホではカメラを直接開くボタンも出す。
-  showCamera: boolean;
   trailing?: ReactNode;
 };
 
 const ICON_SIZE = 16;
 
-export function EditorToolbar({ editor, onImageFiles, onAskLink, showCamera, trailing }: EditorToolbarProps) {
+export function EditorToolbar({ editor, onImageFiles, onAskLink, trailing }: EditorToolbarProps) {
   const imageInput = useRef<HTMLInputElement>(null);
-  const cameraInput = useRef<HTMLInputElement>(null);
   const active = useEditorState({
     editor,
     selector: ({ editor: current }) => ({
@@ -74,11 +71,9 @@ export function EditorToolbar({ editor, onImageFiles, onAskLink, showCamera, tra
       {tool("editor.taskList", active.taskList, () => editor.chain().focus().toggleTaskList().run(), <ListChecks size={ICON_SIZE} />)}
       <span className="tool-separator" />
       {tool("editor.image", false, () => imageInput.current?.click(), <ImagePlus size={ICON_SIZE} />)}
-      {showCamera && tool("editor.camera", false, () => cameraInput.current?.click(), <Camera size={ICON_SIZE} />)}
       {tool("editor.link", active.link, () => void toggleLink(), <Link size={ICON_SIZE} />)}
       {tool("editor.code", active.codeBlock, () => editor.chain().focus().toggleCodeBlock().run(), <Code size={ICON_SIZE} />)}
       <input ref={imageInput} type="file" accept="image/*" multiple hidden onChange={pickFiles} />
-      <input ref={cameraInput} type="file" accept="image/*" capture="environment" hidden onChange={pickFiles} />
       {trailing && <span className="bar-end">{trailing}</span>}
     </div>
   );

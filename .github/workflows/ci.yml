@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+    # v0.1.0 の形のタグを push すると、組み立てたものを GitHub Releases に置く（release の job）。
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -154,3 +156,49 @@ jobs:
           path: dist
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  # タグの push のときだけ、組み立てたインストーラーと APK を GitHub Releases に置く。
+  # リリースノートは docs/releases/<タグ>.md。
+  release:
+    name: GitHub Release
+    needs: [desktop, android]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Check that the tag matches the app version
+        run: |
+          app_version="v$(jq -r .version src-tauri/tauri.conf.json)"
+          test "$app_version" = "$GITHUB_REF_NAME" || {
+            echo "the tag $GITHUB_REF_NAME does not match the app version $app_version" >&2
+            exit 1
+          }
+          test -f "docs/releases/$GITHUB_REF_NAME.md"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          path: built
+      - name: Collect the release files
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          mkdir release-files
+          # 成果物の中のフォルダの形は、upload-artifact が複数のパスの共通の親から決めるので OS ごとに違う。
+          take() {
+            found=$(find "built/$1" -type f -name "$2")
+            test "$(printf '%s\n' "$found" | grep -c .)" = 1 || { echo "expected one $2 in $1, found: $found" >&2; exit 1; }
+            cp "$found" "release-files/$3"
+          }
+          take memo-app-Windows '*-setup.exe' "memo-app_${version}_windows-x64-setup.exe"
+          take memo-app-Windows '*.msi' "memo-app_${version}_windows-x64.msi"
+          take memo-app-macOS '*.dmg' "memo-app_${version}_macos-universal.dmg"
+          take memo-app-Android '*.apk' "memo-app_${version}_android-arm64.apk"
+          (cd release-files && sha256sum * > SHA256SUMS)
+          ls -l release-files
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release-files/* \
+            --title "memo-app $GITHUB_REF_NAME" \
+            --notes-file "docs/releases/$GITHUB_REF_NAME.md"
