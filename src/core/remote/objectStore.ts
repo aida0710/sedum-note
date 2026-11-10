@@ -16,6 +16,8 @@ export interface ObjectStore {
   get(key: string): Promise<StoredObject | null>;
   // 条件が合わなければ PreconditionFailedError を投げる。
   put(key: string, body: Uint8Array, condition: WriteCondition): Promise<{ etag: string }>;
+  // 無くても成功にする。
+  delete(key: string): Promise<void>;
 }
 
 export class PreconditionFailedError extends Error {
@@ -33,6 +35,8 @@ export type ObjectStoreFailureReason =
   | "bucket_not_found"
   // 応答に ETag が無い。CORS の ExposeHeaders に ETag が無いときに起きる。
   | "etag_hidden"
+  // 条件付き PUT を無視して上書きする。同時に書いたときに片方の変更が消えるので使わない。
+  | "conditional_writes_unsupported"
   | "unexpected_response";
 
 export class ObjectStoreError extends Error {

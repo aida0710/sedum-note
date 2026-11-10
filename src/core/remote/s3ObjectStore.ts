@@ -89,6 +89,13 @@ export class S3ObjectStore implements ObjectStore {
     return { etag: readEtag(response) };
   }
 
+  async delete(key: string): Promise<void> {
+    const response = await this.#send(this.#objectUrl(key), { method: "DELETE" });
+    if (response.status !== 404) {
+      await throwUnlessOk(response, key);
+    }
+  }
+
   #objectUrl(key: string): string {
     const encodedKey = (this.#keyPrefix + key).split("/").map(encodeURIComponent).join("/");
     return `${this.#bucketUrl}/${encodedKey}`;

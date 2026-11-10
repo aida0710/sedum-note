@@ -9,9 +9,19 @@ import {
   type WriteCondition,
 } from "./objectStore";
 
+export type MemoryObjectStoreOptions = {
+  // 条件付き PUT を無視して上書きするストレージの真似（試験用）。
+  ignoresWriteConditions?: boolean;
+};
+
 export class MemoryObjectStore implements ObjectStore {
   readonly #objects = new Map<string, StoredObject>();
+  readonly #ignoresWriteConditions: boolean;
   #nextEtag = 1;
+
+  constructor(options: MemoryObjectStoreOptions = {}) {
+    this.#ignoresWriteConditions = options.ignoresWriteConditions ?? false;
+  }
 
   async list(prefix: string): Promise<ObjectSummary[]> {
     return [...this.#objects]
@@ -27,12 +37,16 @@ export class MemoryObjectStore implements ObjectStore {
   async put(key: string, body: Uint8Array, condition: WriteCondition): Promise<{ etag: string }> {
     const current = this.#objects.get(key);
     const allowed = "ifMatch" in condition ? current?.etag === condition.ifMatch : current === undefined;
-    if (!allowed) {
+    if (!allowed && !this.#ignoresWriteConditions) {
       throw new PreconditionFailedError(key);
     }
     const etag = `etag-${this.#nextEtag++}`;
     this.#objects.set(key, { body: body.slice(), etag });
     return { etag };
+  }
+
+  async delete(key: string): Promise<void> {
+    this.#objects.delete(key);
   }
 
   // 試験で、S3 に置かれた暗号文を直接書き換える（管理者による改ざん）ために使う。

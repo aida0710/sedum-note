@@ -1,14 +1,17 @@
 // スマホの組み方: 一覧 → メモの画面。下のタブでメモ・ノートブック・お気に入り・設定を切り替える。
 
-import { FileText, FolderOpen, Pin, Plus, Search, Settings, Star } from "lucide-react";
+import { FileText, FolderOpen, FolderPlus, Hash, Pin, Plus, Search, Settings, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { selectNotes, type NoteSummary, type NoteView } from "../../core/notes/noteQueries";
+import { countTags, selectNotes, type NoteSummary, type NoteView } from "../../core/notes/noteQueries";
 import { useAttachmentUrl } from "../editor/attachmentReader";
 import { NoteEditor } from "../editor/NoteEditor";
 import { translate } from "../i18n/translate";
 import { SettingsPanel } from "../settings/SettingsPanel";
+import { useDialogs } from "../shared/DialogProvider";
 import { formatShortDate } from "../shared/formatTime";
+import { notebookColor } from "../shared/notebookColor";
 import { createNoteInView } from "../workspace/useNoteCreation";
+import { useBackGestureToClose } from "./useBackGestureToClose";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
 
 type MobileTab = "notes" | "notebooks" | "bookmarked" | "settings";
@@ -18,12 +21,13 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
   const [tab, setTab] = useState<MobileTab>("notes");
   const [openNoteId, setOpenNoteId] = useState<string | null>(null);
   const openNote = openNoteId ? repository.note(openNoteId) : undefined;
+  const goBack = useBackGestureToClose(openNote !== undefined, () => setOpenNoteId(null));
 
   if (openNote) {
     return (
       <div className="phone">
         <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} repository={repository}
-          syncConfigured={vault.remoteConfig !== null} isMobile onBack={() => setOpenNoteId(null)} />
+          syncConfigured={vault.remoteConfig !== null} isMobile onBack={goBack} />
       </div>
     );
   }
@@ -41,8 +45,8 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
     <div className="phone">
       {tab === "settings" && <SettingsPanel session={session} remoteConfig={vault.remoteConfig} unreadableCount={snapshot.unreadableCount} />}
       {tab === "notebooks" && (
-        <NotebookPicker snapshot={snapshot.notebooks.map((notebook) => ({ id: notebook.id, name: notebook.content.name }))}
-          onPick={(notebookId) => { navigation.selectView({ kind: "notebook", notebookId }); setTab("notes"); }} />
+        <MobileLibrary snapshot={snapshot} repository={repository}
+          onPick={(picked) => { navigation.selectView(picked); setTab("notes"); }} />
       )}
       {(tab === "notes" || tab === "bookmarked") && (
         <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, view, navigation.searchText)}
@@ -65,6 +69,9 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
 function listTitle(view: NoteView, notebooks: WorkspaceProps["snapshot"]["notebooks"]): string {
   if (view.kind === "notebook") {
     return notebooks.find((notebook) => notebook.id === view.notebookId)?.content.name ?? translate("sidebar.allNotes");
+  }
+  if (view.kind === "tag") {
+    return `#${view.tag}`;
   }
   return translate(view.kind === "bookmarked" ? "sidebar.bookmarked" : view.kind === "trash" ? "sidebar.trash" : "sidebar.allNotes");
 }
@@ -121,14 +128,48 @@ function NoteListItem({ summary, notebooks, onOpen }: { summary: NoteSummary; no
   );
 }
 
-function NotebookPicker({ snapshot, onPick }: { snapshot: NotebookChoice[]; onPick: (notebookId: string) => void }) {
+type MobileLibraryProps = {
+  snapshot: WorkspaceProps["snapshot"];
+  repository: WorkspaceProps["vault"]["repository"];
+  onPick: (view: NoteView) => void;
+};
+
+// スマホの「ノートブック」タブ: ノートブック・タグ・ゴミ箱を選ぶと、その一覧を開く。
+function MobileLibrary({ snapshot, repository, onPick }: MobileLibraryProps) {
+  const dialogs = useDialogs();
+  const tags = countTags(snapshot.summaries);
+  const addNotebook = async () => {
+    const name = (await dialogs.prompt({ message: translate("sidebar.newNotebookPlaceholder") }))?.trim();
+    if (name) {
+      await repository.createNotebook(name);
+    }
+  };
   return (
     <>
-      <div className="phone-top"><h2>{translate("mobile.notebooks")}</h2></div>
+      <div className="phone-top">
+        <h2>{translate("mobile.notebooks")}</h2>
+        <div className="phone-top-end">
+          <button className="icon-button" aria-label={translate("sidebar.newNotebook")} onClick={() => void addNotebook()}><FolderPlus size={18} /></button>
+        </div>
+      </div>
       <div className="phone-scroll">
-        {snapshot.map((notebook) => (
-          <button key={notebook.id} className="note-item" onClick={() => onPick(notebook.id)}><h3>{notebook.name}</h3></button>
+        {snapshot.notebooks.map((notebook) => (
+          <button key={notebook.id} className="library-row" onClick={() => onPick({ kind: "notebook", notebookId: notebook.id })}>
+            <span className="dot" style={{ background: notebookColor(notebook.id) }} />{notebook.content.name}
+            <span className="count">{selectNotes(snapshot.summaries, { kind: "notebook", notebookId: notebook.id }).length}</span>
+          </button>
         ))}
+        {tags.length > 0 && <div className="section-title">{translate("sidebar.tags")}</div>}
+        {tags.map(({ tag, count }) => (
+          <button key={tag} className="library-row" onClick={() => onPick({ kind: "tag", tag })}>
+            <Hash size={15} />{tag}<span className="count">{count}</span>
+          </button>
+        ))}
+        <div className="section-title" />
+        <button className="library-row" onClick={() => onPick({ kind: "trash" })}>
+          <Trash2 size={15} />{translate("sidebar.trash")}
+          <span className="count">{selectNotes(snapshot.summaries, { kind: "trash" }).length}</span>
+        </button>
       </div>
     </>
   );

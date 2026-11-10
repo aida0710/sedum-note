@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MIN_PASSPHRASE_LENGTH } from "../../core/crypto/passphraseKey";
 import type { RemoteConfig } from "../../core/remote/remoteConfig";
+import { describeError } from "../i18n/describeError";
 import { translate } from "../i18n/translate";
 import type { VaultSession } from "../session/useVaultSession";
 import { EMPTY_REMOTE_CONFIG, RemoteConfigFields } from "../shared/RemoteConfigFields";
@@ -51,7 +52,9 @@ function SyncSection({ session, remoteConfig }: { session: VaultSession; remoteC
     setProblem(null);
     setSaved(await save.run(checked.config));
   };
-  const message = problem ?? save.errorMessage ?? syncNow.errorMessage;
+  const status = session.syncStatus;
+  const lastFailure = status?.state === "failed" ? translate("settings.lastSyncFailed", { reason: describeError(status.error) }) : null;
+  const message = problem ?? save.errorMessage ?? syncNow.errorMessage ?? lastFailure;
   return (
     <form className="settings-section" onSubmit={submit}>
       <h2>{translate("settings.sync")}</h2>

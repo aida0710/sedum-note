@@ -23,10 +23,21 @@ export type NoteRepositoryDependencies = {
   writeQueue: SerialQueue;
   // 手元に無い添付を同期先から取る。同期先を設定していなければ null を返す。
   downloadBlob: (id: string) => Promise<Uint8Array | null>;
+  // 競合コピーのタイトル。画面の言語で決める。
+  conflictCopyTitle: (originalTitle: string) => string;
   now?: () => Date;
 };
 
 export type NoteChanges = Partial<Omit<NoteContent, "createdAt">>;
+
+// エディタが最後に読んだ（または書いた）タイトルと本文。
+export type EditorBase = { title: string; document: unknown };
+
+export type EditorSaveOutcome =
+  | { kind: "saved"; note: LiveNote }
+  // 打っている間にほかのデバイスで本文が変わっていた。同期先の方を残し、
+  // エディタの内容は競合コピーの別のメモにした。
+  | { kind: "kept_as_copy"; note: LiveNote; copy: LiveNote };
 
 // local は、このデバイスで変えたもの（同期で送る必要がある）。stored は、手元の保存や
 // 同期から読み直したもの。
@@ -122,6 +133,27 @@ export class NoteRepository {
     const updated: LiveNote = { ...current, ...this.#stamp(), content: { ...current.content, ...changes } };
     await this.#write(updated);
     return updated;
+  }
+
+  // エディタの保存。エディタが読んだあとに、ほかのデバイスの変更がタイトルか本文を
+  // 変えていたら、上書きせずに競合コピーを作る（ピン留めなどの変更は上書きしてよい）。
+  async saveEditorChanges(id: string, changes: Pick<NoteChanges, "title" | "document">, base: EditorBase): Promise<EditorSaveOutcome> {
+    const current = this.note(id);
+    if (!current) {
+      throw new RecordNotFoundError(id);
+    }
+    const textUnchangedSinceBase = current.content.title === base.title &&
+      JSON.stringify(current.content.document) === JSON.stringify(base.document);
+    if (textUnchangedSinceBase) {
+      return { kind: "saved", note: await this.updateNote(id, changes) };
+    }
+    const copy = await this.createNote({
+      ...current.content,
+      ...changes,
+      title: this.#dependencies.conflictCopyTitle(changes.title ?? base.title),
+      pinned: false,
+    });
+    return { kind: "kept_as_copy", note: current, copy };
   }
 
   async moveNoteToTrash(id: string): Promise<void> {

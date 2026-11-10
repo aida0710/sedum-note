@@ -9,6 +9,8 @@ import { imageFilesOf } from "./imageFiles";
 type EditorToolbarProps = {
   editor: Editor;
   onImageFiles: (files: File[]) => void;
+  // リンク先を聞く。やめたら null。
+  onAskLink: () => Promise<string | null>;
   // スマホではカメラを直接開くボタンも出す。
   showCamera: boolean;
   trailing?: ReactNode;
@@ -16,7 +18,7 @@ type EditorToolbarProps = {
 
 const ICON_SIZE = 16;
 
-export function EditorToolbar({ editor, onImageFiles, showCamera, trailing }: EditorToolbarProps) {
+export function EditorToolbar({ editor, onImageFiles, onAskLink, showCamera, trailing }: EditorToolbarProps) {
   const imageInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const active = useEditorState({
@@ -41,12 +43,12 @@ export function EditorToolbar({ editor, onImageFiles, showCamera, trailing }: Ed
     </button>
   );
 
-  const toggleLink = () => {
+  const toggleLink = async () => {
     if (editor.isActive("link")) {
       editor.chain().focus().unsetLink().run();
       return;
     }
-    const href = window.prompt(translate("editor.linkPrompt"), "https://");
+    const href = await onAskLink();
     if (href) {
       editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
     }
@@ -73,7 +75,7 @@ export function EditorToolbar({ editor, onImageFiles, showCamera, trailing }: Ed
       <span className="tool-separator" />
       {tool("editor.image", false, () => imageInput.current?.click(), <ImagePlus size={ICON_SIZE} />)}
       {showCamera && tool("editor.camera", false, () => cameraInput.current?.click(), <Camera size={ICON_SIZE} />)}
-      {tool("editor.link", active.link, toggleLink, <Link size={ICON_SIZE} />)}
+      {tool("editor.link", active.link, () => void toggleLink(), <Link size={ICON_SIZE} />)}
       {tool("editor.code", active.codeBlock, () => editor.chain().focus().toggleCodeBlock().run(), <Code size={ICON_SIZE} />)}
       <input ref={imageInput} type="file" accept="image/*" multiple hidden onChange={pickFiles} />
       <input ref={cameraInput} type="file" accept="image/*" capture="environment" hidden onChange={pickFiles} />

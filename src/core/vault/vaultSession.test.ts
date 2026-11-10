@@ -43,6 +43,15 @@ describe("vaultSession", () => {
     await expect(connectRemote(otherEnvironment, other, remoteConfig)).rejects.toBeInstanceOf(VaultAlreadyExistsError);
   });
 
+  it("条件付きの書き込みを守らないストレージには、作成でも参加でもつながない", async () => {
+    const careless = new MemoryObjectStore({ ignoresWriteConditions: true });
+    await expect(createNewVault(environment(careless), { passphrase: "correct horse battery", remoteConfig }))
+      .rejects.toMatchObject({ reason: "conditional_writes_unsupported" });
+    await expect(joinExistingVault(environment(careless), { passphrase: "correct horse battery", remoteConfig }))
+      .rejects.toMatchObject({ reason: "conditional_writes_unsupported" });
+    expect(await careless.list("")).toEqual([]);
+  });
+
   it("パスフレーズを変えたら、このデバイスでもほかのデバイスの参加でも新しいものだけが通る", async () => {
     const store = new MemoryObjectStore();
     const laptopEnvironment = environment(store);
@@ -51,5 +60,17 @@ describe("vaultSession", () => {
     await expect(unlockLocalVault(laptopEnvironment, "correct horse battery")).rejects.toBeInstanceOf(WrongPassphraseError);
     await expect(unlockLocalVault(laptopEnvironment, "a brand new phrase")).resolves.toBeDefined();
     await expect(joinExistingVault(environment(store), { passphrase: "a brand new phrase", remoteConfig })).resolves.toBeDefined();
+  });
+
+  it("ほかのデバイスで変えたパスフレーズは、同期のあと、このデバイスのロック解除にも効く", async () => {
+    const store = new MemoryObjectStore();
+    const laptopEnvironment = environment(store);
+    const laptop = await createNewVault(laptopEnvironment, { passphrase: "correct horse battery", remoteConfig });
+    const phoneEnvironment = environment(store);
+    const phone = await joinExistingVault(phoneEnvironment, { passphrase: "correct horse battery", remoteConfig });
+    await changePassphrase(laptopEnvironment, laptop, { current: "correct horse battery", next: "a brand new phrase" });
+    await phone.syncEngine!.syncOnce();
+    await expect(unlockLocalVault(phoneEnvironment, "correct horse battery")).rejects.toBeInstanceOf(WrongPassphraseError);
+    await expect(unlockLocalVault(phoneEnvironment, "a brand new phrase")).resolves.toBeDefined();
   });
 });

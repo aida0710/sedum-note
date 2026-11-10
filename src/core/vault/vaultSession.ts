@@ -8,6 +8,7 @@ import { open, seal } from "../crypto/sealedBox";
 import type { LocalStore } from "../local/localStore";
 import { SerialQueue } from "../local/serialQueue";
 import { NoteRepository } from "../notes/noteRepository";
+import { ensureConditionalWrites } from "../remote/conditionalWriteCheck";
 import type { ObjectStore } from "../remote/objectStore";
 import { PreconditionFailedError } from "../remote/objectStore";
 import type { RemoteConfig } from "../remote/remoteConfig";
@@ -70,6 +71,7 @@ export async function createNewVault(
   const { document, masterKey } = await createVault(input.passphrase);
   if (input.remoteConfig) {
     const objectStore = environment.createObjectStore(input.remoteConfig);
+    await ensureConditionalWrites(objectStore);
     try {
       await objectStore.put(VAULT_OBJECT_KEY, textEncoder.encode(serializeVaultDocument(document)), { ifAbsent: true });
     } catch (error) {
@@ -85,7 +87,9 @@ export async function joinExistingVault(
   environment: VaultSessionEnvironment,
   input: { passphrase: string; remoteConfig: RemoteConfig },
 ): Promise<UnlockedVault> {
-  const stored = await environment.createObjectStore(input.remoteConfig).get(VAULT_OBJECT_KEY);
+  const objectStore = environment.createObjectStore(input.remoteConfig);
+  await ensureConditionalWrites(objectStore);
+  const stored = await objectStore.get(VAULT_OBJECT_KEY);
   if (stored === null) {
     throw new VaultNotFoundError();
   }
@@ -136,6 +140,7 @@ async function assembleUnlockedVault(
     deviceId,
     writeQueue,
     downloadBlob: (id) => syncEngine?.downloadBlob(id) ?? Promise.resolve(null),
+    conflictCopyTitle: environment.conflictCopyTitle,
   });
   await repository.load();
   return { masterKey, repository, syncEngine, remoteConfig };
@@ -150,6 +155,7 @@ export async function connectRemote(
 ): Promise<UnlockedVault> {
   const document = await readLocalVaultDocument(environment.localStore);
   const objectStore = environment.createObjectStore(remoteConfig);
+  await ensureConditionalWrites(objectStore);
   try {
     await objectStore.put(VAULT_OBJECT_KEY, textEncoder.encode(serializeVaultDocument(document)), { ifAbsent: true });
   } catch (error) {

@@ -8,13 +8,13 @@ S3 互換のストレージで同期する、エンドツーエンド暗号化�
 
 ## 同期先の用意
 
-S3 の条件付き書き込み（`If-Match`・`If-None-Match`）に対応したストレージを使います（AWS S3、Cloudflare R2 など）。アプリはストレージへ直接つなぐので、バケットに CORS の設定が要ります。
+S3 互換で、条件付き書き込み（`If-Match`・`If-None-Match`）を守るストレージを使います。アプリはつなぐときにこれを確かめ、守らないストレージには同期先として設定させません。アプリはストレージへ直接つなぐので、バケットに CORS の設定が要ります。
 
 ```json
 [
   {
     "AllowedOrigins": ["http://tauri.localhost", "tauri://localhost"],
-    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedMethods": ["GET", "PUT", "HEAD", "DELETE"],
     "AllowedHeaders": ["*"],
     "ExposeHeaders": ["ETag"],
     "MaxAgeSeconds": 3600

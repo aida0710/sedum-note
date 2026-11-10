@@ -99,5 +99,8 @@ test("PC で書いた写真付きのメモが、スマホの大きさのもう 1
   await expect(phone.locator(".ProseMirror")).toContainText("モバイルバッテリー");
   await expect(phone.locator('.ProseMirror ul[data-type="taskList"] input[type="checkbox"]')).toHaveCount(2);
   await expect(phone.locator(".title-input")).toHaveValue("沖縄旅行の持ち物");
+  // 端末の「戻る」で一覧に戻る（アプリを閉じない）。
+  await phone.goBack();
+  await expect(phone.getByRole("heading", { name: "すべてのメモ" })).toBeVisible();
   await capture(phone, "mobile-editor");
 });

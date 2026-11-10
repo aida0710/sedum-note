@@ -13,7 +13,19 @@ import type { SyncedRecord } from "../notes/noteRecords";
 import { openRecord, sealRecord } from "../notes/recordCodec";
 import { type ObjectStore, PreconditionFailedError, type WriteCondition } from "../remote/objectStore";
 import { type ConflictCopyFactory, resolveConflict } from "./conflictResolution";
-import { blobObjectKey, RECORDS_PREFIX, recordIdFromObjectKey, recordObjectKey } from "./remoteLayout";
+import { parseVaultDocument, type VaultDocument } from "../vault/vaultDocument";
+import { blobObjectKey, RECORDS_PREFIX, recordIdFromObjectKey, recordObjectKey, VAULT_OBJECT_KEY } from "./remoteLayout";
+
+const textDecoder = new TextDecoder();
+
+// 同期先の vault.json が消えたか、別の vault に置き換わった。混ぜると開けない記録が
+// 増えるので、同期を止めて知らせる。
+export class VaultReplacedError extends Error {
+  constructor() {
+    super("the storage no longer holds this vault");
+    this.name = "VaultReplacedError";
+  }
+}
 
 export type SyncReport = {
   // 同期先から取り込んだ記録の ID。画面の表示を更新するのに使う。
@@ -50,11 +62,30 @@ export class SyncEngine {
 
   async #sync(): Promise<SyncReport> {
     const report: SyncReport = { pulledIds: [], pushedCount: 0, conflictCopyIds: [], unreadableIds: [] };
+    await this.#adoptRemoteVaultDocument();
     await this.#uploadWaitingBlobs();
     const remoteEtags = await this.#listRemoteRecords();
     await this.#pullChangedRecords(remoteEtags, report);
     await this.#pushWaitingRecords(remoteEtags, report);
     return report;
+  }
+
+  // ほかのデバイスでパスフレーズを変えたら、同期先の vault.json だけが新しくなる。
+  // 同じ vault のものなら手元の写しを差し替え、次のロック解除から新しいパスフレーズにする。
+  async #adoptRemoteVaultDocument(): Promise<void> {
+    const { localStore, objectStore } = this.#dependencies;
+    const stored = await objectStore.get(VAULT_OBJECT_KEY);
+    const local = await localStore.readSetting<VaultDocument>("vault");
+    if (stored === null || !local) {
+      throw new VaultReplacedError();
+    }
+    const remote = parseVaultDocument(textDecoder.decode(stored.body));
+    if (remote.vaultId !== local.vaultId) {
+      throw new VaultReplacedError();
+    }
+    if (remote.wrappedMasterKey !== local.wrappedMasterKey) {
+      await localStore.writeSetting("vault", remote);
+    }
   }
 
   async #uploadWaitingBlobs(): Promise<void> {

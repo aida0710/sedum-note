@@ -2,6 +2,7 @@
 
 import { SetupScreen } from "./entry/SetupScreen";
 import { UnlockScreen } from "./entry/UnlockScreen";
+import { DialogProvider } from "./shared/DialogProvider";
 import { AttachmentReaderContext } from "./editor/attachmentReader";
 import { MobileWorkspace } from "./mobile/MobileWorkspace";
 import { useRepositorySnapshot } from "./session/useRepositorySnapshot";
@@ -32,7 +33,9 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   const props = { session, vault, snapshot, navigation };
   return (
     <AttachmentReaderContext.Provider value={vault.repository.readAttachment.bind(vault.repository)}>
-      {isMobile ? <MobileWorkspace {...props} /> : <DesktopWorkspace {...props} />}
+      <DialogProvider>
+        {isMobile ? <MobileWorkspace {...props} /> : <DesktopWorkspace {...props} />}
+      </DialogProvider>
     </AttachmentReaderContext.Provider>
   );
 }
