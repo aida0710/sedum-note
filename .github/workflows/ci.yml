@@ -87,6 +87,19 @@ jobs:
           sleep 20
           screencapture -x mac-first-screen.png
           pgrep -x memo-app
+      # ダウンロードしたものと同じ扱い（quarantine の印）にしたときに、Gatekeeper がどう判定するかを残す。
+      # 署名の無い Apple シリコンのアプリは「壊れている」と断られ、「このまま開く」も出ない。
+      - name: Check the signature Gatekeeper sees
+        if: matrix.name == 'macOS'
+        run: |
+          dmg=$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg -name '*.dmg')
+          mount=$(hdiutil attach -nobrowse -readonly "$dmg" | tail -1 | cut -f3)
+          cp -R "$mount/memo-app.app" "$RUNNER_TEMP/memo-app.app"
+          hdiutil detach "$mount"
+          xattr -w com.apple.quarantine "0081;$(printf '%x' "$(date +%s)");Safari;" "$RUNNER_TEMP/memo-app.app"
+          codesign -dv --verbose=2 "$RUNNER_TEMP/memo-app.app" 2>&1 | tee mac-signature.txt
+          codesign --verify --deep --strict --verbose=2 "$RUNNER_TEMP/memo-app.app" 2>&1 | tee -a mac-signature.txt
+          spctl -a -vv --type execute "$RUNNER_TEMP/memo-app.app" 2>&1 | tee -a mac-signature.txt || true
       # Linux も同じく、組み立てた AppImage を画面の無い X（Xvfb）で起動して最初の画面を撮る。
       - name: Launch the app and capture the first screen
         if: matrix.name == 'Linux'
@@ -113,6 +126,7 @@ jobs:
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
             mac-first-screen.png
+            mac-signature.txt
             src-tauri/target/release/bundle/deb/*.deb
             src-tauri/target/release/bundle/rpm/*.rpm
             src-tauri/target/release/bundle/appimage/*.AppImage
