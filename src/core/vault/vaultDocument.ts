@@ -15,7 +15,7 @@ import {
 import { isRandomId, newRandomId } from "../crypto/randomId";
 import { importAesKey, open, seal, SealedBoxError } from "../crypto/sealedBox";
 
-const VAULT_FORMAT = "memo-vault";
+const VAULT_FORMAT = "sedum-note-vault";
 const VAULT_VERSION = 1;
 const MASTER_KEY_LENGTH = 32;
 

@@ -1,6 +1,6 @@
-# memo-app（仮の名前）
+# Sedum Note
 
-S3 互換のストレージで同期する、エンドツーエンド暗号化（E2EE）のメモ帳です。Windows・macOS・Linux・Android のアプリ（Tauri）と、ブラウザで動く [Web 版](https://aida0710.github.io/memo-app/)があります。アプリは [CI](https://github.com/aida0710/memo-app/actions/workflows/ci.yml) の成果物から入れられます。
+S3 互換のストレージで同期する、エンドツーエンド暗号化（E2EE）のメモ帳です。Windows・macOS・Linux・Android のアプリ（Tauri）と、ブラウザで動く [Web 版](https://aida0710.github.io/sedum-note/)があります。アプリは [CI](https://github.com/aida0710/sedum-note/actions/workflows/ci.yml) の成果物から入れられます。
 
 - メモ・ノートブック・写真は、このデバイスで暗号化してからストレージへ送ります。ストレージに置かれるのは暗号文とランダムな ID だけで、タイトルやノートブックの名前も見えません。
 - オフラインでも書けます。つながったら、編集の 2 秒後と 60 秒おきに同期します。

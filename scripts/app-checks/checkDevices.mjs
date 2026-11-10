@@ -8,8 +8,8 @@ export const PASSPHRASE = "correct horse battery";
 // integration/s3-up.sh の SeaweedFS。バケットは使い回し、確認ごとに prefix を分ける。
 export async function newCheckRemoteConfig() {
   const remote = {
-    endpoint: "http://127.0.0.1:18333", region: "us-east-1", bucket: "memo-app-check",
-    prefix: `check-${Date.now()}`, accessKeyId: "MEMOAPPTESTKEY", secretAccessKey: "memoapptestsecret",
+    endpoint: "http://127.0.0.1:18333", region: "us-east-1", bucket: "sedum-note-check",
+    prefix: `check-${Date.now()}`, accessKeyId: "SEDUMNOTETESTKEY", secretAccessKey: "sedumnotetestsecret",
   };
   const s3 = new AwsClient({ accessKeyId: remote.accessKeyId, secretAccessKey: remote.secretAccessKey, service: "s3", region: remote.region, retries: 0 });
   const created = await s3.fetch(`${remote.endpoint}/${remote.bucket}`, { method: "PUT" });

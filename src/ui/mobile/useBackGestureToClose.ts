@@ -3,7 +3,7 @@
 
 import { useEffect, useRef } from "react";
 
-const HISTORY_MARK = "memo-app-open-note";
+const HISTORY_MARK = "sedum-note-open-note";
 
 export function useBackGestureToClose(isOpen: boolean, close: () => void): () => void {
   const closeRef = useRef(close);

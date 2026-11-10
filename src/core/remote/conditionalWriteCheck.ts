@@ -8,7 +8,7 @@ import { type ObjectStore, ObjectStoreError, PreconditionFailedError } from "./o
 
 const CHECK_PREFIX = "write-check/";
 // どのオブジェクトの ETag とも一致しない値（S3 の ETag は 16 進の MD5 など）。
-const ETAG_THAT_NEVER_MATCHES = "memo-app-write-check-never-matches";
+const ETAG_THAT_NEVER_MATCHES = "sedum-note-write-check-never-matches";
 
 export async function ensureConditionalWrites(objectStore: ObjectStore): Promise<void> {
   const key = CHECK_PREFIX + newRandomId();

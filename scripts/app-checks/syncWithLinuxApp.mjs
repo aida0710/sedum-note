@@ -16,7 +16,7 @@ const laptop = await startBrowserDevice(remote);
 
 const app = await WebDriverSession.start("http://127.0.0.1:14444", {
   browserName: "wry",
-  "tauri:options": { application: "/usr/bin/memo-app" },
+  "tauri:options": { application: "/usr/bin/sedum-note" },
 });
 try {
   await app.click(await app.waitForXPath("//button[normalize-space()='既存のメモに参加']", 30_000));

@@ -1,7 +1,7 @@
 // 画面の文言（日本語）。{name} の形の所は translate の引数で埋める。
 
 export const japaneseMessages = {
-  "app.name": "Memo",
+  "app.name": "Sedum Note",
 
   "setup.title": "メモを始める",
   "setup.description": "メモはこのデバイスで暗号化してから保存します。パスフレーズを忘れると、どのデバイスからも読めなくなります。",

@@ -5,7 +5,7 @@ import { S3ObjectStore } from "../../core/remote/s3ObjectStore";
 import type { VaultSessionEnvironment } from "../../core/vault/vaultSession";
 import { translate } from "../i18n/translate";
 
-const LOCAL_DATABASE_NAME = "memo-app";
+const LOCAL_DATABASE_NAME = "sedum-note";
 
 export function createAppEnvironment(): VaultSessionEnvironment {
   return {

@@ -6,7 +6,7 @@
 // 画面のまま起動し、その WebView の DevTools を 127.0.0.1:9333 へ、アプリから見た
 // 127.0.0.1:18333 を手元の S3 へつないでおく。
 // - Android: `adb reverse tcp:18333 tcp:18333`、`adb forward tcp:9333 localabstract:webview_devtools_remote_<pid>`
-// - Windows: CI の確認用のビルド（memo-app-Windows-check、DevTools を 9222 に開く）を
+// - Windows: CI の確認用のビルド（sedum-note-Windows-check、DevTools を 9222 に開く）を
 //   startWindowsApp.ps1 -App <exe> -Fresh で起動し、`ssh -L 9333:127.0.0.1:9222 -R 18333:127.0.0.1:18333 <VM>`
 //
 // 使い方: [CDP_ENDPOINT=http://127.0.0.1:9333] CAPTURE=adb|cdp node scripts/app-checks/syncWithApp.mjs <画像を置くフォルダ>

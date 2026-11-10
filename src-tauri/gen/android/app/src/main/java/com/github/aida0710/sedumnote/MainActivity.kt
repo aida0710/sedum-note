@@ -1,4 +1,4 @@
-package com.github.aida0710.memoapp
+package com.github.aida0710.sedumnote
 
 import android.os.Bundle
 import android.view.View

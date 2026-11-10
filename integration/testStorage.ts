@@ -8,7 +8,7 @@ import { newRandomId } from "../src/core/crypto/randomId";
 import type { RemoteConfig } from "../src/core/remote/remoteConfig";
 
 export const TEST_ENDPOINT = "http://127.0.0.1:18333";
-const TEST_CREDENTIALS = { accessKeyId: "MEMOAPPTESTKEY", secretAccessKey: "memoapptestsecret" };
+const TEST_CREDENTIALS = { accessKeyId: "SEDUMNOTETESTKEY", secretAccessKey: "sedumnotetestsecret" };
 
 const TEST_BUCKET = "memo-test";
 

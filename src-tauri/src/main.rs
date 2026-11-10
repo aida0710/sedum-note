@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-  memo_app_lib::run();
+  sedum_note_lib::run();
 }

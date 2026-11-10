@@ -83,23 +83,26 @@ jobs:
       - name: Launch the app and capture the first screen
         if: matrix.name == 'macOS'
         run: |
-          open src-tauri/target/universal-apple-darwin/release/bundle/macos/memo-app.app
+          open "src-tauri/target/universal-apple-darwin/release/bundle/macos/Sedum Note.app"
           sleep 20
           screencapture -x mac-first-screen.png
-          pgrep -x memo-app
+          pgrep -x sedum-note
       # ダウンロードしたものと同じ扱い（quarantine の印）にしたときに、Gatekeeper がどう判定するかを残す。
-      # 署名の無い Apple シリコンのアプリは「壊れている」と断られ、「このまま開く」も出ない。
+      # 束が署名されていない Apple シリコンのアプリは「壊れている」と断られ、「このまま開く」も出ない。
+      # 仮の署名（tauri.conf.json の signingIdentity "-"）で束が封じてあることを codesign で確かめる。
+      # 公証は無いので spctl は断る（利用者は「このまま開く」で開く）。
       - name: Check the signature Gatekeeper sees
         if: matrix.name == 'macOS'
         run: |
           dmg=$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg -name '*.dmg')
           mount=$(hdiutil attach -nobrowse -readonly "$dmg" | tail -1 | cut -f3)
-          cp -R "$mount/memo-app.app" "$RUNNER_TEMP/memo-app.app"
+          cp -R "$mount/Sedum Note.app" "$RUNNER_TEMP/Sedum Note.app"
           hdiutil detach "$mount"
-          xattr -w com.apple.quarantine "0081;$(printf '%x' "$(date +%s)");Safari;" "$RUNNER_TEMP/memo-app.app"
-          codesign -dv --verbose=2 "$RUNNER_TEMP/memo-app.app" 2>&1 | tee mac-signature.txt
-          codesign --verify --deep --strict --verbose=2 "$RUNNER_TEMP/memo-app.app" 2>&1 | tee -a mac-signature.txt
-          spctl -a -vv --type execute "$RUNNER_TEMP/memo-app.app" 2>&1 | tee -a mac-signature.txt || true
+          xattr -w com.apple.quarantine "0081;$(printf '%x' "$(date +%s)");Safari;" "$RUNNER_TEMP/Sedum Note.app"
+          codesign -dv --verbose=2 "$RUNNER_TEMP/Sedum Note.app" 2>&1 | tee mac-signature.txt
+          codesign --verify --deep --strict --verbose=2 "$RUNNER_TEMP/Sedum Note.app" 2>&1 | tee -a mac-signature.txt
+          codesign --verify --deep --strict "$RUNNER_TEMP/Sedum Note.app"
+          spctl -a -vv --type execute "$RUNNER_TEMP/Sedum Note.app" 2>&1 | tee -a mac-signature.txt || true
       # Linux も同じく、組み立てた AppImage を画面の無い X（Xvfb）で起動して最初の画面を撮る。
       - name: Launch the app and capture the first screen
         if: matrix.name == 'Linux'
@@ -117,10 +120,10 @@ jobs:
           # ImageMagick の import では WebKitGTK の描いた中身が写らず黒くなるので、X の画面を直接撮る。
           ffmpeg -loglevel error -y -f x11grab -video_size 1280x820 -i :99 -frames:v 1 linux-first-screen.png
           cat linux-app.log
-          pgrep -x memo-app
+          pgrep -x sedum-note
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: memo-app-${{ matrix.name }}
+          name: sedum-note-${{ matrix.name }}
           path: |
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/bundle/nsis/*.exe
@@ -159,8 +162,8 @@ jobs:
           npx tauri build --no-bundle --config "{\"app\":{\"windows\":[$window]}}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: memo-app-Windows-check
-          path: src-tauri/target/release/memo-app.exe
+          name: sedum-note-Windows-check
+          path: src-tauri/target/release/sedum-note.exe
           if-no-files-found: error
 
   android:
@@ -189,22 +192,22 @@ jobs:
       # シークレットにあり、フォークからの PR では渡らないので、そのときは署名せずに作る。
       - name: Build the signed release APK
         env:
-          MEMO_ANDROID_KEYSTORE_BASE64: ${{ secrets.MEMO_ANDROID_KEYSTORE_BASE64 }}
-          MEMO_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.MEMO_ANDROID_KEYSTORE_PASSWORD }}
-          MEMO_ANDROID_KEY_ALIAS: ${{ secrets.MEMO_ANDROID_KEY_ALIAS }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
-          if [ -n "$MEMO_ANDROID_KEYSTORE_BASE64" ]; then
-            export MEMO_ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/release.p12"
-            printf '%s' "$MEMO_ANDROID_KEYSTORE_BASE64" | base64 -d > "$MEMO_ANDROID_KEYSTORE_PATH"
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/release.p12"
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$ANDROID_KEYSTORE_PATH"
           fi
           NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION" npx tauri android build --apk --target aarch64
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: memo-app-Android
+          name: sedum-note-Android
           path: src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
           if-no-files-found: error
 
-  # Web 版。main の画面を GitHub Pages（https://aida0710.github.io/memo-app/）に置く。
+  # Web 版。main の画面を GitHub Pages（https://aida0710.github.io/sedum-note/）に置く。
   pages:
     name: Web (GitHub Pages)
     needs: checks
@@ -225,7 +228,7 @@ jobs:
           cache: npm
       - run: npm install -g npm@${{ env.NPM_VERSION }}
       - run: npm ci
-      - run: npm run build -- --base /memo-app/
+      - run: npm run build -- --base /sedum-note/
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
@@ -265,13 +268,13 @@ jobs:
             test "$(printf '%s\n' "$found" | grep -c .)" = 1 || { echo "expected one $2 in $1, found: $found" >&2; exit 1; }
             cp "$found" "release-files/$3"
           }
-          take memo-app-Windows '*-setup.exe' "memo-app_${version}_windows-x64-setup.exe"
-          take memo-app-Windows '*.msi' "memo-app_${version}_windows-x64.msi"
-          take memo-app-macOS '*.dmg' "memo-app_${version}_macos-universal.dmg"
-          take memo-app-Android '*.apk' "memo-app_${version}_android-arm64.apk"
-          take memo-app-Linux '*.AppImage' "memo-app_${version}_linux-x86_64.AppImage"
-          take memo-app-Linux '*.deb' "memo-app_${version}_linux-amd64.deb"
-          take memo-app-Linux '*.rpm' "memo-app_${version}_linux-x86_64.rpm"
+          take sedum-note-Windows '*-setup.exe' "sedum-note_${version}_windows-x64-setup.exe"
+          take sedum-note-Windows '*.msi' "sedum-note_${version}_windows-x64.msi"
+          take sedum-note-macOS '*.dmg' "sedum-note_${version}_macos-universal.dmg"
+          take sedum-note-Android '*.apk' "sedum-note_${version}_android-arm64.apk"
+          take sedum-note-Linux '*.AppImage' "sedum-note_${version}_linux-x86_64.AppImage"
+          take sedum-note-Linux '*.deb' "sedum-note_${version}_linux-amd64.deb"
+          take sedum-note-Linux '*.rpm' "sedum-note_${version}_linux-x86_64.rpm"
           (cd release-files && sha256sum * > SHA256SUMS)
           ls -l release-files
       - name: Create the release
@@ -279,5 +282,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" release-files/* \
-            --title "memo-app $GITHUB_REF_NAME" \
+            --title "Sedum Note $GITHUB_REF_NAME" \
             --notes-file "docs/releases/$GITHUB_REF_NAME.md"
