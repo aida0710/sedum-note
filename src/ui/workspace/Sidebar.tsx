@@ -1,16 +1,15 @@
 // 案C の左の列: 一覧（すべて・お気に入り・ノートブック・タグ・ゴミ箱）を木にして、
 // 開いた所にメモを並べる。
 
-import { ChevronDown, ChevronRight, FileText, Hash, MoreHorizontal, Plus, Search, Star, Trash2, X } from "lucide-react";
+import { FileText, Hash, Plus, Search, Star, Trash2, X } from "lucide-react";
 import { type ReactNode, useState } from "react";
-import { buildNotebookTree, countTags, type NotebookTreeNode, type NoteSummary, type NoteView, selectNotes } from "../../core/notes/noteQueries";
+import { buildNotebookTree, countTags, selectNotes } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import type { RepositorySnapshot } from "../session/useRepositorySnapshot";
-import { notebookColor } from "../shared/notebookColor";
-import { NotebookActionsMenu } from "./NotebookActionsMenu";
+import { NotebookBranch, NotebookNameInput } from "./NotebookBranch";
+import { SearchResults, ViewGroup } from "./SidebarViewGroup";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
-import { viewKey } from "./useWorkspaceNavigation";
 
 type SidebarProps = {
   snapshot: RepositorySnapshot;
@@ -82,148 +81,5 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, footer
       </div>
       {footer}
     </aside>
-  );
-}
-
-type ViewGroupProps = {
-  view: NoteView;
-  icon: ReactNode;
-  label: string;
-  summaries: NoteSummary[];
-  navigation: WorkspaceNavigation;
-  depth?: number;
-  actions?: ReactNode;
-  childBranches?: ReactNode;
-};
-
-// 開くと中のメモが並ぶ 1 行。ノートブック・タグ・ゴミ箱で同じ形を使う。
-function ViewGroup({ view, icon, label, summaries, navigation, depth = 0, actions, childBranches }: ViewGroupProps) {
-  const key = viewKey(view);
-  const expanded = navigation.expandedIds.has(key);
-  const notes = selectNotes(summaries, view);
-  const isActive = viewKey(navigation.view) === key;
-  const indent = { paddingLeft: 8 + depth * 14 };
-  return (
-    <>
-      <div className="nav-row">
-        <button className={`nav${isActive ? " active" : ""}`} style={indent} aria-expanded={expanded}
-          onClick={() => {
-            if (isActive) {
-              navigation.toggleExpanded(key);
-            } else {
-              navigation.selectView(view);
-            }
-          }}>
-          <span className="disclosure">{expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
-          {icon}
-          <span className="nav-label">{label}</span>
-          <span className="count">{notes.length}</span>
-        </button>
-        {actions && <span className="row-actions">{actions}</span>}
-      </div>
-      {expanded && (
-        <>
-          {childBranches}
-          <NoteRows notes={notes} navigation={navigation} depth={depth + 1} />
-        </>
-      )}
-    </>
-  );
-}
-
-function NoteRows({ notes, navigation, depth }: { notes: NoteSummary[]; navigation: WorkspaceNavigation; depth: number }) {
-  if (notes.length === 0) {
-    return <div className="tree-empty" style={{ paddingLeft: 30 + depth * 14 }}>{translate("sidebar.noNotes")}</div>;
-  }
-  return notes.map(({ note }) => (
-    <button key={note.id} className={`tree-note${navigation.activeTab === note.id ? " active" : ""}`} style={{ paddingLeft: 30 + depth * 14 }}
-      onClick={() => navigation.openNote(note.id)}>
-      {note.content.title || translate("sidebar.untitled")}
-    </button>
-  ));
-}
-
-function SearchResults({ summaries, navigation }: { summaries: NoteSummary[]; navigation: WorkspaceNavigation }) {
-  return (
-    <>
-      <div className="section-title">{translate("sidebar.searchResults", { count: summaries.length })}</div>
-      <NoteRows notes={summaries} navigation={navigation} depth={-1} />
-    </>
-  );
-}
-
-type NotebookBranchProps = {
-  node: NotebookTreeNode;
-  depth: number;
-  summaries: NoteSummary[];
-  repository: NoteRepository;
-  navigation: WorkspaceNavigation;
-};
-
-function NotebookBranch({ node, depth, summaries, repository, navigation }: NotebookBranchProps) {
-  const { notebook } = node;
-  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
-  const [renaming, setRenaming] = useState(false);
-  const [addingChild, setAddingChild] = useState(false);
-  if (renaming) {
-    return (
-      <NotebookNameInput initialName={notebook.content.name} onDone={(name) => {
-        setRenaming(false);
-        if (name && name !== notebook.content.name) {
-          void repository.updateNotebook(notebook.id, { name });
-        }
-      }} />
-    );
-  }
-  const children = (
-    <>
-      {addingChild && (
-        <NotebookNameInput onDone={(name) => {
-          setAddingChild(false);
-          if (name) {
-            void repository.createNotebook(name, notebook.id);
-          }
-        }} />
-      )}
-      {node.children.map((child) => (
-        <NotebookBranch key={child.notebook.id} node={child} depth={depth + 1} summaries={summaries} repository={repository} navigation={navigation} />
-      ))}
-    </>
-  );
-  return (
-    <>
-      <ViewGroup view={{ kind: "notebook", notebookId: notebook.id }} depth={depth}
-        icon={<span className="dot" style={{ background: notebookColor(notebook.id) }} />}
-        label={notebook.content.name} summaries={summaries} navigation={navigation} childBranches={children}
-        actions={
-          <button className="icon-button" aria-label={translate("editor.more")} aria-haspopup="menu" onClick={(event) => setMenuAnchor(event.currentTarget)}>
-            <MoreHorizontal size={14} />
-          </button>
-        } />
-      {menuAnchor && (
-        <NotebookActionsMenu anchor={menuAnchor} notebook={notebook} repository={repository} onClose={() => setMenuAnchor(null)}
-          onRename={() => setRenaming(true)}
-          onAddChild={() => {
-            setAddingChild(true);
-            navigation.selectView({ kind: "notebook", notebookId: notebook.id });
-          }} />
-      )}
-    </>
-  );
-}
-
-function NotebookNameInput({ initialName = "", onDone }: { initialName?: string; onDone: (name: string) => void }) {
-  const [name, setName] = useState(initialName);
-  return (
-    <input className="inline-input" autoFocus value={name} placeholder={translate("sidebar.newNotebookPlaceholder")}
-      onChange={(event) => setName(event.target.value)}
-      onBlur={() => onDone(name.trim())}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-          onDone(name.trim());
-        } else if (event.key === "Escape") {
-          onDone("");
-        }
-      }} />
   );
 }

@@ -1,0 +1,74 @@
+// 左の列の 1 行（すべて・お気に入り・ノートブック・タグ・ゴミ箱）と、開いたときに並ぶメモ。
+
+import { ChevronDown, ChevronRight } from "lucide-react";
+import type { ReactNode } from "react";
+import { type NoteSummary, type NoteView, selectNotes } from "../../core/notes/noteQueries";
+import { translate } from "../i18n/translate";
+import { viewKey, type WorkspaceNavigation } from "./useWorkspaceNavigation";
+
+export type ViewGroupProps = {
+  view: NoteView;
+  icon: ReactNode;
+  label: string;
+  summaries: NoteSummary[];
+  navigation: WorkspaceNavigation;
+  depth?: number;
+  actions?: ReactNode;
+  childBranches?: ReactNode;
+};
+
+// 開くと中のメモが並ぶ 1 行。ノートブック・タグ・ゴミ箱で同じ形を使う。
+export function ViewGroup({ view, icon, label, summaries, navigation, depth = 0, actions, childBranches }: ViewGroupProps) {
+  const key = viewKey(view);
+  const expanded = navigation.expandedIds.has(key);
+  const notes = selectNotes(summaries, view);
+  const isActive = viewKey(navigation.view) === key;
+  const indent = { paddingLeft: 8 + depth * 14 };
+  return (
+    <>
+      <div className="nav-row">
+        <button className={`nav${isActive ? " active" : ""}`} style={indent} aria-expanded={expanded}
+          onClick={() => {
+            if (isActive) {
+              navigation.toggleExpanded(key);
+            } else {
+              navigation.selectView(view);
+            }
+          }}>
+          <span className="disclosure">{expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
+          {icon}
+          <span className="nav-label">{label}</span>
+          <span className="count">{notes.length}</span>
+        </button>
+        {actions && <span className="row-actions">{actions}</span>}
+      </div>
+      {expanded && (
+        <>
+          {childBranches}
+          <NoteRows notes={notes} navigation={navigation} depth={depth + 1} />
+        </>
+      )}
+    </>
+  );
+}
+
+export function NoteRows({ notes, navigation, depth }: { notes: NoteSummary[]; navigation: WorkspaceNavigation; depth: number }) {
+  if (notes.length === 0) {
+    return <div className="tree-empty" style={{ paddingLeft: 30 + depth * 14 }}>{translate("sidebar.noNotes")}</div>;
+  }
+  return notes.map(({ note }) => (
+    <button key={note.id} className={`tree-note${navigation.activeTab === note.id ? " active" : ""}`} style={{ paddingLeft: 30 + depth * 14 }}
+      onClick={() => navigation.openNote(note.id)}>
+      {note.content.title || translate("sidebar.untitled")}
+    </button>
+  ));
+}
+
+export function SearchResults({ summaries, navigation }: { summaries: NoteSummary[]; navigation: WorkspaceNavigation }) {
+  return (
+    <>
+      <div className="section-title">{translate("sidebar.searchResults", { count: summaries.length })}</div>
+      <NoteRows notes={summaries} navigation={navigation} depth={-1} />
+    </>
+  );
+}
