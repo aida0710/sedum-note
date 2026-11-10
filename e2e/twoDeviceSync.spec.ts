@@ -84,7 +84,9 @@ test("PC で書いた写真付きのメモが、スマホの大きさのもう 1
 
   const phone = await newDevice(browser, { width: 390, height: 844 });
   await phone.goto("/");
-  await phone.getByRole("tab", { name: "ほかのデバイスのメモを使う" }).click();
+  await capture(phone, "mobile-setup");
+  await expect.poll(() => phone.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await phone.getByRole("tab", { name: "既存のメモに参加" }).click();
   await phone.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await fillRemoteConfig(phone, remoteConfig);
   await phone.getByRole("button", { name: "参加" }).click();

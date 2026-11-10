@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+  # npm 10 は、この依存の組み合わせで依存の木を作る途中に落ちる（edgesOut の不具合）。
+  NPM_VERSION: "11.6.2"
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm install -g npm@${{ env.NPM_VERSION }}
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Start the S3-compatible test server
+        run: integration/s3-up.sh
+      - run: npm run test:integration
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+      - run: npm run build
+
+  desktop:
+    name: Desktop (${{ matrix.name }})
+    needs: checks
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            runner: windows-latest
+            rust-targets: x86_64-pc-windows-msvc
+            tauri-arguments: ""
+          - name: macOS
+            runner: macos-latest
+            rust-targets: aarch64-apple-darwin x86_64-apple-darwin
+            tauri-arguments: --target universal-apple-darwin
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm install -g npm@${{ env.NPM_VERSION }}
+      - run: npm ci
+      - run: rustup toolchain install stable --profile minimal && rustup target add ${{ matrix.rust-targets }}
+      - run: npx tauri build ${{ matrix.tauri-arguments }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: memo-app-${{ matrix.name }}
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+
+  android:
+    name: Android
+    needs: checks
+    runs-on: ubuntu-latest
+    env:
+      # src-tauri/gen/android を作ったときと同じ NDK。
+      NDK_VERSION: "28.2.13676358"
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: npm install -g npm@${{ env.NPM_VERSION }}
+      - run: npm ci
+      - run: rustup toolchain install stable --profile minimal && rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+      - run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION" > /dev/null
+      # 署名の鍵をまだ用意していないので、そのまま入れられるデバッグ版を作る。
+      - run: NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION" npx tauri android build --debug --apk
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: memo-app-Android
+          path: src-tauri/gen/android/app/build/outputs/apk/universal/debug/*.apk
+          if-no-files-found: error

@@ -6,7 +6,7 @@ export const japaneseMessages = {
   "setup.title": "メモを始める",
   "setup.description": "メモはこのデバイスで暗号化してから保存します。パスフレーズを忘れると、どのデバイスからも読めなくなります。",
   "setup.mode.new": "新しく始める",
-  "setup.mode.join": "ほかのデバイスのメモを使う",
+  "setup.mode.join": "既存のメモに参加",
   "setup.passphrase": "パスフレーズ",
   "setup.passphraseConfirm": "パスフレーズ（確認）",
   "setup.passphraseHint": "{minimum}文字以上",
@@ -39,7 +39,7 @@ export const japaneseMessages = {
 
   "error.wrongPassphrase": "パスフレーズが違います",
   "error.weakPassphrase": "パスフレーズは{minimum}文字以上にしてください",
-  "error.vaultAlreadyExists": "このバケットには既にメモがあります。「ほかのデバイスのメモを使う」を選んでください",
+  "error.vaultAlreadyExists": "このバケットには既にメモがあります。「既存のメモに参加」を選んでください",
   "error.vaultNotFound": "このバケットにはまだメモがありません。「新しく始める」を選んでください",
   "error.storage.unreachable": "ストレージに接続できません。エンドポイントと、バケットの CORS の設定を確かめてください",
   "error.storage.forbidden": "ストレージに断られました。アクセスキーと権限を確かめてください",
