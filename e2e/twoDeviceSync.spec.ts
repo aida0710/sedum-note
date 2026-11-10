@@ -104,3 +104,29 @@ test("PC で書いた写真付きのメモが、スマホの大きさのもう 1
   await expect(phone.getByRole("heading", { name: "すべてのメモ" })).toBeVisible();
   await capture(phone, "mobile-editor");
 });
+
+test("写真は貼り付けとドロップでも本文に入る", async ({ browser }) => {
+  const page = await newDevice(browser, { width: 1280, height: 820 });
+  await page.goto("/");
+  await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
+  await page.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
+  await page.getByLabel("同期はあとで設定する").check();
+  await page.getByRole("button", { name: "作成" }).click();
+  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await page.locator(".ProseMirror").click();
+  const png = [...(await photoPng(page))];
+  // 貼り付けとドロップの事象を、画像のファイルを持たせて本文に送る（OS のクリップボードとドラッグの代わり）。
+  for (const eventName of ["paste", "drop"]) {
+    await page.locator(".ProseMirror").evaluate((editor, { bytes, name }) => {
+      const transfer = new DataTransfer();
+      transfer.items.add(new File([new Uint8Array(bytes)], `${name}.png`, { type: "image/png" }));
+      const box = editor.getBoundingClientRect();
+      const event = name === "paste"
+        ? new ClipboardEvent("paste", { clipboardData: transfer, bubbles: true, cancelable: true })
+        : new DragEvent("drop", { dataTransfer: transfer, bubbles: true, cancelable: true, clientX: box.left + 10, clientY: box.top + 10 });
+      editor.dispatchEvent(event);
+    }, { bytes: png, name: eventName });
+  }
+  await expect(page.locator(".attachment-image img")).toHaveCount(2);
+  await expect(page.locator(".attachment-image .file-name")).toHaveText(["paste.png", "drop.png"]);
+});
