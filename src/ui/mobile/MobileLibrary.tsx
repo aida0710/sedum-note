@@ -2,7 +2,7 @@ import { FolderPlus, Hash, Trash2 } from "lucide-react";
 import { countTags, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import { translate } from "../i18n/translate";
 import { useDialogs } from "../shared/DialogProvider";
-import { notebookColor } from "../shared/notebookColor";
+import { assignNotebookColors } from "../shared/notebookColor";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
 
 type MobileLibraryProps = {
@@ -15,6 +15,7 @@ type MobileLibraryProps = {
 export function MobileLibrary({ snapshot, repository, onPick }: MobileLibraryProps) {
   const dialogs = useDialogs();
   const tags = countTags(snapshot.summaries);
+  const notebookColors = assignNotebookColors(snapshot.notebooks);
   const addNotebook = async () => {
     const name = (await dialogs.prompt({ message: translate("sidebar.newNotebookPlaceholder") }))?.trim();
     if (name) {
@@ -32,7 +33,7 @@ export function MobileLibrary({ snapshot, repository, onPick }: MobileLibraryPro
       <div className="phone-scroll">
         {snapshot.notebooks.map((notebook) => (
           <button key={notebook.id} className="library-row" onClick={() => onPick({ kind: "notebook", notebookId: notebook.id })}>
-            <span className="dot" style={{ background: notebookColor(notebook.id) }} />{notebook.content.name}
+            <span className="dot" style={{ background: notebookColors.colorOf(notebook.id) }} />{notebook.content.name}
             <span className="count">{selectNotes(snapshot.summaries, { kind: "notebook", notebookId: notebook.id }).length}</span>
           </button>
         ))}

@@ -14,8 +14,10 @@ export type WorkspaceNavigation = {
   openNote: (noteId: string) => void;
   openSettings: () => void;
   closeTab: (tabId: string) => void;
-  expandedIds: ReadonlySet<string>;
-  toggleExpanded: (id: string) => void;
+  // 左の列の行が開いているか。expandedByDefault は、利用者がまだ開け閉めしていないときの状態
+  //（案C の試作どおり、ノートブックは開き、ほかは閉じる）。
+  isExpanded: (key: string, expandedByDefault: boolean) => boolean;
+  setExpanded: (key: string, expanded: boolean) => void;
   searchText: string;
   setSearchText: (text: string) => void;
 };
@@ -34,7 +36,8 @@ export function viewKey(view: NoteView): string {
 export function useWorkspaceNavigation(): WorkspaceNavigation {
   const [view, setView] = useState<NoteView>({ kind: "all" });
   const [tabs, setTabs] = useState<{ openTabs: string[]; activeTab: string | null }>({ openTabs: [], activeTab: null });
-  const [expandedIds, setExpandedIds] = useState<ReadonlySet<string>>(new Set(["all"]));
+  // 利用者が開け閉めした行だけを持つ。持っていない行は既定の状態。
+  const [expandedOverrides, setExpandedOverrides] = useState<ReadonlyMap<string, boolean>>(new Map());
   const [searchText, setSearchText] = useState("");
 
   const openTab = useCallback((tabId: string) => {
@@ -51,25 +54,22 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
     });
   }, []);
 
-  const toggleExpanded = useCallback((id: string) => {
-    setExpandedIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+  const setExpanded = useCallback((key: string, expanded: boolean) => {
+    setExpandedOverrides((current) => new Map(current).set(key, expanded));
   }, []);
+
+  const isExpanded = useCallback(
+    (key: string, expandedByDefault: boolean) => expandedOverrides.get(key) ?? expandedByDefault,
+    [expandedOverrides],
+  );
 
   const selectView = useCallback((next: NoteView) => {
     setView(next);
-    setExpandedIds((current) => new Set(current).add(viewKey(next)));
-  }, []);
+    setExpanded(viewKey(next), true);
+  }, [setExpanded]);
 
   return {
     view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote: openTab, openSettings: () => openTab(SETTINGS_TAB), closeTab,
-    expandedIds, toggleExpanded, searchText, setSearchText,
+    isExpanded, setExpanded, searchText, setSearchText,
   };
 }

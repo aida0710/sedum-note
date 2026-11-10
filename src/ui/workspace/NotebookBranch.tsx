@@ -6,12 +6,13 @@ import { useState } from "react";
 import type { NotebookTreeNode, NoteSummary } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
-import { notebookColor } from "../shared/notebookColor";
+import type { NotebookColors } from "../shared/notebookColor";
 import { NotebookActionsMenu } from "./NotebookActionsMenu";
 import { ViewGroup } from "./SidebarViewGroup";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
 
 export type NotebookBranchProps = {
+  notebookColors: NotebookColors;
   node: NotebookTreeNode;
   depth: number;
   summaries: NoteSummary[];
@@ -19,8 +20,9 @@ export type NotebookBranchProps = {
   navigation: WorkspaceNavigation;
 };
 
-export function NotebookBranch({ node, depth, summaries, repository, navigation }: NotebookBranchProps) {
+export function NotebookBranch({ node, depth, summaries, repository, navigation, notebookColors }: NotebookBranchProps) {
   const { notebook } = node;
+  const notebookColor = notebookColors.colorOf(notebook.id);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [addingChild, setAddingChild] = useState(false);
@@ -45,14 +47,14 @@ export function NotebookBranch({ node, depth, summaries, repository, navigation 
         }} />
       )}
       {node.children.map((child) => (
-        <NotebookBranch key={child.notebook.id} node={child} depth={depth + 1} summaries={summaries} repository={repository} navigation={navigation} />
+        <NotebookBranch key={child.notebook.id} node={child} depth={depth + 1} summaries={summaries} repository={repository} navigation={navigation} notebookColors={notebookColors} />
       ))}
     </>
   );
   return (
     <>
-      <ViewGroup view={{ kind: "notebook", notebookId: notebook.id }} depth={depth}
-        icon={<span className="dot" style={{ background: notebookColor(notebook.id) }} />}
+      <ViewGroup view={{ kind: "notebook", notebookId: notebook.id }} depth={depth} expandedByDefault
+        icon={<span className="dot" style={{ background: notebookColor }} />}
         label={notebook.content.name} summaries={summaries} navigation={navigation} childBranches={children}
         actions={
           <button className="icon-button" aria-label={translate("editor.more")} aria-haspopup="menu" onClick={(event) => setMenuAnchor(event.currentTarget)}>

@@ -7,6 +7,7 @@ import { buildNotebookTree, countTags, selectNotes } from "../../core/notes/note
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import type { RepositorySnapshot } from "../session/useRepositorySnapshot";
+import { assignNotebookColors } from "../shared/notebookColor";
 import { NotebookBranch, NotebookNameInput } from "./NotebookBranch";
 import { SearchResults, ViewGroup } from "./SidebarViewGroup";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
@@ -25,6 +26,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, footer
   const { summaries } = snapshot;
   const notebookTree = buildNotebookTree(snapshot.notebooks);
   const tags = countTags(summaries);
+  const notebookColors = assignNotebookColors(snapshot.notebooks);
   const searching = navigation.searchText.trim() !== "";
 
   const closeSearch = () => {
@@ -54,7 +56,9 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, footer
           <SearchResults summaries={selectNotes(summaries, { kind: "all" }, navigation.searchText)} navigation={navigation} />
         ) : (
           <>
-            <ViewGroup view={{ kind: "all" }} icon={<FileText size={15} />} label={translate("sidebar.allNotes")} summaries={summaries} navigation={navigation} />
+            {/* ノートブックが無いうちは、メモを並べる所がほかに無いので開いておく。 */}
+            <ViewGroup view={{ kind: "all" }} icon={<FileText size={15} />} label={translate("sidebar.allNotes")} summaries={summaries} navigation={navigation}
+              expandedByDefault={notebookTree.length === 0} />
             <ViewGroup view={{ kind: "bookmarked" }} icon={<Star size={15} />} label={translate("sidebar.bookmarked")} summaries={summaries} navigation={navigation} />
             <div className="section-title">
               {translate("sidebar.notebooks")}
@@ -69,7 +73,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, footer
               }} />
             )}
             {notebookTree.map((node) => (
-              <NotebookBranch key={node.notebook.id} node={node} depth={0} summaries={summaries} repository={repository} navigation={navigation} />
+              <NotebookBranch key={node.notebook.id} node={node} depth={0} summaries={summaries} repository={repository} navigation={navigation} notebookColors={notebookColors} />
             ))}
             {tags.length > 0 && <div className="section-title">{translate("sidebar.tags")}</div>}
             {tags.map(({ tag }) => (

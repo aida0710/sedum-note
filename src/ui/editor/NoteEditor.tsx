@@ -10,7 +10,7 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { useDialogs } from "../shared/DialogProvider";
 import { formatDateTime } from "../shared/formatTime";
-import { notebookColor } from "../shared/notebookColor";
+import { assignNotebookColors } from "../shared/notebookColor";
 import { EditorToolbar } from "./EditorToolbar";
 import { createEditorExtensions } from "./editorExtensions";
 import { imageFilesOf, insertImageFiles } from "./imageFiles";
@@ -85,6 +85,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
 
   const plainText = useMemo(() => documentPlainText(note.content.document), [note.content.document]);
   const tags = useMemo(() => documentHashtags(plainText), [plainText]);
+  const notebookColors = assignNotebookColors(notebooks);
   const noteNotebooks = notebooks.filter((notebook) => note.content.notebookIds.includes(notebook.id));
 
   const trailing = (
@@ -146,12 +147,14 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
           )}
           <div className="document-meta">
             {noteNotebooks.map((notebook) => (
-              <span key={notebook.id} className="chip"><span className="dot" style={{ background: notebookColor(notebook.id) }} />{notebook.content.name}</span>
+              <span key={notebook.id} className="chip"><span className="dot" style={{ background: notebookColors.colorOf(notebook.id) }} />{notebook.content.name}</span>
             ))}
             {tags.map((tag) => <span key={tag} className="chip">#{tag}</span>)}
             <span className="updated">{translate("editor.updatedAt", { time: formatDateTime(note.updatedAt) })}</span>
           </div>
+          {/* 作ったばかりの空のメモは、すぐ打てるようにタイトルにカーソルを置く。 */}
           <input className="title-input" value={title} placeholder={translate("editor.titlePlaceholder")} readOnly={inTrash}
+            autoFocus={note.content.title === "" && note.content.document === null}
             onChange={(event) => { setTitle(event.target.value); autosave.schedule({ title: event.target.value }); }}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.nativeEvent.isComposing) {

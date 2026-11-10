@@ -22,12 +22,14 @@ export type ViewGroupProps = {
   depth?: number;
   actions?: ReactNode;
   childBranches?: ReactNode;
+  // 利用者がまだ開け閉めしていないときに開いておくか。
+  expandedByDefault?: boolean;
 };
 
 // 開くと中のメモが並ぶ 1 行。ノートブック・タグ・ゴミ箱で同じ形を使う。
-export function ViewGroup({ view, icon, label, summaries, navigation, depth = 0, actions, childBranches }: ViewGroupProps) {
+export function ViewGroup({ view, icon, label, summaries, navigation, depth = 0, actions, childBranches, expandedByDefault = false }: ViewGroupProps) {
   const key = viewKey(view);
-  const expanded = navigation.expandedIds.has(key);
+  const expanded = navigation.isExpanded(key, expandedByDefault);
   const notes = selectNotes(summaries, view);
   const isActive = viewKey(navigation.view) === key;
   const indent = { paddingLeft: ROW_PADDING_LEFT + depth * TREE_INDENT_STEP };
@@ -37,7 +39,7 @@ export function ViewGroup({ view, icon, label, summaries, navigation, depth = 0,
         <button className={`nav${isActive ? " active" : ""}`} style={indent} aria-expanded={expanded}
           onClick={() => {
             if (isActive) {
-              navigation.toggleExpanded(key);
+              navigation.setExpanded(key, !expanded);
             } else {
               navigation.selectView(view);
             }
