@@ -14,8 +14,18 @@ export type ListObjectsPage = {
 
 const XML_ENTITIES: Record<string, string> = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&apos;": "'" };
 
+// SeaweedFS は ETag の引用符を &#34; の形（数値の文字参照）で返すので、名前付きの
+// 参照と数値の参照の両方を戻す。
 function decodeXmlText(text: string): string {
-  return text.replace(/&(amp|lt|gt|quot|apos);/g, (entity) => XML_ENTITIES[entity] ?? entity);
+  return text.replace(/&(#x[0-9a-fA-F]+|#[0-9]+|amp|lt|gt|quot|apos);/g, (entity, body: string) => {
+    if (body.startsWith("#x")) {
+      return String.fromCodePoint(Number.parseInt(body.slice(2), 16));
+    }
+    if (body.startsWith("#")) {
+      return String.fromCodePoint(Number.parseInt(body.slice(1), 10));
+    }
+    return XML_ENTITIES[entity] ?? entity;
+  });
 }
 
 function firstElementText(xml: string, name: string): string | null {

@@ -13,6 +13,11 @@ describe("parseListObjectsPage", () => {
     });
   });
 
+  it("数値の文字参照で書かれた引用符も外す（SeaweedFS の形）", () => {
+    const xml = "<ListBucketResult><Contents><Key>a</Key><ETag>&#34;86ab&#34;</ETag></Contents></ListBucketResult>";
+    expect(parseListObjectsPage(xml).objects).toEqual([{ key: "a", etag: "86ab" }]);
+  });
+
   it("最後のページでは続きの印を返さない", () => {
     expect(parseListObjectsPage("<ListBucketResult><IsTruncated>false</IsTruncated></ListBucketResult>")).toEqual({ objects: [], nextContinuationToken: null });
   });
