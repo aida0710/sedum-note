@@ -58,6 +58,11 @@ jobs:
             runner: macos-latest
             rust-targets: aarch64-apple-darwin x86_64-apple-darwin
             tauri-arguments: --target universal-apple-darwin
+          # 古い glibc で組み立てるほど、AppImage が動く Linux の範囲が広がる。
+          - name: Linux
+            runner: ubuntu-22.04
+            rust-targets: x86_64-unknown-linux-gnu
+            tauri-arguments: ""
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -67,6 +72,11 @@ jobs:
           cache: npm
       - run: npm install -g npm@${{ env.NPM_VERSION }}
       - run: npm ci
+      - name: Install the WebKitGTK build dependencies
+        if: matrix.name == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev xvfb imagemagick
       - run: rustup toolchain install stable --profile minimal && rustup target add ${{ matrix.rust-targets }}
       - run: npx tauri build ${{ matrix.tauri-arguments }}
       # 手元に Mac が無いので、組み立てたアプリを起動して最初の画面を撮り、成果物に入れる。
@@ -77,6 +87,21 @@ jobs:
           sleep 20
           screencapture -x mac-first-screen.png
           pgrep -x memo-app
+      # Linux も同じく、組み立てた AppImage を画面の無い X（Xvfb）で起動して最初の画面を撮る。
+      - name: Launch the app and capture the first screen
+        if: matrix.name == 'Linux'
+        run: |
+          appimage=$(find src-tauri/target/release/bundle/appimage -name '*.AppImage')
+          chmod +x "$appimage"
+          Xvfb :99 -screen 0 1280x820x24 &
+          export DISPLAY=:99
+          # ランナーに FUSE が無いので、AppImage を展開してから起動する。
+          export APPIMAGE_EXTRACT_AND_RUN=1
+          sleep 2
+          "$appimage" &
+          sleep 20
+          import -window root linux-first-screen.png
+          pgrep -f memo-app
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: memo-app-${{ matrix.name }}
@@ -85,6 +110,10 @@ jobs:
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
             mac-first-screen.png
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/rpm/*.rpm
+            src-tauri/target/release/bundle/appimage/*.AppImage
+            linux-first-screen.png
           if-no-files-found: error
 
   android:
@@ -193,6 +222,9 @@ jobs:
           take memo-app-Windows '*.msi' "memo-app_${version}_windows-x64.msi"
           take memo-app-macOS '*.dmg' "memo-app_${version}_macos-universal.dmg"
           take memo-app-Android '*.apk' "memo-app_${version}_android-arm64.apk"
+          take memo-app-Linux '*.AppImage' "memo-app_${version}_linux-x86_64.AppImage"
+          take memo-app-Linux '*.deb' "memo-app_${version}_linux-amd64.deb"
+          take memo-app-Linux '*.rpm' "memo-app_${version}_linux-x86_64.rpm"
           (cd release-files && sha256sum * > SHA256SUMS)
           ls -l release-files
       - name: Create the release
