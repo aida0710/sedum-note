@@ -12,6 +12,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@tauri-apps/api": "2.12.4",
     "aws4fetch": "1.0.20",
     "hash-wasm": "4.13.0",
     "idb": "8.0.4",
@@ -19,13 +20,14 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "typescript": "5.9.3",
-    "vite": "8.1.6",
-    "vitest": "4.1.12",
-    "@vitejs/plugin-react": "6.0.4",
-    "fake-indexeddb": "6.2.8",
+    "@tauri-apps/cli": "2.12.4",
+    "@types/node": "22.20.1",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
-    "@types/node": "22.20.1"
+    "@vitejs/plugin-react": "6.0.4",
+    "fake-indexeddb": "6.2.8",
+    "typescript": "5.9.3",
+    "vite": "8.1.6",
+    "vitest": "4.1.12"
   }
 }
