@@ -76,7 +76,7 @@ jobs:
         if: matrix.name == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev xvfb imagemagick
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev xvfb ffmpeg fonts-noto-cjk
       - run: rustup toolchain install stable --profile minimal && rustup target add ${{ matrix.rust-targets }}
       - run: npx tauri build ${{ matrix.tauri-arguments }}
       # 手元に Mac が無いので、組み立てたアプリを起動して最初の画面を撮り、成果物に入れる。
@@ -100,7 +100,8 @@ jobs:
           sleep 2
           "$appimage" &
           sleep 20
-          import -window root linux-first-screen.png
+          # ImageMagick の import では WebKitGTK の描いた中身が写らず黒くなるので、X の画面を直接撮る。
+          ffmpeg -loglevel error -y -f x11grab -video_size 1280x820 -i :99 -frames:v 1 linux-first-screen.png
           pgrep -f memo-app
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:

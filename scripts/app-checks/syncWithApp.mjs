@@ -15,18 +15,11 @@
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { chromium } from "@playwright/test";
-import { AwsClient } from "aws4fetch";
+import { expectNoteFromApp, newCheckRemoteConfig, PASSPHRASE, REMOTE_FIELDS, startBrowserDevice } from "./checkDevices.mjs";
 
 const outputDirectory = process.argv[2];
 const adb = `${process.env.ANDROID_HOME}/platform-tools/adb`;
 const device = process.env.ANDROID_SERIAL ?? "emulator-5580";
-const passphrase = "correct horse battery";
-const remote = {
-  endpoint: "http://127.0.0.1:18333", region: "us-east-1", prefix: "memo",
-  accessKeyId: "MEMOAPPTESTKEY", secretAccessKey: "memoapptestsecret",
-  bucket: `memo-app-check-${Date.now()}`,
-};
-
 const captureWith = process.env.CAPTURE ?? "adb";
 
 async function screenshotDevice(page, name) {
@@ -37,58 +30,31 @@ async function screenshotDevice(page, name) {
   }
 }
 
-async function fillRemote(page) {
-  await page.getByLabel("エンドポイント").fill(remote.endpoint);
-  await page.getByLabel("バケット").fill(remote.bucket);
-  await page.getByLabel("リージョン").fill(remote.region);
-  await page.getByLabel("フォルダ").fill(remote.prefix);
-  await page.getByLabel("アクセスキー ID").fill(remote.accessKeyId);
-  await page.getByLabel("シークレットアクセスキー").fill(remote.secretAccessKey);
-}
-
-const s3 = new AwsClient({ accessKeyId: remote.accessKeyId, secretAccessKey: remote.secretAccessKey, service: "s3", region: remote.region, retries: 0 });
-const created = await s3.fetch(`${remote.endpoint}/${remote.bucket}`, { method: "PUT" });
-if (!created.ok) {
-  throw new Error(`bucket: ${created.status}`);
-}
-
 // 1. PC でメモを作る。
-const desktopBrowser = await chromium.launch();
-const laptop = await (await desktopBrowser.newContext({ viewport: { width: 1280, height: 820 } })).newPage();
-await laptop.goto("http://127.0.0.1:5173/");
-await laptop.getByLabel("パスフレーズ", { exact: true }).fill(passphrase);
-await laptop.getByLabel("パスフレーズ（確認）").fill(passphrase);
-await fillRemote(laptop);
-await laptop.getByRole("button", { name: "作成" }).click();
-await laptop.getByRole("button", { name: "新しいメモ" }).click();
-await laptop.getByPlaceholder("タイトル").fill("PCで書いたメモ");
-await laptop.getByPlaceholder("タイトル").press("Enter");
-await laptop.keyboard.type("スマホで読めるか確かめる #確認");
-await laptop.waitForTimeout(4_000);
+const remote = await newCheckRemoteConfig();
+const laptop = await startBrowserDevice(remote);
 
 // 2. アプリで参加し、PC のメモが届くか。
 // 標準の設定（画面の大きさなど）を WebView に押し付けないよう noDefaults を付ける。
 const appBrowser = await chromium.connectOverCDP("http://127.0.0.1:9333", { noDefaults: true });
-const phone = appBrowser.contexts()[0].pages()[0];
-await phone.getByRole("tab", { name: "既存のメモに参加" }).click();
-await phone.getByLabel("パスフレーズ", { exact: true }).fill(passphrase);
-await fillRemote(phone);
-await phone.getByRole("button", { name: "参加" }).click();
-await phone.getByRole("button", { name: /PCで書いたメモ/ }).first().waitFor({ timeout: 30_000 });
-await screenshotDevice(phone, "app-list");
+const app = appBrowser.contexts()[0].pages()[0];
+await app.getByRole("tab", { name: "既存のメモに参加" }).click();
+await app.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
+for (const [label, , field] of REMOTE_FIELDS) {
+  await app.getByLabel(label).fill(remote[field]);
+}
+await app.getByRole("button", { name: "参加" }).click();
+await app.getByRole("button", { name: /PCで書いたメモ/ }).first().waitFor({ timeout: 30_000 });
+await screenshotDevice(app, "app-list");
 
 // 3. アプリでメモを書き、PC に届くか。
-await phone.getByRole("button", { name: "新しいメモ", exact: true }).click();
-await phone.getByPlaceholder("タイトル").fill("アプリで書いたメモ");
-await phone.getByPlaceholder("タイトル").press("Enter");
-await phone.keyboard.type("アプリから同期");
-await screenshotDevice(phone, "app-editor");
-await phone.waitForTimeout(4_000);
-await laptop.reload();
-await laptop.getByLabel("パスフレーズ").fill(passphrase);
-await laptop.getByRole("button", { name: "解除" }).click();
-await laptop.getByRole("button", { name: /アプリで書いたメモ/ }).first().waitFor({ timeout: 30_000 });
-await laptop.screenshot({ path: `${outputDirectory}/browser-after-app.png` });
+await app.getByRole("button", { name: "新しいメモ", exact: true }).click();
+await app.getByPlaceholder("タイトル").fill("アプリで書いたメモ");
+await app.getByPlaceholder("タイトル").press("Enter");
+await app.keyboard.type("アプリから同期");
+await screenshotDevice(app, "app-editor");
+await app.waitForTimeout(4_000);
+await expectNoteFromApp(laptop.page, `${outputDirectory}/browser-after-app.png`);
 console.log("both directions synced");
-await desktopBrowser.close();
+await laptop.browser.close();
 await appBrowser.close();
