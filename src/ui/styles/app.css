@@ -193,11 +193,11 @@ details summary { cursor: pointer; color: var(--accent); }
 .note-item .thumb { grid-row: 1 / span 3; grid-column: 2; width: 52px; height: 52px; border-radius: 6px; object-fit: cover; background: var(--tag); }
 .pin { color: var(--accent); flex: none; }
 .fab { position: fixed; right: 18px; bottom: calc(76px + env(safe-area-inset-bottom)); width: 54px; height: 54px; border-radius: 16px; background: var(--accent); color: #fff; display: grid; place-items: center; box-shadow: 0 6px 16px rgba(47, 111, 222, .35); }
-.tabbar { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); padding: 8px 0 max(14px, env(safe-area-inset-bottom)); color: var(--muted); font-size: 10.5px; flex: none; background: var(--panel); }
+.tabbar { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); color: var(--muted); font-size: 10.5px; flex: none; background: var(--panel); }
 .tabbar button { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .tabbar .on { color: var(--accent); font-weight: 600; }
 .phone .document { padding: 4px 18px 40px; }
-.phone .editor-bar { order: 2; border-bottom: 0; border-top: 1px solid var(--line); justify-content: space-between; padding: 8px 10px max(14px, env(safe-area-inset-bottom)); }
+.phone .editor-bar { order: 2; border-bottom: 0; border-top: 1px solid var(--line); justify-content: space-between; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
 .phone .settings { padding: 8px 16px 40px; }
 @media (max-width: 760px) {
   .field-grid { grid-template-columns: minmax(0, 1fr); }
