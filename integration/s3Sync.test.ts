@@ -6,7 +6,7 @@ import { PreconditionFailedError } from "../src/core/remote/objectStore";
 import { S3ObjectStore } from "../src/core/remote/s3ObjectStore";
 import type { RemoteConfig } from "../src/core/remote/remoteConfig";
 import { createNewVault, joinExistingVault, VaultAlreadyExistsError, type VaultSessionEnvironment } from "../src/core/vault/vaultSession";
-import { newTestBucket } from "./testStorage";
+import { newTestRemoteConfig } from "./testStorage";
 
 const PASSPHRASE = "correct horse battery";
 
@@ -20,7 +20,7 @@ function environment(): VaultSessionEnvironment {
 
 describe("S3ObjectStore（SeaweedFS）", () => {
   it("新しいキーへの書き込みは 1 回だけ通り、古い ETag での上書きは断られる", async () => {
-    const store = new S3ObjectStore(await newTestBucket());
+    const store = new S3ObjectStore(await newTestRemoteConfig());
     const first = await store.put("records/x", new Uint8Array([1]), { ifAbsent: true });
     await expect(store.put("records/x", new Uint8Array([2]), { ifAbsent: true })).rejects.toBeInstanceOf(PreconditionFailedError);
     const second = await store.put("records/x", new Uint8Array([3]), { ifMatch: first.etag });
@@ -30,7 +30,7 @@ describe("S3ObjectStore（SeaweedFS）", () => {
   });
 
   it("2 台のデバイスが同じバケットで同期し、競合してもどちらの本文も残る", async () => {
-    const remoteConfig = await newTestBucket();
+    const remoteConfig = await newTestRemoteConfig();
     const laptop = await createNewVault(environment(), { passphrase: PASSPHRASE, remoteConfig });
     await expect(createNewVault(environment(), { passphrase: PASSPHRASE, remoteConfig })).rejects.toBeInstanceOf(VaultAlreadyExistsError);
     const phone = await joinExistingVault(environment(), { passphrase: PASSPHRASE, remoteConfig });

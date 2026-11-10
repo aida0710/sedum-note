@@ -1,5 +1,5 @@
 import { type Browser, expect, type Page, test } from "@playwright/test";
-import { newTestBucket } from "../integration/testStorage";
+import { newTestRemoteConfig } from "../integration/testStorage";
 import { S3ObjectStore } from "../src/core/remote/s3ObjectStore";
 import type { RemoteConfig } from "../src/core/remote/remoteConfig";
 
@@ -46,7 +46,7 @@ async function capture(page: Page, name: string): Promise<void> {
 }
 
 test("PC で書いた写真付きのメモが、スマホの大きさのもう 1 台に同期される", async ({ browser }) => {
-  const remoteConfig = await newTestBucket();
+  const remoteConfig = await newTestRemoteConfig();
 
   const laptop = await newDevice(browser, { width: 1280, height: 820 });
   await laptop.goto("/");
