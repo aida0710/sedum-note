@@ -2,6 +2,7 @@
 
 import { InvalidBackupError } from "../../core/backup/backupFile";
 import { MIN_PASSPHRASE_LENGTH } from "../../core/crypto/passphraseKey";
+import { AppUpdateRequiredError } from "../../core/notes/bodySchema";
 import { ObjectStoreError } from "../../core/remote/objectStore";
 import { VaultReplacedError } from "../../core/sync/syncEngine";
 import { WeakPassphraseError, WrongPassphraseError } from "../../core/vault/vaultDocument";
@@ -21,6 +22,9 @@ export function describeError(error: unknown): string {
   }
   if (error instanceof VaultNotFoundError) {
     return translate("error.vaultNotFound");
+  }
+  if (error instanceof AppUpdateRequiredError) {
+    return translate("error.appUpdateRequired");
   }
   if (error instanceof InvalidBackupError) {
     return translate("error.invalidBackup");

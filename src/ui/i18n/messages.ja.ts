@@ -47,6 +47,7 @@ export const japaneseMessages = {
   "error.weakPassphrase": "パスフレーズは{minimum}文字以上にしてください",
   "error.vaultAlreadyExists": "このバケットには既にメモがあります。「既存のメモに参加」を選んでください",
   "error.vaultNotFound": "このバケットにはまだメモがありません。「新しく始める」を選んでください",
+  "error.appUpdateRequired": "このメモは、新しいバージョンのアプリで書かれています。このアプリを更新してください（古いままで開くと、新しい書式が本文から消えます）",
   "error.invalidBackup": "このファイルはバックアップとして読めません（別のファイルか、途中で切れています）",
   "error.vaultReplaced": "同期先のメモが消えたか、別のメモに置き換わっています。同期を止めました。設定で同期先を確かめてください",
   "error.storage.unreachable": "ストレージに接続できません。エンドポイントと、バケットの CORS の設定を確かめてください",

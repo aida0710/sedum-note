@@ -2,6 +2,7 @@ import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { newRandomId } from "../crypto/randomId";
 import { IndexedDbLocalStore } from "../local/indexedDbLocalStore";
+import { AppUpdateRequiredError } from "../notes/bodySchema";
 import { MemoryObjectStore } from "../remote/memoryObjectStore";
 import type { RemoteConfig } from "../remote/remoteConfig";
 import { WrongPassphraseError } from "./vaultDocument";
@@ -23,6 +24,44 @@ const remoteConfig: RemoteConfig = { endpoint: "https://s3.example.com", bucket:
 function environment(store: MemoryObjectStore): VaultSessionEnvironment {
   return { localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: () => store };
 }
+
+describe("本文の形の版", () => {
+  const newerApp = (store: MemoryObjectStore): VaultSessionEnvironment => ({ ...environment(store), bodySchemaVersion: 2 });
+
+  it("新しいアプリが同期すると、古いアプリは同期を止めて更新を求める。手元のメモは開けるまま", async () => {
+    const store = new MemoryObjectStore();
+    const oldEnvironment = environment(store);
+    const oldApp = await createNewVault(oldEnvironment, { passphrase: "correct horse battery", remoteConfig });
+    await oldApp.syncEngine!.syncOnce();
+
+    const updated = await joinExistingVault(newerApp(store), { passphrase: "correct horse battery", remoteConfig });
+    await updated.repository.createNote({ title: "新しい書式を使ったメモ" });
+    await updated.syncEngine!.syncOnce();
+
+    await expect(oldApp.syncEngine!.syncOnce()).rejects.toBeInstanceOf(AppUpdateRequiredError);
+    expect(oldApp.repository.notes()).toEqual([]);
+    await expect(unlockLocalVault(oldEnvironment, "correct horse battery")).resolves.toBeDefined();
+  });
+
+  it("新しいアプリで作ったバックアップや手元のデータは、古いアプリでは開かない", async () => {
+    const store = new MemoryObjectStore();
+    const shared = environment(store);
+    await createNewVault({ ...shared, bodySchemaVersion: 2 }, { passphrase: "correct horse battery", remoteConfig: null });
+    await expect(unlockLocalVault(shared, "correct horse battery")).rejects.toBeInstanceOf(AppUpdateRequiredError);
+  });
+
+  it("パスフレーズを変えても、引き上げた版は下がらない", async () => {
+    const store = new MemoryObjectStore();
+    const updatedEnvironment = newerApp(store);
+    const updated = await createNewVault(updatedEnvironment, { passphrase: "correct horse battery", remoteConfig });
+    await updated.syncEngine!.syncOnce();
+    await changePassphrase(updatedEnvironment, updated, { current: "correct horse battery", next: "another long passphrase" });
+    const oldEnvironment = environment(store);
+    await expect(joinExistingVault(oldEnvironment, { passphrase: "another long passphrase", remoteConfig })).rejects.toBeInstanceOf(AppUpdateRequiredError);
+    // 断った参加は、手元に開けない vault を残さない。
+    expect(await readVaultState(oldEnvironment.localStore)).toBe("absent");
+  });
+});
 
 describe("wipeDeviceData", () => {
   it("入力の直後に消しても、保存待ちの入力が書き戻されず、最初の状態に戻る", async () => {

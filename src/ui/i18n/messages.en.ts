@@ -49,6 +49,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "error.weakPassphrase": "Use a passphrase of at least {minimum} characters",
   "error.vaultAlreadyExists": "This bucket already holds notes. Choose “Join existing notes”",
   "error.vaultNotFound": "This bucket holds no notes yet. Choose “Start new”",
+  "error.appUpdateRequired": "These notes were written by a newer version of the app. Update this app (opening them with the old version would remove the newer formatting from the notes)",
   "error.invalidBackup": "This file cannot be read as a backup (it is another kind of file, or it is cut short)",
   "error.vaultReplaced": "The notes in the storage are gone or were replaced by other notes. Sync has stopped. Check the storage in Settings",
   "error.storage.unreachable": "Cannot reach the storage. Check the endpoint and the CORS settings of the bucket",

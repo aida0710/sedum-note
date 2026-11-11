@@ -7,6 +7,7 @@ import { newRandomId } from "../crypto/randomId";
 import { open, seal } from "../crypto/sealedBox";
 import type { LocalStore } from "../local/localStore";
 import { SerialQueue } from "../local/serialQueue";
+import { BODY_SCHEMA_VERSION, ensureBodySchemaSupported } from "../notes/bodySchema";
 import { NoteRepository } from "../notes/noteRepository";
 import { ensureConditionalWrites } from "../remote/conditionalWriteCheck";
 import type { ObjectStore } from "../remote/objectStore";
@@ -37,6 +38,8 @@ export class VaultNotFoundError extends Error {
 export type VaultSessionEnvironment = {
   localStore: LocalStore;
   createObjectStore: (config: RemoteConfig) => ObjectStore;
+  // このアプリが扱える本文の形の版。指定しなければ BODY_SCHEMA_VERSION。試験で新しいアプリを模すのに使う。
+  bodySchemaVersion?: number;
 };
 
 export type UnlockedVault = {
@@ -110,6 +113,8 @@ export async function joinExistingVault(
     throw new VaultNotFoundError();
   }
   const { document } = stored;
+  // 手元に何も書かないうちに確かめる（書いてから断ると、開けない vault が手元に残る）。
+  ensureBodySchemaSupported(document.bodySchema, environment.bodySchemaVersion ?? BODY_SCHEMA_VERSION);
   const masterKey = await unlockVault(document, input.passphrase);
   await saveVaultLocally(environment.localStore, { document, masterKey, remoteConfig: input.remoteConfig });
   return assembleUnlockedVault(environment, masterKey, input.remoteConfig);
@@ -144,6 +149,8 @@ async function assembleUnlockedVault(
   remoteConfig: RemoteConfig | null,
 ): Promise<UnlockedVault> {
   const { localStore } = environment;
+  const bodySchemaVersion = environment.bodySchemaVersion ?? BODY_SCHEMA_VERSION;
+  await adoptBodySchema(localStore, bodySchemaVersion);
   const deviceId = (await localStore.readSetting<string>("deviceId")) ?? newRandomId();
   // 添付の取得は同期の部品が行い、同期の部品は記録の書き込みに repository を使う。
   // 互いを使うので、repository を先に作り、添付の取得はあとから作る syncEngine へ回す。
@@ -156,10 +163,20 @@ async function assembleUnlockedVault(
     downloadBlob: (id) => syncEngine?.downloadBlob(id) ?? Promise.resolve(null),
   });
   if (remoteConfig) {
-    syncEngine = new SyncEngine({ localStore, objectStore: environment.createObjectStore(remoteConfig), repository });
+    syncEngine = new SyncEngine({ localStore, objectStore: environment.createObjectStore(remoteConfig), repository, bodySchemaVersion });
   }
   await repository.load();
   return { masterKey, repository, syncEngine, remoteConfig };
+}
+
+// メモを開く前に、手元の vault の本文の形の版を確かめる。このアプリより新しければ開かない
+// （開くと、エディタが知らないノードを消す）。古ければ、このアプリの版に引き上げる。
+async function adoptBodySchema(localStore: LocalStore, bodySchemaVersion: number): Promise<void> {
+  const document = await readLocalVaultDocument(localStore);
+  ensureBodySchemaSupported(document.bodySchema, bodySchemaVersion);
+  if (document.bodySchema < bodySchemaVersion) {
+    await localStore.writeSetting("vault", { ...document, bodySchema: bodySchemaVersion });
+  }
 }
 
 // ロック解除中に同期先を設定する（または付け替える）。同期先に vault.json が無ければ

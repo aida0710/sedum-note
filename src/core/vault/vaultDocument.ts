@@ -13,6 +13,7 @@ import {
   newArgon2idParameters,
 } from "../crypto/passphraseKey";
 import { isRandomId, newRandomId } from "../crypto/randomId";
+import { BODY_SCHEMA_VERSION } from "../notes/bodySchema";
 import { importAesKey, open, seal, SealedBoxError } from "../crypto/sealedBox";
 
 const VAULT_FORMAT = "sedum-note-vault";
@@ -27,6 +28,8 @@ export type VaultDocument = {
   vaultId: string;
   kdf: Argon2idParameters;
   wrappedMasterKey: string;
+  // この vault のメモが使っている本文の形の版（notes/bodySchema.ts）。
+  bodySchema: number;
 };
 
 export class WrongPassphraseError extends Error {
@@ -70,7 +73,7 @@ export async function createVault(
   const rawMasterKey = crypto.getRandomValues(new Uint8Array(MASTER_KEY_LENGTH));
   try {
     const vaultId = newRandomId();
-    const document = await wrapMasterKey({ rawMasterKey, passphrase, vaultId, kdfCost });
+    const document = await wrapMasterKey({ rawMasterKey, passphrase, vaultId, kdfCost, bodySchema: BODY_SCHEMA_VERSION });
     return { document, masterKey: await importAesKey(rawMasterKey, false) };
   } finally {
     rawMasterKey.fill(0);
@@ -95,7 +98,9 @@ export async function changeVaultPassphrase(
   checkPassphraseStrength(newPassphrase);
   const rawMasterKey = await unwrapRawMasterKey(document, currentPassphrase);
   try {
-    return await wrapMasterKey({ rawMasterKey, passphrase: newPassphrase, vaultId: document.vaultId, kdfCost: document.kdf });
+    return await wrapMasterKey({
+      rawMasterKey, passphrase: newPassphrase, vaultId: document.vaultId, kdfCost: document.kdf, bodySchema: document.bodySchema,
+    });
   } finally {
     rawMasterKey.fill(0);
   }
@@ -106,6 +111,7 @@ type WrapMasterKeyInput = {
   passphrase: string;
   vaultId: string;
   kdfCost: Omit<Argon2idParameters, "salt"> | undefined;
+  bodySchema: number;
 };
 
 async function wrapMasterKey(input: WrapMasterKeyInput): Promise<VaultDocument> {
@@ -124,6 +130,7 @@ async function wrapMasterKey(input: WrapMasterKeyInput): Promise<VaultDocument> 
     vaultId: input.vaultId,
     kdf,
     wrappedMasterKey: bytesToBase64(wrapped),
+    bodySchema: input.bodySchema,
   };
 }
 
@@ -154,7 +161,8 @@ export function parseVaultDocument(text: string): VaultDocument {
     throw new InvalidVaultDocumentError("vault.json is not a vault of a supported version");
   }
   if (typeof candidate.vaultId !== "string" || !isRandomId(candidate.vaultId) ||
-    typeof candidate.wrappedMasterKey !== "string" || typeof candidate.kdf !== "object" || candidate.kdf === null) {
+    typeof candidate.wrappedMasterKey !== "string" || typeof candidate.kdf !== "object" || candidate.kdf === null ||
+    !Number.isInteger(candidate.bodySchema) || (candidate.bodySchema as number) < 1) {
     throw new InvalidVaultDocumentError("vault.json is missing a field");
   }
   const kdf = candidate.kdf;
@@ -164,6 +172,7 @@ export function parseVaultDocument(text: string): VaultDocument {
     vaultId: candidate.vaultId,
     kdf: { iterations: kdf.iterations, memoryKiB: kdf.memoryKiB, parallelism: kdf.parallelism, salt: kdf.salt },
     wrappedMasterKey: candidate.wrappedMasterKey,
+    bodySchema: candidate.bodySchema as number,
   };
   try {
     checkArgon2idParameters(parsed.kdf);
