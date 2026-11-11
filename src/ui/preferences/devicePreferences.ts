@@ -1,4 +1,4 @@
-// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
@@ -34,6 +34,8 @@ export type DevicePreferences = {
   showOutline: boolean;
   // 写真を貼るときに、小さくするか。ask は貼るたびに聞く。
   imageAttachment: ImageAttachmentChoice;
+  // PC の画面の、左の列の幅（px）。
+  sidebarWidth: number;
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
@@ -46,6 +48,7 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   trashRetentionDays: null,
   showOutline: false,
   imageAttachment: "original",
+  sidebarWidth: 290,
 };
 
 let current: DevicePreferences | null = null;
@@ -111,7 +114,15 @@ function validPreferences(stored: unknown): DevicePreferences {
     trashRetentionDays: isTrashRetentionDays(candidate.trashRetentionDays) ? candidate.trashRetentionDays : DEFAULT_DEVICE_PREFERENCES.trashRetentionDays,
     showOutline: typeof candidate.showOutline === "boolean" ? candidate.showOutline : DEFAULT_DEVICE_PREFERENCES.showOutline,
     imageAttachment: IMAGE_ATTACHMENT_CHOICES.find((choice) => choice === candidate.imageAttachment) ?? DEFAULT_DEVICE_PREFERENCES.imageAttachment,
+    sidebarWidth: clampSidebarWidth(typeof candidate.sidebarWidth === "number" ? candidate.sidebarWidth : DEFAULT_DEVICE_PREFERENCES.sidebarWidth),
   };
+}
+
+// 左の列の幅の範囲（px）。狭すぎるとメモの名前が読めず、広すぎると本文が狭くなる。
+export const SIDEBAR_WIDTH_RANGE = { minimum: 200, maximum: 520 } as const;
+
+export function clampSidebarWidth(width: number): number {
+  return Math.round(Math.min(SIDEBAR_WIDTH_RANGE.maximum, Math.max(SIDEBAR_WIDTH_RANGE.minimum, width)));
 }
 
 // ゴミ箱に残す日数として入力できる範囲。

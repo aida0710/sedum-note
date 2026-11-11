@@ -1,11 +1,15 @@
 // 左の列の 1 行（すべて・お気に入り・ノートブック・タグ・ゴミ箱）と、開いたときに並ぶメモ。
+// メモをドラッグして行に落とすと、その一覧へ移す。
 
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { type ReactNode, useContext } from "react";
+import { type ReactNode, useState } from "react";
 import { type NoteSummary, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
-import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
+import type { NoteRepository } from "../../core/notes/noteRepository";
+import { useToast } from "../shared/ToastProvider";
+import { acceptsNoteDrop, dropNoteOnView, isNoteDrag } from "./noteDrag";
+import { SidebarNoteRow } from "./SidebarNoteRow";
 import { viewKey, type WorkspaceNavigation } from "./useWorkspaceNavigation";
 
 // 木の 1 段ごとの字下げ。開閉の印（12px）とアイコンの間が揃う幅。
@@ -21,15 +25,42 @@ export type ViewGroupProps = {
   label: string;
   summaries: NoteSummary[];
   navigation: WorkspaceNavigation;
+  repository: NoteRepository;
   depth?: number;
   actions?: ReactNode;
+  // 行を右クリックしたとき。メニューを持つ行（ノートブック）が渡す。
+  onContextMenu?: (row: HTMLElement) => void;
   childBranches?: ReactNode;
   // 利用者がまだ開け閉めしていないときに開いておくか。
   expandedByDefault?: boolean;
 };
 
 // 開くと中のメモが並ぶ 1 行。ノートブック・タグ・ゴミ箱で同じ形を使う。
-export function ViewGroup({ view, icon, label, summaries, navigation, depth = 0, actions, childBranches, expandedByDefault = false }: ViewGroupProps) {
+export function ViewGroup({ view, icon, label, summaries, navigation, repository, depth = 0, actions, onContextMenu, childBranches, expandedByDefault = false }: ViewGroupProps) {
+  // メモをドラッグして、この行の上に来ている間は true。
+  const [droppingNote, setDroppingNote] = useState(false);
+  const showToast = useToast();
+  const dropNote = async (event: React.DragEvent) => {
+    event.preventDefault();
+    setDroppingNote(false);
+    const droppedNoteId = await dropNoteOnView(event, view, repository);
+    if (droppedNoteId !== null && view.kind === "trash") {
+      showToast({
+        message: translate("toast.movedToTrash"),
+        action: { label: translate("toast.undo"), run: () => void repository.restoreNoteFromTrash(droppedNoteId) },
+      });
+    }
+  };
+  const dropHandlers = acceptsNoteDrop(view) ? {
+    onDragOver: (event: React.DragEvent) => {
+      if (isNoteDrag(event)) {
+        event.preventDefault();
+        setDroppingNote(true);
+      }
+    },
+    onDragLeave: () => setDroppingNote(false),
+    onDrop: (event: React.DragEvent) => void dropNote(event),
+  } : {};
   const key = viewKey(view);
   const expanded = navigation.isExpanded(key, expandedByDefault);
   const { noteSortOrder } = useDevicePreferences();
@@ -38,7 +69,8 @@ export function ViewGroup({ view, icon, label, summaries, navigation, depth = 0,
   const indent = { paddingLeft: ROW_PADDING_LEFT + depth * TREE_INDENT_STEP };
   return (
     <>
-      <div className="nav-row">
+      <div className={`nav-row${droppingNote ? " drop-target" : ""}`} {...dropHandlers}
+        onContextMenu={onContextMenu && ((event) => { event.preventDefault(); onContextMenu(event.currentTarget); })}>
         <button className={`nav${isActive ? " active" : ""}`} style={indent} aria-expanded={expanded}
           onClick={() => {
             if (isActive) {
@@ -57,32 +89,32 @@ export function ViewGroup({ view, icon, label, summaries, navigation, depth = 0,
       {expanded && (
         <>
           {childBranches}
-          <NoteRows notes={notes} navigation={navigation} depth={depth + 1} />
+          <NoteRows notes={notes} view={view} navigation={navigation} repository={repository} depth={depth + 1} />
         </>
       )}
     </>
   );
 }
 
-export function NoteRows({ notes, navigation, depth }: { notes: NoteSummary[]; navigation: WorkspaceNavigation; depth: number }) {
-  const unsyncedIds = useContext(UnsyncedRecordsContext);
+type NoteRowsProps = { notes: NoteSummary[]; view: NoteView; navigation: WorkspaceNavigation; repository: NoteRepository; depth: number };
+
+export function NoteRows({ notes, view, navigation, repository, depth }: NoteRowsProps) {
+  const paddingLeft = NOTE_ROW_PADDING_LEFT + depth * TREE_INDENT_STEP;
   if (notes.length === 0) {
-    return <div className="tree-empty" style={{ paddingLeft: NOTE_ROW_PADDING_LEFT + depth * TREE_INDENT_STEP }}>{translate("sidebar.noNotes")}</div>;
+    return <div className="tree-empty" style={{ paddingLeft }}>{translate("sidebar.noNotes")}</div>;
   }
   return notes.map(({ note }) => (
-    <button key={note.id} className={`tree-note${navigation.activeTab === note.id ? " active" : ""}`} style={{ paddingLeft: NOTE_ROW_PADDING_LEFT + depth * TREE_INDENT_STEP }}
-      onClick={() => navigation.openNote(note.id)}>
-      {unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}
-      {note.content.title || translate("sidebar.untitled")}
-    </button>
+    <SidebarNoteRow key={note.id} note={note} view={view} paddingLeft={paddingLeft} navigation={navigation} repository={repository} />
   ));
 }
 
-export function SearchResults({ summaries, navigation }: { summaries: NoteSummary[]; navigation: WorkspaceNavigation }) {
+type SearchResultsProps = { summaries: NoteSummary[]; view: NoteView; navigation: WorkspaceNavigation; repository: NoteRepository };
+
+export function SearchResults({ summaries, view, navigation, repository }: SearchResultsProps) {
   return (
     <>
       <div className="section-title">{translate("sidebar.searchResults", { count: summaries.length })}</div>
-      <NoteRows notes={summaries} navigation={navigation} depth={-1} />
+      <NoteRows notes={summaries} view={view} navigation={navigation} repository={repository} depth={-1} />
     </>
   );
 }

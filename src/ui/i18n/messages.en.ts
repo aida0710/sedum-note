@@ -81,6 +81,10 @@ export const englishMessages: Record<MessageKey, string> = {
   "sidebar.untitled": "Untitled note",
   "sidebar.searchingIn": "Searching in “{name}”. Search all notes",
   "sidebar.searchOnlyIn": "Searching all notes. Search only in “{name}”",
+  "sidebar.noteActions": "Actions for “{title}”",
+  "sidebar.resize": "Resize the sidebar",
+  "toast.movedToTrash": "Moved to the trash",
+  "toast.undo": "Undo",
   "sidebar.searchResults": "Search results ({count})",
 
   "notebook.rename": "Rename",

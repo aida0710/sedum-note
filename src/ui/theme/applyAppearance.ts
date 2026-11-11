@@ -1,4 +1,4 @@
-// テーマの色と本文の文字の大きさを、CSS の変数として画面に入れる。色の値はここからだけ入る
+// テーマの色・本文の文字の大きさ・左の列の幅を、CSS の変数として画面に入れる。色の値はここからだけ入る
 // （app.css は変数を使うだけで、テーマの色を持たない）。
 
 import { applySystemBarColors } from "../platform/systemBars";
@@ -26,7 +26,9 @@ export function themeCssVariables(colors: ThemeColors): Record<string, string> {
   return variables;
 }
 
-export function applyAppearance({ theme, editorFontSize }: { theme: Theme; editorFontSize: EditorFontSize }): void {
+type Appearance = { theme: Theme; editorFontSize: EditorFontSize; sidebarWidth: number };
+
+export function applyAppearance({ theme, editorFontSize, sidebarWidth }: Appearance): void {
   const root = document.documentElement;
   for (const [name, value] of Object.entries(themeCssVariables(theme.colors))) {
     root.style.setProperty(name, value);
@@ -35,4 +37,5 @@ export function applyAppearance({ theme, editorFontSize }: { theme: Theme; edito
   // スマホの組み方で画面の上下の端に来る色（メモの地）を、システムバーの所にも当てる。
   applySystemBarColors({ backgroundColor: theme.colors.panel, isDark: theme.scheme === "dark" });
   root.style.setProperty("--editor-font-size", `${EDITOR_FONT_SIZE_PIXELS[editorFontSize]}px`);
+  root.style.setProperty("--sidebar-width", `${sidebarWidth}px`);
 }

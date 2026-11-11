@@ -1,9 +1,12 @@
-// 案C のエディタの上のタブ。メモと設定をタブで開く。
+// 案C のエディタの上のタブ。メモと設定をタブで開く。ドラッグで並べ替えられる。
 
 import { X } from "lucide-react";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { SETTINGS_TAB, type WorkspaceNavigation } from "./useWorkspaceNavigation";
+
+// タブのドラッグのデータの種類。メモのドラッグ（左の列）と区別する。
+const TAB_DRAG_TYPE = "application/x-sedum-note-tab";
 
 export function NoteTabs({ navigation, repository }: { navigation: WorkspaceNavigation; repository: NoteRepository }) {
   if (navigation.openTabs.length === 0) {
@@ -18,6 +21,9 @@ export function NoteTabs({ navigation, repository }: { navigation: WorkspaceNavi
         const isOn = navigation.activeTab === tabId;
         return (
           <div key={tabId} className={`tab${isOn ? " on" : ""}`} role="tab" aria-selected={isOn}
+            draggable onDragStart={(event) => event.dataTransfer.setData(TAB_DRAG_TYPE, tabId)}
+            onDragOver={(event) => event.dataTransfer.types.includes(TAB_DRAG_TYPE) && event.preventDefault()}
+            onDrop={(event) => navigation.moveTab(event.dataTransfer.getData(TAB_DRAG_TYPE), tabId)}
             onClick={() => (tabId === SETTINGS_TAB ? navigation.openSettings() : navigation.openNote(tabId))}
             onAuxClick={(event) => event.button === 1 && navigation.closeTab(tabId)}>
             <span className="tab-label">{label}</span>

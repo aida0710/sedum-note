@@ -6,6 +6,7 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { isPrintAvailable } from "../platform/printPage";
 import { PopupMenu } from "../shared/PopupMenu";
+import { useTrashWithUndo } from "../workspace/useTrashWithUndo";
 
 type NoteActionsMenuProps = {
   anchor: HTMLElement;
@@ -21,6 +22,7 @@ type NoteActionsMenuProps = {
 
 export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onShowHistory, onExportMarkdown, onClose }: NoteActionsMenuProps) {
   const { content } = note;
+  const moveToTrash = useTrashWithUndo(repository);
   const toggleNotebook = (notebookId: string) => {
     const notebookIds = content.notebookIds.includes(notebookId)
       ? content.notebookIds.filter((id) => id !== notebookId)
@@ -67,7 +69,7 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
           <Printer size={15} />{translate("editor.print")}
         </button>
       )}
-      <button className="menu-item danger" role="menuitem" onClick={runAndClose(() => repository.moveNoteToTrash(note.id))}>
+      <button className="menu-item danger" role="menuitem" onClick={runAndClose(() => moveToTrash(note.id))}>
         <Trash2 size={15} />{translate("editor.moveToTrash")}
       </button>
     </PopupMenu>

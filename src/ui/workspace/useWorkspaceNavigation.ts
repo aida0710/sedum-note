@@ -14,6 +14,8 @@ export type WorkspaceNavigation = {
   openNote: (noteId: string) => void;
   openSettings: () => void;
   closeTab: (tabId: string) => void;
+  // タブを、別のタブの位置へ動かす（ドラッグでの並べ替え）。
+  moveTab: (tabId: string, toTabId: string) => void;
   // 左の列の行が開いているか。expandedByDefault は、利用者がまだ開け閉めしていないときの状態
   //（案C の試作どおり、ノートブックは開き、ほかは閉じる）。
   isExpanded: (key: string, expandedByDefault: boolean) => boolean;
@@ -61,6 +63,19 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
     });
   }, []);
 
+  const moveTab = useCallback((tabId: string, toTabId: string) => {
+    setTabs(({ openTabs, activeTab }) => {
+      const from = openTabs.indexOf(tabId);
+      const to = openTabs.indexOf(toTabId);
+      if (from === -1 || to === -1 || from === to) {
+        return { openTabs, activeTab };
+      }
+      const reordered = openTabs.filter((id) => id !== tabId);
+      reordered.splice(to, 0, tabId);
+      return { openTabs: reordered, activeTab };
+    });
+  }, []);
+
   const setExpanded = useCallback((key: string, expanded: boolean) => {
     setExpandedOverrides((current) => new Map(current).set(key, expanded));
   }, []);
@@ -76,7 +91,7 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
   }, [setExpanded]);
 
   return {
-    view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote: openTab, openSettings: () => openTab(SETTINGS_TAB), closeTab,
+    view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote: openTab, openSettings: () => openTab(SETTINGS_TAB), closeTab, moveTab,
     isExpanded, setExpanded, searchText, setSearchText,
     searchFocusRequest, requestSearchFocus: () => setSearchFocusRequest((count) => count + 1),
     findInNoteRequest, requestFindInNote: () => setFindInNoteRequest((count) => count + 1),

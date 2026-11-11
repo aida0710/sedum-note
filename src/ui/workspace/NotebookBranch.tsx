@@ -7,6 +7,7 @@ import type { NotebookTreeNode, NoteSummary } from "../../core/notes/noteQueries
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { type NotebookColors, NotebookMark } from "../shared/notebookAppearance";
+import { InlineNameInput } from "./InlineNameInput";
 import { NotebookActionsMenu } from "./NotebookActionsMenu";
 import { NotebookAppearanceDialog } from "./NotebookAppearanceDialog";
 import { ViewGroup } from "./SidebarViewGroup";
@@ -29,7 +30,7 @@ export function NotebookBranch({ node, depth, summaries, repository, navigation,
   const [choosingAppearance, setChoosingAppearance] = useState(false);
   if (renaming) {
     return (
-      <NotebookNameInput initialName={notebook.content.name} onDone={(name) => {
+      <InlineNameInput initialName={notebook.content.name} placeholder={translate("sidebar.newNotebookPlaceholder")} onDone={(name) => {
         setRenaming(false);
         if (name && name !== notebook.content.name) {
           void repository.updateNotebook(notebook.id, { name });
@@ -40,7 +41,7 @@ export function NotebookBranch({ node, depth, summaries, repository, navigation,
   const children = (
     <>
       {addingChild && (
-        <NotebookNameInput onDone={(name) => {
+        <InlineNameInput placeholder={translate("sidebar.newNotebookPlaceholder")} onDone={(name) => {
           setAddingChild(false);
           if (name) {
             void repository.createNotebook(name, notebook.id);
@@ -56,7 +57,8 @@ export function NotebookBranch({ node, depth, summaries, repository, navigation,
     <>
       <ViewGroup view={{ kind: "notebook", notebookId: notebook.id }} depth={depth} expandedByDefault
         icon={<NotebookMark notebook={notebook} colors={notebookColors} />}
-        label={notebook.content.name} summaries={summaries} navigation={navigation} childBranches={children}
+        label={notebook.content.name} summaries={summaries} navigation={navigation} repository={repository} childBranches={children}
+        onContextMenu={setMenuAnchor}
         actions={
           <button className="icon-button" aria-label={translate("editor.more")} aria-haspopup="menu" onClick={(event) => setMenuAnchor(event.currentTarget)}>
             <MoreHorizontal size={14} />
@@ -73,21 +75,5 @@ export function NotebookBranch({ node, depth, summaries, repository, navigation,
       )}
       {choosingAppearance && <NotebookAppearanceDialog notebook={notebook} repository={repository} onClose={() => setChoosingAppearance(false)} />}
     </>
-  );
-}
-
-export function NotebookNameInput({ initialName = "", onDone }: { initialName?: string; onDone: (name: string) => void }) {
-  const [name, setName] = useState(initialName);
-  return (
-    <input className="inline-input" autoFocus value={name} placeholder={translate("sidebar.newNotebookPlaceholder")}
-      onChange={(event) => setName(event.target.value)}
-      onBlur={() => onDone(name.trim())}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-          onDone(name.trim());
-        } else if (event.key === "Escape") {
-          onDone("");
-        }
-      }} />
   );
 }

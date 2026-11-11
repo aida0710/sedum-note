@@ -11,6 +11,7 @@ import { AvailableUpdateContext, useAvailableUpdate } from "./update/useAvailabl
 import { SetupScreen } from "./entry/SetupScreen";
 import { UnlockScreen } from "./entry/UnlockScreen";
 import { DialogProvider } from "./shared/DialogProvider";
+import { ToastProvider } from "./shared/ToastProvider";
 import { AttachmentReaderContext } from "./editor/attachmentReader";
 import { MobileWorkspace } from "./mobile/MobileWorkspace";
 import { UnsyncedRecordsContext, useRepositorySnapshot } from "./session/useRepositorySnapshot";
@@ -29,13 +30,13 @@ const McpGatewayProvider = __INCLUDES_MCP__ && isRunningInTauri() ? lazy(() => i
 export function App() {
   const session = useVaultSession();
   // 言語を変えたら、ここから下を描き直して文言を入れ替える。
-  const { language, editorFontSize } = useDevicePreferences();
+  const { language, editorFontSize, sidebarWidth } = useDevicePreferences();
   useEffect(() => {
     document.documentElement.lang = languageInUse();
   }, [language]);
   const theme = useThemeInUse();
-  useEffect(() => applyAppearance({ theme, editorFontSize }), [theme, editorFontSize]);
-  return <DialogProvider><ScreenForPhase session={session} /></DialogProvider>;
+  useEffect(() => applyAppearance({ theme, editorFontSize, sidebarWidth }), [theme, editorFontSize, sidebarWidth]);
+  return <DialogProvider><ToastProvider><ScreenForPhase session={session} /></ToastProvider></DialogProvider>;
 }
 
 function ScreenForPhase({ session }: { session: VaultSession }) {

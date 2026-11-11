@@ -23,6 +23,7 @@ const preferences = readDevicePreferences();
 applyAppearance({
   theme: resolveTheme(preferences, window.matchMedia(SYSTEM_DARK_QUERY).matches),
   editorFontSize: preferences.editorFontSize,
+  sidebarWidth: preferences.sidebarWidth,
 });
 
 createRoot(document.getElementById("root")!).render(

@@ -79,6 +79,10 @@ export const japaneseMessages = {
   "sidebar.untitled": "無題のメモ",
   "sidebar.searchingIn": "「{name}」の中を検索しています。すべてのメモから探す",
   "sidebar.searchOnlyIn": "すべてのメモを検索しています。「{name}」の中だけにする",
+  "sidebar.noteActions": "「{title}」の操作",
+  "sidebar.resize": "左の列の幅を変える",
+  "toast.movedToTrash": "ゴミ箱に入れました",
+  "toast.undo": "元に戻す",
   "sidebar.searchResults": "検索結果（{count}件）",
 
   "notebook.rename": "名前を変更",
