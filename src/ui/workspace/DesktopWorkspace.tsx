@@ -2,6 +2,7 @@
 
 import { translate } from "../i18n/translate";
 import { NoteEditor } from "../editor/NoteEditor";
+import { createNoteLinkTargets, NoteLinkTargetsContext } from "../editor/noteLinkTargets";
 import { SettingsPanel } from "../settings/SettingsPanel";
 import type { WorkspaceProps } from "./workspaceProps";
 import { NoteTabs } from "./NoteTabs";
@@ -24,8 +25,10 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
           <SettingsPanel session={session} remoteConfig={vault.remoteConfig} unreadableCount={snapshot.unreadableCount} />
         )}
         {activeNote && (
-          <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} repository={repository}
-            syncConfigured={vault.remoteConfig !== null} isMobile={false} />
+          <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, navigation.openNote)}>
+            <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} repository={repository}
+              syncConfigured={vault.remoteConfig !== null} isMobile={false} />
+          </NoteLinkTargetsContext.Provider>
         )}
         {!activeNote && navigation.activeTab !== SETTINGS_TAB && <div className="empty-state">{translate("editor.empty")}</div>}
       </main>

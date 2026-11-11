@@ -1,12 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
-
-const PASSPHRASE = "correct horse battery";
+import { startLocalVault } from "./devices";
 
 async function openSettingsOfNewVault(page: Page): Promise<void> {
-  await page.goto("/");
-  await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
-  await page.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
-  await page.getByRole("button", { name: "作成" }).click();
+  await startLocalVault(page);
   await page.getByRole("button", { name: /同期は未設定/ }).click();
 }
 

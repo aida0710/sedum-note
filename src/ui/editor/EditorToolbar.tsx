@@ -1,9 +1,10 @@
-// 本文の書式と、写真・ファイルを添付するボタン。PC では本文の上、スマホでは画面の下に出す。
+// 本文の書式・表・リンクと、写真・ファイルを添付するボタン。PC では本文の上、スマホでは画面の下に出す。
 
 import { type Editor, useEditorState } from "@tiptap/react";
-import { Bold, Code, Heading, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, Paperclip, Underline } from "lucide-react";
+import { Bold, Code, FileSymlink, Heading, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, Paperclip, Underline } from "lucide-react";
 import { type ReactNode, useRef } from "react";
 import { translate, type MessageKey } from "../i18n/translate";
+import { TableMenu } from "./TableMenu";
 
 type EditorToolbarProps = {
   editor: Editor;
@@ -11,12 +12,14 @@ type EditorToolbarProps = {
   onFiles: (files: File[]) => void;
   // リンク先を聞く。やめたら null。
   onAskLink: () => Promise<string | null>;
+  // リンクするメモを選ぶ画面を開く。
+  onPickNoteLink: () => void;
   trailing?: ReactNode;
 };
 
 const ICON_SIZE = 16;
 
-export function EditorToolbar({ editor, onFiles, onAskLink, trailing }: EditorToolbarProps) {
+export function EditorToolbar({ editor, onFiles, onAskLink, onPickNoteLink, trailing }: EditorToolbarProps) {
   const imageInput = useRef<HTMLInputElement>(null);
   const active = useEditorState({
     editor,
@@ -30,6 +33,7 @@ export function EditorToolbar({ editor, onFiles, onAskLink, trailing }: EditorTo
       taskList: current.isActive("taskList"),
       link: current.isActive("link"),
       codeBlock: current.isActive("codeBlock"),
+      table: current.isActive("table"),
     }),
   });
 
@@ -74,7 +78,9 @@ export function EditorToolbar({ editor, onFiles, onAskLink, trailing }: EditorTo
       {tool("editor.image", false, () => imageInput.current?.click(), <ImagePlus size={ICON_SIZE} />)}
       {tool("editor.file", false, () => fileInput.current?.click(), <Paperclip size={ICON_SIZE} />)}
       {tool("editor.link", active.link, () => void toggleLink(), <Link size={ICON_SIZE} />)}
+      {tool("editor.noteLink", false, onPickNoteLink, <FileSymlink size={ICON_SIZE} />)}
       {tool("editor.code", active.codeBlock, () => editor.chain().focus().toggleCodeBlock().run(), <Code size={ICON_SIZE} />)}
+      <TableMenu editor={editor} insideTable={active.table} iconSize={ICON_SIZE} />
       <input ref={imageInput} type="file" accept="image/*" multiple hidden onChange={pickFiles} />
       <input ref={fileInput} type="file" multiple hidden onChange={pickFiles} />
       {trailing && <span className="bar-end">{trailing}</span>}

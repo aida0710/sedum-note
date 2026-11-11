@@ -5,6 +5,7 @@ import { useState } from "react";
 import { selectNotes, type NoteView } from "../../core/notes/noteQueries";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import { NoteEditor } from "../editor/NoteEditor";
+import { createNoteLinkTargets, NoteLinkTargetsContext } from "../editor/noteLinkTargets";
 import { translate } from "../i18n/translate";
 import { SettingsPanel } from "../settings/SettingsPanel";
 import { createNoteInView } from "../workspace/createNoteInView";
@@ -26,8 +27,10 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
   if (openNote) {
     return (
       <div className="phone">
-        <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} repository={repository}
-          syncConfigured={vault.remoteConfig !== null} isMobile onBack={goBack} />
+        <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, setOpenNoteId)}>
+          <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} repository={repository}
+            syncConfigured={vault.remoteConfig !== null} isMobile onBack={goBack} />
+        </NoteLinkTargetsContext.Provider>
       </div>
     );
   }

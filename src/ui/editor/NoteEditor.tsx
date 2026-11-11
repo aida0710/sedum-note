@@ -3,7 +3,7 @@
 import { EditorContent, useEditor } from "@tiptap/react";
 import { ChevronLeft, Lock, MoreHorizontal, Star } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { bodyPlainText, plainTextHashtags } from "../../core/notes/bodyText";
+import { bodyPlainText, NOTE_LINK_NODE, plainTextHashtags } from "../../core/notes/bodyText";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
@@ -16,6 +16,7 @@ import { EditorToolbar } from "./EditorToolbar";
 import { createEditorExtensions } from "./editorExtensions";
 import { attachFiles } from "./attachFiles";
 import { NoteActionsMenu } from "./NoteActionsMenu";
+import { NoteLinkPicker } from "./NoteLinkPicker";
 
 type NoteEditorProps = {
   note: LiveNote;
@@ -30,6 +31,7 @@ type NoteEditorProps = {
 export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobile, onBack }: NoteEditorProps) {
   const [title, setTitle] = useState(note.content.title);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [pickingNoteLink, setPickingNoteLink] = useState(false);
   const titleInput = useRef<HTMLInputElement>(null);
   const dialogs = useDialogs();
   const unsyncedIds = useContext(UnsyncedRecordsContext);
@@ -92,14 +94,19 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
     </>
   );
 
+  const insertNoteLink = (linkedNoteId: string) => {
+    setPickingNoteLink(false);
+    editor?.chain().focus().insertContent({ type: NOTE_LINK_NODE, attrs: { noteId: linkedNoteId } }).run();
+  };
   const askLink = () => dialogs.prompt({ message: translate("editor.linkPrompt"), initialValue: "https://" });
+  const toolbarActions = { onFiles: takeFiles, onAskLink: askLink, onPickNoteLink: () => setPickingNoteLink(true) };
 
   if (!editor) {
     return null;
   }
   return (
     <>
-      {!isMobile && <EditorToolbar editor={editor} onFiles={takeFiles} onAskLink={askLink} trailing={trailing} />}
+      {!isMobile && <EditorToolbar editor={editor} {...toolbarActions} trailing={trailing} />}
       {isMobile && (
         <div className="phone-top">
           <button className="phone-back" onClick={onBack}><ChevronLeft size={20} />{translate("editor.back")}</button>
@@ -151,7 +158,11 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
           <EditorContent editor={editor} />
         </div>
       </div>
-      {isMobile && !inTrash && <EditorToolbar editor={editor} onFiles={takeFiles} onAskLink={askLink} />}
+      {isMobile && !inTrash && <EditorToolbar editor={editor} {...toolbarActions} />}
+      {pickingNoteLink && (
+        <NoteLinkPicker candidates={repository.notes().filter((candidate) => candidate.id !== noteId && candidate.content.trashedAt === null)}
+          onPick={insertNoteLink} onCancel={() => setPickingNoteLink(false)} />
+      )}
       {menuAnchor && (
         <NoteActionsMenu anchor={menuAnchor} note={note} notebooks={notebooks} repository={repository} onClose={() => setMenuAnchor(null)} />
       )}

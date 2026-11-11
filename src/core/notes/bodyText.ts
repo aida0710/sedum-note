@@ -5,11 +5,13 @@ import * as Y from "yjs";
 import type { AttachmentReference } from "./noteRecords";
 
 // 段落や見出しなど、後ろで改行にするブロックの種類（Tiptap のノード名）。
-const BLOCK_NODE_NAMES = new Set(["paragraph", "heading", "listItem", "taskItem", "blockquote", "codeBlock"]);
+const BLOCK_NODE_NAMES = new Set(["paragraph", "heading", "listItem", "taskItem", "blockquote", "codeBlock", "tableCell", "tableHeader"]);
 // 本文に貼った写真のノード（src/ui/editor/attachmentImageNode.tsx）。
 export const ATTACHMENT_IMAGE_NODE = "attachmentImage";
 // 本文に添付した写真以外のファイルのノード（src/ui/editor/attachmentFileNode.tsx）。
 export const ATTACHMENT_FILE_NODE = "attachmentFile";
+// ほかのメモへのリンクのノード（src/ui/editor/noteLinkNode.tsx）。リンク先はメモの ID で持つ。
+export const NOTE_LINK_NODE = "noteLink";
 const ATTACHMENT_NODE_NAMES = new Set([ATTACHMENT_IMAGE_NODE, ATTACHMENT_FILE_NODE]);
 
 type BodyNode = Y.XmlFragment | Y.XmlElement | Y.XmlText | Y.XmlHook;
