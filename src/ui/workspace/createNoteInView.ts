@@ -1,4 +1,4 @@
-// 新しいメモを、開いているノートブックの中に作る。
+// 新しいメモを、開いている一覧に合わせて作る（ノートブックの中、お気に入り、テンプレート）。
 
 import type { NoteView } from "../../core/notes/noteQueries";
 import type { LiveNote } from "../../core/notes/noteRecords";
@@ -8,5 +8,6 @@ export async function createNoteInView(repository: NoteRepository, view: NoteVie
   return repository.createNote({
     notebookIds: view.kind === "notebook" ? [view.notebookId] : [],
     bookmarked: view.kind === "bookmarked",
+    isTemplate: view.kind === "templates",
   });
 }

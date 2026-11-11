@@ -22,6 +22,9 @@ export type NoteContent = {
   bookmarked: boolean;
   // ゴミ箱に入れた時刻。null ならゴミ箱の外。
   trashedAt: string | null;
+  // 新しいメモの型として使うメモ。ふつうの一覧には出さず、「テンプレート」に並べる。
+  // テンプレートを知らない版（v0.2.0）のアプリでは、ふつうのメモとして見える。
+  isTemplate: boolean;
   // 本文に貼ってある添付（本文から導く）。
   attachments: AttachmentReference[];
   createdAt: string;

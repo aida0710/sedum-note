@@ -16,7 +16,8 @@ export function listTitle(view: NoteView, notebooks: WorkspaceProps["snapshot"][
   if (view.kind === "tag") {
     return `#${view.tag}`;
   }
-  return translate(view.kind === "bookmarked" ? "sidebar.bookmarked" : view.kind === "trash" ? "sidebar.trash" : "sidebar.allNotes");
+  const titles = { bookmarked: "sidebar.bookmarked", trash: "sidebar.trash", templates: "sidebar.templates", all: "sidebar.allNotes" } as const;
+  return translate(titles[view.kind]);
 }
 
 export type NotebookChoice = { id: string; name: string };

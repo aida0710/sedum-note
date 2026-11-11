@@ -52,6 +52,7 @@ export type NoteChanges = Partial<{
   pinned: boolean;
   bookmarked: boolean;
   trashedAt: string | null;
+  isTemplate: boolean;
 }>;
 
 // local は、このデバイスで変えたもの（同期で送る必要がある）。stored は、手元の保存や
@@ -194,16 +195,30 @@ export class NoteRepository {
     if (versionDocument === null) {
       throw new RecordNotFoundError(input.versionId);
     }
-    const restoredId = newRandomId();
-    const restoredDocument = this.#newDocument(restoredId, "note");
-    recordBody(restoredDocument).insert(0, recordBody(versionDocument).toArray().map((node) => node.clone() as Y.XmlElement));
-    versionDocument.destroy();
-    this.#writeNoteChanges(restoredDocument, {
-      title: input.title, pinned: false, bookmarked: false, trashedAt: null,
-      notebookIds: this.note(input.noteId)?.content.notebookIds ?? [],
+    const restored = await this.#createNoteWithBodyOf(recordBody(versionDocument), {
+      title: input.title, notebookIds: this.note(input.noteId)?.content.notebookIds ?? [],
     });
+    versionDocument.destroy();
+    return restored;
+  }
+
+  // テンプレートと同じ本文の、新しいメモを作る。テンプレートは変えない。
+  async createNoteFromTemplate(templateId: string, changes: NoteChanges = {}): Promise<LiveNote> {
+    const template = this.note(templateId);
+    if (!template) {
+      throw new RecordNotFoundError(templateId);
+    }
+    return this.#createNoteWithBodyOf(template.body, { title: template.content.title, ...changes });
+  }
+
+  // 元の本文を写した、新しいメモを作る。
+  async #createNoteWithBodyOf(sourceBody: Y.XmlFragment, changes: NoteChanges): Promise<LiveNote> {
+    const id = newRandomId();
+    const doc = this.#newDocument(id, "note");
+    recordBody(doc).insert(0, sourceBody.toArray().map((node) => node.clone() as Y.XmlElement));
+    this.#writeNoteChanges(doc, { title: "", pinned: false, bookmarked: false, trashedAt: null, notebookIds: [], ...changes });
     await this.flush();
-    return this.note(restoredId)!;
+    return this.note(id)!;
   }
 
   async createNotebook(name: string, parentId: string | null = null): Promise<LiveNotebook> {
@@ -558,6 +573,7 @@ function buildView(id: string, holder: LiveHolder): LiveNote | LiveNotebook | nu
       pinned: readField<boolean>(doc, "pinned") ?? false,
       bookmarked: readField<boolean>(doc, "bookmarked") ?? false,
       trashedAt: readField<string | null>(doc, "trashedAt") ?? null,
+      isTemplate: readField<boolean>(doc, "isTemplate") ?? false,
       attachments: bodyAttachments(body),
       createdAt,
     },

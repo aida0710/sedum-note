@@ -1,4 +1,4 @@
-// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認、ゴミ箱の自動削除）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認、ゴミ箱の自動削除、目次を出すか）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
@@ -27,6 +27,8 @@ export type DevicePreferences = {
   checkForUpdates: boolean;
   // ゴミ箱に入れてからこの日数がたったメモを、このデバイスが完全に削除する。null なら削除しない。
   trashRetentionDays: number | null;
+  // PC の画面で、本文の横に目次を出すか。
+  showOutline: boolean;
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
@@ -37,6 +39,7 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   editorFontSize: "medium",
   checkForUpdates: true,
   trashRetentionDays: null,
+  showOutline: false,
 };
 
 let current: DevicePreferences | null = null;
@@ -100,6 +103,7 @@ function validPreferences(stored: unknown): DevicePreferences {
     editorFontSize: EDITOR_FONT_SIZES.find((size) => size === candidate.editorFontSize) ?? DEFAULT_DEVICE_PREFERENCES.editorFontSize,
     checkForUpdates: typeof candidate.checkForUpdates === "boolean" ? candidate.checkForUpdates : DEFAULT_DEVICE_PREFERENCES.checkForUpdates,
     trashRetentionDays: isTrashRetentionDays(candidate.trashRetentionDays) ? candidate.trashRetentionDays : DEFAULT_DEVICE_PREFERENCES.trashRetentionDays,
+    showOutline: typeof candidate.showOutline === "boolean" ? candidate.showOutline : DEFAULT_DEVICE_PREFERENCES.showOutline,
   };
 }
 

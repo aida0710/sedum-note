@@ -1,7 +1,8 @@
 // 1 件のメモの編集画面（タイトル・タグとノートブックの表示・本文）。
 
-import { EditorContent, useEditor } from "@tiptap/react";
-import { ChevronLeft, Lock, MoreHorizontal, Star } from "lucide-react";
+import { EditorContent, type JSONContent, useEditor } from "@tiptap/react";
+import { yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
+import { ChevronLeft, ListTree, Lock, MoreHorizontal, Star } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { bodyPlainText, NOTE_LINK_NODE, plainTextHashtags } from "../../core/notes/bodyText";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
@@ -9,7 +10,9 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { useMarkdownExport } from "../markdown/useMarkdownExport";
+import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { useDialogs } from "../shared/DialogProvider";
+import { PopupMenu } from "../shared/PopupMenu";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { formatDateTime } from "../shared/formatTime";
 import { assignNotebookColors, NotebookMark } from "../shared/notebookAppearance";
@@ -20,6 +23,7 @@ import { attachFiles } from "./attachFiles";
 import { NoteActionsMenu } from "./NoteActionsMenu";
 import { NoteHistoryDialog } from "./NoteHistoryDialog";
 import { NoteLinkPicker } from "./NoteLinkPicker";
+import { NoteOutline } from "./NoteOutline";
 import { NoteLinkTargetsContext } from "./noteLinkTargets";
 import { SlashMenu } from "./SlashMenu";
 import { SlashMenuController } from "./slashMenuController";
@@ -43,6 +47,10 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [pickingNoteLink, setPickingNoteLink] = useState(false);
   const [showingHistory, setShowingHistory] = useState(false);
+  // 目次。PC では本文の横に出したままにでき（設定に覚える）、スマホではメニューで出す。
+  const { showOutline } = useDevicePreferences();
+  const [outlineAnchor, setOutlineAnchor] = useState<HTMLElement | null>(null);
+  const outlineShown = isMobile ? outlineAnchor !== null : showOutline;
   const { openNote } = useContext(NoteLinkTargetsContext);
   const titleInput = useRef<HTMLInputElement>(null);
   const dialogs = useDialogs();
@@ -113,6 +121,10 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
           <Lock size={13} />{translate(syncConfigured ? "editor.encryptedBadge" : "editor.localOnlyBadge")}
         </span>
       )}
+      <button type="button" className={`icon-button${outlineShown ? " active" : ""}`} aria-label={translate("editor.outline")} aria-pressed={outlineShown}
+        onClick={(event) => (isMobile ? setOutlineAnchor(outlineAnchor ? null : event.currentTarget) : updateDevicePreferences({ showOutline: !showOutline }))}>
+        <ListTree size={16} />
+      </button>
       <button type="button" className={`icon-button${note.content.bookmarked ? " on" : ""}`}
         aria-label={translate(note.content.bookmarked ? "editor.unbookmark" : "editor.bookmark")}
         onClick={() => void repository.updateNote(noteId, { bookmarked: !note.content.bookmarked })}>
@@ -134,7 +146,17 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
   const pickFile = () => fileInput.current?.click();
   const pickNoteLink = () => setPickingNoteLink(true);
   const toolbarActions = { onPickImage: pickImage, onPickFile: pickFile, onAskLink: askLink, onPickNoteLink: pickNoteLink };
-  slashMenuController.actions = { pickImage, pickFile, pickNoteLink };
+  // テンプレートの本文を、カーソルの所に入れる。
+  const insertTemplate = (templateId: string) => {
+    const template = repository.note(templateId);
+    if (template && editor) {
+      editor.chain().focus().insertContent((yXmlFragmentToProsemirrorJSON(template.body) as JSONContent).content ?? []).run();
+    }
+  };
+  const templates = repository.notes()
+    .filter((candidate) => candidate.content.isTemplate && candidate.content.trashedAt === null && candidate.id !== noteId)
+    .map((template) => ({ id: template.id, title: template.content.title }));
+  slashMenuController.actions = { pickImage, pickFile, pickNoteLink, templates, insertTemplate };
   const takePickedFiles = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
     event.target.value = "";
@@ -154,6 +176,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
         </div>
       )}
       {findBarOpen && <FindBar editor={editor} focusRequest={findRequest} onClose={() => setFindBarOpen(false)} />}
+      <div className="document-area">
       <div className="document-scroll">
         <div className="document">
           {inTrash && (
@@ -169,6 +192,16 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
                     await repository.removeNotePermanently(noteId);
                   }
                 }}>{translate("editor.removePermanently")}</button>
+              </span>
+            </div>
+          )}
+          {note.content.isTemplate && !inTrash && (
+            <div className="trash-banner">
+              {translate("editor.isTemplate")}
+              <span className="actions">
+                <button className="secondary-button" onClick={async () => openNote((await repository.createNoteFromTemplate(noteId, { isTemplate: false })).id)}>
+                  {translate("editor.newFromTemplate")}
+                </button>
               </span>
             </div>
           )}
@@ -199,6 +232,13 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
           <EditorContent editor={editor} />
         </div>
       </div>
+      {!isMobile && showOutline && <NoteOutline editor={editor} />}
+      </div>
+      {outlineAnchor && (
+        <PopupMenu anchor={outlineAnchor} onClose={() => setOutlineAnchor(null)}>
+          <NoteOutline editor={editor} onPick={() => setOutlineAnchor(null)} />
+        </PopupMenu>
+      )}
       {isMobile && !inTrash && <EditorToolbar editor={editor} {...toolbarActions} />}
       <input ref={imageInput} type="file" accept="image/*" multiple hidden onChange={takePickedFiles} />
       <input ref={fileInput} type="file" multiple hidden onChange={takePickedFiles} />

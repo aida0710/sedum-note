@@ -14,7 +14,7 @@ function bodyWith(...paragraphs: string[]): Y.XmlFragment {
 function note(id: string, overrides: Partial<LiveNote["content"]>, updatedAt: string, body = bodyWith()): LiveNote {
   return {
     id, kind: "note", updatedAt, revision: 0, body,
-    content: { title: "", notebookIds: [], pinned: false, bookmarked: false, trashedAt: null, attachments: [], createdAt: updatedAt, ...overrides },
+    content: { title: "", notebookIds: [], pinned: false, bookmarked: false, trashedAt: null, isTemplate: false, attachments: [], createdAt: updatedAt, ...overrides },
   };
 }
 
@@ -53,6 +53,20 @@ describe("selectNotes", () => {
   });
 
   it("タグの件数にはゴミ箱のメモを数えない", () => {
+    expect(countTags(summaries)).toEqual([{ tag: "todo", count: 1 }]);
+  });
+});
+
+describe("テンプレート", () => {
+  const summaries = [
+    note("plain", { title: "ふつうのメモ" }, "2026-11-01T00:00:00Z", bodyWith("#todo")),
+    note("template", { title: "議事録の型", isTemplate: true, notebookIds: ["n1"] }, "2026-11-02T00:00:00Z", bodyWith("#型")),
+  ].map(summarizeNote);
+
+  it("テンプレートは「テンプレート」にだけ並び、ほかの一覧・ノートブック・タグには出ない", () => {
+    expect(selectNotes(summaries, { view: { kind: "templates" } }).map((item) => item.note.id)).toEqual(["template"]);
+    expect(selectNotes(summaries, { view: { kind: "all" } }).map((item) => item.note.id)).toEqual(["plain"]);
+    expect(selectNotes(summaries, { view: { kind: "notebook", notebookId: "n1" } })).toEqual([]);
     expect(countTags(summaries)).toEqual([{ tag: "todo", count: 1 }]);
   });
 });

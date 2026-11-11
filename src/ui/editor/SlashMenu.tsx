@@ -73,7 +73,7 @@ export function SlashMenu({ controller }: { controller: SlashMenuController }) {
           // 押しても本文のカーソルを外さない。
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => state.choose(command)}>
-          <command.icon size={MENU_ICON_SIZE} />{translate(command.label)}
+          <command.icon size={MENU_ICON_SIZE} />{command.name()}
         </button>
       ))}
     </div>

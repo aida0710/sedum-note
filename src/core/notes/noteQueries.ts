@@ -8,6 +8,7 @@ export type NoteView =
   | { kind: "bookmarked" }
   | { kind: "notebook"; notebookId: string }
   | { kind: "tag"; tag: string }
+  | { kind: "templates" }
   | { kind: "trash" };
 
 export type NoteSummary = {
@@ -29,8 +30,13 @@ function belongsToView(summary: NoteSummary, view: NoteView): boolean {
   if (content.trashedAt !== null) {
     return false;
   }
+  // テンプレートは「テンプレート」にだけ並べる。
+  if (content.isTemplate !== (view.kind === "templates")) {
+    return false;
+  }
   switch (view.kind) {
     case "all":
+    case "templates":
       return true;
     case "bookmarked":
       return content.bookmarked;
@@ -85,7 +91,7 @@ export function selectNotes(summaries: NoteSummary[], { view, searchText = "", s
 export function countTags(summaries: NoteSummary[]): Array<{ tag: string; count: number }> {
   const counts = new Map<string, number>();
   for (const summary of summaries) {
-    if (summary.note.content.trashedAt !== null) {
+    if (summary.note.content.trashedAt !== null || summary.note.content.isTemplate) {
       continue;
     }
     for (const tag of summary.tags) {

@@ -16,7 +16,9 @@ export class SlashMenuController {
   // メニューが出ている間のキー（上下・Enter）の処理。メニューの部品が入れる。処理したら true。
   handleKey: ((event: KeyboardEvent) => boolean) | null = null;
   // 画面を開く操作。NoteEditor が描くたびに入れ直す。
-  actions: SlashCommandActions = { pickImage: () => undefined, pickFile: () => undefined, pickNoteLink: () => undefined };
+  actions: SlashCommandActions = {
+    pickImage: () => undefined, pickFile: () => undefined, pickNoteLink: () => undefined, templates: [], insertTemplate: () => undefined,
+  };
 
   readonly state = (): SlashMenuState | null => this.#state;
 

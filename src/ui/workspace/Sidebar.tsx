@@ -1,7 +1,7 @@
 // 案C の左の列: 一覧（すべて・お気に入り・ノートブック・タグ・ゴミ箱）を木にして、
 // 開いた所にメモを並べる。
 
-import { FileText, Hash, Plus, Search, Star, Trash2, X } from "lucide-react";
+import { FileText, Hash, LayoutTemplate, Plus, Search, Star, Trash2, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { buildNotebookTree, countTags, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
@@ -104,6 +104,9 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, footer
             {tags.map(({ tag }) => (
               <ViewGroup key={tag} view={{ kind: "tag", tag }} icon={<Hash size={15} />} label={tag} summaries={summaries} navigation={navigation} />
             ))}
+            {summaries.some((summary) => summary.note.content.isTemplate && summary.note.content.trashedAt === null) && (
+              <ViewGroup view={{ kind: "templates" }} icon={<LayoutTemplate size={15} />} label={translate("sidebar.templates")} summaries={summaries} navigation={navigation} />
+            )}
             <ViewGroup view={{ kind: "trash" }} icon={<Trash2 size={15} />} label={translate("sidebar.trash")} summaries={summaries} navigation={navigation} />
           </>
         )}

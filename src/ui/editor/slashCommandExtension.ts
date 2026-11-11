@@ -25,7 +25,7 @@ export const SlashCommands = Extension.create<{ controller: SlashMenuController 
       pluginKey: new PluginKey(`slashCommands-${index}`),
       // コードの中の「/」では出さない。
       allow: ({ state, range }) => state.doc.resolve(range.from).parent.type.name !== "codeBlock",
-      items: ({ query }) => filterSlashCommands(query),
+      items: ({ query }) => filterSlashCommands(query, controller.actions),
       command: ({ editor, range, props: command }) => {
         // 打った「/」と絞り込みの文字を消してから、選んだブロックにする。
         editor.chain().focus().deleteRange(range).run();

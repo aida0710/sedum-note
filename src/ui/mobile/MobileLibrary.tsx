@@ -1,4 +1,4 @@
-import { FolderPlus, Hash, Trash2 } from "lucide-react";
+import { FolderPlus, Hash, Trash2, LayoutTemplate } from "lucide-react";
 import { countTags, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import { translate } from "../i18n/translate";
 import { useDialogs } from "../shared/DialogProvider";
@@ -44,6 +44,10 @@ export function MobileLibrary({ snapshot, repository, onPick }: MobileLibraryPro
           </button>
         ))}
         <div className="section-title" />
+        <button className="library-row" onClick={() => onPick({ kind: "templates" })}>
+          <LayoutTemplate size={15} />{translate("sidebar.templates")}
+          <span className="count">{selectNotes(snapshot.summaries, { view: { kind: "templates" } }).length}</span>
+        </button>
         <button className="library-row" onClick={() => onPick({ kind: "trash" })}>
           <Trash2 size={15} />{translate("sidebar.trash")}
           <span className="count">{selectNotes(snapshot.summaries, { view: { kind: "trash" } }).length}</span>

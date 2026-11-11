@@ -109,6 +109,7 @@ export function createNoteTools(repository: NoteRepository, options: NoteToolOpt
     pinned: note.content.pinned,
     bookmarked: note.content.bookmarked,
     inTrash: note.content.trashedAt !== null,
+    isTemplate: note.content.isTemplate,
     createdAt: note.content.createdAt,
     updatedAt: note.updatedAt,
   });

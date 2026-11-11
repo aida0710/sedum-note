@@ -1,6 +1,6 @@
-// メモの「…」メニュー: ピン留め、ノートブックの付け外し、メモの中の検索、履歴、Markdown での書き出し、ゴミ箱。
+// メモの「…」メニュー: ピン留め、ノートブックの付け外し、テンプレートにする、メモの中の検索、履歴、Markdown での書き出し、ゴミ箱。
 
-import { Check, FileDown, History, Pin, PinOff, Search, Trash2 } from "lucide-react";
+import { Check, FileDown, History, LayoutTemplate, Pin, PinOff, Search, Trash2 } from "lucide-react";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
@@ -48,6 +48,9 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
         </>
       )}
       <div className="menu-separator" />
+      <button className="menu-item" role="menuitem" onClick={runAndClose(() => repository.updateNote(note.id, { isTemplate: !content.isTemplate, pinned: false }))}>
+        <LayoutTemplate size={15} />{translate(content.isTemplate ? "editor.stopBeingTemplate" : "editor.makeTemplate")}
+      </button>
       <button className="menu-item" role="menuitem" onClick={() => { onClose(); onFind(); }}>
         <Search size={15} />{translate("editor.find")}
       </button>

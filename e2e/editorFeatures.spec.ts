@@ -183,3 +183,54 @@ test("スマホで、リンクから別のメモを開いたあとも、端末�
   await page.getByRole("button", { name: "戻る" }).click();
   await expect(page.getByRole("heading", { name: "すべてのメモ" })).toBeVisible();
 });
+
+test("目次に見出しが並び、押すとその見出しへ移る。出したままにする設定は開き直しても保たれる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "長いメモ");
+  await page.keyboard.type("# 第 1 章");
+  await page.keyboard.press("Enter");
+  for (let line = 0; line < 40; line += 1) {
+    await page.keyboard.type(`本文 ${line}`);
+    await page.keyboard.press("Enter");
+  }
+  await page.keyboard.type("## 第 2 節");
+  await page.getByRole("button", { name: "目次" }).click();
+  const outline = page.getByRole("navigation", { name: "目次" });
+  await expect(outline.getByRole("button")).toHaveText(["第 1 章", "第 2 節"]);
+
+  await outline.getByRole("button", { name: "第 1 章" }).click();
+  await expect(page.locator(".ProseMirror h1")).toBeInViewport();
+  await outline.getByRole("button", { name: "第 2 節" }).click();
+  await expect(page.locator(".ProseMirror h2")).toBeInViewport();
+  await expect(page.locator(".ProseMirror h1")).not.toBeInViewport();
+
+  await page.waitForTimeout(500);
+  await page.reload();
+  await page.getByLabel("パスフレーズ").fill("correct horse battery");
+  await page.getByRole("button", { name: "解除" }).click();
+  await page.getByRole("button", { name: "長いメモ" }).click();
+  await expect(page.getByRole("navigation", { name: "目次" })).toBeVisible();
+});
+
+test("メモをテンプレートにすると「テンプレート」に並び、型から新しいメモを作れる。「/」からは本文に入れられる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "議事録の型");
+  await page.keyboard.type("## 決まったこと");
+  await page.getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "テンプレートにする" }).click();
+  // ふつうの一覧からは外れ、「テンプレート」に並ぶ。
+  await expect(page.locator(".nav-row", { hasText: "すべてのメモ" }).locator(".count")).toHaveText("0");
+  await expect(page.locator(".nav-row", { hasText: "テンプレート" }).locator(".count")).toHaveText("1");
+
+  await page.getByRole("button", { name: "このテンプレートから新しいメモを作る" }).click();
+  await expect(page.getByRole("tab")).toHaveCount(2);
+  await expect(page.locator(".ProseMirror h2")).toHaveText("決まったこと");
+  await expect(page.getByText("このメモはテンプレートです")).toHaveCount(0);
+  await expect(page.locator(".nav-row", { hasText: "すべてのメモ" }).locator(".count")).toHaveText("1");
+
+  await newNote(page, "別のメモ");
+  await page.keyboard.type("/議事録");
+  await expect(page.getByRole("listbox", { name: "ブロックの種類" }).getByRole("option")).toHaveText(["テンプレート: 議事録の型"]);
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".ProseMirror h2")).toHaveText("決まったこと");
+});
