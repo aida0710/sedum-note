@@ -26,6 +26,9 @@ tauri-plugin-log = "2"
 # 添付とバックアップを、利用者が選んだ場所に保存するのに使う。
 tauri-plugin-dialog = "2.8"
 tauri-plugin-fs = "2.7"
+# 同期先（S3 互換ストレージ）への通信を、WebView でなくアプリの側から送るのに使う。WebView から送ると、
+# ブラウザと同じ扱いになり、バケットに CORS の設定が要る。
+tauri-plugin-http = "2"
 # 更新の知らせから、リリースのページをブラウザで開くのに使う。
 tauri-plugin-opener = "2.7"
 

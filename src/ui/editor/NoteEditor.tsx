@@ -3,7 +3,7 @@
 
 import { EditorContent, type JSONContent, useEditor } from "@tiptap/react";
 import { yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
-import { ChevronLeft, ListTree, Lock, MoreHorizontal, Star } from "lucide-react";
+import { ChevronLeft, ListTree, MoreHorizontal, Star } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { bodyPlainText, NOTE_LINK_NODE, plainTextHashtags } from "../../core/notes/bodyText";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
@@ -34,7 +34,6 @@ type NoteEditorProps = {
   note: LiveNote;
   notebooks: LiveNotebook[];
   repository: NoteRepository;
-  syncConfigured: boolean;
   isMobile: boolean;
   // スマホでは上のバーに「戻る」を出す。
   onBack?: () => void;
@@ -44,7 +43,7 @@ type NoteEditorProps = {
   findRequest?: number;
 };
 
-export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobile, onBack, highlightedText = "", findRequest = 0 }: NoteEditorProps) {
+export function NoteEditor({ note, notebooks, repository, isMobile, onBack, highlightedText = "", findRequest = 0 }: NoteEditorProps) {
   const [title, setTitle] = useState(note.content.title);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [pickingNoteLink, setPickingNoteLink] = useState(false);
@@ -109,11 +108,6 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
 
   const trailing = (
     <>
-      {!isMobile && (
-        <span className={`badge-lock${syncConfigured ? "" : " local"}`}>
-          <Lock size={13} />{translate(syncConfigured ? "editor.encryptedBadge" : "editor.localOnlyBadge")}
-        </span>
-      )}
       <button type="button" className={`icon-button${outlineShown ? " active" : ""}`} aria-label={translate("editor.outline")} aria-pressed={outlineShown}
         onClick={(event) => (isMobile ? setOutlineAnchor(outlineAnchor ? null : event.currentTarget) : updateDevicePreferences({ showOutline: !showOutline }))}>
         <ListTree size={16} />

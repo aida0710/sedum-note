@@ -35,8 +35,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
     return (
       <div className="phone">
         <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, navigation.openNote)}>
-          <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} repository={repository}
-            syncConfigured={vault.remoteConfig !== null} isMobile onBack={goBack} />
+          <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} repository={repository} isMobile onBack={goBack} />
         </NoteLinkTargetsContext.Provider>
       </div>
     );

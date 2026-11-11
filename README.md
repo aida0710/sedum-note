@@ -43,12 +43,16 @@ S3 互換のストレージで同期する、エンドツーエンド暗号化�
 
 ## 同期先の用意
 
-S3 互換で、条件付き書き込み（`If-Match`・`If-None-Match`）を守るストレージを使います。アプリはつなぐときにこれを確かめ、守らないストレージには同期先として設定させません。アプリはストレージへ直接つなぐので、バケットに CORS の設定が要ります。
+S3 互換で、条件付き書き込み（`If-Match`・`If-None-Match`）を守るストレージを使います。アプリはつなぐときにこれを確かめ、守らないストレージには同期先として設定させません。Cloudflare R2 で確かめています。
+
+アプリ（Windows・macOS・Linux・Android）は、バケットとアクセスキーを作るだけでつながります。パスフレーズは自分で決めるほか、最初の画面で強いものを生成できます。
+
+Web 版はブラウザからストレージへ直接つなぐので、Web 版を使うときだけ、バケットに CORS の設定が要ります。入れる設定は、Web 版の最初の画面と「設定」に出ます。
 
 ```json
 [
   {
-    "AllowedOrigins": ["http://tauri.localhost", "tauri://localhost"],
+    "AllowedOrigins": ["https://aida0710.github.io"],
     "AllowedMethods": ["GET", "PUT", "HEAD", "DELETE"],
     "AllowedHeaders": ["*"],
     "ExposeHeaders": ["ETag"],
@@ -57,7 +61,7 @@ S3 互換で、条件付き書き込み（`If-Match`・`If-None-Match`）を守�
 ]
 ```
 
-Web 版を使うときは、`https://aida0710.github.io` も `AllowedOrigins` に足してください。アプリの「設定」に、開いている画面の origin を入れた例が出ます。
+v0.2.1 までのアプリは、アプリからつなぐときにも CORS の設定が要ります（`AllowedOrigins` に `http://tauri.localhost` と `tauri://localhost`）。
 
 ## 暗号化の形
 

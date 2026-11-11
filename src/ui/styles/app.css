@@ -63,7 +63,6 @@ button:disabled { cursor: default; opacity: .55; }
 .sync-line .status-dot.syncing { background: var(--accent); }
 .sync-line .status-dot.failed { background: var(--danger); }
 .sync-line .status-dot.off { background: var(--muted); }
-.sync-line .encrypted { margin-left: auto; display: inline-flex; gap: 4px; align-items: center; }
 
 .main { background: var(--panel); display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--line); background: var(--sidebar); overflow-x: auto; flex: none; scrollbar-width: none; }
@@ -80,8 +79,6 @@ button:disabled { cursor: default; opacity: .55; }
 .tool.on { background: var(--selected); color: var(--accent); }
 .tool-separator { width: 1px; height: 18px; background: var(--line); margin: 0 4px; flex: none; }
 .editor-bar .bar-end { margin-left: auto; display: flex; gap: 6px; align-items: center; font-size: 12px; flex: none; }
-.badge-lock { display: inline-flex; align-items: center; gap: 4px; color: var(--ok); white-space: nowrap; }
-.badge-lock.local { color: var(--muted); }
 .icon-button { width: 28px; height: 28px; border-radius: 6px; display: grid; place-items: center; color: var(--muted); flex: none; }
 .icon-button:hover { background: var(--selected); color: var(--text); }
 .icon-button.on { color: var(--bookmark); }
@@ -139,7 +136,10 @@ button:disabled { cursor: default; opacity: .55; }
 .note-link button { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 0 6px; vertical-align: baseline; max-width: 100%; }
 .note-link.trashed button, .note-link.missing button { color: var(--muted); background: var(--tag); }
 .note-link.ProseMirror-selectednode button { outline: 2px solid var(--accent); }
-.slash-menu { max-height: 260px; overflow-y: auto; min-width: 220px; }
+/* 候補は全部を一度に見せる。画面に収まらないとき（スマホでキーボードを開いているとき）だけ中を送れるが、スクロールバーは出さない。 */
+.slash-menu { max-height: min(520px, calc(var(--visible-height, 100vh) - 24px)); overflow-y: auto; scrollbar-width: none; min-width: 220px; }
+.slash-menu::-webkit-scrollbar { display: none; }
+.slash-menu .menu-item { padding-top: 5px; padding-bottom: 5px; }
 .slash-menu .menu-item.on { background: var(--selected); }
 .notebook-icon { flex: none; }
 .choice-grid { display: flex; flex-wrap: wrap; gap: 6px; }

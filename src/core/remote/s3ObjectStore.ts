@@ -1,8 +1,9 @@
-// S3 互換ストレージへの ObjectStore。署名は aws4fetch（SigV4）、通信は fetch。
+// S3 互換ストレージへの ObjectStore。署名は aws4fetch（SigV4）でここで作り、送るのは呼び出し側が渡す
+// 送り方（StorageRequestSender）に任せる。
 //
-// Web 版も Tauri の WebView も同じ fetch を使うので、バケットに CORS の設定が要る
-// （AllowedHeaders に If-Match・If-None-Match、ExposeHeaders に ETag）。
-// 必要な設定は settings 画面の接続テストで案内する。
+// Web 版はブラウザの fetch で送るので、バケットに CORS の設定が要る（AllowedHeaders に If-Match・
+// If-None-Match、ExposeHeaders に ETag）。アプリは、WebView でなくアプリの側から送るので、CORS の設定は要らない
+// （ui/platform/storageRequestSender.ts）。
 
 import { AwsClient } from "aws4fetch";
 import { parseListObjectsPage } from "./listObjectsResponse";
@@ -17,6 +18,11 @@ import {
 } from "./objectStore";
 import { normalizeEndpoint, normalizePrefix, type RemoteConfig } from "./remoteConfig";
 
+// 署名の済んだ要求を送って、応答を返す。届かなければ失敗を投げる。
+export type StorageRequestSender = (request: Request) => Promise<Response>;
+
+const sendWithFetch: StorageRequestSender = (request) => fetch(request);
+
 // ListObjectsV2 の 1 ページの最大件数（S3 の上限）。
 const LIST_PAGE_SIZE = 1000;
 
@@ -24,8 +30,10 @@ export class S3ObjectStore implements ObjectStore {
   readonly #client: AwsClient;
   readonly #bucketUrl: string;
   readonly #keyPrefix: string;
+  readonly #sendRequest: StorageRequestSender;
 
-  constructor(config: RemoteConfig) {
+  constructor(config: RemoteConfig, sendRequest: StorageRequestSender = sendWithFetch) {
+    this.#sendRequest = sendRequest;
     this.#client = new AwsClient({
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
@@ -103,7 +111,7 @@ export class S3ObjectStore implements ObjectStore {
 
   async #send(url: string, init: RequestInit): Promise<Response> {
     try {
-      return await this.#client.fetch(url, { ...init, cache: "no-store" });
+      return await this.#sendRequest(await this.#client.sign(url, { ...init, cache: "no-store" }));
     } catch (error) {
       throw new ObjectStoreError("unreachable", `could not reach the storage: ${String(error)}`);
     }

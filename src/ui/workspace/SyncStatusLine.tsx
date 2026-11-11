@@ -1,6 +1,5 @@
 // 左の列の下の同期の状態。押すと設定を開く。
 
-import { Lock } from "lucide-react";
 import { useContext, useEffect, useState } from "react";
 import type { SyncStatus } from "../../core/sync/autoSync";
 import { translate } from "../i18n/translate";
@@ -42,7 +41,6 @@ export function SyncStatusLine({ status, onOpenSettings }: { status: SyncStatus 
   return (
     <button className="sync-line" onClick={onOpenSettings}>
       <span className={`status-dot ${dotClass}`} />{text}
-      <span className="encrypted"><Lock size={12} />{translate("sync.encrypted")}</span>
     </button>
   );
 }

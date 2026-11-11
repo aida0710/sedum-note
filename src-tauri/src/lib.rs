@@ -22,6 +22,7 @@ pub fn run() {
     .plugin(tauri_plugin_dialog::init())
     .plugin(tauri_plugin_fs::init())
     .plugin(tauri_plugin_opener::init())
+    .plugin(tauri_plugin_http::init())
     .setup(|app| {
       // アプリが自分を更新できるのはデスクトップだけ。Android は、更新を知らせてリリースのページを開く。
       #[cfg(desktop)]

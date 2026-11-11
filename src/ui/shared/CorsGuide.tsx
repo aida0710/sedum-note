@@ -1,10 +1,15 @@
-// バケットに入れてもらう CORS の設定の案内。最初の画面と、設定の同期の欄に出す。
-// この設定が無いと、アプリからストレージへの要求が全部断られ、「接続できません」になる。
+// バケットに入れてもらう CORS の設定の案内。Web 版の、最初の画面と設定の同期の欄に出す。
+// Web 版はブラウザからストレージへつなぐので、この設定が無いと要求が全部断られ、「接続できません」になる。
+// アプリは、アプリの側から送るので CORS の設定が要らず、案内も出さない。
 
 import { translate } from "../i18n/translate";
+import { isRunningInTauri } from "../platform/runtime";
 import { corsRuleJson } from "../settings/corsRule";
 
 export function CorsGuide() {
+  if (isRunningInTauri()) {
+    return null;
+  }
   const rule = corsRuleJson(window.location.origin);
   return (
     <details>

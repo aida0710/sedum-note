@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "画面から使える Tauri の機能。ファイルは、保存のダイアログで利用者が選んだ場所にだけ書ける（dialog が選んだ場所を fs の範囲に足す）。ブラウザで開けるのは、このアプリのリリースのページだけ。",
+  "description": "画面から使える Tauri の機能。ファイルは、保存のダイアログで利用者が選んだ場所にだけ書ける（dialog が選んだ場所を fs の範囲に足す）。ブラウザで開けるのは、このアプリのリリースのページだけ。アプリの側からの HTTP は、同期先（利用者が入れた S3 互換ストレージ）へ送るのに使う。同期先は利用者ごとに違うので、https と、このマシンの中（試験用のストレージ）を許す。",
   "windows": [
     "main"
   ],
@@ -16,6 +16,23 @@
       "allow": [
         {
           "url": "https://github.com/aida0710/sedum-note/releases/*"
+        }
+      ]
+    },
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "https://*"
+        },
+        {
+          "url": "https://*:*"
+        },
+        {
+          "url": "http://127.0.0.1:*"
+        },
+        {
+          "url": "http://localhost:*"
         }
       ]
     }

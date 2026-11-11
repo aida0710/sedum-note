@@ -131,10 +131,11 @@ test("強いパスフレーズを生成して始められ、生成したパス�
   await expect(page.getByRole("button", { name: "新しいメモ" })).toBeVisible();
 });
 
-test("同期を使うときは、最初の画面でバケットの CORS の設定を見られる", async ({ page }) => {
+test("Web 版で同期を使うときは、最初の画面でバケットの CORS の設定を見られる", async ({ page }) => {
   await page.goto("/");
   await page.getByLabel("ほかのデバイスと同期する").check();
   await page.getByText("バケットの CORS の設定").click();
   await expect(page.locator("details pre")).toContainText('"ExposeHeaders"');
-  await expect(page.locator("details pre")).toContainText("http://tauri.localhost");
+  // 入れるのは、開いている Web 版の origin だけ（アプリは CORS の設定が要らない）。
+  await expect(page.locator("details pre")).toContainText("http://127.0.0.1:5173");
 });

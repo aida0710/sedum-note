@@ -7,6 +7,7 @@ import { ObjectStoreError } from "../../core/remote/objectStore";
 import { VaultReplacedError } from "../../core/sync/syncEngine";
 import { WeakPassphraseError, WrongPassphraseError } from "../../core/vault/vaultDocument";
 import { VaultAlreadyExistsError, VaultNotFoundError } from "../../core/vault/vaultSession";
+import { isRunningInTauri } from "../platform/runtime";
 import { translate } from "./translate";
 import { UserFacingError } from "./userFacingError";
 
@@ -34,6 +35,10 @@ export function describeError(error: unknown): string {
   }
   if (error instanceof VaultReplacedError) {
     return translate("error.vaultReplaced");
+  }
+  // ブラウザ（Web 版）では、CORS で断られたときも「届かない」に見えるので、CORS の設定を案内する。
+  if (error instanceof ObjectStoreError && error.reason === "unreachable" && !isRunningInTauri()) {
+    return translate("error.storage.unreachableFromBrowser");
   }
   if (error instanceof ObjectStoreError) {
     return translate(`error.storage.${error.reason}`, { detail: error.message });

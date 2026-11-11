@@ -46,8 +46,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
         )}
         {activeNote && (
           <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, navigation.openNote)}>
-            <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} repository={repository}
-              syncConfigured={vault.remoteConfig !== null} isMobile={false}
+            <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} repository={repository} isMobile={false}
               highlightedText={navigation.searchText} findRequest={navigation.findInNoteRequest} />
           </NoteLinkTargetsContext.Provider>
         )}
