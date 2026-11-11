@@ -5,6 +5,14 @@
     <!-- AndroidTV support -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
 
+    <!-- 本文の「カメラで撮る」が、カメラのアプリを呼べるようにする。この宣言が無いと、Android 11 以降では
+         カメラのアプリが見えず、写真の選択画面に切り替わる。撮るのはカメラのアプリなので、CAMERA の権限は要らない。 -->
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+    </queries>
+
     <application
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -22,6 +30,7 @@
                 <!-- AndroidTV support -->
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
             <!-- ほかのアプリの「共有」から、文字・写真・ファイルを受け取って新しいメモにする。 -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -34,6 +43,14 @@
                 <data android:mimeType="*/*" />
             </intent-filter>
         </activity>
+
+        <!-- ホーム画面のウィジェット（「新しいメモ」のボタン）。 -->
+        <receiver android:name=".NewNoteWidget" android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/new_note_widget_info" />
+        </receiver>
 
         <provider
           android:name="androidx.core.content.FileProvider"

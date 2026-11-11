@@ -8,39 +8,42 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
-// 画面（WebView）から共有の窓口を呼ぶときの名前。src/ui/platform/sharedContent.ts と揃える。
-private const val SHARE_BRIDGE_NAME = "SedumNoteShare"
+// 画面（WebView）から、外から頼まれたことの窓口を呼ぶときの名前。src/ui/platform/launchRequests.ts と揃える。
+private const val LAUNCH_BRIDGE_NAME = "SedumNoteLaunch"
+// 画面から、撮った写真の片付けの窓口を呼ぶときの名前。src/ui/platform/capturedPhotos.ts と揃える。
+private const val CAPTURED_PHOTOS_BRIDGE_NAME = "SedumNoteCapturedPhotos"
 // 画面からシステムバーの色の窓口を呼ぶときの名前。src/ui/platform/systemBars.ts と揃える。
 private const val SYSTEM_BARS_BRIDGE_NAME = "SedumNoteSystemBars"
-// 共有を受け取ったことを画面へ知らせるイベントの名前。同じく揃える。
-private const val SHARE_ARRIVED_EVENT = "sedum-note-share"
+// 頼まれごとが届いたことを画面へ知らせるイベントの名前。launchRequests.ts と揃える。
+private const val LAUNCH_REQUEST_EVENT = "sedum-note-launch-request"
 
 class MainActivity : TauriActivity() {
-  private lateinit var sharedContent: SharedContentBridge
+  private lateinit var launchRequests: LaunchRequestBridge
   private var webView: WebView? = null
 
   override fun onCreate(savedInstanceState: Bundle?) {
-    sharedContent = SharedContentBridge(contentResolver)
+    launchRequests = LaunchRequestBridge(contentResolver)
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
     keepContentAboveKeyboard(findViewById(android.R.id.content))
-    // 履歴から開き直したときと、画面を作り直したときは、前に受け取った共有の Intent が残っている。二重に取り込まない。
+    // 履歴から開き直したときと、画面を作り直したときは、前に受け取った Intent が残っている。二重に取り込まない。
     if (savedInstanceState == null && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0) {
-      sharedContent.accept(intent)
+      launchRequests.accept(intent)
     }
   }
 
   override fun onWebViewCreate(webView: WebView) {
     this.webView = webView
-    webView.addJavascriptInterface(sharedContent, SHARE_BRIDGE_NAME)
+    webView.addJavascriptInterface(launchRequests, LAUNCH_BRIDGE_NAME)
+    webView.addJavascriptInterface(CapturedPhotosBridge(this), CAPTURED_PHOTOS_BRIDGE_NAME)
     webView.addJavascriptInterface(SystemBarsBridge(this), SYSTEM_BARS_BRIDGE_NAME)
   }
 
-  // アプリを開いたまま、ほかのアプリから共有されたとき。
+  // アプリを開いたまま、共有されたとき・ウィジェットやショートカットが押されたとき。
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
-    if (sharedContent.accept(intent)) {
-      webView?.post { webView?.evaluateJavascript("window.dispatchEvent(new Event('$SHARE_ARRIVED_EVENT'))", null) }
+    if (launchRequests.accept(intent)) {
+      webView?.post { webView?.evaluateJavascript("window.dispatchEvent(new Event('$LAUNCH_REQUEST_EVENT'))", null) }
     }
   }
 

@@ -36,7 +36,7 @@ const attachedImageWidth = (page: Page) => page.locator(".attachment-image img")
 test("写真は既定では元のまま貼り、「小さくして貼る」にすると長い辺を 2048px まで縮める", async ({ page }) => {
   await openNewNote(page);
   const photo = await largePhoto(page, 4000, 3000);
-  await page.locator('input[type="file"][accept="image/*"]').setInputFiles({ name: "IMG_0001.jpg", mimeType: "image/jpeg", buffer: photo });
+  await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "IMG_0001.jpg", mimeType: "image/jpeg", buffer: photo });
   await expect(page.locator(".attachment-image img")).toBeVisible();
   expect(await attachedImageWidth(page)).toBe(4000);
 
@@ -45,7 +45,7 @@ test("写真は既定では元のまま貼り、「小さくして貼る」に�
   await page.getByRole("button", { name: "新しいメモ" }).click();
   await page.getByPlaceholder("タイトル").fill("小さくした写真");
   await page.getByPlaceholder("タイトル").press("Enter");
-  await page.locator('input[type="file"][accept="image/*"]').setInputFiles({ name: "IMG_0002.jpg", mimeType: "image/jpeg", buffer: photo });
+  await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "IMG_0002.jpg", mimeType: "image/jpeg", buffer: photo });
   await expect(page.locator(".attachment-image img")).toBeVisible();
   expect(await attachedImageWidth(page)).toBe(2048);
   await expect(page.locator(".attachment-image")).toContainText("IMG_0002.jpg");
@@ -57,14 +57,14 @@ test("「貼るたびに聞く」では、小さくするか元のままかを�
   await page.getByLabel("写真を貼るとき").selectOption("ask");
   await page.getByRole("tab", { name: "写真のメモ" }).click();
 
-  await page.locator('input[type="file"][accept="image/*"]').setInputFiles({ name: "big.jpg", mimeType: "image/jpeg", buffer: await largePhoto(page, 3000, 2000) });
+  await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "big.jpg", mimeType: "image/jpeg", buffer: await largePhoto(page, 3000, 2000) });
   const question = page.getByRole("dialog");
   await expect(question).toContainText("写真を小さくして貼りますか");
   await question.getByRole("button", { name: "元のまま" }).click();
   await expect(page.locator(".attachment-image img")).toBeVisible();
   expect(await attachedImageWidth(page)).toBe(3000);
 
-  await page.locator('input[type="file"][accept="image/*"]').setInputFiles({ name: "small.jpg", mimeType: "image/jpeg", buffer: await largePhoto(page, 800, 600) });
+  await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "small.jpg", mimeType: "image/jpeg", buffer: await largePhoto(page, 800, 600) });
   await page.getByRole("dialog").getByRole("button", { name: "小さくする" }).click();
   await expect(page.locator(".attachment-image img")).toHaveCount(2);
   expect(await page.locator(".attachment-image img").last().evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(800);

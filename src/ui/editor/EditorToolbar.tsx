@@ -1,7 +1,7 @@
 // 本文の書式・表・リンクと、写真・ファイルを添付するボタン。PC では本文の上、スマホでは画面の下に出す。
 
 import { type Editor, useEditorState } from "@tiptap/react";
-import { Bold, Code, FileSymlink, Heading, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, Paperclip, Underline } from "lucide-react";
+import { Bold, Camera, Code, FileSymlink, Heading, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, Paperclip, Underline } from "lucide-react";
 import type { ReactNode } from "react";
 import { translate, type MessageKey } from "../i18n/translate";
 import { TableMenu } from "./TableMenu";
@@ -11,6 +11,8 @@ type EditorToolbarProps = {
   // 写真・ファイルを選ぶ画面を開く。
   onPickImage: () => void;
   onPickFile: () => void;
+  // カメラを開いて、その場で撮る。カメラを出さない画面（PC）では渡さない。
+  onCapturePhoto?: () => void;
   // リンク先を聞く。やめたら null。
   onAskLink: () => Promise<string | null>;
   // リンクするメモを選ぶ画面を開く。
@@ -20,7 +22,7 @@ type EditorToolbarProps = {
 
 const ICON_SIZE = 16;
 
-export function EditorToolbar({ editor, onPickImage, onPickFile, onAskLink, onPickNoteLink, trailing }: EditorToolbarProps) {
+export function EditorToolbar({ editor, onPickImage, onPickFile, onCapturePhoto, onAskLink, onPickNoteLink, trailing }: EditorToolbarProps) {
   const active = useEditorState({
     editor,
     selector: ({ editor: current }) => ({
@@ -67,6 +69,7 @@ export function EditorToolbar({ editor, onPickImage, onPickFile, onAskLink, onPi
       {tool("editor.taskList", active.taskList, () => editor.chain().focus().toggleTaskList().run(), <ListChecks size={ICON_SIZE} />)}
       <span className="tool-separator" />
       {tool("editor.image", false, onPickImage, <ImagePlus size={ICON_SIZE} />)}
+      {onCapturePhoto && tool("editor.capturePhoto", false, onCapturePhoto, <Camera size={ICON_SIZE} />)}
       {tool("editor.file", false, onPickFile, <Paperclip size={ICON_SIZE} />)}
       {tool("editor.link", active.link, () => void toggleLink(), <Link size={ICON_SIZE} />)}
       {tool("editor.noteLink", false, onPickNoteLink, <FileSymlink size={ICON_SIZE} />)}

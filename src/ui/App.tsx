@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { languageInUse } from "./i18n/languageInUse";
 import { useDevicePreferences } from "./preferences/devicePreferences";
 import { McpGatewayContext, useMcpGateway } from "./mcp/useMcpGateway";
-import { useSharedContentInbox } from "./share/useSharedContentInbox";
+import { useLaunchRequests } from "./share/useLaunchRequests";
 import { applyAppearance } from "./theme/applyAppearance";
 import { useThemeInUse } from "./theme/themeInUse";
 import { AvailableUpdateContext, useAvailableUpdate } from "./update/useAvailableUpdate";
@@ -53,7 +53,7 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   const snapshot = useRepositorySnapshot(vault.repository);
   const navigation = useWorkspaceNavigation();
   const isMobile = useMediaQuery(MOBILE_LAYOUT_QUERY);
-  useSharedContentInbox(vault.repository, navigation.openNote);
+  useLaunchRequests(vault.repository, navigation.openNote);
   const availableUpdate = useAvailableUpdate();
   const mcpGateway = useMcpGateway(vault);
   useTrashRetention(vault, session.syncStatus);

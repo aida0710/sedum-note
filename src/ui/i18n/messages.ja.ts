@@ -121,6 +121,7 @@ export const japaneseMessages = {
   "editor.orderedList": "番号付きリスト",
   "editor.taskList": "チェックリスト",
   "editor.image": "画像を貼る",
+  "editor.capturePhoto": "カメラで撮る",
   "editor.file": "ファイルを添付",
   "editor.saveFile": "{name} を保存",
   "editor.fileMissing": "ファイルを読み込めませんでした",

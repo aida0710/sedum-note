@@ -11,15 +11,19 @@ import java.io.InputStream
 import org.json.JSONArray
 import org.json.JSONObject
 
+// ウィジェットとショートカットが「新しいメモ」を頼むときの Intent の action。AndroidManifest.xml と res/xml/shortcuts.xml と揃える。
+const val ACTION_NEW_NOTE = "com.github.aida0710.sedumnote.action.NEW_NOTE"
+
 // 読めなかったファイルの印。Base64 に出てこない文字にする。src/ui/platform/sharedContent.ts と揃える。
 private const val UNREADABLE_FILE_MARK = "!"
 
-// ほかのアプリの「共有」で受け取った文字とファイルを、画面（WebView）へ渡す窓口。
+// アプリの外から頼まれたこと（ほかのアプリの「共有」、ウィジェットやショートカットの「新しいメモ」）を、
+// 画面（WebView）へ渡す窓口。アプリを開いていないときに頼まれたものも、画面が取りに来るまで覚えておく。
 //
-// 受け取った文字とファイルの場所は、メモリにだけ持つ。メモはロックを解除するまで暗号化
+// 共有で受け取った文字とファイルの場所は、メモリにだけ持つ。メモはロックを解除するまで暗号化
 // できないので、ここでディスクに写すと平文が残る。ファイルの中身は、画面が読みに来たときに
 // 共有元から少しずつ読む。画面が受け取り終えたら clearPendingShare で忘れる。
-class SharedContentBridge(private val contentResolver: ContentResolver) {
+class LaunchRequestBridge(private val contentResolver: ContentResolver) {
   private class SharedFile(val uri: Uri, val fileName: String, val mimeType: String, val byteLength: Long)
   private class PendingShare(val subject: String, val text: String, val files: List<SharedFile>)
   // 続きから読むために開いたままにする流れと、次に読む位置。
@@ -27,10 +31,15 @@ class SharedContentBridge(private val contentResolver: ContentResolver) {
 
   private var pendingShare: PendingShare? = null
   private var openFile: OpenFile? = null
+  private var newNoteRequested = false
 
-  // 共有の Intent なら中身を覚えて true を返す。
+  // 頼まれごとの Intent（共有か、新しいメモ）なら覚えて true を返す。
   @Synchronized
   fun accept(intent: Intent): Boolean {
+    if (intent.action == ACTION_NEW_NOTE) {
+      newNoteRequested = true
+      return true
+    }
     val uris = when (intent.action) {
       Intent.ACTION_SEND -> listOfNotNull(IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java))
       Intent.ACTION_SEND_MULTIPLE -> IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
@@ -43,6 +52,15 @@ class SharedContentBridge(private val contentResolver: ContentResolver) {
       files = uris.map { uri -> describeFile(uri, intent.type) },
     )
     return true
+  }
+
+  // 「新しいメモ」を頼まれていたら true を返し、頼まれごとを忘れる。
+  @JavascriptInterface
+  @Synchronized
+  fun takeNewNoteRequest(): Boolean {
+    val requested = newNoteRequested
+    newNoteRequested = false
+    return requested
   }
 
   // 受け取った中身の説明（JSON）。無ければ空の文字列。ファイルの中身は readPendingFileChunk で読む。

@@ -123,6 +123,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "editor.orderedList": "Numbered list",
   "editor.taskList": "Checklist",
   "editor.image": "Insert image",
+  "editor.capturePhoto": "Take a photo",
   "editor.file": "Attach file",
   "editor.saveFile": "Save {name}",
   "editor.fileMissing": "The file could not be loaded",

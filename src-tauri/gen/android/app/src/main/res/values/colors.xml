@@ -8,4 +8,5 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="memo_panel">#FFFFFF</color>
+    <color name="new_note_widget_background">#FF2F6FDE</color>
 </resources>

@@ -1,22 +1,13 @@
 // Android で、ほかのアプリの「共有」から受け取った文字とファイル。ネイティブ側
-// （SharedContentBridge.kt）がメモリに持っているものを読む。ほかの環境では、いつも「無い」。
+// （LaunchRequestBridge.kt）がメモリに持っているものを読む。ほかの環境では、いつも「無い」。
 
 import { base64ToBytes } from "../../core/crypto/base64";
+import { type NativeLaunchBridge, nativeLaunchBridge } from "./launchRequests";
 
-// MainActivity.kt の SHARE_BRIDGE_NAME・SHARE_ARRIVED_EVENT と揃える。
-const SHARE_BRIDGE_NAME = "SedumNoteShare";
-const SHARE_ARRIVED_EVENT = "sedum-note-share";
-// 読めなかったファイルの印。SharedContentBridge.kt の UNREADABLE_FILE_MARK と揃える。
+// 読めなかったファイルの印。LaunchRequestBridge.kt の UNREADABLE_FILE_MARK と揃える。
 const UNREADABLE_FILE_MARK = "!";
 // 1 回に読む大きさ。Base64 の文字列として WebView へ渡るので、大きくしすぎない。
 const FILE_CHUNK_BYTES = 1024 * 1024;
-
-type NativeShareBridge = {
-  describePendingShare: () => string;
-  // Base64 の文字列。終わりに達したら空、読めなかったときは UNREADABLE_FILE_MARK。
-  readPendingFileChunk: (fileIndex: number, offset: number, length: number) => string;
-  clearPendingShare: () => void;
-};
 
 export type SharedFile = {
   fileName: string;
@@ -29,12 +20,8 @@ export type SharedFile = {
 
 export type SharedContent = { subject: string; text: string; files: SharedFile[] };
 
-function nativeShareBridge(): NativeShareBridge | null {
-  return (window as unknown as Record<string, NativeShareBridge | undefined>)[SHARE_BRIDGE_NAME] ?? null;
-}
-
 export function pendingSharedContent(): SharedContent | null {
-  const bridge = nativeShareBridge();
+  const bridge = nativeLaunchBridge();
   const described = bridge?.describePendingShare() ?? "";
   if (!bridge || described === "") {
     return null;
@@ -52,7 +39,7 @@ export function pendingSharedContent(): SharedContent | null {
   };
 }
 
-function readSharedFile(bridge: NativeShareBridge, fileIndex: number, maxBytes: number): Uint8Array | null {
+function readSharedFile(bridge: NativeLaunchBridge, fileIndex: number, maxBytes: number): Uint8Array | null {
   const chunks: Uint8Array[] = [];
   let byteLength = 0;
   for (;;) {
@@ -81,11 +68,5 @@ function readSharedFile(bridge: NativeShareBridge, fileIndex: number, maxBytes: 
 
 // 受け取り終えたら呼ぶ。ネイティブ側が中身を忘れる。
 export function clearPendingSharedContent(): void {
-  nativeShareBridge()?.clearPendingShare();
-}
-
-// アプリを開いている間に共有されたときに呼ばれる。
-export function subscribeToSharedContent(listener: () => void): () => void {
-  window.addEventListener(SHARE_ARRIVED_EVENT, listener);
-  return () => window.removeEventListener(SHARE_ARRIVED_EVENT, listener);
+  nativeLaunchBridge()?.clearPendingShare();
 }

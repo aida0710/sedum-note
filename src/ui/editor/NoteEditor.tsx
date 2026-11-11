@@ -10,6 +10,7 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { useMarkdownExport } from "../markdown/useMarkdownExport";
+import { deleteCapturedPhotos } from "../platform/capturedPhotos";
 import { printPage } from "../platform/printPage";
 import { readDevicePreferences, updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { useDialogs } from "../shared/DialogProvider";
@@ -58,6 +59,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
   const dialogs = useDialogs();
   const imageInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const cameraInput = useRef<HTMLInputElement>(null);
   const slashMenuController = useMemo(() => new SlashMenuController(), []);
   const unsyncedIds = useContext(UnsyncedRecordsContext);
   const noteId = note.id;
@@ -88,7 +90,12 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
         confirmLabel: translate("editor.reduceImage"), cancelLabel: translate("editor.keepOriginalImage"),
       })
       : imageAttachment === "reduced";
-    await attachFiles({ files, reduceImages, editor, repository });
+    try {
+      await attachFiles({ files, reduceImages, editor, repository });
+    } finally {
+      // Android のカメラで撮った写真は、暗号化されない一時ファイルで届く。添付にしたら消す。
+      deleteCapturedPhotos();
+    }
   });
   // 貼り付け・ドロップにファイルが含まれていれば、添付として受け取る（true を返すと、エディタの既定の処理を止める）。
   function takeFiles(files: File[]): boolean {
@@ -161,7 +168,11 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
   const pickImage = () => imageInput.current?.click();
   const pickFile = () => fileInput.current?.click();
   const pickNoteLink = () => setPickingNoteLink(true);
-  const toolbarActions = { onPickImage: pickImage, onPickFile: pickFile, onAskLink: askLink, onPickNoteLink: pickNoteLink };
+  const toolbarActions = {
+    onPickImage: pickImage, onPickFile: pickFile, onAskLink: askLink, onPickNoteLink: pickNoteLink,
+    // スマホでは、カメラを開いてその場で撮れる。
+    onCapturePhoto: isMobile ? () => cameraInput.current?.click() : undefined,
+  };
   // テンプレートの本文を、カーソルの所に入れる。
   const insertTemplate = (templateId: string) => {
     const template = repository.note(templateId);
@@ -258,6 +269,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
       {isMobile && !inTrash && <EditorToolbar editor={editor} {...toolbarActions} />}
       <input ref={imageInput} type="file" accept="image/*" multiple hidden onChange={takePickedFiles} />
       <input ref={fileInput} type="file" multiple hidden onChange={takePickedFiles} />
+      <input ref={cameraInput} type="file" accept="image/*" capture="environment" hidden onChange={takePickedFiles} />
       <SlashMenu controller={slashMenuController} />
       {pickingNoteLink && (
         <NoteLinkPicker candidates={repository.notes().filter((candidate) => candidate.id !== noteId && candidate.content.trashedAt === null)}

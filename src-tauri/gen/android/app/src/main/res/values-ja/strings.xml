@@ -1,0 +1,4 @@
+<resources>
+    <string name="new_note_widget_label">新しいメモ</string>
+    <string name="new_note_widget_description">Sedum Note を開いて、新しいメモを作ります</string>
+</resources>
