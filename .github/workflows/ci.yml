@@ -23,6 +23,7 @@ env:
 # main への push から 5 分ほどで結果が出るようにしてある。そのために、
 # - 検査・画面の試験・各 OS のビルドを、互いを待たせずに並べて流す（リリースは全部が通ってから）
 # - Rust と Gradle の組み立てた結果を、次の回へ持ち越す（キャッシュ）
+# - 画面の試験は、ブラウザの入ったコンテナイメージの中で流し、実行のたびに取ってこない
 # - 時間のかかる確認（macOS の universal のビルド、更新の予行）は、リリースのタグと手で起動したときだけ流す
 jobs:
   checks:
@@ -71,15 +72,14 @@ jobs:
       - run: npm ci
       - name: Start the S3-compatible test server
         run: integration/s3-up.sh
-      # 取ってきたブラウザを、次の回へ持ち越す（Playwright の版が変わったら取り直す）。
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ matrix.browser }}-${{ hashFiles('package-lock.json') }}
-      - run: scripts/ci/retry-when-stuck.sh 120 npx playwright install --with-deps ${{ matrix.browser }}
-      - run: npx playwright test --project=${{ matrix.browser }}
-        env:
-          E2E_WEBKIT: "1"
+      # ブラウザとその依存が入った Playwright の公式のイメージの中で流す（ランナーの上で入れると、
+      # 取得に時間がかかり、固まることがある）。イメージの版は、入れてある @playwright/test に合わせる。
+      - name: Run the tests in the Playwright image
+        run: |
+          playwright_version=$(node -p "require('@playwright/test/package.json').version")
+          docker run --rm --network host --ipc=host -v "$PWD:$PWD" -w "$PWD" -e CI -e E2E_WEBKIT=1 \
+            "mcr.microsoft.com/playwright:v$playwright_version-noble" \
+            npx playwright test --project=${{ matrix.browser }}
 
   desktop:
     name: Desktop (${{ matrix.name }})
@@ -115,8 +115,8 @@ jobs:
       - name: Install the WebKitGTK build dependencies
         if: matrix.name == 'Linux'
         run: |
-          scripts/ci/retry-when-stuck.sh 60 sudo apt-get update
-          scripts/ci/retry-when-stuck.sh 180 sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libdbus-1-dev libayatana-appindicator3-dev librsvg2-dev xvfb ffmpeg fonts-noto-cjk
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libdbus-1-dev libayatana-appindicator3-dev librsvg2-dev xvfb ffmpeg fonts-noto-cjk
       - run: rustup toolchain install stable --profile minimal && rustup target add ${{ matrix.rust-targets }}
       # 依存のクレートを組み立てた結果を、次の回へ持ち越す。
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
