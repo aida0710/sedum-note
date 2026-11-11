@@ -1,5 +1,8 @@
 // 画面の入口。vault の状態で、初回の設定・ロック解除・メモの画面を出し分ける。
 
+import { useEffect } from "react";
+import { languageInUse } from "./i18n/languageInUse";
+import { useDevicePreferences } from "./preferences/devicePreferences";
 import { SetupScreen } from "./entry/SetupScreen";
 import { UnlockScreen } from "./entry/UnlockScreen";
 import { DialogProvider } from "./shared/DialogProvider";
@@ -14,6 +17,11 @@ import type { UnlockedVault } from "../core/vault/vaultSession";
 
 export function App() {
   const session = useVaultSession();
+  // 言語を変えたら、ここから下を描き直して文言を入れ替える。
+  const { language } = useDevicePreferences();
+  useEffect(() => {
+    document.documentElement.lang = languageInUse();
+  }, [language]);
   switch (session.state.phase) {
     case "loading":
       return null;

@@ -171,6 +171,7 @@ button:disabled { cursor: default; opacity: .55; }
 .field label { font-weight: 600; font-size: 12px; }
 .field .hint { color: var(--muted); font-size: 11.5px; }
 .field input:not([type="checkbox"]) { min-width: 0; width: 100%; height: 34px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; background: var(--panel); }
+.field select { min-width: 0; width: 100%; height: 34px; border: 1px solid var(--line); border-radius: 8px; padding: 0 8px; background: var(--panel); }
 .field input[type="file"] { height: auto; padding: 6px 8px; }
 .field input:focus { border-color: var(--accent); outline: 0; }
 .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }

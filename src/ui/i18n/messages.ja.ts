@@ -146,6 +146,10 @@ export const japaneseMessages = {
   "settings.lockDescription": "このデバイスのメモをロックします。解除にはパスフレーズが要ります。",
   "settings.unreadable": "開けない記録が {count} 件あります（壊れているか、別のパスフレーズのメモです）",
 
+  "settings.display": "表示",
+  "settings.language": "言語",
+  "settings.language.system": "システムに合わせる",
+
   "mobile.notes": "メモ",
   "mobile.notebooks": "ノートブック",
   "mobile.bookmarked": "お気に入り",

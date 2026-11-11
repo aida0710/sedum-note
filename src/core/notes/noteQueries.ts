@@ -87,7 +87,8 @@ export function buildNotebookTree(notebooks: LiveNotebook[]): NotebookTreeNode[]
     (parent ? parent.children : roots).push(node);
   }
   const sortByName = (list: NotebookTreeNode[]) => {
-    list.sort((left, right) => left.notebook.content.name.localeCompare(right.notebook.content.name, "ja"));
+    // 言語は決め打ちにせず、動かしている環境の並び順に任せる。
+    list.sort((left, right) => left.notebook.content.name.localeCompare(right.notebook.content.name));
     list.forEach((node) => sortByName(node.children));
   };
   sortByName(roots);
