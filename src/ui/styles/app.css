@@ -17,7 +17,9 @@
 }
 
 * { box-sizing: border-box; margin: 0; }
-html, body, #root { height: 100%; }
+html, body { height: 100%; }
+/* アプリの枠は、見えている範囲（キーボードに隠れていない所）に合わせる。値は platform/visibleViewport.ts が入れる。 */
+#root { position: fixed; left: 0; right: 0; top: var(--visible-top, 0px); height: var(--visible-height, 100%); }
 body { background: var(--canvas); overflow: hidden; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { border: 0; background: none; cursor: pointer; }
@@ -130,6 +132,8 @@ button:disabled { cursor: default; opacity: .55; }
 .note-link button { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 0 6px; vertical-align: baseline; max-width: 100%; }
 .note-link.trashed button, .note-link.missing button { color: var(--muted); background: var(--tag); }
 .note-link.ProseMirror-selectednode button { outline: 2px solid var(--accent); }
+.slash-menu { max-height: 260px; overflow-y: auto; min-width: 220px; }
+.slash-menu .menu-item.on { background: var(--selected); }
 .note-picker { width: min(480px, 100%); max-height: min(560px, 90%); }
 .note-picker .sidebar-search { margin-bottom: 0; flex: none; }
 .note-picker-list { overflow-y: auto; min-height: 80px; display: flex; flex-direction: column; }

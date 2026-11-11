@@ -20,6 +20,8 @@ import { NoteActionsMenu } from "./NoteActionsMenu";
 import { NoteHistoryDialog } from "./NoteHistoryDialog";
 import { NoteLinkPicker } from "./NoteLinkPicker";
 import { NoteLinkTargetsContext } from "./noteLinkTargets";
+import { SlashMenu } from "./SlashMenu";
+import { SlashMenuController } from "./slashMenuController";
 
 type NoteEditorProps = {
   note: LiveNote;
@@ -39,6 +41,9 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
   const { openNote } = useContext(NoteLinkTargetsContext);
   const titleInput = useRef<HTMLInputElement>(null);
   const dialogs = useDialogs();
+  const imageInput = useRef<HTMLInputElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const slashMenuController = useMemo(() => new SlashMenuController(), []);
   const unsyncedIds = useContext(UnsyncedRecordsContext);
   const noteId = note.id;
   const inTrash = note.content.trashedAt !== null;
@@ -46,7 +51,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
   // 本文は、メモの Yjs の文書をエディタが直接読み書きする。保存と同期は NoteRepository が文書の
   // 変更を見て行い、ほかのデバイスの変更も同じ文書に入るので、開いたまま画面に出る。
   const editor = useEditor({
-    extensions: createEditorExtensions(note.body),
+    extensions: createEditorExtensions(note.body, slashMenuController),
     editable: !inTrash,
     editorProps: {
       handlePaste: (_view, event) => takeFiles(Array.from(event.clipboardData?.files ?? [])),
@@ -105,7 +110,16 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
     editor?.chain().focus().insertContent({ type: NOTE_LINK_NODE, attrs: { noteId: linkedNoteId } }).run();
   };
   const askLink = () => dialogs.prompt({ message: translate("editor.linkPrompt"), initialValue: "https://" });
-  const toolbarActions = { onFiles: takeFiles, onAskLink: askLink, onPickNoteLink: () => setPickingNoteLink(true) };
+  const pickImage = () => imageInput.current?.click();
+  const pickFile = () => fileInput.current?.click();
+  const pickNoteLink = () => setPickingNoteLink(true);
+  const toolbarActions = { onPickImage: pickImage, onPickFile: pickFile, onAskLink: askLink, onPickNoteLink: pickNoteLink };
+  slashMenuController.actions = { pickImage, pickFile, pickNoteLink };
+  const takePickedFiles = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    takeFiles(files);
+  };
 
   if (!editor) {
     return null;
@@ -165,6 +179,9 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
         </div>
       </div>
       {isMobile && !inTrash && <EditorToolbar editor={editor} {...toolbarActions} />}
+      <input ref={imageInput} type="file" accept="image/*" multiple hidden onChange={takePickedFiles} />
+      <input ref={fileInput} type="file" multiple hidden onChange={takePickedFiles} />
+      <SlashMenu controller={slashMenuController} />
       {pickingNoteLink && (
         <NoteLinkPicker candidates={repository.notes().filter((candidate) => candidate.id !== noteId && candidate.content.trashedAt === null)}
           onPick={insertNoteLink} onCancel={() => setPickingNoteLink(false)} />

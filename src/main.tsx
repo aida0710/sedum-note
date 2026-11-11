@@ -1,10 +1,13 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./ui/App";
+import { trackVisibleViewport } from "./ui/platform/visibleViewport";
 import { readDevicePreferences } from "./ui/preferences/devicePreferences";
 import "./ui/styles/app.css";
 import { applyAppearance } from "./ui/theme/applyAppearance";
 import { resolveTheme, SYSTEM_DARK_QUERY } from "./ui/theme/themeInUse";
+
+trackVisibleViewport();
 
 // 最初に描く前に色を入れる（描いたあとに入れると、色の無い画面が一瞬見える）。
 const preferences = readDevicePreferences();

@@ -2,14 +2,15 @@
 
 import { type Editor, useEditorState } from "@tiptap/react";
 import { Bold, Code, FileSymlink, Heading, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, Paperclip, Underline } from "lucide-react";
-import { type ReactNode, useRef } from "react";
+import type { ReactNode } from "react";
 import { translate, type MessageKey } from "../i18n/translate";
 import { TableMenu } from "./TableMenu";
 
 type EditorToolbarProps = {
   editor: Editor;
-  // 選んだファイル（写真も、それ以外も）を添付する。
-  onFiles: (files: File[]) => void;
+  // 写真・ファイルを選ぶ画面を開く。
+  onPickImage: () => void;
+  onPickFile: () => void;
   // リンク先を聞く。やめたら null。
   onAskLink: () => Promise<string | null>;
   // リンクするメモを選ぶ画面を開く。
@@ -19,8 +20,7 @@ type EditorToolbarProps = {
 
 const ICON_SIZE = 16;
 
-export function EditorToolbar({ editor, onFiles, onAskLink, onPickNoteLink, trailing }: EditorToolbarProps) {
-  const imageInput = useRef<HTMLInputElement>(null);
+export function EditorToolbar({ editor, onPickImage, onPickFile, onAskLink, onPickNoteLink, trailing }: EditorToolbarProps) {
   const active = useEditorState({
     editor,
     selector: ({ editor: current }) => ({
@@ -55,15 +55,6 @@ export function EditorToolbar({ editor, onFiles, onAskLink, onPickNoteLink, trai
     }
   };
 
-  const fileInput = useRef<HTMLInputElement>(null);
-  const pickFiles = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = "";
-    if (files.length > 0) {
-      onFiles(files);
-    }
-  };
-
   return (
     <div className="editor-bar">
       {tool("editor.heading", active.heading, () => editor.chain().focus().toggleHeading({ level: 2 }).run(), <Heading size={ICON_SIZE} />)}
@@ -75,14 +66,12 @@ export function EditorToolbar({ editor, onFiles, onAskLink, onPickNoteLink, trai
       {tool("editor.orderedList", active.orderedList, () => editor.chain().focus().toggleOrderedList().run(), <ListOrdered size={ICON_SIZE} />)}
       {tool("editor.taskList", active.taskList, () => editor.chain().focus().toggleTaskList().run(), <ListChecks size={ICON_SIZE} />)}
       <span className="tool-separator" />
-      {tool("editor.image", false, () => imageInput.current?.click(), <ImagePlus size={ICON_SIZE} />)}
-      {tool("editor.file", false, () => fileInput.current?.click(), <Paperclip size={ICON_SIZE} />)}
+      {tool("editor.image", false, onPickImage, <ImagePlus size={ICON_SIZE} />)}
+      {tool("editor.file", false, onPickFile, <Paperclip size={ICON_SIZE} />)}
       {tool("editor.link", active.link, () => void toggleLink(), <Link size={ICON_SIZE} />)}
       {tool("editor.noteLink", false, onPickNoteLink, <FileSymlink size={ICON_SIZE} />)}
       {tool("editor.code", active.codeBlock, () => editor.chain().focus().toggleCodeBlock().run(), <Code size={ICON_SIZE} />)}
       <TableMenu editor={editor} insideTable={active.table} iconSize={ICON_SIZE} />
-      <input ref={imageInput} type="file" accept="image/*" multiple hidden onChange={pickFiles} />
-      <input ref={fileInput} type="file" multiple hidden onChange={pickFiles} />
       {trailing && <span className="bar-end">{trailing}</span>}
     </div>
   );

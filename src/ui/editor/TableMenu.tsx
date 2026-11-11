@@ -5,10 +5,7 @@ import { Table } from "lucide-react";
 import { useState } from "react";
 import { translate, type MessageKey } from "../i18n/translate";
 import { PopupMenu } from "../shared/PopupMenu";
-
-// 挿入する表の大きさ（見出しの行を含む）。行と列はあとから足せる。
-const NEW_TABLE_ROWS = 3;
-const NEW_TABLE_COLUMNS = 3;
+import { NEW_TABLE_SIZE } from "./slashCommands";
 
 type TableMenuProps = { editor: Editor; insideTable: boolean; iconSize: number };
 
@@ -32,7 +29,7 @@ export function TableMenu({ editor, insideTable, iconSize }: TableMenuProps) {
       {anchor && (
         <PopupMenu anchor={anchor} onClose={() => setAnchor(null)}>
           {!insideTable && item("editor.table.insert", () =>
-            commands().insertTable({ rows: NEW_TABLE_ROWS, cols: NEW_TABLE_COLUMNS, withHeaderRow: true }).run())}
+            commands().insertTable(NEW_TABLE_SIZE).run())}
           {insideTable && (
             <>
               {item("editor.table.addRow", () => commands().addRowAfter().run())}
