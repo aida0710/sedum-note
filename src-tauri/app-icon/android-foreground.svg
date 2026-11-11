@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Android のアダプティブアイコンの前景。見えるのは中央の 2/3 なので、絵柄は 1.35 × 2/3 = 0.9 倍。 -->
+  <g transform="translate(512 512) scale(0.9) translate(-512 -512)">
+  <path d="M354 226H590L722 358V746a52 52 0 0 1 -52 52H354a52 52 0 0 1 -52 -52V278a52 52 0 0 1 52 -52Z" transform="translate(0 18)" fill="#0c3320" opacity=".18"/>
+  <path d="M354 226H590L722 358V746a52 52 0 0 1 -52 52H354a52 52 0 0 1 -52 -52V278a52 52 0 0 1 52 -52Z" fill="#ffffff"/>
+  <path d="M590 226V328a30 30 0 0 0 30 30H722Z" fill="#cdebd9"/>
+  <path d="M512 628V520" stroke="#2f7d54" stroke-width="25.2" stroke-linecap="round" fill="none"/>
+  <path d="M0 0 C34.65 -22.68 63 -79.38 63 -117.18 C63 -153.09 39.06 -189 0 -189 C-39.06 -189 -63 -153.09 -63 -117.18 C-63 -79.38 -34.65 -22.68 0 0Z" transform="translate(512 520) rotate(-54)" fill="#2f7d54"/>
+  <path d="M0 0 C29.7 -18.58 54 -65.02 54 -95.98 C54 -125.39 33.48 -154.8 0 -154.8 C-33.48 -154.8 -54 -125.39 -54 -95.98 C-54 -65.02 -29.7 -18.58 0 0Z" transform="translate(512 520) rotate(48)" fill="#6cc491"/>
+  <path d="M392 696H632M392 754H548" stroke="#d6e8dc" stroke-width="30" stroke-linecap="round" fill="none"/>
+  </g>
+</svg>
