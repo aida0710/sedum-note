@@ -1,4 +1,4 @@
-// 設定の画面。表示、テーマ、同期先、バックアップ、パスフレーズの変更、ロックを並べる。
+// 設定の画面。表示、テーマ、同期先、バックアップ、パスフレーズの変更、ロック、データの消去を並べる。
 
 import { useState } from "react";
 import { MIN_PASSPHRASE_LENGTH } from "../../core/crypto/passphraseKey";
@@ -7,6 +7,7 @@ import { describeError } from "../i18n/describeError";
 import { translate } from "../i18n/translate";
 import { BACKUP_FILE_EXTENSION, saveFile } from "../platform/saveFile";
 import type { VaultSession } from "../session/useVaultSession";
+import { WipeDeviceDataButton } from "../session/WipeDeviceDataButton";
 import { EMPTY_REMOTE_CONFIG, RemoteConfigFields } from "../shared/RemoteConfigFields";
 import { checkRemoteConfigInput } from "../shared/remoteConfigProblemMessage";
 import { useAsyncAction } from "../shared/useAsyncAction";
@@ -35,6 +36,11 @@ export function SettingsPanel({ session, remoteConfig, unreadableCount }: Settin
           <h2>{translate("settings.lock")}</h2>
           <p>{translate("settings.lockDescription")}</p>
           <div><button className="secondary-button" onClick={session.lock}>{translate("settings.lock")}</button></div>
+        </section>
+        <section className="settings-section">
+          <h2>{translate("wipe.title")}</h2>
+          <p>{translate("wipe.description")}</p>
+          <WipeDeviceDataButton session={session} />
         </section>
       </div>
     </div>

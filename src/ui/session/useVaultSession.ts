@@ -8,11 +8,15 @@ import {
   changePassphrase,
   connectRemote,
   createNewVault,
+  type DeviceDataSummary,
   joinExistingVault,
   readVaultState,
+  summarizeDeviceData,
   type UnlockedVault,
   unlockLocalVault,
+  wipeDeviceData,
 } from "../../core/vault/vaultSession";
+import { resetDevicePreferences } from "../preferences/devicePreferences";
 import { createAppEnvironment } from "./appEnvironment";
 
 export type VaultPhase =
@@ -34,6 +38,9 @@ export type VaultSession = {
   exportBackup: () => Promise<BackupExport>;
   // 空のデバイスにバックアップを戻し、そのままロックを解除する。
   restoreBackup: (input: { file: Uint8Array; passphrase: string }) => Promise<void>;
+  summarizeDeviceData: () => Promise<DeviceDataSummary>;
+  // このデバイスのデータと表示の設定を消し、最初の画面から始め直す。ロック中でも使える。
+  wipeDeviceData: () => Promise<void>;
 };
 
 export function useVaultSession(): VaultSession {
@@ -115,6 +122,14 @@ export function useVaultSession(): VaultSession {
     restoreBackup: async ({ file, passphrase }) => {
       await restoreBackup(environment.localStore, file, passphrase);
       enter(await unlockLocalVault(environment, passphrase));
+    },
+    summarizeDeviceData: () => summarizeDeviceData(environment.localStore),
+    wipeDeviceData: async () => {
+      autoSyncRef.current?.stop();
+      await wipeDeviceData(environment.localStore, vault);
+      resetDevicePreferences();
+      // メモリに残った鍵と開いた文書ごと捨てて、最初の画面から始め直す。
+      window.location.reload();
     },
     syncNow: async () => {
       await autoSyncRef.current?.syncNow();

@@ -2,6 +2,7 @@ import { LockKeyhole } from "lucide-react";
 import { useState } from "react";
 import { translate } from "../i18n/translate";
 import type { VaultSession } from "../session/useVaultSession";
+import { WipeDeviceDataButton } from "../session/WipeDeviceDataButton";
 import { useAsyncAction } from "../shared/useAsyncAction";
 
 export function UnlockScreen({ session }: { session: VaultSession }) {
@@ -21,6 +22,11 @@ export function UnlockScreen({ session }: { session: VaultSession }) {
           {action.busy && <span className="hint">{translate("unlock.working")}</span>}
           <button className="primary-button" type="submit" disabled={action.busy}>{translate("unlock.submit")}</button>
         </div>
+        <details>
+          <summary>{translate("wipe.forgotPassphrase")}</summary>
+          <p className="description">{translate("wipe.forgotPassphraseDescription")}</p>
+          <WipeDeviceDataButton session={session} />
+        </details>
       </form>
     </div>
   );

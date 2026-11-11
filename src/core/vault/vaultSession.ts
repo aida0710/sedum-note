@@ -54,6 +54,31 @@ export async function readVaultState(localStore: LocalStore): Promise<VaultState
   return (await localStore.readSetting<VaultDocument>("vault")) ? "locked" : "absent";
 }
 
+export type DeviceDataSummary = {
+  // メモとノートブックの数（中身はロック中は読めないので、種類は分けられない）。
+  recordCount: number;
+  // 同期先へまだ送っていない数。同期を設定していなければ、全部がこのデバイスにしか無い。
+  waitingForPushCount: number;
+  syncConfigured: boolean;
+};
+
+// このデバイスにあるデータの量。消す前の確認に出す。ロック中でも分かる範囲だけを返す。
+export async function summarizeDeviceData(localStore: LocalStore): Promise<DeviceDataSummary> {
+  const entries = await localStore.listRecordEntries();
+  return {
+    recordCount: entries.length,
+    waitingForPushCount: entries.filter((entry) => entry.waitingForPush).length,
+    syncConfigured: (await localStore.readSetting<Uint8Array>("sealedRemoteConfig")) !== undefined,
+  };
+}
+
+// このデバイスのデータ（メモ・添付・vault・同期先の設定）を消す。同期先のオブジェクトは消さない。
+// ロックを解除していれば unlocked を渡す。保存待ちの入力を捨ててから消すので、書き戻されない。
+export async function wipeDeviceData(localStore: LocalStore, unlocked: UnlockedVault | null): Promise<void> {
+  await unlocked?.repository.close();
+  await localStore.destroy();
+}
+
 // 新しい vault を作る。同期先を指定したら、同期先にも vault.json を置く。
 export async function createNewVault(
   environment: VaultSessionEnvironment,

@@ -85,6 +85,7 @@ export class NoteRepository {
   readonly #waitingForPushIds = new Set<string>();
   #unreadableIds: string[] = [];
   #persistTimer: ReturnType<typeof setTimeout> | null = null;
+  #closed = false;
 
   constructor(dependencies: NoteRepositoryDependencies) {
     this.#dependencies = dependencies;
@@ -201,12 +202,18 @@ export class NoteRepository {
     return sealed === null ? null : open(this.#dependencies.masterKey, sealed, blobBinding(id));
   }
 
+  // このデバイスのデータを消す前に呼ぶ。保存を待っている入力を捨て、書いている途中のものが
+  // 終わるのを待つ。以後の入力は保存しない（消したデータを書き戻さないため）。
+  async close(): Promise<void> {
+    this.#closed = true;
+    this.#cancelPersistTimer();
+    this.#unsavedIds.clear();
+    await this.#dependencies.writeQueue.run(async () => undefined);
+  }
+
   // まだ手元に保存していない変更を、待たずに保存する。画面を離れるときと、同期の前に呼ぶ。
   async flush(): Promise<void> {
-    if (this.#persistTimer !== null) {
-      clearTimeout(this.#persistTimer);
-      this.#persistTimer = null;
-    }
+    this.#cancelPersistTimer();
     const ids = [...this.#unsavedIds];
     for (const id of ids) {
       await this.#dependencies.writeQueue.run(() => this.#persistLive(id, { remoteEtag: undefined }));
@@ -310,6 +317,9 @@ export class NoteRepository {
       this.#touch(holder);
       if (origin !== FIELD_ORIGIN) {
         holder.bodyEdited = true;
+      }
+      if (this.#closed) {
+        return;
       }
       this.#unsavedIds.add(id);
       this.#persistTimer ??= setTimeout(() => void this.flush(), PERSIST_DELAY_MILLISECONDS);
@@ -440,6 +450,13 @@ export class NoteRepository {
     }
     holder.cachedView ??= buildView(id, holder);
     return holder.cachedView ?? undefined;
+  }
+
+  #cancelPersistTimer(): void {
+    if (this.#persistTimer !== null) {
+      clearTimeout(this.#persistTimer);
+      this.#persistTimer = null;
+    }
   }
 
   #now(): Date {

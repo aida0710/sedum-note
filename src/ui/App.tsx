@@ -26,6 +26,10 @@ export function App() {
   }, [language]);
   const theme = useThemeInUse();
   useEffect(() => applyAppearance({ theme, editorFontSize }), [theme, editorFontSize]);
+  return <DialogProvider><ScreenForPhase session={session} /></DialogProvider>;
+}
+
+function ScreenForPhase({ session }: { session: VaultSession }) {
   switch (session.state.phase) {
     case "loading":
       return null;
@@ -49,9 +53,7 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   return (
     <AttachmentReaderContext.Provider value={vault.repository.readAttachment.bind(vault.repository)}>
       <UnsyncedRecordsContext.Provider value={vault.syncEngine ? snapshot.unsyncedIds : NO_UNSYNCED_RECORDS}>
-        <DialogProvider>
-          {isMobile ? <MobileWorkspace {...props} /> : <DesktopWorkspace {...props} />}
-        </DialogProvider>
+        {isMobile ? <MobileWorkspace {...props} /> : <DesktopWorkspace {...props} />}
       </UnsyncedRecordsContext.Provider>
     </AttachmentReaderContext.Provider>
   );

@@ -190,6 +190,15 @@ export const japaneseMessages = {
   "theme.sampleMuted": "補助の文字",
   "theme.sampleLink": "リンク",
 
+  "wipe.title": "このデバイスのデータを消す",
+  "wipe.description": "このデバイスに保存したメモ・添付・同期先の設定・表示の設定をすべて消し、最初の画面に戻ります。同期先のメモは消えません。",
+  "wipe.forgotPassphrase": "パスフレーズを忘れたとき",
+  "wipe.forgotPassphraseDescription": "パスフレーズなしでメモを読む方法はありません。このデバイスのデータを消して、始め直すことはできます。",
+  "wipe.confirmSynced": "このデバイスのデータをすべて消しますか？ 同期先のメモは消えず、同じパスフレーズで参加し直せば戻ります。",
+  "wipe.confirmUnsent": "このデバイスのデータをすべて消しますか？ まだ同期先へ送っていない {count} 件の変更は失われます。同期先のメモは消えません。",
+  "wipe.confirmLocalOnly": "このデバイスのデータをすべて消しますか？ 同期を設定していないので、{count} 件のメモとノートブックは、バックアップが無ければ元に戻せません。",
+  "wipe.confirmLabel": "すべて消す",
+
   "mobile.notes": "メモ",
   "mobile.notebooks": "ノートブック",
   "mobile.bookmarked": "お気に入り",

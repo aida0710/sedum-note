@@ -191,6 +191,15 @@ export const englishMessages: Record<MessageKey, string> = {
   "theme.sampleMuted": "Secondary text",
   "theme.sampleLink": "Link",
 
+  "wipe.title": "Erase this device's data",
+  "wipe.description": "Erases every note, attachment, sync setting and display setting stored on this device and returns to the first screen. Notes in the storage are not erased.",
+  "wipe.forgotPassphrase": "Forgot your passphrase?",
+  "wipe.forgotPassphraseDescription": "There is no way to read the notes without the passphrase. You can erase this device's data and start over.",
+  "wipe.confirmSynced": "Erase all data on this device? Notes in the storage are kept, and joining again with the same passphrase brings them back.",
+  "wipe.confirmUnsent": "Erase all data on this device? {count} changes not yet sent to the storage will be lost. Notes in the storage are kept.",
+  "wipe.confirmLocalOnly": "Erase all data on this device? Sync is not set up, so the {count} notes and notebooks cannot be restored unless you have a backup.",
+  "wipe.confirmLabel": "Erase everything",
+
   "mobile.notes": "Notes",
   "mobile.notebooks": "Notebooks",
   "mobile.bookmarked": "Bookmarks",

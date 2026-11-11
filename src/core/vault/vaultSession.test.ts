@@ -10,9 +10,12 @@ import {
   connectRemote,
   createNewVault,
   joinExistingVault,
+  readVaultState,
+  summarizeDeviceData,
   unlockLocalVault,
   VaultAlreadyExistsError,
   type VaultSessionEnvironment,
+  wipeDeviceData,
 } from "./vaultSession";
 
 const remoteConfig: RemoteConfig = { endpoint: "https://s3.example.com", bucket: "notes", region: "auto", prefix: "", accessKeyId: "k", secretAccessKey: "s" };
@@ -20,6 +23,33 @@ const remoteConfig: RemoteConfig = { endpoint: "https://s3.example.com", bucket:
 function environment(store: MemoryObjectStore): VaultSessionEnvironment {
   return { localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: () => store };
 }
+
+describe("wipeDeviceData", () => {
+  it("入力の直後に消しても、保存待ちの入力が書き戻されず、最初の状態に戻る", async () => {
+    const databaseName = `vault-${newRandomId()}`;
+    const wiped = { localStore: new IndexedDbLocalStore(databaseName), createObjectStore: () => new MemoryObjectStore() };
+    const unlocked = await createNewVault(wiped, { passphrase: "correct horse battery", remoteConfig: null });
+    const note = await unlocked.repository.createNote({ title: "消える前のメモ" });
+    expect(await summarizeDeviceData(wiped.localStore)).toEqual({ recordCount: 1, waitingForPushCount: 1, syncConfigured: false });
+
+    // 保存は 0.15 秒後に予約される。その前に消す。
+    void unlocked.repository.updateNote(note.id, { title: "消す直前の入力" });
+    await wipeDeviceData(wiped.localStore, unlocked);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    const reopened = new IndexedDbLocalStore(databaseName);
+    expect(await readVaultState(reopened)).toBe("absent");
+    expect(await reopened.listRecordEntries()).toEqual([]);
+  });
+
+  it("ロック中でも消せる（パスフレーズを忘れたとき）", async () => {
+    const databaseName = `vault-${newRandomId()}`;
+    const locked = new IndexedDbLocalStore(databaseName);
+    await createNewVault({ localStore: locked, createObjectStore: () => new MemoryObjectStore() }, { passphrase: "correct horse battery", remoteConfig: null });
+    await wipeDeviceData(new IndexedDbLocalStore(databaseName), null);
+    expect(await readVaultState(new IndexedDbLocalStore(databaseName))).toBe("absent");
+  });
+});
 
 describe("vaultSession", () => {
   it("同期なしで始めたメモも、あとから同期先を設定すれば、ほかのデバイスに届く", async () => {

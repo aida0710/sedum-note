@@ -32,6 +32,10 @@ export interface LocalStore {
   // 無くても成功にする。
   deleteBlob(id: string): Promise<void>;
   listBlobsWaitingForUpload(): Promise<LocalBlobEntry[]>;
-  // ロック解除をやり直す（このデバイスから全部消す）ときに使う。同期先は消さない。
+  // 中身を空にして使い続ける（バックアップを戻す前など）。同期先は消さない。
   clearEverything(): Promise<void>;
+  // このデバイスのデータを消す。先に保存先を閉じるので、消している間や消したあとに届いた
+  // 書き込み（保存待ちの入力、走っている同期）は失敗し、消したものが書き戻されない。
+  // 呼んだあと、この LocalStore は使えない。
+  destroy(): Promise<void>;
 }

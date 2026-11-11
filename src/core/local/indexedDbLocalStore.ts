@@ -1,6 +1,6 @@
 // IndexedDB を使う LocalStore。Web 版も Tauri の WebView も同じものを使う。
 
-import { type DBSchema, type IDBPDatabase, openDB } from "idb";
+import { type DBSchema, deleteDB, type IDBPDatabase, openDB } from "idb";
 import type { LocalBlobEntry, LocalRecordEntry, LocalSettingName, LocalStore } from "./localStore";
 
 const DATABASE_VERSION = 1;
@@ -17,8 +17,15 @@ type StoredBlob = LocalBlobEntry & { uploadedFlag: number };
 export class IndexedDbLocalStore implements LocalStore {
   readonly #database: Promise<IDBPDatabase<MemoDatabase>>;
 
+  readonly #databaseName: string;
+
   constructor(databaseName: string) {
+    this.#databaseName = databaseName;
     this.#database = openDB<MemoDatabase>(databaseName, DATABASE_VERSION, {
+      // ほかのタブがこの DB を消そうとしたら、つないだままで待たせない。
+      blocking(_currentVersion, _blockedVersion, event) {
+        (event.target as IDBDatabase).close();
+      },
       upgrade(database) {
         database.createObjectStore("settings");
         database.createObjectStore("records", { keyPath: "id" });
@@ -75,6 +82,11 @@ export class IndexedDbLocalStore implements LocalStore {
       transaction.objectStore("blobs").clear(),
       transaction.done,
     ]);
+  }
+
+  async destroy(): Promise<void> {
+    (await this.#database).close();
+    await deleteDB(this.#databaseName);
   }
 }
 
