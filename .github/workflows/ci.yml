@@ -23,7 +23,7 @@ env:
 # main への push から 5 分ほどで結果が出るようにしてある。そのために、
 # - 検査・画面の試験・各 OS のビルドを、互いを待たせずに並べて流す（リリースは全部が通ってから）
 # - Rust と Gradle の組み立てた結果を、次の回へ持ち越す（キャッシュ）
-# - 画面の試験は、ブラウザの入ったコンテナイメージの中で流し、実行のたびに取ってこない
+# - 依存の入ったコンテナイメージを使い、実行のたびに apt などで取ってこない（取得が遅い・固まることがある）
 # - 時間のかかる確認（macOS の universal のビルド、更新の予行）は、リリースのタグと手で起動したときだけ流す
 jobs:
   checks:
@@ -92,18 +92,28 @@ jobs:
             runner: windows-latest
             rust-targets: x86_64-pc-windows-msvc
             tauri-arguments: ""
+            shell: bash
           # 配布するのは Intel と Apple シリコンの両方で動く universal。2 つ分を組み立てるので時間がかかる。
           # ふだんの push では Apple シリコンの分だけを組み立て、universal はリリースのタグと手で起動したときに作る。
           - name: macOS
             runner: macos-latest
             rust-targets: aarch64-apple-darwin x86_64-apple-darwin
             tauri-arguments: --target ${{ (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch') && 'universal-apple-darwin' || 'aarch64-apple-darwin' }}
+            shell: bash
           # 古い glibc で組み立てるほど、AppImage が動く Linux の範囲が広がる。
+          # 組み立てと起動は、依存を入れてあるイメージの中で行う（scripts/ci/in-linux-image.sh）。
           - name: Linux
             runner: ubuntu-22.04
             rust-targets: x86_64-unknown-linux-gnu
             tauri-arguments: ""
+            shell: scripts/ci/in-linux-image.sh bash -e {0}
     runs-on: ${{ matrix.runner }}
+    env:
+      # .github/workflows/ci-image.yml が作って置くイメージ。
+      LINUX_BUILD_IMAGE: ghcr.io/${{ github.repository_owner }}/sedum-note-ci-linux:latest
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
@@ -112,11 +122,13 @@ jobs:
           cache: npm
       - run: npm install -g npm@${{ env.NPM_VERSION }}
       - run: npm ci
-      - name: Install the WebKitGTK build dependencies
+      - name: Pull the Linux build image
         if: matrix.name == 'Linux'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libdbus-1-dev libayatana-appindicator3-dev librsvg2-dev xvfb ffmpeg fonts-noto-cjk
+          printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker pull -q "$LINUX_BUILD_IMAGE"
       - run: rustup toolchain install stable --profile minimal && rustup target add ${{ matrix.rust-targets }}
       # 依存のクレートを組み立てた結果を、次の回へ持ち越す。
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -126,7 +138,7 @@ jobs:
       # 更新用のファイル（各インストーラーの署名 .sig と、macOS の .app.tar.gz）も作る。署名のキーは
       # Actions のシークレットにあり、フォークからの PR には渡らないので、そのときは更新用のファイルを作らない。
       - name: Build the app
-        shell: bash
+        shell: ${{ matrix.shell }}
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -165,6 +177,7 @@ jobs:
       # Linux も同じく、組み立てた AppImage を画面の無い X（Xvfb）で起動して最初の画面を撮る。
       - name: Launch the app and capture the first screen
         if: matrix.name == 'Linux'
+        shell: ${{ matrix.shell }}
         run: |
           appimage=$(find src-tauri/target/release/bundle/appimage -name '*.AppImage')
           chmod +x "$appimage"
@@ -188,6 +201,7 @@ jobs:
       # （落ちたら release の job が走らないので、更新できないリリースは出ない）。
       - name: Rehearse an update from an older version
         if: matrix.name == 'Linux' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
+        shell: ${{ matrix.shell }}
         run: |
           set -eu
           bundle=src-tauri/target/release/bundle/appimage
