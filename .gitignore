@@ -6,3 +6,5 @@ src-tauri/gen/schemas/
 test-results/
 playwright-report/
 .yomiyasu/
+.cache/
+src-tauri/target-linux/

@@ -8,7 +8,7 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import type { RepositorySnapshot } from "../session/useRepositorySnapshot";
-import { assignNotebookColors } from "../shared/notebookColor";
+import { assignNotebookColors } from "../shared/notebookAppearance";
 import { NotebookBranch, NotebookNameInput } from "./NotebookBranch";
 import { SearchResults, ViewGroup } from "./SidebarViewGroup";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";

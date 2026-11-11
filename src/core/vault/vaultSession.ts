@@ -45,6 +45,8 @@ export type VaultSessionEnvironment = {
 export type UnlockedVault = {
   // 取り出せない形の CryptoKey。設定の暗号化と、同期先を付け替えるときに使う。
   masterKey: CryptoKey;
+  // この vault の手元の保存先。暗号化した設定（MCP など）の読み書きに使う。
+  localStore: LocalStore;
   repository: NoteRepository;
   // 同期先を設定していなければ null。
   syncEngine: SyncEngine | null;
@@ -166,7 +168,7 @@ async function assembleUnlockedVault(
     syncEngine = new SyncEngine({ localStore, objectStore: environment.createObjectStore(remoteConfig), repository, bodySchemaVersion });
   }
   await repository.load();
-  return { masterKey, repository, syncEngine, remoteConfig };
+  return { masterKey, localStore, repository, syncEngine, remoteConfig };
 }
 
 // メモを開く前に、手元の vault の本文の形の版を確かめる。このアプリより新しければ開かない

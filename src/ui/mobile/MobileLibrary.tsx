@@ -2,7 +2,7 @@ import { FolderPlus, Hash, Trash2 } from "lucide-react";
 import { countTags, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import { translate } from "../i18n/translate";
 import { useDialogs } from "../shared/DialogProvider";
-import { assignNotebookColors } from "../shared/notebookColor";
+import { assignNotebookColors, NotebookMark } from "../shared/notebookAppearance";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
 
 type MobileLibraryProps = {
@@ -33,7 +33,7 @@ export function MobileLibrary({ snapshot, repository, onPick }: MobileLibraryPro
       <div className="phone-scroll">
         {snapshot.notebooks.map((notebook) => (
           <button key={notebook.id} className="library-row" onClick={() => onPick({ kind: "notebook", notebookId: notebook.id })}>
-            <span className="dot" style={{ background: notebookColors.colorOf(notebook.id) }} />{notebook.content.name}
+            <NotebookMark notebook={notebook} colors={notebookColors} />{notebook.content.name}
             <span className="count">{selectNotes(snapshot.summaries, { view: { kind: "notebook", notebookId: notebook.id } }).length}</span>
           </button>
         ))}

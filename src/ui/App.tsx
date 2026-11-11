@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { languageInUse } from "./i18n/languageInUse";
 import { useDevicePreferences } from "./preferences/devicePreferences";
+import { McpGatewayContext, useMcpGateway } from "./mcp/useMcpGateway";
 import { useSharedContentInbox } from "./share/useSharedContentInbox";
 import { applyAppearance } from "./theme/applyAppearance";
 import { useThemeInUse } from "./theme/themeInUse";
@@ -13,6 +14,7 @@ import { DialogProvider } from "./shared/DialogProvider";
 import { AttachmentReaderContext } from "./editor/attachmentReader";
 import { MobileWorkspace } from "./mobile/MobileWorkspace";
 import { UnsyncedRecordsContext, useRepositorySnapshot } from "./session/useRepositorySnapshot";
+import { useTrashRetention } from "./session/useTrashRetention";
 import { useVaultSession, type VaultSession } from "./session/useVaultSession";
 import { MOBILE_LAYOUT_QUERY, useMediaQuery } from "./shared/useMediaQuery";
 import { DesktopWorkspace } from "./workspace/DesktopWorkspace";
@@ -53,12 +55,16 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   const isMobile = useMediaQuery(MOBILE_LAYOUT_QUERY);
   useSharedContentInbox(vault.repository, navigation.openNote);
   const availableUpdate = useAvailableUpdate();
+  const mcpGateway = useMcpGateway(vault);
+  useTrashRetention(vault, session.syncStatus);
   const props = { session, vault, snapshot, navigation };
   return (
     <AttachmentReaderContext.Provider value={vault.repository.readAttachment.bind(vault.repository)}>
       <UnsyncedRecordsContext.Provider value={vault.syncEngine ? snapshot.unsyncedIds : NO_UNSYNCED_RECORDS}>
         <AvailableUpdateContext.Provider value={availableUpdate}>
-          {isMobile ? <MobileWorkspace {...props} /> : <DesktopWorkspace {...props} />}
+          <McpGatewayContext.Provider value={mcpGateway}>
+            {isMobile ? <MobileWorkspace {...props} /> : <DesktopWorkspace {...props} />}
+          </McpGatewayContext.Provider>
         </AvailableUpdateContext.Provider>
       </UnsyncedRecordsContext.Provider>
     </AttachmentReaderContext.Provider>

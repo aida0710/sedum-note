@@ -23,5 +23,7 @@ function appendAttachment(body: Y.XmlFragment, nodeName: string, attachment: Att
   image.setAttribute("attachmentId", attachment.id);
   image.setAttribute("mimeType", attachment.mimeType);
   image.setAttribute("fileName", attachment.fileName);
+  // 属性は ProseMirror の JSON と同じ形（数値は数値のまま）で入れる。
+  image.setAttribute("byteLength", attachment.byteLength as unknown as string);
   body.insert(body.length, [image]);
 }

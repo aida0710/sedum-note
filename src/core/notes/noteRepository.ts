@@ -179,6 +179,15 @@ export class NoteRepository {
     return this.#versionHistory.list(noteId);
   }
 
+  // 本文を丸ごと置き換える前に呼ぶ。間隔に関わらず、今の状態を履歴に残す（置き換えを取り消せるように）。
+  async captureVersionBeforeReplace(noteId: string): Promise<void> {
+    await this.flush();
+    const stored = await this.#dependencies.localStore.getRecordEntry(noteId);
+    if (stored && this.#view(noteId)?.kind === "note") {
+      await this.#versionHistory.captureBeforeReplace(noteId, stored.sealed);
+    }
+  }
+
   // 履歴の版を、新しい別のメモとして作る。今のメモは変えない。版が無ければ RecordNotFoundError。
   async restoreVersionAsNewNote(input: { noteId: string; versionId: string; title: string }): Promise<LiveNote> {
     const versionDocument = await this.#versionHistory.openVersionDocument(input.noteId, input.versionId);
@@ -226,7 +235,7 @@ export class NoteRepository {
     const id = newRandomId();
     const sealed = await seal(this.#dependencies.masterKey, input.bytes, blobBinding(id));
     await this.#dependencies.localStore.putBlob({ id, sealed, uploaded: false });
-    return { id, mimeType: input.mimeType, fileName: input.fileName };
+    return { id, mimeType: input.mimeType, fileName: input.fileName, byteLength: input.bytes.length };
   }
 
   async readAttachment(id: string): Promise<Uint8Array | null> {
@@ -526,7 +535,13 @@ function buildView(id: string, holder: LiveHolder): LiveNote | LiveNotebook | nu
     return {
       ...header,
       kind,
-      content: { name: readField<string>(doc, "name") ?? "", parentId: readField<string | null>(doc, "parentId") ?? null, createdAt },
+      content: {
+        name: readField<string>(doc, "name") ?? "",
+        parentId: readField<string | null>(doc, "parentId") ?? null,
+        colorName: readField<string | null>(doc, "colorName") ?? null,
+        iconName: readField<string | null>(doc, "iconName") ?? null,
+        createdAt,
+      },
     };
   }
   if (kind !== "note") {

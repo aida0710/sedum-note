@@ -134,6 +134,11 @@ button:disabled { cursor: default; opacity: .55; }
 .note-link.ProseMirror-selectednode button { outline: 2px solid var(--accent); }
 .slash-menu { max-height: 260px; overflow-y: auto; min-width: 220px; }
 .slash-menu .menu-item.on { background: var(--selected); }
+.notebook-icon { flex: none; }
+.choice-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.choice { min-width: 32px; height: 32px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); display: grid; place-items: center; color: var(--text); }
+.choice.swatch { width: 32px; padding: 0; border-color: transparent; }
+.choice.on { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent); }
 .note-picker { width: min(480px, 100%); max-height: min(560px, 90%); }
 .note-picker .sidebar-search { margin-bottom: 0; flex: none; }
 .note-picker-list { overflow-y: auto; min-height: 80px; display: flex; flex-direction: column; }

@@ -14,7 +14,7 @@ import { latestFieldTime, readField, recordBody, recordDocumentFromState } from 
 // 編集の前の状態を残す間隔。打つたびに残すと増えすぎるので、前に残してから（まだ残していなければ、
 // メモを作ってから）これだけ空いたあとの編集で残す。
 export const EDIT_VERSION_INTERVAL_MILLISECONDS = 10 * 60 * 1000;
-// 1 件のメモに残す「編集の前」の数。超えたら古いものから消す（10 分おきなら 8 時間分ほど）。
+// 1 件のメモに残す「編集の前」と「置き換えの前」の数。超えたら古いものから消す（10 分おきなら 8 時間分ほど）。
 export const MAX_EDIT_VERSIONS_PER_NOTE = 50;
 
 export type NoteVersion = {
@@ -72,6 +72,12 @@ export class NoteVersionHistory {
     }
     await this.#put(recordId, "edit", sealedBeforeEdit);
     this.#editCaptureBaselines.set(recordId, now);
+    await this.#pruneEditVersions(recordId);
+  }
+
+  // 本文を丸ごと置き換える直前に呼ぶ。間隔を空けずに毎回残す（数は「編集の前」と合わせて上限まで）。
+  async captureBeforeReplace(recordId: string, sealedBeforeReplace: Uint8Array): Promise<void> {
+    await this.#put(recordId, "replace", sealedBeforeReplace);
     await this.#pruneEditVersions(recordId);
   }
 
@@ -144,7 +150,7 @@ export class NoteVersionHistory {
 
   async #pruneEditVersions(recordId: string): Promise<void> {
     const editVersions = (await this.#dependencies.localStore.listVersions(recordId))
-      .filter((version) => version.reason === "edit")
+      .filter((version) => version.reason !== "sync")
       .sort((left, right) => right.capturedAt.localeCompare(left.capturedAt));
     for (const outdated of editVersions.slice(MAX_EDIT_VERSIONS_PER_NOTE)) {
       await this.#dependencies.localStore.deleteVersion(outdated.id);

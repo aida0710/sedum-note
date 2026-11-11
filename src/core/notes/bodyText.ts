@@ -54,6 +54,7 @@ export function bodyAttachments(body: Y.XmlFragment): AttachmentReference[] {
           id,
           mimeType: String(node.getAttribute("mimeType") ?? "application/octet-stream"),
           fileName: String(node.getAttribute("fileName") ?? ""),
+          byteLength: Number(node.getAttribute("byteLength") ?? 0) || 0,
         });
       }
     }

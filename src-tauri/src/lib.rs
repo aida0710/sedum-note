@@ -1,9 +1,20 @@
+#[cfg(desktop)]
+mod mcp_gateway;
 #[cfg(all(desktop, feature = "update-rehearsal"))]
 mod update_rehearsal;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  tauri::Builder::default()
+  let builder = tauri::Builder::default();
+  // MCP の窓口はデスクトップだけ（Android のアプリは、裏に回ると止められるので窓口を開けない）。
+  #[cfg(desktop)]
+  let builder = builder.manage(mcp_gateway::McpGatewayState::default()).invoke_handler(tauri::generate_handler![
+    mcp_gateway::mcp_start,
+    mcp_gateway::mcp_stop,
+    mcp_gateway::mcp_running_port,
+    mcp_gateway::mcp_respond
+  ]);
+  builder
     .plugin(tauri_plugin_dialog::init())
     .plugin(tauri_plugin_fs::init())
     .plugin(tauri_plugin_opener::init())

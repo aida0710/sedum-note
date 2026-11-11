@@ -1,4 +1,4 @@
-import { FolderPlus, Pencil, Trash2 } from "lucide-react";
+import { FolderPlus, Palette, Pencil, Trash2 } from "lucide-react";
 import type { LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
@@ -11,10 +11,11 @@ type NotebookActionsMenuProps = {
   repository: NoteRepository;
   onClose: () => void;
   onRename: () => void;
+  onChooseAppearance: () => void;
   onAddChild: () => void;
 };
 
-export function NotebookActionsMenu({ anchor, notebook, repository, onClose, onRename, onAddChild }: NotebookActionsMenuProps) {
+export function NotebookActionsMenu({ anchor, notebook, repository, onClose, onRename, onChooseAppearance, onAddChild }: NotebookActionsMenuProps) {
   const dialogs = useDialogs();
   const choose = (action: () => void) => () => {
     onClose();
@@ -31,6 +32,7 @@ export function NotebookActionsMenu({ anchor, notebook, repository, onClose, onR
   return (
     <PopupMenu anchor={anchor} onClose={onClose}>
       <button className="menu-item" role="menuitem" onClick={choose(onRename)}><Pencil size={15} />{translate("notebook.rename")}</button>
+      <button className="menu-item" role="menuitem" onClick={choose(onChooseAppearance)}><Palette size={15} />{translate("notebook.appearance")}</button>
       <button className="menu-item" role="menuitem" onClick={choose(onAddChild)}><FolderPlus size={15} />{translate("notebook.addChild")}</button>
       <div className="menu-separator" />
       <button className="menu-item danger" role="menuitem" onClick={choose(() => void remove())}><Trash2 size={15} />{translate("notebook.remove")}</button>

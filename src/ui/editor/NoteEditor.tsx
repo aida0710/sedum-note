@@ -12,7 +12,7 @@ import { useMarkdownExport } from "../markdown/useMarkdownExport";
 import { useDialogs } from "../shared/DialogProvider";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { formatDateTime } from "../shared/formatTime";
-import { assignNotebookColors } from "../shared/notebookColor";
+import { assignNotebookColors, NotebookMark } from "../shared/notebookAppearance";
 import { EditorToolbar } from "./EditorToolbar";
 import { createEditorExtensions } from "./editorExtensions";
 import { attachFiles } from "./attachFiles";
@@ -156,7 +156,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
           )}
           <div className="document-meta">
             {noteNotebooks.map((notebook) => (
-              <span key={notebook.id} className="chip"><span className="dot" style={{ background: notebookColors.colorOf(notebook.id) }} />{notebook.content.name}</span>
+              <span key={notebook.id} className="chip"><NotebookMark notebook={notebook} colors={notebookColors} />{notebook.content.name}</span>
             ))}
             {tags.map((tag) => <span key={tag} className="chip">#{tag}</span>)}
             {unsyncedIds.has(noteId) && <span className="chip unsynced">{translate("editor.unsynced")}</span>}

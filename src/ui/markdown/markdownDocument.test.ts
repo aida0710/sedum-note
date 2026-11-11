@@ -17,7 +17,7 @@ function importContext(files: Record<string, ImportedAttachment>, existingNoteId
   };
 }
 
-const exportContext = { attachmentPath: ({ id, fileName }: { id: string; fileName: string }) => `attachments/${id}-${fileName}`, noteTitle: () => "リンク先のメモ" };
+const exportContext = { attachmentHref: ({ id, fileName }: { id: string; fileName: string }) => `attachments/${id}-${fileName}`, noteTitle: () => "リンク先のメモ" };
 
 async function bodyFromMarkdown(markdown: string, context: MarkdownImportContext): Promise<Y.XmlFragment> {
   const body = new Y.Doc().getXmlFragment("body");
@@ -66,9 +66,9 @@ describe("Markdown の書き出し", () => {
       "1. 一つ目", "2. 二つ目", "", "> 引用", "", "```ts", "const answer: number = 42;", "```", "",
     ].join("\n");
     const body = await bodyFromMarkdown(markdown, importContext({ "attachments/beach.png": photo }));
-    const exported = bodyToMarkdown(body, { attachmentPath: ({ fileName }) => `attachments/${fileName}`, noteTitle: () => null });
+    const exported = bodyToMarkdown(body, { attachmentHref: ({ fileName }: { fileName: string }) => `attachments/${fileName}`, noteTitle: () => null });
     const reimported = await bodyFromMarkdown(exported, importContext({ "attachments/beach.png": photo }));
-    expect(bodyToMarkdown(reimported, { attachmentPath: ({ fileName }) => `attachments/${fileName}`, noteTitle: () => null })).toBe(exported);
+    expect(bodyToMarkdown(reimported, { attachmentHref: ({ fileName }: { fileName: string }) => `attachments/${fileName}`, noteTitle: () => null })).toBe(exported);
     expect(exported).toContain("![beach.png](attachments/beach.png)");
     expect(exported).toContain("- [x] 充電器");
     expect(exported).toContain("const answer: number = 42;");

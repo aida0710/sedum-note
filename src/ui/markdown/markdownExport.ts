@@ -7,7 +7,7 @@ import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { withFrontMatter } from "./frontMatter";
 import { bodyToMarkdown } from "./markdownDocument";
-import { relativePath, safeFileName, UniquePaths } from "./markdownFileNames";
+import { encodeMarkdownPath, relativePath, safeFileName, UniquePaths } from "./markdownFileNames";
 
 const ATTACHMENTS_DIRECTORY = "attachments";
 // 添付（写真など）は既に圧縮されていることが多いので、zip では圧縮せずに入れる。
@@ -57,7 +57,7 @@ export async function exportNotesAsMarkdown({ repository, notes, untitledName, a
       }
     }
     const markdown = bodyToMarkdown(note.body, {
-      attachmentPath: ({ id }) => relativePath(notePath, attachmentPaths.get(id) ?? ATTACHMENTS_DIRECTORY),
+      attachmentHref: ({ id }) => encodeMarkdownPath(relativePath(notePath, attachmentPaths.get(id) ?? ATTACHMENTS_DIRECTORY)),
       noteTitle: (noteId) => repository.note(noteId)?.content.title ?? null,
     });
     files[notePath] = textEncoder.encode(withFrontMatter({ title: note.content.title, created: note.content.createdAt, updated: note.updatedAt }, markdown));

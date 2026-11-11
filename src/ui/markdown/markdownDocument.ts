@@ -13,7 +13,7 @@ import { ATTACHMENT_FILE_NODE, ATTACHMENT_IMAGE_NODE, NOTE_LINK_NODE } from "../
 import { isRandomId } from "../../core/crypto/randomId";
 import { documentSchema } from "../editor/documentSchema";
 import { documentExtensions } from "../editor/editorExtensions";
-import { decodeMarkdownPath, encodeMarkdownPath } from "./markdownFileNames";
+import { decodeMarkdownPath } from "./markdownFileNames";
 
 const NOTE_LINK_HREF_PREFIX = "sedum-note://note/";
 // Markdown の画像を読んだ直後の仮のノード。添付にするかリンクにするかを決めて、本文に入る前に置き換える。
@@ -32,7 +32,7 @@ function escapeLinkLabel(label: string): string {
   return label.replace(/[\\[\]]/g, (character) => `\\${character}`);
 }
 
-// 書き出すときだけ付ける属性（markdownPath、markdownTitle）を読んで、Markdown の形にする。
+// 書き出すときだけ付ける属性（markdownPath は添付のリンク先、markdownTitle はリンク先のメモのタイトル）を読んで、Markdown の形にする。
 const markdownRenderers: Record<string, (node: JSONContent) => string> = {
   [ATTACHMENT_IMAGE_NODE]: (node) => `![${escapeLinkLabel(String(node.attrs?.fileName ?? ""))}](${node.attrs?.markdownPath})`,
   [ATTACHMENT_FILE_NODE]: (node) => `[${escapeLinkLabel(String(node.attrs?.fileName ?? ""))}](${node.attrs?.markdownPath})`,
@@ -53,9 +53,12 @@ function markdownManager(): MarkdownManager {
   return manager;
 }
 
+// 添付を ID で指す書き方。ファイルに書き出さずに本文をやり取りするとき（MCP）に使う。
+export const ATTACHMENT_HREF_PREFIX = "sedum-note://attachment/";
+
 export type MarkdownExportContext = {
-  // 添付を書き出す先の、Markdown のファイルから見た相対パス。
-  attachmentPath: (attachment: { id: string; fileName: string }) => string;
+  // 添付を指すリンク先（Markdown にそのまま書く形）。ファイルへ書き出すなら相対パス、MCP なら ID を指す URL。
+  attachmentHref: (attachment: { id: string; fileName: string }) => string;
   // リンク先のメモの今のタイトル。メモが無ければ null。
   noteTitle: (noteId: string) => string | null;
 };
@@ -64,8 +67,8 @@ export function bodyToMarkdown(body: Y.XmlFragment, context: MarkdownExportConte
   const document = yXmlFragmentToProsemirrorJSON(body) as JSONContent;
   return markdownManager().serialize(mapNodes(document, (node) => {
     if (node.type === ATTACHMENT_IMAGE_NODE || node.type === ATTACHMENT_FILE_NODE) {
-      const path = context.attachmentPath({ id: String(node.attrs?.attachmentId), fileName: String(node.attrs?.fileName ?? "") });
-      return [{ ...node, attrs: { ...node.attrs, markdownPath: encodeMarkdownPath(path) } }];
+      const href = context.attachmentHref({ id: String(node.attrs?.attachmentId), fileName: String(node.attrs?.fileName ?? "") });
+      return [{ ...node, attrs: { ...node.attrs, markdownPath: href } }];
     }
     if (node.type === NOTE_LINK_NODE) {
       const title = context.noteTitle(String(node.attrs?.noteId));
@@ -79,8 +82,8 @@ export function bodyToMarkdown(body: Y.XmlFragment, context: MarkdownExportConte
 export type ImportedAttachment = { attachmentId: string; fileName: string; mimeType: string; byteLength: number };
 
 export type MarkdownImportContext = {
-  // Markdown の中の相対パスが指すファイルを添付にする。そのファイルが無ければ null。
-  attachFile: (relativePath: string) => Promise<ImportedAttachment | null>;
+  // Markdown の中のリンク先（相対パスか、添付を ID で指す URL）が指すものを添付にする。当たるものが無ければ null。
+  attachFile: (href: string) => Promise<ImportedAttachment | null>;
   noteExists: (noteId: string) => boolean;
 };
 
@@ -100,8 +103,10 @@ function mapNodes(node: JSONContent, replace: (node: JSONContent) => JSONContent
   return { ...node, content: node.content.flatMap((child) => replace(mapNodes(child, replace))) };
 }
 
-function isRelativeHref(href: string): boolean {
-  return href !== "" && !/^[a-z][a-z0-9+.-]*:/i.test(href) && !href.startsWith("/") && !href.startsWith("#");
+// 添付になりうるリンク先か（一緒に渡されたファイルを指す相対パスか、添付を ID で指す URL）。
+function mayPointToAttachment(href: string): boolean {
+  const isRelative = href !== "" && !/^[a-z][a-z0-9+.-]*:/i.test(href) && !href.startsWith("/") && !href.startsWith("#");
+  return isRelative || href.startsWith(ATTACHMENT_HREF_PREFIX);
 }
 
 function linkHrefOf(node: JSONContent): string | null {
@@ -139,7 +144,7 @@ async function replaceImportedNodes(node: JSONContent, context: MarkdownImportCo
 async function splitParagraphAtAttachments(paragraph: JSONContent, context: MarkdownImportContext): Promise<JSONContent[]> {
   const inlineNodes = paragraph.content ?? [];
   const onlyLinkHref = inlineNodes.length === 1 && inlineNodes[0] ? linkHrefOf(inlineNodes[0]) : null;
-  if (onlyLinkHref !== null && isRelativeHref(onlyLinkHref)) {
+  if (onlyLinkHref !== null && mayPointToAttachment(onlyLinkHref)) {
     const attachment = await context.attachFile(decodeMarkdownPath(onlyLinkHref));
     if (attachment) {
       return [attachmentNode(attachment)];
@@ -156,7 +161,7 @@ async function splitParagraphAtAttachments(paragraph: JSONContent, context: Mark
   };
   for (const inlineNode of inlineNodes) {
     const href = inlineNode.type === IMPORTED_IMAGE_NODE ? String(inlineNode.attrs?.href ?? "") : null;
-    const attachment = href !== null && isRelativeHref(href) ? await context.attachFile(decodeMarkdownPath(href)) : null;
+    const attachment = href !== null && mayPointToAttachment(href) ? await context.attachFile(decodeMarkdownPath(href)) : null;
     if (attachment) {
       closeRun();
       blocks.push(attachmentNode(attachment));

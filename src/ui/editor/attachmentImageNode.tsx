@@ -31,6 +31,8 @@ export const AttachmentImage = Node.create({
       attachmentId: { default: null },
       fileName: { default: "" },
       mimeType: { default: "image/jpeg" },
+      // 元のファイルの大きさ。v0.2.0 までに貼った写真には記録が無く、0 になる。
+      byteLength: { default: 0 },
     };
   },
   parseHTML() {

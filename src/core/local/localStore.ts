@@ -25,13 +25,14 @@ export type LocalVersionEntry = {
   recordId: string;
   // ISO 8601。この状態を残した時刻。
   capturedAt: string;
-  // edit は編集を始める前の状態、sync はほかのデバイスの変更を取り込む前の状態。
-  reason: "edit" | "sync";
+  // edit は編集を始める前の状態、sync はほかのデバイスの変更を取り込む前の状態、
+  // replace は本文を丸ごと置き換える前（MCP からの書き換え）の状態。
+  reason: "edit" | "sync" | "replace";
   // 記録と同じ形の暗号文（recordCodec.ts）。記録の ID に結び付いている。
   sealed: Uint8Array;
 };
 
-export type LocalSettingName = "vault" | "deviceId" | "sealedRemoteConfig";
+export type LocalSettingName = "vault" | "deviceId" | "sealedRemoteConfig" | "sealedMcpSettings";
 
 export interface LocalStore {
   readSetting<Value>(name: LocalSettingName): Promise<Value | undefined>;

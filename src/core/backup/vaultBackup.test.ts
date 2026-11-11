@@ -52,7 +52,7 @@ describe("バックアップ", () => {
     const restoredNote = restored.repository.note(note.id)!;
     expect(restoredNote.content).toMatchObject({ title: "議事録", pinned: true });
     expect(bodyPlainText(restoredNote.body)).toBe("決まったこと");
-    expect(restoredNote.content.attachments).toEqual([{ id: attachment.id, mimeType: "application/pdf", fileName: "資料.pdf" }]);
+    expect(restoredNote.content.attachments).toEqual([attachment]);
     expect(await restored.repository.readAttachment(attachment.id)).toEqual(fileBytes);
   });
 

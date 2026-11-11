@@ -1,4 +1,4 @@
-// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認、ゴミ箱の自動削除）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
@@ -25,6 +25,8 @@ export type DevicePreferences = {
   editorFontSize: EditorFontSize;
   // アプリを開いたときに、新しいバージョンがあるかを確かめる（GitHub へつなぐ）。
   checkForUpdates: boolean;
+  // ゴミ箱に入れてからこの日数がたったメモを、このデバイスが完全に削除する。null なら削除しない。
+  trashRetentionDays: number | null;
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
@@ -34,6 +36,7 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   customThemes: [],
   editorFontSize: "medium",
   checkForUpdates: true,
+  trashRetentionDays: null,
 };
 
 let current: DevicePreferences | null = null;
@@ -96,7 +99,16 @@ function validPreferences(stored: unknown): DevicePreferences {
       .filter((theme) => theme !== null),
     editorFontSize: EDITOR_FONT_SIZES.find((size) => size === candidate.editorFontSize) ?? DEFAULT_DEVICE_PREFERENCES.editorFontSize,
     checkForUpdates: typeof candidate.checkForUpdates === "boolean" ? candidate.checkForUpdates : DEFAULT_DEVICE_PREFERENCES.checkForUpdates,
+    trashRetentionDays: isTrashRetentionDays(candidate.trashRetentionDays) ? candidate.trashRetentionDays : DEFAULT_DEVICE_PREFERENCES.trashRetentionDays,
   };
+}
+
+// ゴミ箱に残す日数として入力できる範囲。
+export const TRASH_RETENTION_DAYS_RANGE = { minimum: 1, maximum: 3650 } as const;
+
+export function isTrashRetentionDays(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) &&
+    value >= TRASH_RETENTION_DAYS_RANGE.minimum && value <= TRASH_RETENTION_DAYS_RANGE.maximum;
 }
 
 // 試験（Node）とプライベートウィンドウでは localStorage が無い・使えないことがある。

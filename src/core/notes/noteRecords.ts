@@ -10,6 +10,8 @@ export type AttachmentReference = {
   id: string;
   mimeType: string;
   fileName: string;
+  // 元のファイルの大きさ。古いメモの写真には記録が無く、そのときは 0。
+  byteLength: number;
 };
 
 export type NoteContent = {
@@ -29,6 +31,10 @@ export type NotebookContent = {
   name: string;
   // 入れ子のノートブックの親。null なら最上位。
   parentId: string | null;
+  // 利用者が選んだ色とアイコンの名前（画面が持つ一覧の中の名前）。null なら自動の色で、アイコンなし。
+  // 画面は、知らない名前（新しい版のアプリが足したもの）を null と同じに扱う。
+  colorName: string | null;
+  iconName: string | null;
   createdAt: string;
 };
 
