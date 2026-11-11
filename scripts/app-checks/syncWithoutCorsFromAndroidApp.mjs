@@ -24,7 +24,11 @@ await app.evaluate(`[...document.querySelectorAll("label")].find((label) => labe
 for (const [label, , field] of REMOTE_FIELDS) {
   await app.fillByLabel(label, remote[field]);
 }
+await app.clickButton("接続を確認");
+// 空の同期先と分かったら、暗号化キーは生成に任せて作る。作成のあとに出るキーのダイアログを閉じる。
+await app.waitForText("空の同期先です");
 await app.clickButton("作成");
+await app.clickButton("控えました");
 // 新しいメモのボタンは画面に固定されていて、clickButton の「見えているか」の判定（offsetParent）に掛からない。
 const newNoteButton = `document.querySelector('button[aria-label="新しいメモ"]')`;
 await app.waitFor("the new note button", `Boolean(${newNoteButton})`, 60_000);

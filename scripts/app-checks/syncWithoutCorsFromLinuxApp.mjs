@@ -28,7 +28,11 @@ try {
   }
   // アプリには、CORS の案内を出さない。
   const corsGuideShown = await execute(`return document.body.innerText.includes("バケットの CORS の設定")`);
+  await app.click(await app.findByXPath("//button[normalize-space()='接続を確認']"));
+  // 空の同期先と分かったら、暗号化キーは生成に任せて作る。作成のあとに出るキーのダイアログを閉じる。
+  await app.waitForXPath("//*[@role='status'][contains(., '空の同期先です')]", 30_000);
   await app.click(await app.findByXPath("//button[normalize-space()='作成']"));
+  await app.click(await app.waitForXPath("//button[normalize-space()='控えました']", 60_000));
   await app.click(await app.waitForXPath("//button[normalize-space()='新しいメモ']", 60_000));
   await app.type(await app.waitForXPath("//input[@placeholder='タイトル']", 10_000), "CORS なしで同期したメモ");
   await app.waitForXPath("//button[contains(@class,'sync-line')][contains(., '同期済み')]", 30_000);

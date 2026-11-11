@@ -1,6 +1,9 @@
 import { expect, type Page, test } from "@playwright/test";
 import { type CorsRule, newTestRemoteConfig, newTestRemoteConfigWithCors } from "../integration/testStorage";
 import type { RemoteConfig } from "../src/core/remote/remoteConfig";
+import { S3ObjectStore } from "../src/core/remote/s3ObjectStore";
+import { writeRemoteVault } from "../src/core/vault/remoteVault";
+import { createVault } from "../src/core/vault/vaultDocument";
 import { corsRuleJson } from "../src/ui/settings/corsRule";
 import { createNoteOnDesktop, DESKTOP_VIEWPORT, fillRemoteConfigFields, fillSyncTarget, openSyncedDevice, PASSPHRASE, startLocalVault, SYNC_KEY } from "./devices";
 
@@ -56,9 +59,13 @@ test("生成した暗号化キーは 1 度だけ表示され、そのキーと�
 });
 
 test("フォルダを入れずに接続を確認すると、既存のメモのあるフォルダが見つかり、そこに参加できる", async ({ browser }) => {
-  // 試験ごとにバケットを分ける（ほかの試験のフォルダが候補に混ざらないように）。
+  // ほかの試験のフォルダが候補に混ざらないように、この試験だけのバケットを使い、前の回の中身を消してから始める。
   const rules = JSON.parse(corsRuleJson(PAGE_ORIGIN)) as CorsRule[];
-  const remoteConfig = { ...(await newTestRemoteConfigWithCors(`sedum-note-find-${Date.now()}`, rules)), prefix: "family-notes" };
+  const remoteConfig = { ...(await newTestRemoteConfigWithCors("sedum-note-find-folder", rules)), prefix: "family-notes" };
+  const wholeBucket = new S3ObjectStore({ ...remoteConfig, prefix: "" });
+  for (const object of await wholeBucket.list("")) {
+    await wholeBucket.delete(object.key);
+  }
   const laptop = await openSyncedDevice(browser, { remoteConfig, join: false });
   await createNoteOnDesktop(laptop, "フォルダの中のメモ");
   await expect(laptop.getByText(/同期済み/)).toBeVisible({ timeout: 20_000 });
@@ -134,4 +141,41 @@ test("自動の同期を切ると、編集しても送らず、「今すぐ同�
   await laptop.getByRole("button", { name: "今すぐ同期" }).click();
   await expect(laptop.locator(".sync-line")).toContainText("自動の同期はオフ");
   await expect(laptop.locator(".sync-line")).not.toContainText("未送信");
+});
+
+test("v0.2 までの同期先には、作ったときのパスフレーズで参加でき、設定で暗号化キーを作ると新しい形になる", async ({ browser }) => {
+  // v0.2 のアプリが作った同期先: パスフレーズで包んだ vault.json だけがある。
+  const remoteConfig = await newTestRemoteConfig();
+  const { document } = await createVault(PASSPHRASE);
+  await writeRemoteVault(new S3ObjectStore(remoteConfig), document, { ifAbsent: true });
+
+  const laptop = await (await browser.newContext({ viewport: DESKTOP_VIEWPORT })).newPage();
+  await openSetupWithSync(laptop, remoteConfig, SECOND_DEVICE_PASSPHRASE);
+  await laptop.getByRole("button", { name: "接続を確認" }).click();
+  await expect(laptop.getByRole("status")).toContainText("既存のメモが見つかりました");
+  await laptop.getByLabel("作ったときのパスフレーズ").fill(PASSPHRASE);
+  await laptop.getByRole("button", { name: "参加" }).click();
+  await createNoteOnDesktop(laptop, "v0.2 の同期先に書いたメモ");
+  await expect(laptop.getByText(/同期済み/)).toBeVisible({ timeout: 20_000 });
+
+  await laptop.locator(".sync-line").click();
+  const keySection = laptop.locator(".settings-section", { has: laptop.getByRole("heading", { name: "暗号化キー", exact: true }) });
+  await expect(keySection.getByRole("status")).toContainText("暗号化キーがまだありません");
+  await keySection.getByLabel("このデバイスのパスフレーズ").fill(SECOND_DEVICE_PASSPHRASE);
+  await keySection.getByLabel("v0.2 までのアプリを入れたデバイスは、アプリを更新するまで同期できなくなることを確かめました").check();
+  await keySection.getByRole("button", { name: "暗号化キーを作り直す" }).click();
+  const keyDialog = laptop.getByRole("dialog", { name: "暗号化キー" });
+  const newKey = await keyDialog.locator("code").innerText();
+  await keyDialog.getByRole("button", { name: "控えました" }).click();
+  await expect(keySection.getByText("暗号化キーがまだありません")).toBeHidden();
+
+  // 新しい形になったあとも、このデバイスは同期を続けられる。新しいデバイスは暗号化キーで参加する。
+  await laptop.getByRole("button", { name: "今すぐ同期" }).click();
+  await expect(laptop.locator(".sync-line")).toContainText("同期済み", { timeout: 20_000 });
+  const phone = await (await browser.newContext({ viewport: DESKTOP_VIEWPORT })).newPage();
+  await openSetupWithSync(phone, remoteConfig, PASSPHRASE);
+  await phone.getByRole("button", { name: "接続を確認" }).click();
+  await phone.getByLabel("暗号化キー", { exact: true }).fill(newKey);
+  await phone.getByRole("button", { name: "参加" }).click();
+  await expect(phone.getByRole("button", { name: /v0.2 の同期先に書いたメモ/ }).first()).toBeVisible({ timeout: 20_000 });
 });

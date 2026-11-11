@@ -15,7 +15,7 @@
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { chromium } from "@playwright/test";
-import { expectNoteFromApp, newCheckRemoteConfig, PASSPHRASE, REMOTE_FIELDS, startBrowserDevice } from "./checkDevices.mjs";
+import { expectNoteFromApp, newCheckRemoteConfig, PASSPHRASE, REMOTE_FIELDS, startBrowserDevice, SYNC_KEY } from "./checkDevices.mjs";
 
 const outputDirectory = process.argv[2];
 const adb = `${process.env.ANDROID_HOME}/platform-tools/adb`;
@@ -40,11 +40,14 @@ const laptop = await startBrowserDevice(remote);
 // 標準の設定（画面の大きさなど）を WebView に押し付けないよう noDefaults を付ける。
 const appBrowser = await chromium.connectOverCDP(devToolsEndpoint, { noDefaults: true });
 const app = appBrowser.contexts()[0].pages()[0];
-await app.getByRole("tab", { name: "既存のメモに参加" }).click();
 await app.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
+await app.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
+await app.getByLabel("ほかのデバイスと同期する").check();
 for (const [label, , field] of REMOTE_FIELDS) {
   await app.getByLabel(label).fill(remote[field]);
 }
+await app.getByRole("button", { name: "接続を確認" }).click();
+await app.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
 await app.getByRole("button", { name: "参加" }).click();
 await app.getByRole("button", { name: /PCで書いたメモ/ }).first().waitFor({ timeout: 30_000 });
 await screenshotDevice(app, "app-list");

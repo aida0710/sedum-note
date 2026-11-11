@@ -7,7 +7,7 @@
 // 使い方: node scripts/app-checks/syncWithLinuxApp.mjs <画像を置くフォルダ>
 
 import { writeFileSync } from "node:fs";
-import { expectNoteFromApp, newCheckRemoteConfig, PASSPHRASE, REMOTE_FIELDS, startBrowserDevice } from "./checkDevices.mjs";
+import { expectNoteFromApp, newCheckRemoteConfig, PASSPHRASE, REMOTE_FIELDS, startBrowserDevice, SYNC_KEY } from "./checkDevices.mjs";
 import { WebDriverSession } from "./webDriverSession.mjs";
 
 const outputDirectory = process.argv[2];
@@ -19,13 +19,16 @@ const app = await WebDriverSession.start("http://127.0.0.1:14444", {
   "tauri:options": { application: "/usr/bin/sedum-note" },
 });
 try {
-  await app.click(await app.waitForXPath("//button[normalize-space()='既存のメモに参加']", 30_000));
-  await app.type(await app.find("#setup-passphrase"), PASSPHRASE);
+  await app.type(await app.waitForXPath("//input[@id='setup-passphrase']", 30_000), PASSPHRASE);
+  await app.type(await app.find("#setup-passphrase-confirm"), PASSPHRASE);
+  await app.click(await app.findByXPath("//label[contains(., 'ほかのデバイスと同期する')]/input"));
   for (const [, inputId, field] of REMOTE_FIELDS) {
-    const input = await app.find(`#${inputId}`);
+    const input = await app.waitForXPath(`//input[@id='${inputId}']`, 10_000);
     await app.command("POST", `/element/${input}/clear`, {});
     await app.type(input, remote[field]);
   }
+  await app.click(await app.findByXPath("//button[normalize-space()='接続を確認']"));
+  await app.type(await app.waitForXPath("//input[@id='sync-key']", 30_000), SYNC_KEY);
   await app.click(await app.findByXPath("//button[normalize-space()='参加']"));
   await app.waitForXPath("//button[contains(., 'PCで書いたメモ')]", 30_000);
   writeFileSync(`${outputDirectory}/linux-app-list.png`, await app.screenshotPng());

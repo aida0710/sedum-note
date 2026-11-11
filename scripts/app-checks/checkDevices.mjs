@@ -4,6 +4,8 @@ import { chromium } from "@playwright/test";
 import { AwsClient } from "aws4fetch";
 
 export const PASSPHRASE = "correct horse battery";
+// 確認の同期先で使う、自分で決めた暗号化キー。
+export const SYNC_KEY = "shared-key-for-app-checks";
 // 道具は日本語の文言で画面を操作するので、ブラウザの言語を日本語にして開く。
 export const UI_LOCALE = "ja-JP";
 
@@ -42,6 +44,9 @@ export async function startBrowserDevice(remote) {
   for (const [label, , field] of REMOTE_FIELDS) {
     await page.getByLabel(label).fill(remote[field]);
   }
+  await page.getByRole("button", { name: "接続を確認" }).click();
+  await page.getByLabel("暗号化キーを自分で決める").check();
+  await page.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
   await page.getByRole("button", { name: "作成" }).click();
   await page.getByRole("button", { name: "新しいメモ" }).click();
   await page.getByPlaceholder("タイトル").fill("PCで書いたメモ");
