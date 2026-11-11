@@ -19,6 +19,18 @@ export type LocalBlobEntry = {
   uploaded: boolean;
 };
 
+// メモの過去の状態（履歴）。このデバイスだけに持ち、同期もバックアップもしない。
+export type LocalVersionEntry = {
+  id: string;
+  recordId: string;
+  // ISO 8601。この状態を残した時刻。
+  capturedAt: string;
+  // edit は編集を始める前の状態、sync はほかのデバイスの変更を取り込む前の状態。
+  reason: "edit" | "sync";
+  // 記録と同じ形の暗号文（recordCodec.ts）。記録の ID に結び付いている。
+  sealed: Uint8Array;
+};
+
 export type LocalSettingName = "vault" | "deviceId" | "sealedRemoteConfig";
 
 export interface LocalStore {
@@ -32,6 +44,10 @@ export interface LocalStore {
   // 無くても成功にする。
   deleteBlob(id: string): Promise<void>;
   listBlobsWaitingForUpload(): Promise<LocalBlobEntry[]>;
+  putVersion(entry: LocalVersionEntry): Promise<void>;
+  listVersions(recordId: string): Promise<LocalVersionEntry[]>;
+  deleteVersion(id: string): Promise<void>;
+  deleteVersionsOfRecord(recordId: string): Promise<void>;
   // 中身を空にして使い続ける（バックアップを戻す前など）。同期先は消さない。
   clearEverything(): Promise<void>;
   // このデバイスのデータを消す。先に保存先を閉じるので、消している間や消したあとに届いた

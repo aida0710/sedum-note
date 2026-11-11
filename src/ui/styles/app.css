@@ -130,6 +130,18 @@ button:disabled { cursor: default; opacity: .55; }
 .note-picker { width: min(480px, 100%); max-height: min(560px, 90%); }
 .note-picker .sidebar-search { margin-bottom: 0; flex: none; }
 .note-picker-list { overflow-y: auto; min-height: 80px; display: flex; flex-direction: column; }
+.note-history { width: min(760px, 100%); max-height: min(620px, 92%); }
+.note-history-title { font-weight: 700; font-size: 15px; }
+.note-history .hint { color: var(--muted); font-size: 12px; }
+.note-history-body { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 12px; min-height: 0; flex: 1; }
+.note-history-list { overflow-y: auto; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 8px; padding: 4px; }
+.note-history-list .menu-item.on { background: var(--selected); }
+.note-history-list .menu-item span { display: flex; flex-direction: column; gap: 2px; }
+.note-history-preview { overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.note-history-preview pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.7; }
+@media (max-width: 760px) {
+  .note-history-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(90px, 30%) minmax(0, 1fr); }
+}
 .attachment-image { margin: 14px 0; border-radius: 10px; overflow: hidden; position: relative; background: var(--tag); min-height: 60px; }
 .attachment-image img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
 .attachment-image .file-name { position: absolute; left: 10px; bottom: 8px; color: var(--caption-text); font-size: 11px; background: var(--caption-background); padding: 2px 6px; border-radius: 4px; }

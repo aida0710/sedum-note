@@ -120,3 +120,35 @@ test("メモへのリンクは、リンク先の今のタイトルを出し、�
   await expect(link).toHaveText("削除されたメモ");
   await expect(link).toBeDisabled();
 });
+
+test("履歴から、書き直す前の状態を別のメモとして復元できる", async ({ page }) => {
+  await page.clock.install({ time: new Date("2026-11-11T09:00:00+09:00") });
+  await startLocalVault(page);
+  await newNote(page, "議事録");
+  await page.keyboard.type("書き直す前の文");
+  await page.clock.runFor(1_000);
+
+  await page.getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "履歴" }).click();
+  await expect(page.getByRole("dialog", { name: "履歴" })).toContainText("まだ履歴がありません");
+  await page.getByRole("dialog", { name: "履歴" }).getByRole("button", { name: "閉じる" }).click();
+
+  // 間隔（10 分）が空いてからの編集で、編集の前の状態が残る。
+  await page.clock.runFor(11 * 60_000);
+  await page.locator(".ProseMirror").click();
+  await page.keyboard.press("Control+A");
+  await page.keyboard.type("書き直した文");
+  await page.clock.runFor(1_000);
+
+  await page.getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "履歴" }).click();
+  const history = page.getByRole("dialog", { name: "履歴" });
+  await expect(history.getByRole("option")).toHaveCount(1);
+  await expect(history.locator(".note-history-preview")).toContainText("書き直す前の文");
+  await history.getByRole("button", { name: "別のメモとして復元" }).click();
+
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue(/^議事録（.+ の版）$/);
+  await expect(page.locator(".ProseMirror")).toHaveText("書き直す前の文");
+  await page.getByRole("tab", { name: "議事録", exact: true }).click();
+  await expect(page.locator(".ProseMirror")).toHaveText("書き直した文");
+});

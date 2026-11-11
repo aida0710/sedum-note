@@ -14,6 +14,7 @@ import type { SerialQueue } from "../local/serialQueue";
 import { blobBinding } from "../sync/remoteLayout";
 import { bodyAttachments } from "./bodyText";
 import type { AttachmentReference, LiveNote, LiveNotebook, NotebookContent } from "./noteRecords";
+import { type NoteVersion, NoteVersionHistory } from "./noteVersions";
 import { openRecordPayload, type RecordPayload, sealRecordPayload } from "./recordCodec";
 import {
   encodeRecordState,
@@ -86,9 +87,13 @@ export class NoteRepository {
   #unreadableIds: string[] = [];
   #persistTimer: ReturnType<typeof setTimeout> | null = null;
   #closed = false;
+  readonly #versionHistory: NoteVersionHistory;
 
   constructor(dependencies: NoteRepositoryDependencies) {
     this.#dependencies = dependencies;
+    this.#versionHistory = new NoteVersionHistory({
+      localStore: dependencies.localStore, masterKey: dependencies.masterKey, now: () => this.#now(),
+    });
   }
 
   async load(): Promise<void> {
@@ -159,9 +164,37 @@ export class NoteRepository {
   }
 
   // 完全に削除する。ほかのデバイスに伝えるため、削除の印を残す。貼ってあった添付も消す。
+  // 履歴から復元したメモは同じ添付を指すので、ほかのメモがまだ使っている添付は消さない。
   async removeNotePermanently(id: string): Promise<void> {
-    const attachmentIds = bodyAttachments(recordBody(this.#liveDocument(id, "note"))).map((attachment) => attachment.id);
+    const usedElsewhere = new Set(this.notes().filter((note) => note.id !== id).flatMap((note) => note.content.attachments.map((attachment) => attachment.id)));
+    const attachmentIds = bodyAttachments(recordBody(this.#liveDocument(id, "note")))
+      .map((attachment) => attachment.id)
+      .filter((attachmentId) => !usedElsewhere.has(attachmentId));
     await this.#removeRecord(id, attachmentIds);
+  }
+
+  // ── 履歴（このデバイスだけ） ──────────────────────────
+
+  noteVersions(noteId: string): Promise<NoteVersion[]> {
+    return this.#versionHistory.list(noteId);
+  }
+
+  // 履歴の版を、新しい別のメモとして作る。今のメモは変えない。版が無ければ RecordNotFoundError。
+  async restoreVersionAsNewNote(input: { noteId: string; versionId: string; title: string }): Promise<LiveNote> {
+    const versionDocument = await this.#versionHistory.openVersionDocument(input.noteId, input.versionId);
+    if (versionDocument === null) {
+      throw new RecordNotFoundError(input.versionId);
+    }
+    const restoredId = newRandomId();
+    const restoredDocument = this.#newDocument(restoredId, "note");
+    recordBody(restoredDocument).insert(0, recordBody(versionDocument).toArray().map((node) => node.clone() as Y.XmlElement));
+    versionDocument.destroy();
+    this.#writeNoteChanges(restoredDocument, {
+      title: input.title, pinned: false, bookmarked: false, trashedAt: null,
+      notebookIds: this.note(input.noteId)?.content.notebookIds ?? [],
+    });
+    await this.flush();
+    return this.note(restoredId)!;
   }
 
   async createNotebook(name: string, parentId: string | null = null): Promise<LiveNotebook> {
@@ -238,7 +271,11 @@ export class NoteRepository {
       const holder = this.#holders.get(id);
       const hasLocalChanges = (entry?.waitingForPush ?? false) || this.#unsavedIds.has(id);
       if (payload.kind === "state" && holder?.state === "live") {
+        const stateBeforeMerge = Y.encodeStateVector(holder.doc);
         Y.applyUpdate(holder.doc, payload.state, REMOTE_ORIGIN);
+        if (entry && !sameBytes(stateBeforeMerge, Y.encodeStateVector(holder.doc)) && this.#view(id)?.kind === "note") {
+          await this.#versionHistory.captureBeforeSync(id, entry.sealed);
+        }
         this.#touch(holder);
         await this.#persistLive(id, { remoteEtag, waitingForPush: hasLocalChanges });
         return;
@@ -258,6 +295,7 @@ export class NoteRepository {
       this.#hold(id, payload);
       if (payload.kind === "removed") {
         await this.#deleteLocalBlobs(payload.attachmentIds);
+        await this.#versionHistory.forget(id);
       }
       await this.#putEntry({ id, sealed, remoteEtag, waitingForPush: false });
     });
@@ -385,6 +423,7 @@ export class NoteRepository {
       const current = await this.#dependencies.localStore.getRecordEntry(id);
       await this.#putEntry({ id, sealed, remoteEtag: current?.remoteEtag ?? null, waitingForPush: true });
       await this.#deleteLocalBlobs(attachmentIds);
+      await this.#versionHistory.forget(id);
     });
     this.#notify("local");
   }
@@ -396,15 +435,17 @@ export class NoteRepository {
     if (holder?.state !== "live") {
       return;
     }
+    const stored = await this.#dependencies.localStore.getRecordEntry(id);
     if (holder.bodyEdited) {
       holder.bodyEdited = false;
       this.#writeFields(holder.doc, { editedAt: this.#now().toISOString() });
+      if (stored) {
+        await this.#versionHistory.captureBeforeEdit(id, stored.sealed);
+      }
     }
     this.#unsavedIds.delete(id);
     const sealed = await sealRecordPayload(this.#dependencies.masterKey, id, { kind: "state", state: encodeRecordState(holder.doc) });
-    const remoteEtag = bookkeeping.remoteEtag === undefined
-      ? (await this.#dependencies.localStore.getRecordEntry(id))?.remoteEtag ?? null
-      : bookkeeping.remoteEtag;
+    const remoteEtag = bookkeeping.remoteEtag === undefined ? stored?.remoteEtag ?? null : bookkeeping.remoteEtag;
     await this.#putEntry({ id, sealed, remoteEtag, waitingForPush: bookkeeping.waitingForPush ?? true });
   }
 

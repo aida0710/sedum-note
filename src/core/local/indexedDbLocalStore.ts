@@ -1,15 +1,20 @@
 // IndexedDB を使う LocalStore。Web 版も Tauri の WebView も同じものを使う。
 
 import { type DBSchema, deleteDB, type IDBPDatabase, openDB } from "idb";
-import type { LocalBlobEntry, LocalRecordEntry, LocalSettingName, LocalStore } from "./localStore";
+import type { LocalBlobEntry, LocalRecordEntry, LocalSettingName, LocalStore, LocalVersionEntry } from "./localStore";
 
-const DATABASE_VERSION = 1;
+// 2 で、メモの履歴（versions）を足した。
+const DATABASE_VERSION = 2;
 
 interface MemoDatabase extends DBSchema {
   settings: { key: LocalSettingName; value: unknown };
   records: { key: string; value: LocalRecordEntry };
   blobs: { key: string; value: LocalBlobEntry; indexes: { byUploaded: number } };
+  versions: { key: string; value: LocalVersionEntry; indexes: { byRecord: string } };
 }
+
+// clearEverything が空にするストア。ストアを足したら、ここと upgrade の両方に足す。
+const STORE_NAMES = ["settings", "records", "blobs", "versions"] as const;
 
 // IndexedDB の索引は真偽値を受け付けないので、送ったかどうかを 0・1 で持つ。
 type StoredBlob = LocalBlobEntry & { uploadedFlag: number };
@@ -26,10 +31,16 @@ export class IndexedDbLocalStore implements LocalStore {
       blocking(_currentVersion, _blockedVersion, event) {
         (event.target as IDBDatabase).close();
       },
-      upgrade(database) {
-        database.createObjectStore("settings");
-        database.createObjectStore("records", { keyPath: "id" });
-        database.createObjectStore("blobs", { keyPath: "id" }).createIndex("byUploaded", "uploadedFlag");
+      // 既にある DB には、その版より後に足したストアだけを作る。
+      upgrade(database, oldVersion) {
+        if (oldVersion < 1) {
+          database.createObjectStore("settings");
+          database.createObjectStore("records", { keyPath: "id" });
+          database.createObjectStore("blobs", { keyPath: "id" }).createIndex("byUploaded", "uploadedFlag");
+        }
+        if (oldVersion < 2) {
+          database.createObjectStore("versions", { keyPath: "id" }).createIndex("byRecord", "recordId");
+        }
       },
     });
   }
@@ -73,15 +84,30 @@ export class IndexedDbLocalStore implements LocalStore {
     return stored.map((blob) => withoutUploadedFlag(blob as StoredBlob));
   }
 
+  async putVersion(entry: LocalVersionEntry): Promise<void> {
+    await (await this.#database).put("versions", entry);
+  }
+
+  async listVersions(recordId: string): Promise<LocalVersionEntry[]> {
+    return (await this.#database).getAllFromIndex("versions", "byRecord", recordId);
+  }
+
+  async deleteVersion(id: string): Promise<void> {
+    await (await this.#database).delete("versions", id);
+  }
+
+  async deleteVersionsOfRecord(recordId: string): Promise<void> {
+    const transaction = (await this.#database).transaction("versions", "readwrite");
+    for (const key of await transaction.store.index("byRecord").getAllKeys(recordId)) {
+      await transaction.store.delete(key);
+    }
+    await transaction.done;
+  }
+
   async clearEverything(): Promise<void> {
     const database = await this.#database;
-    const transaction = database.transaction(["settings", "records", "blobs"], "readwrite");
-    await Promise.all([
-      transaction.objectStore("settings").clear(),
-      transaction.objectStore("records").clear(),
-      transaction.objectStore("blobs").clear(),
-      transaction.done,
-    ]);
+    const transaction = database.transaction(STORE_NAMES, "readwrite");
+    await Promise.all([...STORE_NAMES.map((name) => transaction.objectStore(name).clear()), transaction.done]);
   }
 
   async destroy(): Promise<void> {

@@ -16,7 +16,9 @@ import { EditorToolbar } from "./EditorToolbar";
 import { createEditorExtensions } from "./editorExtensions";
 import { attachFiles } from "./attachFiles";
 import { NoteActionsMenu } from "./NoteActionsMenu";
+import { NoteHistoryDialog } from "./NoteHistoryDialog";
 import { NoteLinkPicker } from "./NoteLinkPicker";
+import { NoteLinkTargetsContext } from "./noteLinkTargets";
 
 type NoteEditorProps = {
   note: LiveNote;
@@ -32,6 +34,8 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
   const [title, setTitle] = useState(note.content.title);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [pickingNoteLink, setPickingNoteLink] = useState(false);
+  const [showingHistory, setShowingHistory] = useState(false);
+  const { openNote } = useContext(NoteLinkTargetsContext);
   const titleInput = useRef<HTMLInputElement>(null);
   const dialogs = useDialogs();
   const unsyncedIds = useContext(UnsyncedRecordsContext);
@@ -164,7 +168,12 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
           onPick={insertNoteLink} onCancel={() => setPickingNoteLink(false)} />
       )}
       {menuAnchor && (
-        <NoteActionsMenu anchor={menuAnchor} note={note} notebooks={notebooks} repository={repository} onClose={() => setMenuAnchor(null)} />
+        <NoteActionsMenu anchor={menuAnchor} note={note} notebooks={notebooks} repository={repository}
+          onShowHistory={() => setShowingHistory(true)} onClose={() => setMenuAnchor(null)} />
+      )}
+      {showingHistory && (
+        <NoteHistoryDialog note={note} repository={repository} onClose={() => setShowingHistory(false)}
+          onRestored={(restoredNoteId) => { setShowingHistory(false); openNote(restoredNoteId); }} />
       )}
     </>
   );

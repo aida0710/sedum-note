@@ -42,6 +42,21 @@ describe("SyncEngine", () => {
     expect(phone.repository.notebooks().map((item) => item.content.name)).toEqual(["旅行"]);
   });
 
+  it("ほかのデバイスの変更を取り込む前の状態を、履歴に 1 つだけ残す", async () => {
+    const { laptop, phone } = await twoDevices();
+    const note = await laptop.repository.createNote({ title: "議事録" });
+    appendParagraph(note.body, "最初の行");
+    await sync(laptop);
+    await sync(phone);
+    for (const added of ["laptop の 2 行目", "laptop の 3 行目"]) {
+      appendParagraph(laptop.repository.note(note.id)!.body, added);
+      await sync(laptop);
+      await sync(phone);
+    }
+    const syncVersions = (await phone.repository.noteVersions(note.id)).filter((version) => version.reason === "sync");
+    expect(syncVersions.map((version) => version.plainText)).toEqual(["最初の行\nlaptop の 2 行目"]);
+  });
+
   it("同期先にはタイトルもノートブック名も本文も平文で置かない", async () => {
     const { store, laptop } = await twoDevices();
     await laptop.repository.createNotebook("secret-notebook");
