@@ -232,6 +232,9 @@ export const englishMessages: Record<MessageKey, string> = {
   "wipe.confirmLocalOnly": "Erase all data on this device? Sync is not set up, so the {count} notes and notebooks cannot be restored unless you have a backup.",
   "wipe.confirmLabel": "Erase everything",
 
+  "share.untitled": "Shared note",
+  "share.fileTooLarge": "({name} was too large to attach)",
+
   "mobile.notes": "Notes",
   "mobile.notebooks": "Notebooks",
   "mobile.bookmarked": "Bookmarks",

@@ -5,12 +5,13 @@
 //   ファイル   [名前](添付のパス) だけの段落
 //   メモへのリンク  [タイトル](sedum-note://note/<メモの ID>)
 
-import { getSchema, type JSONContent, Node } from "@tiptap/core";
+import { type JSONContent, Node } from "@tiptap/core";
 import { MarkdownManager } from "@tiptap/markdown";
 import { prosemirrorJSONToYXmlFragment, yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
 import type * as Y from "yjs";
 import { ATTACHMENT_FILE_NODE, ATTACHMENT_IMAGE_NODE, NOTE_LINK_NODE } from "../../core/notes/bodyText";
 import { isRandomId } from "../../core/crypto/randomId";
+import { documentSchema } from "../editor/documentSchema";
 import { documentExtensions } from "../editor/editorExtensions";
 import { decodeMarkdownPath, encodeMarkdownPath } from "./markdownFileNames";
 
@@ -38,23 +39,18 @@ const markdownRenderers: Record<string, (node: JSONContent) => string> = {
   [NOTE_LINK_NODE]: (node) => `[${escapeLinkLabel(String(node.attrs?.markdownTitle ?? ""))}](${NOTE_LINK_HREF_PREFIX}${node.attrs?.noteId})`,
 };
 
-type MarkdownTools = { manager: MarkdownManager; schema: ReturnType<typeof getSchema> };
-let tools: MarkdownTools | null = null;
+let manager: MarkdownManager | null = null;
 
 // 拡張の組み立ては重いので、最初に使うときに 1 回だけ行う。
-function markdownTools(): MarkdownTools {
-  if (tools === null) {
-    const extensions = documentExtensions();
-    const withRenderers = extensions.map((extension) => {
+function markdownManager(): MarkdownManager {
+  if (manager === null) {
+    const withRenderers = documentExtensions().map((extension) => {
       const renderMarkdown = markdownRenderers[extension.name];
       return renderMarkdown ? (extension as Node).extend({ renderMarkdown }) : extension;
     });
-    tools = {
-      schema: getSchema(extensions),
-      manager: new MarkdownManager({ extensions: [...withRenderers, ImportedMarkdownImage] }),
-    };
+    manager = new MarkdownManager({ extensions: [...withRenderers, ImportedMarkdownImage] });
   }
-  return tools;
+  return manager;
 }
 
 export type MarkdownExportContext = {
@@ -66,7 +62,7 @@ export type MarkdownExportContext = {
 
 export function bodyToMarkdown(body: Y.XmlFragment, context: MarkdownExportContext): string {
   const document = yXmlFragmentToProsemirrorJSON(body) as JSONContent;
-  return markdownTools().manager.serialize(mapNodes(document, (node) => {
+  return markdownManager().serialize(mapNodes(document, (node) => {
     if (node.type === ATTACHMENT_IMAGE_NODE || node.type === ATTACHMENT_FILE_NODE) {
       const path = context.attachmentPath({ id: String(node.attrs?.attachmentId), fileName: String(node.attrs?.fileName ?? "") });
       return [{ ...node, attrs: { ...node.attrs, markdownPath: encodeMarkdownPath(path) } }];
@@ -90,12 +86,11 @@ export type MarkdownImportContext = {
 
 // Markdown を本文に入れる。本文は空にしてから入れる。
 export async function writeMarkdownToBody(markdown: string, body: Y.XmlFragment, context: MarkdownImportContext): Promise<void> {
-  const { manager, schema } = markdownTools();
-  const parsed = await replaceImportedNodes(manager.parse(markdown), context);
+  const parsed = await replaceImportedNodes(markdownManager().parse(markdown), context);
   // 本文は空にしない。空のままだと、開いたデバイスごとにエディタが段落を足し、マージで空の段落が重なる。
   const document = parsed.content && parsed.content.length > 0 ? parsed : { type: "doc", content: [{ type: "paragraph" }] };
   body.delete(0, body.length);
-  prosemirrorJSONToYXmlFragment(schema, document, body);
+  prosemirrorJSONToYXmlFragment(documentSchema(), document, body);
 }
 
 function mapNodes(node: JSONContent, replace: (node: JSONContent) => JSONContent[]): JSONContent {

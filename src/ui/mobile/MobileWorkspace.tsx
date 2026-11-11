@@ -12,6 +12,7 @@ import { createNoteInView } from "../workspace/createNoteInView";
 import { MobileLibrary } from "./MobileLibrary";
 import { listTitle, NoteList } from "./MobileNoteList";
 import { useBackGestureToClose } from "./useBackGestureToClose";
+import { SETTINGS_TAB } from "../workspace/useWorkspaceNavigation";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
 
 type MobileTab = "notes" | "notebooks" | "bookmarked" | "settings";
@@ -20,14 +21,16 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
   const { repository } = vault;
   const [tab, setTab] = useState<MobileTab>("notes");
   const { noteSortOrder } = useDevicePreferences();
-  const [openNoteId, setOpenNoteId] = useState<string | null>(null);
+  // 開いているメモは PC の組み方と同じ所（navigation のタブ）に持つ。共有から作ったメモや、
+  // メモ同士のリンクが、どちらの組み方でも同じ操作で開ける。
+  const openNoteId = navigation.activeTab !== SETTINGS_TAB ? navigation.activeTab : null;
   const openNote = openNoteId ? repository.note(openNoteId) : undefined;
-  const goBack = useBackGestureToClose(openNote !== undefined, () => setOpenNoteId(null));
+  const goBack = useBackGestureToClose(openNote !== undefined, () => openNoteId && navigation.closeTab(openNoteId));
 
   if (openNote) {
     return (
       <div className="phone">
-        <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, setOpenNoteId)}>
+        <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, navigation.openNote)}>
           <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} repository={repository}
             syncConfigured={vault.remoteConfig !== null} isMobile onBack={goBack} />
         </NoteLinkTargetsContext.Provider>
@@ -36,7 +39,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
   }
 
   const view: NoteView = tab === "bookmarked" ? { kind: "bookmarked" } : navigation.view;
-  const createNote = async () => setOpenNoteId((await createNoteInView(repository, view)).id);
+  const createNote = async () => navigation.openNote((await createNoteInView(repository, view)).id);
   const selectTab = (next: MobileTab) => {
     setTab(next);
     if (next === "notes") {
@@ -54,7 +57,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
       {(tab === "notes" || tab === "bookmarked") && (
         <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, { view, searchText: navigation.searchText, sortOrder: noteSortOrder })}
           notebooks={snapshot.notebooks.map((notebook) => ({ id: notebook.id, name: notebook.content.name }))}
-          view={view} showChips={tab === "notes"} navigation={navigation} onOpen={setOpenNoteId} />
+          view={view} showChips={tab === "notes"} navigation={navigation} onOpen={navigation.openNote} />
       )}
       {(tab === "notes" || tab === "bookmarked") && (
         <button className="fab" aria-label={translate("sidebar.newNote")} onClick={() => void createNote()}><Plus size={26} /></button>

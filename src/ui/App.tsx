@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { languageInUse } from "./i18n/languageInUse";
 import { useDevicePreferences } from "./preferences/devicePreferences";
+import { useSharedContentInbox } from "./share/useSharedContentInbox";
 import { applyAppearance } from "./theme/applyAppearance";
 import { useThemeInUse } from "./theme/themeInUse";
 import { SetupScreen } from "./entry/SetupScreen";
@@ -49,6 +50,7 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   const snapshot = useRepositorySnapshot(vault.repository);
   const navigation = useWorkspaceNavigation();
   const isMobile = useMediaQuery(MOBILE_LAYOUT_QUERY);
+  useSharedContentInbox(vault.repository, navigation.openNote);
   const props = { session, vault, snapshot, navigation };
   return (
     <AttachmentReaderContext.Provider value={vault.repository.readAttachment.bind(vault.repository)}>

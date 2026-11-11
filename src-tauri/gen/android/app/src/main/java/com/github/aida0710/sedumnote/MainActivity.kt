@@ -1,16 +1,44 @@
 package com.github.aida0710.sedumnote
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.webkit.WebView
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
+// 画面（WebView）から共有の窓口を呼ぶときの名前。src/ui/platform/sharedContent.ts と揃える。
+private const val SHARE_BRIDGE_NAME = "SedumNoteShare"
+// 共有を受け取ったことを画面へ知らせるイベントの名前。同じく揃える。
+private const val SHARE_ARRIVED_EVENT = "sedum-note-share"
+
 class MainActivity : TauriActivity() {
+  private lateinit var sharedContent: SharedContentBridge
+  private var webView: WebView? = null
+
   override fun onCreate(savedInstanceState: Bundle?) {
+    sharedContent = SharedContentBridge(contentResolver)
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
     keepContentAboveKeyboard(findViewById(android.R.id.content))
+    // 履歴から開き直したときは、前に受け取った共有の Intent が残っている。二重に取り込まない。
+    if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0) {
+      sharedContent.accept(intent)
+    }
+  }
+
+  override fun onWebViewCreate(webView: WebView) {
+    this.webView = webView
+    webView.addJavascriptInterface(sharedContent, SHARE_BRIDGE_NAME)
+  }
+
+  // アプリを開いたまま、ほかのアプリから共有されたとき。
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    if (sharedContent.accept(intent)) {
+      webView?.post { webView?.evaluateJavascript("window.dispatchEvent(new Event('$SHARE_ARRIVED_EVENT'))", null) }
+    }
   }
 
   // edge-to-edge では、WebView が画面いっぱいに広がり、ステータスバー・ナビゲーション

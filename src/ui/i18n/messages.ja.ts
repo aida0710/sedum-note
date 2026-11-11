@@ -231,6 +231,9 @@ export const japaneseMessages = {
   "wipe.confirmLocalOnly": "このデバイスのデータをすべて消しますか？ 同期を設定していないので、{count} 件のメモとノートブックは、バックアップが無ければ元に戻せません。",
   "wipe.confirmLabel": "すべて消す",
 
+  "share.untitled": "共有されたメモ",
+  "share.fileTooLarge": "（{name} は大きすぎて添付できませんでした）",
+
   "mobile.notes": "メモ",
   "mobile.notebooks": "ノートブック",
   "mobile.bookmarked": "お気に入り",
