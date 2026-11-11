@@ -6,11 +6,14 @@ import { base64ToBytes } from "../../core/crypto/base64";
 // MainActivity.kt の SHARE_BRIDGE_NAME・SHARE_ARRIVED_EVENT と揃える。
 const SHARE_BRIDGE_NAME = "SedumNoteShare";
 const SHARE_ARRIVED_EVENT = "sedum-note-share";
+// 読めなかったファイルの印。SharedContentBridge.kt の UNREADABLE_FILE_MARK と揃える。
+const UNREADABLE_FILE_MARK = "!";
 // 1 回に読む大きさ。Base64 の文字列として WebView へ渡るので、大きくしすぎない。
 const FILE_CHUNK_BYTES = 1024 * 1024;
 
 type NativeShareBridge = {
   describePendingShare: () => string;
+  // Base64 の文字列。終わりに達したら空、読めなかったときは UNREADABLE_FILE_MARK。
   readPendingFileChunk: (fileIndex: number, offset: number, length: number) => string;
   clearPendingShare: () => void;
 };
@@ -20,7 +23,7 @@ export type SharedFile = {
   mimeType: string;
   // 共有元が大きさを教えないこともある。そのときは null。
   byteLength: number | null;
-  // 中身を読む。maxBytes を超えたら null（読みかけは捨てる）。
+  // 中身を読む。共有元から読めないときと、maxBytes を超えたときは null（読みかけは捨てる）。
   read: (maxBytes: number) => Uint8Array | null;
 };
 
@@ -53,7 +56,11 @@ function readSharedFile(bridge: NativeShareBridge, fileIndex: number, maxBytes: 
   const chunks: Uint8Array[] = [];
   let byteLength = 0;
   for (;;) {
-    const chunk = base64ToBytes(bridge.readPendingFileChunk(fileIndex, byteLength, FILE_CHUNK_BYTES));
+    const encodedChunk = bridge.readPendingFileChunk(fileIndex, byteLength, FILE_CHUNK_BYTES);
+    if (encodedChunk === UNREADABLE_FILE_MARK) {
+      return null;
+    }
+    const chunk = base64ToBytes(encodedChunk);
     if (chunk.length === 0) {
       break;
     }

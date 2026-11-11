@@ -47,7 +47,7 @@ describe("共有から受け取った中身", () => {
     expect([repository.note(fromText)!.content.title, repository.note(fromFile)!.content.title]).toEqual(["買う物", "scan.pdf"]);
   });
 
-  it("写真は本文に表示する添付に、ほかのファイルはファイルの添付にする。読めないほど大きいものは本文に書く", async () => {
+  it("写真は本文に表示する添付に、ほかのファイルはファイルの添付にする。添付できなかったものは本文に書く", async () => {
     const repository = await newRepository();
     const noteId = await createNoteFromSharedContent(repository, {
       subject: "",

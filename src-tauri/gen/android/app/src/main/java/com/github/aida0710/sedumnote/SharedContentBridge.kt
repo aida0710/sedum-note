@@ -11,6 +11,9 @@ import java.io.InputStream
 import org.json.JSONArray
 import org.json.JSONObject
 
+// 読めなかったファイルの印。Base64 に出てこない文字にする。src/ui/platform/sharedContent.ts と揃える。
+private const val UNREADABLE_FILE_MARK = "!"
+
 // ほかのアプリの「共有」で受け取った文字とファイルを、画面（WebView）へ渡す窓口。
 //
 // 受け取った文字とファイルの場所は、メモリにだけ持つ。メモはロックを解除するまで暗号化
@@ -37,7 +40,7 @@ class SharedContentBridge(private val contentResolver: ContentResolver) {
     pendingShare = PendingShare(
       subject = intent.getStringExtra(Intent.EXTRA_SUBJECT).orEmpty(),
       text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString().orEmpty(),
-      files = uris.map(::describeFile),
+      files = uris.map { uri -> describeFile(uri, intent.type) },
     )
     return true
   }
@@ -55,22 +58,29 @@ class SharedContentBridge(private val contentResolver: ContentResolver) {
   }
 
   // ファイルの offset から最大 length バイトを Base64 で返す。終わりに達したら空の文字列。
+  // 読めなかったとき（共有元が読む許可を付けていない、ファイルが消えた、など）は UNREADABLE_FILE_MARK。
+  // null は、画面側では null にならない（undefined で届く）ので、文字列の印で伝える。
   @JavascriptInterface
   @Synchronized
   fun readPendingFileChunk(fileIndex: Int, offset: Double, length: Int): String {
-    val file = pendingShare?.files?.getOrNull(fileIndex) ?: return ""
-    val stream = streamAt(fileIndex, file, offset.toLong()) ?: return ""
-    val buffer = ByteArray(length)
-    var filled = 0
-    while (filled < length) {
-      val read = stream.stream.read(buffer, filled, length - filled)
-      if (read < 0) {
-        break
+    val file = pendingShare?.files?.getOrNull(fileIndex) ?: return UNREADABLE_FILE_MARK
+    return try {
+      val stream = streamAt(fileIndex, file, offset.toLong()) ?: return UNREADABLE_FILE_MARK
+      val buffer = ByteArray(length)
+      var filled = 0
+      while (filled < length) {
+        val read = stream.stream.read(buffer, filled, length - filled)
+        if (read < 0) {
+          break
+        }
+        filled += read
       }
-      filled += read
+      stream.position += filled
+      Base64.encodeToString(buffer, 0, filled, Base64.NO_WRAP)
+    } catch (error: Exception) {
+      closeOpenFile()
+      UNREADABLE_FILE_MARK
     }
-    stream.position += filled
-    return Base64.encodeToString(buffer, 0, filled, Base64.NO_WRAP)
   }
 
   @JavascriptInterface
@@ -101,22 +111,29 @@ class SharedContentBridge(private val contentResolver: ContentResolver) {
     openFile = null
   }
 
-  private fun describeFile(uri: Uri): SharedFile {
+  // 名前・大きさ・種類は共有元に聞く。答えない共有元もあるので、分からない項目は既定の値にする。
+  private fun describeFile(uri: Uri, intentType: String?): SharedFile {
     var fileName = uri.lastPathSegment ?: "file"
-    // 大きさが分からない共有元もある。そのときは -1。
+    // 大きさが分からないときは -1。
     var byteLength = -1L
-    contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { cursor ->
-      if (cursor.moveToFirst()) {
-        val nameColumn = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-        val sizeColumn = cursor.getColumnIndex(OpenableColumns.SIZE)
-        if (nameColumn >= 0 && !cursor.isNull(nameColumn)) {
-          fileName = cursor.getString(nameColumn)
-        }
-        if (sizeColumn >= 0 && !cursor.isNull(sizeColumn)) {
-          byteLength = cursor.getLong(sizeColumn)
+    try {
+      contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+        if (cursor.moveToFirst()) {
+          val nameColumn = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+          val sizeColumn = cursor.getColumnIndex(OpenableColumns.SIZE)
+          if (nameColumn >= 0 && !cursor.isNull(nameColumn)) {
+            fileName = cursor.getString(nameColumn)
+          }
+          if (sizeColumn >= 0 && !cursor.isNull(sizeColumn)) {
+            byteLength = cursor.getLong(sizeColumn)
+          }
         }
       }
+    } catch (error: Exception) {
+      // 読めない共有元。中身を読むときに、あらためて読めないことが分かる。
     }
-    return SharedFile(uri, fileName, contentResolver.getType(uri) ?: "application/octet-stream", byteLength)
+    // 共有元が種類を答えなければ、Intent に書かれた種類を使う（image/* のような範囲の指定は使えない）。
+    val mimeType = contentResolver.getType(uri) ?: intentType?.takeUnless { it.contains('*') } ?: "application/octet-stream"
+    return SharedFile(uri, fileName, mimeType, byteLength)
   }
 }

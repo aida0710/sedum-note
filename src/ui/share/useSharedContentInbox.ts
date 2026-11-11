@@ -20,8 +20,9 @@ export function useSharedContentInbox(repository: NoteRepository, openNote: (not
       receiving = true;
       try {
         openNoteRef.current(await createNoteFromSharedContent(repository, shared));
-        clearPendingSharedContent();
       } finally {
+        // メモにできなかったときも忘れる。残すと、ロックを解除するたびに同じ失敗を繰り返す。
+        clearPendingSharedContent();
         receiving = false;
       }
     };

@@ -241,7 +241,7 @@ export const japaneseMessages = {
   "wipe.confirmLabel": "すべて消す",
 
   "share.untitled": "共有されたメモ",
-  "share.fileTooLarge": "（{name} は大きすぎて添付できませんでした）",
+  "share.fileNotAttached": "（{name} は添付できませんでした。大きすぎるか、共有元から読めません）",
 
   "mobile.notes": "メモ",
   "mobile.notebooks": "ノートブック",

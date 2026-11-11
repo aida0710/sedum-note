@@ -242,7 +242,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "wipe.confirmLabel": "Erase everything",
 
   "share.untitled": "Shared note",
-  "share.fileTooLarge": "({name} was too large to attach)",
+  "share.fileNotAttached": "({name} could not be attached: it is too large, or the sharing app did not let it be read)",
 
   "mobile.notes": "Notes",
   "mobile.notebooks": "Notebooks",

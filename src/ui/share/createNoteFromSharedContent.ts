@@ -47,11 +47,11 @@ function paragraphWithLinks(line: string): JSONContent {
   return { type: "paragraph", content };
 }
 
-// 大きすぎて添付できないファイルは、その旨を本文に書く（黙って落とさない）。
+// 添付できないファイル（大きすぎる、共有元から読めない）は、その旨を本文に書く（黙って落とさない）。
 async function attachmentBlock(repository: NoteRepository, file: SharedFile): Promise<JSONContent> {
   const bytes = file.byteLength !== null && file.byteLength > MAX_ATTACHMENT_BYTES ? null : file.read(MAX_ATTACHMENT_BYTES);
   if (bytes === null) {
-    return { type: "paragraph", content: [{ type: "text", text: translate("share.fileTooLarge", { name: file.fileName }) }] };
+    return { type: "paragraph", content: [{ type: "text", text: translate("share.fileNotAttached", { name: file.fileName }) }] };
   }
   const reference = await repository.storeAttachment({ bytes, mimeType: file.mimeType, fileName: file.fileName });
   return {
