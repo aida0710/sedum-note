@@ -1,6 +1,7 @@
 // テーマの色と本文の文字の大きさを、CSS の変数として画面に入れる。色の値はここからだけ入る
 // （app.css は変数を使うだけで、テーマの色を持たない）。
 
+import { applySystemBarColors } from "../platform/systemBars";
 import type { EditorFontSize } from "../preferences/devicePreferences";
 import { readableTextColorOn } from "./colorContrast";
 import { THEME_COLOR_NAMES, type Theme, type ThemeColorName, type ThemeColors } from "./themeColors";
@@ -31,5 +32,7 @@ export function applyAppearance({ theme, editorFontSize }: { theme: Theme; edito
     root.style.setProperty(name, value);
   }
   root.style.colorScheme = theme.scheme;
+  // スマホの組み方で画面の上下の端に来る色（メモの地）を、システムバーの所にも当てる。
+  applySystemBarColors({ backgroundColor: theme.colors.panel, isDark: theme.scheme === "dark" });
   root.style.setProperty("--editor-font-size", `${EDITOR_FONT_SIZE_PIXELS[editorFontSize]}px`);
 }

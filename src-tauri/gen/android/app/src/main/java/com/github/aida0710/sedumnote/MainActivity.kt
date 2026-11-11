@@ -10,6 +10,8 @@ import androidx.core.view.WindowInsetsCompat
 
 // 画面（WebView）から共有の窓口を呼ぶときの名前。src/ui/platform/sharedContent.ts と揃える。
 private const val SHARE_BRIDGE_NAME = "SedumNoteShare"
+// 画面からシステムバーの色の窓口を呼ぶときの名前。src/ui/platform/systemBars.ts と揃える。
+private const val SYSTEM_BARS_BRIDGE_NAME = "SedumNoteSystemBars"
 // 共有を受け取ったことを画面へ知らせるイベントの名前。同じく揃える。
 private const val SHARE_ARRIVED_EVENT = "sedum-note-share"
 
@@ -31,6 +33,7 @@ class MainActivity : TauriActivity() {
   override fun onWebViewCreate(webView: WebView) {
     this.webView = webView
     webView.addJavascriptInterface(sharedContent, SHARE_BRIDGE_NAME)
+    webView.addJavascriptInterface(SystemBarsBridge(this), SYSTEM_BARS_BRIDGE_NAME)
   }
 
   // アプリを開いたまま、ほかのアプリから共有されたとき。
