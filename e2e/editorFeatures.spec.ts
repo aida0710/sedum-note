@@ -3,7 +3,10 @@ import { newTestRemoteConfig } from "../integration/testStorage";
 import { openSyncedDevice, PHONE_VIEWPORT, startLocalVault, syncNowOnDesktop } from "./devices";
 
 async function newNote(page: Page, title: string): Promise<void> {
+  const tabsBefore = await page.getByRole("tab").count();
   await page.getByRole("button", { name: "新しいメモ" }).click();
+  // 新しいメモのタブが開いてから打つ。早すぎると、前に開いていたメモのタイトル欄に入る。
+  await expect(page.getByRole("tab")).toHaveCount(tabsBefore + 1);
   await page.getByPlaceholder("タイトル").fill(title);
   await page.getByPlaceholder("タイトル").press("Enter");
 }
