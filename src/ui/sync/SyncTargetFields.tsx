@@ -13,9 +13,13 @@ const MAX_FOLDERS_SHOWN = 5;
 
 type SyncTargetFieldsProps = {
   form: SyncTargetForm;
-  // 既存のメモが、このデバイスのメモと同じものか（設定の画面で、つなぎ直すとき）。同じなら、暗号化キーは要らない。
+  // 設定の画面（このデバイスに既にメモがある）で使うときに渡す。確かめた既存のメモが、このデバイスのメモと
+  // 同じものかを返す。同じなら暗号化キーは要らず、別のものなら同期先にできない。
   isOwnVault?: (check: SyncTargetCheck) => boolean;
 };
+
+// 確かめた既存のメモと、このデバイスとの関係。
+type ExistingVaultRelation = "join" | "own" | "other";
 
 export function SyncTargetFields({ form, isOwnVault }: SyncTargetFieldsProps) {
   const { checked } = form;
@@ -31,15 +35,18 @@ export function SyncTargetFields({ form, isOwnVault }: SyncTargetFieldsProps) {
           {translate("syncTarget.check")}
         </button>
       </div>
-      {checked && <SyncTargetResult form={form} checked={checked} ownVault={isOwnVault?.(checked) ?? false} />}
+      {checked && <SyncTargetResult form={form} checked={checked} relation={isOwnVault === undefined ? "join" : isOwnVault(checked) ? "own" : "other"} />}
     </>
   );
 }
 
-function SyncTargetResult({ form, checked, ownVault }: { form: SyncTargetForm; checked: SyncTargetCheck; ownVault: boolean }) {
+function SyncTargetResult({ form, checked, relation }: { form: SyncTargetForm; checked: SyncTargetCheck; relation: ExistingVaultRelation }) {
   const { inspected } = checked;
   if (inspected.state === "incomplete") {
     return <div className="form-error" role="alert">{translate("syncTarget.incomplete")}</div>;
+  }
+  if (inspected.state === "existing" && relation === "other") {
+    return <div className="form-error" role="alert">{translate("syncTarget.otherVault")}</div>;
   }
   if (inspected.state === "existing") {
     const legacy = inspected.keyWrapping === "passphrase";
@@ -50,7 +57,7 @@ function SyncTargetResult({ form, checked, ownVault }: { form: SyncTargetForm; c
             ? translate("syncTarget.existingInFoundFolder", { folder: checked.remoteConfig.prefix })
             : translate("syncTarget.existing")}
         </p>
-        {ownVault ? <p className="hint">{translate("syncTarget.ownVault")}</p> : (
+        {relation === "own" ? <p className="hint">{translate("syncTarget.ownVault")}</p> : (
           <div className="field">
             <label htmlFor="sync-key">{translate(legacy ? "syncTarget.legacyPassphrase" : "syncTarget.syncKey")}</label>
             <input id="sync-key" type="password" value={form.syncKey} onChange={(event) => form.setSyncKey(event.target.value)} autoComplete="off" spellCheck={false} />

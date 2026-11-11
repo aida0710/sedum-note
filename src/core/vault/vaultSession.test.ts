@@ -4,9 +4,10 @@ import { newRandomId } from "../crypto/randomId";
 import { IndexedDbLocalStore } from "../local/indexedDbLocalStore";
 import { AppUpdateRequiredError } from "../notes/bodySchema";
 import { MemoryObjectStore } from "../remote/memoryObjectStore";
+import { type ObjectStore, ObjectStoreError } from "../remote/objectStore";
 import type { RemoteConfig } from "../remote/remoteConfig";
 import { readRemoteVault, writeRemoteVault } from "./remoteVault";
-import { findVaultFolders, inspectSyncTarget, SyncTargetChangedError, SyncTargetIncompleteError } from "./syncTarget";
+import { checkSyncTarget, findVaultFolders, inspectSyncTarget, SyncTargetChangedError, SyncTargetIncompleteError } from "./syncTarget";
 import { keyWrappingOf, type VaultDocument, WrongPassphraseError, WrongSyncKeyError } from "./vaultDocument";
 import {
   changePassphrase,
@@ -299,14 +300,7 @@ describe("同期先の確認", () => {
     const bucket = new MemoryObjectStore();
     const inFolder = (folder: string): VaultSessionEnvironment => ({
       localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`),
-      createObjectStore: () => ({
-        list: (prefix) => bucket.list(`${folder}/${prefix}`),
-        hasObjectsUnder: (prefix) => bucket.hasObjectsUnder(`${folder}/${prefix}`),
-        listFolders: (prefix, maxCount) => bucket.listFolders(`${folder}/${prefix}`, maxCount),
-        get: (key) => bucket.get(`${folder}/${key}`),
-        put: (key, body, condition) => bucket.put(`${folder}/${key}`, body, condition),
-        delete: (key) => bucket.delete(`${folder}/${key}`),
-      }),
+      createObjectStore: () => storeUnder(bucket, folder),
     });
     expect(await findVaultFolders(bucket)).toEqual([]);
     await createSyncedVault(inFolder("notes"), { passphrase: "correct horse battery", remoteConfig });
@@ -316,4 +310,45 @@ describe("同期先の確認", () => {
     await bucket.put("other/vault.json", new TextEncoder().encode("{}"), { ifAbsent: true });
     expect(await findVaultFolders(bucket)).toEqual(["notes", "work"]);
   });
+
+  it("フォルダを入れずに確かめると、1 か所だけ見つかった既存のメモを同期先にする。2 か所以上なら候補として返す", async () => {
+    const bucket = new MemoryObjectStore();
+    const inBucket = (config: RemoteConfig) => storeUnder(bucket, config.prefix);
+    await createSyncedVault({ localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: inBucket }, { passphrase: "correct horse battery", remoteConfig: { ...remoteConfig, prefix: "notes" } });
+    const single = await checkSyncTarget(inBucket, { ...remoteConfig, prefix: "" });
+    expect(single).toMatchObject({ foundFolderAutomatically: true, remoteConfig: { prefix: "notes" }, inspected: { state: "existing" } });
+
+    await createSyncedVault({ localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: inBucket }, { passphrase: "correct horse battery", remoteConfig: { ...remoteConfig, prefix: "work" } });
+    const several = await checkSyncTarget(inBucket, { ...remoteConfig, prefix: "" });
+    expect(several).toMatchObject({ foundFolderAutomatically: false, inspected: { state: "empty" }, otherVaultFolders: ["notes", "work"] });
+    // フォルダを入力して確かめたときは、入れ替えずに、ほかの場所を候補として返す。
+    const typed = await checkSyncTarget(inBucket, { ...remoteConfig, prefix: "new-place" });
+    expect(typed).toMatchObject({ foundFolderAutomatically: false, remoteConfig: { prefix: "new-place" }, otherVaultFolders: ["notes", "work"] });
+  });
+
+  it("アクセスキーがバケットの直下を見られなくても、入力したフォルダは確かめられ、そこに作れる", async () => {
+    const bucket = new MemoryObjectStore();
+    const scopedToFolder = (config: RemoteConfig) => {
+      if (config.prefix === "") {
+        const refuse = () => Promise.reject(new ObjectStoreError("forbidden", "the key cannot list the bucket root"));
+        return { list: refuse, hasObjectsUnder: refuse, listFolders: refuse, get: refuse, put: refuse, delete: refuse };
+      }
+      return storeUnder(bucket, config.prefix);
+    };
+    const checked = await checkSyncTarget(scopedToFolder, { ...remoteConfig, prefix: "mine" });
+    expect(checked).toMatchObject({ inspected: { state: "empty" }, otherVaultFolders: [], foundFolderAutomatically: false });
+  });
 });
+
+// バケットの中の 1 つのフォルダだけを見せる ObjectStore（S3ObjectStore の prefix と同じ働き）。
+function storeUnder(bucket: MemoryObjectStore, folder: string): ObjectStore {
+  const base = folder === "" ? "" : `${folder}/`;
+  return {
+    list: async (prefix) => (await bucket.list(base + prefix)).map((object) => ({ ...object, key: object.key.slice(base.length) })),
+    hasObjectsUnder: (prefix) => bucket.hasObjectsUnder(base + prefix),
+    listFolders: (prefix, maxCount) => bucket.listFolders(base + prefix, maxCount),
+    get: (key) => bucket.get(base + key),
+    put: (key, body, condition) => bucket.put(base + key, body, condition),
+    delete: (key) => bucket.delete(base + key),
+  };
+}

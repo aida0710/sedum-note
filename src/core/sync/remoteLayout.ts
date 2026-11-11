@@ -1,6 +1,6 @@
 // 同期先（バケットの prefix の下）に置くオブジェクトの名前。
 //
-//   vault.json       パスフレーズで包んだマスターキー（vault/vaultDocument.ts）
+//   vault.json       暗号化キーで包んだマスターキー（vault/vaultDocument.ts）。v0.2 までの同期先ではパスフレーズで包んである
 //   records/<id>     メモ・ノートブック 1 件の暗号文
 //   blobs/<id>       添付（写真など）1 件の暗号文。一度置いたら変えない
 

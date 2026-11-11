@@ -1,7 +1,7 @@
 // 同期先の今の状態を確かめる。設定を保存する前に、何がそこにあるかを見て、それに合った手順（新しく作る・
 // 既存のメモに参加する）を選ぶ。sshc の同期の設定と同じ考え方で、確かめたあとに同期先が変わっていたら保存しない。
 
-import type { ObjectStore } from "../remote/objectStore";
+import { type ObjectStore, ObjectStoreError } from "../remote/objectStore";
 import { normalizePrefix, type RemoteConfig } from "../remote/remoteConfig";
 import { RECORDS_PREFIX, VAULT_OBJECT_KEY } from "../sync/remoteLayout";
 import { readRemoteVault } from "./remoteVault";
@@ -73,6 +73,19 @@ export async function findVaultFolders(bucketRoot: ObjectStore): Promise<string[
   return found.filter((folder) => folder !== null);
 }
 
+// フォルダ探しは、参加を楽にするための付け足し。アクセスキーが 1 つのフォルダにしか届かない設定では、
+// バケットの直下を見られない。そのときは、見つからなかったことにして、入力した場所に作れるようにする。
+async function findVaultFoldersIfAllowed(bucketRoot: ObjectStore): Promise<string[]> {
+  try {
+    return await findVaultFolders(bucketRoot);
+  } catch (error) {
+    if (error instanceof ObjectStoreError) {
+      return [];
+    }
+    throw error;
+  }
+}
+
 export type SyncTargetCheck = {
   // 確かめた同期先（フォルダを見つけて入れ替えたときは、入れ替えたあとのもの）。
   remoteConfig: RemoteConfig;
@@ -91,7 +104,7 @@ export async function checkSyncTarget(createObjectStore: (config: RemoteConfig) 
     return { remoteConfig, inspected, otherVaultFolders: [], foundFolderAutomatically: false };
   }
   const typedFolder = normalizePrefix(remoteConfig.prefix);
-  const otherVaultFolders = (await findVaultFolders(createObjectStore({ ...remoteConfig, prefix: "" }))).filter((folder) => folder !== typedFolder);
+  const otherVaultFolders = (await findVaultFoldersIfAllowed(createObjectStore({ ...remoteConfig, prefix: "" }))).filter((folder) => folder !== typedFolder);
   const [onlyFolder] = otherVaultFolders;
   if (typedFolder === "" && otherVaultFolders.length === 1 && onlyFolder !== undefined) {
     const found = { ...remoteConfig, prefix: onlyFolder };

@@ -102,7 +102,7 @@ test("同期なしで始めたあと、設定で同期先を足せる。暗号�
   await laptop.locator(".sync-line").click();
   const keySection = laptop.locator(".settings-section", { has: laptop.getByRole("heading", { name: "暗号化キー", exact: true }) });
   await keySection.getByLabel("このデバイスのパスフレーズ").fill("wrong horse battery");
-  await keySection.getByLabel("前の暗号化キーでは参加できなくなることを確かめました").check();
+  await keySection.getByLabel("前の暗号化キーでは参加できなくなること、メモは暗号化し直さないことを確かめました").check();
   await keySection.getByRole("button", { name: "暗号化キーを作り直す" }).click();
   await expect(keySection.getByRole("alert")).toContainText("パスフレーズが違います");
   await keySection.getByLabel("このデバイスのパスフレーズ").fill(PASSPHRASE);
