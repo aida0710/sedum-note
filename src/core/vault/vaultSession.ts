@@ -69,7 +69,7 @@ export type DeviceDataSummary = {
 
 // このデバイスにあるデータの量。消す前の確認に出す。ロック中でも分かる範囲だけを返す。
 export async function summarizeDeviceData(localStore: LocalStore): Promise<DeviceDataSummary> {
-  const entries = await localStore.listRecordEntries();
+  const entries = await localStore.listRecordStates();
   return {
     recordCount: entries.length,
     waitingForPushCount: entries.filter((entry) => entry.waitingForPush).length,

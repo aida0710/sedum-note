@@ -1,4 +1,4 @@
-// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認、ゴミ箱の自動削除、目次を出すか）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
@@ -16,6 +16,9 @@ export const SYSTEM_THEME_ID = "system";
 export const EDITOR_FONT_SIZES = ["small", "medium", "large"] as const;
 export type EditorFontSize = (typeof EDITOR_FONT_SIZES)[number];
 
+export const IMAGE_ATTACHMENT_CHOICES = ["original", "reduced", "ask"] as const;
+export type ImageAttachmentChoice = (typeof IMAGE_ATTACHMENT_CHOICES)[number];
+
 export type DevicePreferences = {
   language: LanguageChoice;
   noteSortOrder: NoteSortOrder;
@@ -29,6 +32,8 @@ export type DevicePreferences = {
   trashRetentionDays: number | null;
   // PC の画面で、本文の横に目次を出すか。
   showOutline: boolean;
+  // 写真を貼るときに、小さくするか。ask は貼るたびに聞く。
+  imageAttachment: ImageAttachmentChoice;
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
@@ -40,6 +45,7 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   checkForUpdates: true,
   trashRetentionDays: null,
   showOutline: false,
+  imageAttachment: "original",
 };
 
 let current: DevicePreferences | null = null;
@@ -104,6 +110,7 @@ function validPreferences(stored: unknown): DevicePreferences {
     checkForUpdates: typeof candidate.checkForUpdates === "boolean" ? candidate.checkForUpdates : DEFAULT_DEVICE_PREFERENCES.checkForUpdates,
     trashRetentionDays: isTrashRetentionDays(candidate.trashRetentionDays) ? candidate.trashRetentionDays : DEFAULT_DEVICE_PREFERENCES.trashRetentionDays,
     showOutline: typeof candidate.showOutline === "boolean" ? candidate.showOutline : DEFAULT_DEVICE_PREFERENCES.showOutline,
+    imageAttachment: IMAGE_ATTACHMENT_CHOICES.find((choice) => choice === candidate.imageAttachment) ?? DEFAULT_DEVICE_PREFERENCES.imageAttachment,
   };
 }
 

@@ -1,18 +1,22 @@
 #[cfg(desktop)]
 mod mcp_gateway;
+#[cfg(desktop)]
+mod printing;
 #[cfg(all(desktop, feature = "update-rehearsal"))]
 mod update_rehearsal;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   let builder = tauri::Builder::default();
-  // MCP の窓口はデスクトップだけ（Android のアプリは、裏に回ると止められるので窓口を開けない）。
+  // 画面から呼ぶコマンドは、デスクトップにだけある（MCP の窓口と印刷）。Android のアプリは、裏に回ると
+  // 止められるので窓口を開けず、印刷の画面を出す手段も無い。
   #[cfg(desktop)]
   let builder = builder.manage(mcp_gateway::McpGatewayState::default()).invoke_handler(tauri::generate_handler![
     mcp_gateway::mcp_start,
     mcp_gateway::mcp_stop,
     mcp_gateway::mcp_running_port,
-    mcp_gateway::mcp_respond
+    mcp_gateway::mcp_respond,
+    printing::print_window
   ]);
   builder
     .plugin(tauri_plugin_dialog::init())

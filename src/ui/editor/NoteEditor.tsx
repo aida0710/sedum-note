@@ -10,7 +10,8 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { useMarkdownExport } from "../markdown/useMarkdownExport";
-import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
+import { printPage } from "../platform/printPage";
+import { readDevicePreferences, updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { useDialogs } from "../shared/DialogProvider";
 import { PopupMenu } from "../shared/PopupMenu";
 import { useAsyncAction } from "../shared/useAsyncAction";
@@ -24,6 +25,7 @@ import { NoteActionsMenu } from "./NoteActionsMenu";
 import { NoteHistoryDialog } from "./NoteHistoryDialog";
 import { NoteLinkPicker } from "./NoteLinkPicker";
 import { NoteOutline } from "./NoteOutline";
+import { REDUCED_IMAGE_MAX_EDGE } from "./reduceImage";
 import { NoteLinkTargetsContext } from "./noteLinkTargets";
 import { SlashMenu } from "./SlashMenu";
 import { SlashMenuController } from "./slashMenuController";
@@ -73,7 +75,21 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
   }, [noteId]);
 
   const exportMarkdown = useMarkdownExport(repository);
-  const attach = useAsyncAction((files: File[]) => (editor ? attachFiles({ files, editor, repository }) : Promise.resolve()));
+  const print = useAsyncAction(printPage);
+  const attach = useAsyncAction(async (files: File[]) => {
+    if (!editor) {
+      return;
+    }
+    // 写真を小さくするかは設定で決まる。「毎回聞く」なら、写真が入っているときに 1 回だけ聞く。
+    const { imageAttachment } = readDevicePreferences();
+    const reduceImages = imageAttachment === "ask" && files.some((file) => file.type.startsWith("image/"))
+      ? await dialogs.confirm({
+        message: translate("editor.reduceImageQuestion", { edge: REDUCED_IMAGE_MAX_EDGE }),
+        confirmLabel: translate("editor.reduceImage"), cancelLabel: translate("editor.keepOriginalImage"),
+      })
+      : imageAttachment === "reduced";
+    await attachFiles({ files, reduceImages, editor, repository });
+  });
   // 貼り付け・ドロップにファイルが含まれていれば、添付として受け取る（true を返すと、エディタの既定の処理を止める）。
   function takeFiles(files: File[]): boolean {
     if (files.length === 0 || !editor) {
@@ -205,8 +221,8 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
               </span>
             </div>
           )}
-          {(attach.errorMessage ?? exportMarkdown.errorMessage) && (
-            <div className="form-error" role="alert">{attach.errorMessage ?? exportMarkdown.errorMessage}</div>
+          {(attach.errorMessage ?? exportMarkdown.errorMessage ?? print.errorMessage) && (
+            <div className="form-error" role="alert">{attach.errorMessage ?? exportMarkdown.errorMessage ?? print.errorMessage}</div>
           )}
           <div className="document-meta">
             {noteNotebooks.map((notebook) => (
@@ -250,6 +266,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
       {menuAnchor && (
         <NoteActionsMenu anchor={menuAnchor} note={note} notebooks={notebooks} repository={repository}
           onFind={() => setFindBarOpen(true)}
+          onPrint={() => void print.run(undefined)}
           onShowHistory={() => setShowingHistory(true)} onExportMarkdown={() => void exportMarkdown.run([note])} onClose={() => setMenuAnchor(null)} />
       )}
       {showingHistory && (

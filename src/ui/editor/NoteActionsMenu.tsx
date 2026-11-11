@@ -1,9 +1,10 @@
-// メモの「…」メニュー: ピン留め、ノートブックの付け外し、テンプレートにする、メモの中の検索、履歴、Markdown での書き出し、ゴミ箱。
+// メモの「…」メニュー: ピン留め、ノートブックの付け外し、テンプレートにする、メモの中の検索、履歴、Markdown での書き出し、印刷、ゴミ箱。
 
-import { Check, FileDown, History, LayoutTemplate, Pin, PinOff, Search, Trash2 } from "lucide-react";
+import { Check, FileDown, History, LayoutTemplate, Pin, PinOff, Printer, Search, Trash2 } from "lucide-react";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
+import { isPrintAvailable } from "../platform/printPage";
 import { PopupMenu } from "../shared/PopupMenu";
 
 type NoteActionsMenuProps = {
@@ -12,12 +13,13 @@ type NoteActionsMenuProps = {
   notebooks: LiveNotebook[];
   repository: NoteRepository;
   onFind: () => void;
+  onPrint: () => void;
   onShowHistory: () => void;
   onExportMarkdown: () => void;
   onClose: () => void;
 };
 
-export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onShowHistory, onExportMarkdown, onClose }: NoteActionsMenuProps) {
+export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onShowHistory, onExportMarkdown, onClose }: NoteActionsMenuProps) {
   const { content } = note;
   const toggleNotebook = (notebookId: string) => {
     const notebookIds = content.notebookIds.includes(notebookId)
@@ -60,6 +62,11 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
       <button className="menu-item" role="menuitem" onClick={() => { onClose(); onExportMarkdown(); }}>
         <FileDown size={15} />{translate("editor.exportMarkdown")}
       </button>
+      {isPrintAvailable() && (
+        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onPrint(); }}>
+          <Printer size={15} />{translate("editor.print")}
+        </button>
+      )}
       <button className="menu-item danger" role="menuitem" onClick={runAndClose(() => repository.moveNoteToTrash(note.id))}>
         <Trash2 size={15} />{translate("editor.moveToTrash")}
       </button>

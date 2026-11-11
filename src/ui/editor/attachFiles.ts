@@ -7,6 +7,7 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { UserFacingError } from "../i18n/userFacingError";
 import { formatByteSize } from "../shared/formatByteSize";
+import { reduceImageFile } from "./reduceImage";
 
 // 添付 1 件の上限。添付は 1 件を丸ごとメモリに載せて暗号化し、1 回の PUT で送るので、
 // スマホの WebView でも扱える大きさに抑える。
@@ -14,12 +15,15 @@ export const MAX_ATTACHMENT_BYTES = 100 * 1024 * 1024;
 
 type AttachFilesInput = {
   files: File[];
+  // 写真を小さくしてから添付するか。
+  reduceImages: boolean;
   editor: Editor;
   repository: NoteRepository;
 };
 
-export async function attachFiles({ files, editor, repository }: AttachFilesInput): Promise<void> {
-  for (const file of files) {
+export async function attachFiles({ files, reduceImages, editor, repository }: AttachFilesInput): Promise<void> {
+  for (const pickedFile of files) {
+    const file = reduceImages ? await reduceImageFile(pickedFile) : pickedFile;
     if (file.size > MAX_ATTACHMENT_BYTES) {
       throw new UserFacingError(translate("editor.fileTooLarge", { name: file.name, limit: formatByteSize(MAX_ATTACHMENT_BYTES) }));
     }

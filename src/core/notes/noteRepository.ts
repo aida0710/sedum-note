@@ -284,7 +284,15 @@ export class NoteRepository {
 
   async entriesWaitingForPush(): Promise<LocalRecordEntry[]> {
     await this.flush();
-    return (await this.#dependencies.localStore.listRecordEntries()).filter((entry) => entry.waitingForPush);
+    const { localStore } = this.#dependencies;
+    const waiting: LocalRecordEntry[] = [];
+    for (const state of await localStore.listRecordStates()) {
+      const entry = state.waitingForPush ? await localStore.getRecordEntry(state.id) : undefined;
+      if (entry) {
+        waiting.push(entry);
+      }
+    }
+    return waiting;
   }
 
   // 同期先の記録を取り込む。開けなければ InvalidRecordError か SealedBoxError を投げる。

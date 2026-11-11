@@ -4,12 +4,13 @@
 import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
 import { translate } from "../i18n/translate";
 
-type ConfirmRequest = { kind: "confirm"; message: string; confirmLabel: string; danger: boolean; resolve: (accepted: boolean) => void };
+type ConfirmRequest = { kind: "confirm"; message: string; confirmLabel: string; cancelLabel: string; danger: boolean; resolve: (accepted: boolean) => void };
 type PromptRequest = { kind: "prompt"; message: string; initialValue: string; resolve: (value: string | null) => void };
 type DialogRequest = ConfirmRequest | PromptRequest;
 
 export type Dialogs = {
-  confirm: (input: { message: string; confirmLabel: string; danger?: boolean }) => Promise<boolean>;
+  // cancelLabel を渡すと、2 つの選択肢から選ぶ問いにできる（既定は「キャンセル」）。
+  confirm: (input: { message: string; confirmLabel: string; cancelLabel?: string; danger?: boolean }) => Promise<boolean>;
   prompt: (input: { message: string; initialValue?: string }) => Promise<string | null>;
 };
 
@@ -26,8 +27,8 @@ export function useDialogs(): Dialogs {
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [request, setRequest] = useState<DialogRequest | null>(null);
   const confirm = useCallback<Dialogs["confirm"]>(
-    ({ message, confirmLabel, danger = false }) =>
-      new Promise((resolve) => setRequest({ kind: "confirm", message, confirmLabel, danger, resolve })),
+    ({ message, confirmLabel, cancelLabel = translate("common.cancel"), danger = false }) =>
+      new Promise((resolve) => setRequest({ kind: "confirm", message, confirmLabel, cancelLabel, danger, resolve })),
     [],
   );
   const prompt = useCallback<Dialogs["prompt"]>(
@@ -62,7 +63,9 @@ function DialogView({ request, onDone }: { request: DialogRequest; onDone: () =>
           <input className="dialog-input" autoFocus value={value} onChange={(event) => setValue(event.target.value)} spellCheck={false} />
         )}
         <div className="form-actions">
-          <button type="button" className="secondary-button" onClick={() => finish(false)}>{translate("common.cancel")}</button>
+          <button type="button" className="secondary-button" onClick={() => finish(false)}>
+            {request.kind === "confirm" ? request.cancelLabel : translate("common.cancel")}
+          </button>
           <button type="submit" autoFocus={request.kind === "confirm"}
             className={request.kind === "confirm" && request.danger ? "danger-button filled" : "primary-button"}>
             {request.kind === "confirm" ? request.confirmLabel : translate("common.save")}

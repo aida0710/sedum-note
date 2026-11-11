@@ -1,9 +1,10 @@
-// 設定: このデバイスの表示（言語、メモの並び順、本文の文字の大きさ）。
+// 設定: このデバイスの表示（言語、メモの並び順、本文の文字の大きさ、写真を貼るときの大きさ）。
 
 import { NOTE_SORT_ORDERS, type NoteSortOrder } from "../../core/notes/noteQueries";
+import { REDUCED_IMAGE_MAX_EDGE } from "../editor/reduceImage";
 import { type Language } from "../i18n/languageInUse";
 import { translate } from "../i18n/translate";
-import { EDITOR_FONT_SIZES, type EditorFontSize, LANGUAGE_CHOICES, type LanguageChoice, updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
+import { EDITOR_FONT_SIZES, type EditorFontSize, IMAGE_ATTACHMENT_CHOICES, type ImageAttachmentChoice, LANGUAGE_CHOICES, type LanguageChoice, updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 
 // 言語の名前は、画面の言語に関わらずその言語で書く（読めない言語に変えても戻せるように）。
 const LANGUAGE_NAMES: Record<Language, string> = { ja: "日本語", en: "English" };
@@ -46,6 +47,17 @@ export function DisplaySection() {
         >
           {EDITOR_FONT_SIZES.map((size) => <option key={size} value={size}>{translate(`settings.editorFontSize.${size}`)}</option>)}
         </select>
+      </div>
+      <div className="field">
+        <label htmlFor="display-image-attachment">{translate("settings.imageAttachment")}</label>
+        <select
+          id="display-image-attachment"
+          value={preferences.imageAttachment}
+          onChange={(event) => updateDevicePreferences({ imageAttachment: event.target.value as ImageAttachmentChoice })}
+        >
+          {IMAGE_ATTACHMENT_CHOICES.map((choice) => <option key={choice} value={choice}>{translate(`settings.imageAttachment.${choice}`)}</option>)}
+        </select>
+        <span className="hint">{translate("settings.imageAttachmentHint", { edge: REDUCED_IMAGE_MAX_EDGE })}</span>
       </div>
     </section>
   );

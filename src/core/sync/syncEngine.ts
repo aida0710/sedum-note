@@ -119,7 +119,8 @@ export class SyncEngine {
 
   async #pullChangedRecords(remoteEtags: Map<string, string>, report: SyncReport): Promise<void> {
     const { localStore, repository } = this.#dependencies;
-    const localEntries = new Map((await localStore.listRecordEntries()).map((entry) => [entry.id, entry]));
+    // 件数が多くても軽いよう、暗号文は読まずに ETag だけを比べる。
+    const localEntries = new Map((await localStore.listRecordStates()).map((entry) => [entry.id, entry]));
     for (const [id, etag] of remoteEtags) {
       if (localEntries.get(id)?.remoteEtag === etag) {
         continue;

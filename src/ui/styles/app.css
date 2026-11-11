@@ -284,3 +284,23 @@ details summary { cursor: pointer; color: var(--accent); }
   .field-grid { grid-template-columns: minmax(0, 1fr); }
   .entry-card { padding: 20px; }
 }
+
+/* ── 印刷（PDF での保存も同じ） ─────────────────────────
+   開いているメモの本文だけを、白い紙に黒い文字で出す。テーマの色は画面のための色なので、印刷では明るい色に戻す
+   （色は theme/applyAppearance.ts が要素に直接入れているので、!important で上書きする）。 */
+@media print {
+  :root {
+    --canvas: #ffffff !important; --panel: #ffffff !important; --text: #1f2328 !important; --muted: #57606a !important;
+    --line: #d0d7de !important; --tag: #f3f4f6 !important; --accent: #1f5fc4 !important; --accent-soft: #e6eefc !important;
+    color-scheme: light !important;
+  }
+  html, body { height: auto; overflow: visible; }
+  #root { position: static; height: auto; }
+  .workspace, .phone, .main, .document-area { display: block; height: auto; overflow: visible; }
+  .document-scroll { overflow: visible; }
+  .document { max-width: none; padding: 0; }
+  .sidebar, .tabs, .editor-bar, .find-bar, .outline, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
+  .document-meta .unsynced, .update-chip { display: none !important; }
+  .search-match, .search-match.active { background: none; color: inherit; }
+  .ProseMirror pre, .ProseMirror table, .attachment-image, .attachment-file { break-inside: avoid; }
+}

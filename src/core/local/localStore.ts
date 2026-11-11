@@ -12,6 +12,9 @@ export type LocalRecordEntry = {
   waitingForPush: boolean;
 };
 
+// 記録の、同期に使う状態だけ（暗号文を除いたもの）。同期のたびに全件を見るので、暗号文を読まずに引けるようにする。
+export type LocalRecordState = Omit<LocalRecordEntry, "sealed">;
+
 export type LocalBlobEntry = {
   id: string;
   sealed: Uint8Array;
@@ -37,7 +40,10 @@ export type LocalSettingName = "vault" | "deviceId" | "sealedRemoteConfig" | "se
 export interface LocalStore {
   readSetting<Value>(name: LocalSettingName): Promise<Value | undefined>;
   writeSetting(name: LocalSettingName, value: unknown): Promise<void>;
+  // 暗号文ごと全件を読む。ロック解除のときとバックアップで使う（件数が多いと重い）。
   listRecordEntries(): Promise<LocalRecordEntry[]>;
+  // 暗号文を読まずに、全件の状態を返す。
+  listRecordStates(): Promise<LocalRecordState[]>;
   getRecordEntry(id: string): Promise<LocalRecordEntry | undefined>;
   putRecordEntry(entry: LocalRecordEntry): Promise<void>;
   getBlob(id: string): Promise<LocalBlobEntry | undefined>;
