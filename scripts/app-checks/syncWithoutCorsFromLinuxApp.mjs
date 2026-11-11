@@ -5,29 +5,12 @@
 // 使い方: node scripts/app-checks/syncWithoutCorsFromLinuxApp.mjs <画像を置くフォルダ>
 
 import { writeFileSync } from "node:fs";
-import { AwsClient } from "aws4fetch";
+import { hasVaultAndRecord, prepareBucketRefusingAppOrigin } from "./bucketRefusingAppOrigin.mjs";
 import { PASSPHRASE, REMOTE_FIELDS } from "./checkDevices.mjs";
 import { WebDriverSession } from "./webDriverSession.mjs";
 
 const outputDirectory = process.argv[2];
-// ほかの origin だけを許す CORS の規則を入れたバケット。ブラウザからは断られる（e2e/corsRule.spec.ts と同じ形）。
-const remote = {
-  endpoint: "http://127.0.0.1:18333", region: "us-east-1", bucket: "sedum-note-check-other-origin",
-  prefix: `check-${Date.now()}`, accessKeyId: "SEDUMNOTETESTKEY", secretAccessKey: "sedumnotetestsecret",
-};
-const s3 = new AwsClient({ accessKeyId: remote.accessKeyId, secretAccessKey: remote.secretAccessKey, service: "s3", region: remote.region, retries: 0 });
-const bucketUrl = `${remote.endpoint}/${remote.bucket}`;
-await s3.fetch(bucketUrl, { method: "PUT" });
-const corsForOtherOrigin = `<CORSConfiguration><CORSRule><AllowedOrigin>https://other.example</AllowedOrigin><AllowedMethod>GET</AllowedMethod><AllowedMethod>PUT</AllowedMethod><AllowedHeader>*</AllowedHeader><ExposeHeader>ETag</ExposeHeader></CORSRule></CORSConfiguration>`;
-const corsPut = await s3.fetch(`${bucketUrl}?cors`, { method: "PUT", body: corsForOtherOrigin });
-if (!corsPut.ok) {
-  throw new Error(`could not put the CORS rule: ${corsPut.status}`);
-}
-// アプリの origin からの事前の確認（preflight）は、断られる。
-const preflight = await fetch(`${bucketUrl}/${remote.prefix}/vault.json`, {
-  method: "OPTIONS", headers: { Origin: "tauri://localhost", "Access-Control-Request-Method": "PUT", "Access-Control-Request-Headers": "authorization,if-none-match" },
-});
-console.log(`a browser at the app's origin would be refused: preflight ${preflight.status}, allow-origin=${preflight.headers.get("access-control-allow-origin")}`);
+const { remote, listStoredKeys } = await prepareBucketRefusingAppOrigin();
 
 const app = await WebDriverSession.start("http://127.0.0.1:14444", { browserName: "wry", "tauri:options": { application: "/app/sedum-note" } });
 const execute = (script) => app.command("POST", "/execute/sync", { script, args: [] });
@@ -50,9 +33,8 @@ try {
   await app.type(await app.waitForXPath("//input[@placeholder='タイトル']", 10_000), "CORS なしで同期したメモ");
   await app.waitForXPath("//button[contains(@class,'sync-line')][contains(., '同期済み')]", 30_000);
   writeFileSync(`${outputDirectory}/linux-sync-without-cors.png`, await app.screenshotPng());
-  const listed = await (await s3.fetch(`${bucketUrl}?list-type=2&prefix=${remote.prefix}/`)).text();
-  const keys = [...listed.matchAll(/<Key>([^<]+)<\/Key>/g)].map((match) => match[1].slice(remote.prefix.length + 1));
-  if (!keys.includes("vault.json") || !keys.some((key) => key.startsWith("records/"))) {
+  const keys = await listStoredKeys();
+  if (!hasVaultAndRecord(keys)) {
     throw new Error(`the vault and the note were not written to the storage: ${keys.join(", ")}`);
   }
   console.log(`ok: the app synced to a bucket that does not allow its origin (${keys.length} objects; CORS guide shown in the app: ${corsGuideShown})`);

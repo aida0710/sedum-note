@@ -80,6 +80,13 @@ export async function connectToAppPage(devToolsPort) {
       await evaluate(`(() => { const control = ${controlExpression}; control.focus(); control.select(); })()`);
       await send("Input.insertText", { text });
     },
+    // CSS のセレクターで選んだ入力欄に打つ（ラベルの無い欄。メモのタイトルなど）。
+    async fillBySelector(selector, text) {
+      const controlExpression = `document.querySelector(${JSON.stringify(selector)})`;
+      await waitFor(`the field ${selector}`, `Boolean(${controlExpression})`);
+      await evaluate(`(() => { const control = ${controlExpression}; control.focus(); control.select(); })()`);
+      await send("Input.insertText", { text });
+    },
     reload: () => send("Page.reload"),
     close: () => socket.close(),
   };
