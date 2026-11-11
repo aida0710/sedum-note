@@ -110,3 +110,31 @@ test("Markdown で書き出すと暗号化されないことを確かめられ�
   await expect(target.locator(".ProseMirror")).toContainText("日焼け止め");
   await expect(target.locator(".attachment-file")).toContainText("memo.txt");
 });
+
+test("強いパスフレーズを生成して始められ、生成したパスフレーズでロックを解除できる", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "強いパスフレーズを生成" }).click();
+  const generated = (await page.getByRole("status").locator("code").textContent())!;
+  expect(generated).toMatch(/^([0-9A-HJKMNP-TV-Z]{4}-){5}[0-9A-HJKMNP-TV-Z]{4}$/);
+  await expect(page.getByLabel("パスフレーズ", { exact: true })).toHaveValue(generated);
+  await expect(page.getByLabel("パスフレーズ（確認）")).toHaveValue(generated);
+  // 手で直したら、生成した値の表示は消える（入力欄の中身と食い違うため）。
+  await page.getByLabel("パスフレーズ", { exact: true }).fill(`${generated}x`);
+  await expect(page.getByRole("status")).toHaveCount(0);
+  await page.getByLabel("パスフレーズ", { exact: true }).fill(generated);
+
+  await page.getByRole("button", { name: "作成" }).click();
+  await page.getByRole("button", { name: "新しいメモ" }).waitFor();
+  await page.reload();
+  await page.getByLabel("パスフレーズ").fill(generated);
+  await page.getByRole("button", { name: "解除" }).click();
+  await expect(page.getByRole("button", { name: "新しいメモ" })).toBeVisible();
+});
+
+test("同期を使うときは、最初の画面でバケットの CORS の設定を見られる", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("ほかのデバイスと同期する").check();
+  await page.getByText("バケットの CORS の設定").click();
+  await expect(page.locator("details pre")).toContainText('"ExposeHeaders"');
+  await expect(page.locator("details pre")).toContainText("http://tauri.localhost");
+});

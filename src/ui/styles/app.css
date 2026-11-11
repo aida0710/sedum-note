@@ -156,6 +156,10 @@ button:disabled { cursor: default; opacity: .55; }
 .shortcut-list > div { display: flex; justify-content: space-between; gap: 12px; }
 .shortcut-list dd { margin: 0; }
 kbd { font: inherit; font-size: 12px; background: var(--tag); border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; white-space: nowrap; }
+.passphrase-generator { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.generated-passphrase { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--tag); border-radius: 8px; padding: 10px 12px; width: 100%; }
+.generated-passphrase code { font-size: 15px; letter-spacing: .04em; user-select: all; overflow-wrap: anywhere; }
+.generated-passphrase .hint { flex-basis: 100%; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .note-picker { width: min(480px, 100%); max-height: min(560px, 90%); }
 .note-picker .sidebar-search { margin-bottom: 0; flex: none; }
 .note-picker-list { overflow-y: auto; min-height: 80px; display: flex; flex-direction: column; }

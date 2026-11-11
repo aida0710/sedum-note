@@ -10,10 +10,11 @@ import { fileNameDate } from "../platform/fileNameDate";
 import { BACKUP_FILE_EXTENSION, saveFile } from "../platform/saveFile";
 import type { VaultSession } from "../session/useVaultSession";
 import { WipeDeviceDataButton } from "../session/WipeDeviceDataButton";
+import { CorsGuide } from "../shared/CorsGuide";
+import { PassphraseGenerator } from "../shared/PassphraseGenerator";
 import { EMPTY_REMOTE_CONFIG, RemoteConfigFields } from "../shared/RemoteConfigFields";
 import { checkRemoteConfigInput } from "../shared/remoteConfigProblemMessage";
 import { useAsyncAction } from "../shared/useAsyncAction";
-import { corsRuleJson } from "./corsRule";
 import { DisplaySection } from "./DisplaySection";
 import { MarkdownSection } from "./MarkdownSection";
 import { McpSectionSlot } from "./mcpSectionSlot";
@@ -89,11 +90,7 @@ function SyncSection({ session, remoteConfig }: { session: VaultSession; remoteC
       <h2>{translate("settings.sync")}</h2>
       <p>{translate("settings.syncDescription")}</p>
       <RemoteConfigFields value={draft} onChange={setDraft} />
-      <details>
-        <summary>{translate("settings.corsTitle")}</summary>
-        <p>{translate("settings.corsDescription")}</p>
-        <pre>{corsRuleJson(window.location.origin)}</pre>
-      </details>
+      <CorsGuide />
       {message && <div className="form-error" role="alert">{message}</div>}
       <div className="form-actions">
         {saved && <span className="form-success">{translate("settings.syncSaved")}</span>}
@@ -168,6 +165,7 @@ function PassphraseSection({ session }: { session: VaultSession }) {
           <span className="hint">{translate("setup.passphraseHint", { minimum: MIN_PASSPHRASE_LENGTH })}</span>
         </div>
       </div>
+      <PassphraseGenerator passphrase={next} onGenerate={setNext} />
       {change.errorMessage && <div className="form-error" role="alert">{change.errorMessage}</div>}
       <div className="form-actions">
         {changed && <span className="form-success">{translate("settings.passphraseChanged")}</span>}

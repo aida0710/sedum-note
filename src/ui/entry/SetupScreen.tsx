@@ -6,6 +6,8 @@ import { MIN_PASSPHRASE_LENGTH } from "../../core/crypto/passphraseKey";
 import type { RemoteConfig } from "../../core/remote/remoteConfig";
 import { translate } from "../i18n/translate";
 import type { VaultSession } from "../session/useVaultSession";
+import { CorsGuide } from "../shared/CorsGuide";
+import { PassphraseGenerator } from "../shared/PassphraseGenerator";
 import { EMPTY_REMOTE_CONFIG, RemoteConfigFields } from "../shared/RemoteConfigFields";
 import { checkRemoteConfigInput } from "../shared/remoteConfigProblemMessage";
 import { useAsyncAction } from "../shared/useAsyncAction";
@@ -87,6 +89,9 @@ export function SetupScreen({ session }: { session: VaultSession }) {
           </div>
         )}
         {mode === "new" && (
+          <PassphraseGenerator passphrase={passphrase} onGenerate={(generated) => { setPassphrase(generated); setPassphraseConfirm(generated); }} />
+        )}
+        {mode === "new" && (
           <div className="field">
             <label className="checkbox-line">
               <input type="checkbox" checked={useSync} onChange={(event) => setUseSync(event.target.checked)} />
@@ -96,6 +101,7 @@ export function SetupScreen({ session }: { session: VaultSession }) {
           </div>
         )}
         {usesRemote && <RemoteConfigFields value={remoteConfig} onChange={setRemoteConfig} />}
+        {usesRemote && <CorsGuide />}
         {message && <div className="form-error" role="alert">{message}</div>}
         <div className="form-actions">
           {action.busy && <span className="hint">{translate("setup.working")}</span>}

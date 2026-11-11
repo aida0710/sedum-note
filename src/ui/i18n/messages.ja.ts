@@ -22,6 +22,10 @@ export const japaneseMessages = {
   "setup.submitJoin": "参加",
   "setup.working": "鍵を作っています…",
 
+  "passphrase.generate": "強いパスフレーズを生成",
+  "passphrase.copy": "コピー",
+  "passphrase.generatedHint": "このパスフレーズは、ロックを解除するたびと、ほかのデバイスを足すときに入力します。区切りの「-」も含めて、パスワードマネージャーなどに保存してください。忘れるとメモを読めなくなります。",
+
   "unlock.title": "ロックを解除",
   "unlock.description": "パスフレーズを入力してください。",
   "unlock.submit": "解除",
@@ -51,7 +55,7 @@ export const japaneseMessages = {
   "error.importTooLarge": "取り込む zip が大きすぎます（広げた大きさで {limit} まで）",
   "error.invalidBackup": "このファイルはバックアップとして読めません（別のファイルか、途中で切れています）",
   "error.vaultReplaced": "同期先のメモが消えたか、別のメモに置き換わっています。同期を止めました。設定で同期先を確かめてください",
-  "error.storage.unreachable": "ストレージに接続できません。エンドポイントと、バケットの CORS の設定を確かめてください",
+  "error.storage.unreachable": "ストレージに接続できません。エンドポイントが正しいかと、バケットに CORS の設定を入れてあるかを確かめてください（入れる設定は「バケットの CORS の設定」にあります）",
   "error.storage.forbidden": "ストレージに断られました。アクセスキーと権限を確かめてください",
   "error.storage.bucket_not_found": "バケットが見つかりません",
   "error.storage.etag_hidden": "バケットの CORS の設定で、ExposeHeaders に ETag を足してください",
@@ -199,6 +203,7 @@ export const japaneseMessages = {
   "settings.syncNow": "今すぐ同期",
   "settings.lastSyncFailed": "最後の同期に失敗しました: {reason}",
   "settings.corsTitle": "バケットの CORS の設定",
+  "settings.corsCopy": "設定をコピー",
   "settings.corsDescription": "このアプリはストレージへ直接つなぎます。バケットに次の CORS の設定を入れてください。",
   "settings.backup": "バックアップ",
   "settings.backupDescription": "このデバイスのメモ・ノートブック・添付を、暗号化したまま 1 つのファイルに書き出します。戻すときは、新しく入れたアプリの最初の画面で「バックアップから戻す」を選び、今のパスフレーズを入れます。",

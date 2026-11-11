@@ -24,6 +24,10 @@ export const englishMessages: Record<MessageKey, string> = {
   "setup.submitJoin": "Join",
   "setup.working": "Deriving the key…",
 
+  "passphrase.generate": "Generate a strong passphrase",
+  "passphrase.copy": "Copy",
+  "passphrase.generatedHint": "You enter this passphrase every time you unlock, and when you add another device. Save it, including the hyphens, in a password manager or similar. If you lose it, the notes cannot be read.",
+
   "unlock.title": "Unlock",
   "unlock.description": "Enter your passphrase.",
   "unlock.submit": "Unlock",
@@ -53,7 +57,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "error.importTooLarge": "The zip to import is too large (up to {limit} when unpacked)",
   "error.invalidBackup": "This file cannot be read as a backup (it is another kind of file, or it is cut short)",
   "error.vaultReplaced": "The notes in the storage are gone or were replaced by other notes. Sync has stopped. Check the storage in Settings",
-  "error.storage.unreachable": "Cannot reach the storage. Check the endpoint and the CORS settings of the bucket",
+  "error.storage.unreachable": "Cannot reach the storage. Check that the endpoint is right and that the bucket has the CORS settings applied (the settings to apply are under “CORS settings of the bucket”)",
   "error.storage.forbidden": "The storage refused the request. Check the access key and its permissions",
   "error.storage.bucket_not_found": "The bucket was not found",
   "error.storage.etag_hidden": "Add ETag to ExposeHeaders in the CORS settings of the bucket",
@@ -201,6 +205,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "settings.syncNow": "Sync now",
   "settings.lastSyncFailed": "The last sync failed: {reason}",
   "settings.corsTitle": "CORS settings of the bucket",
+  "settings.corsCopy": "Copy the settings",
   "settings.corsDescription": "This app connects to the storage directly. Apply the following CORS settings to the bucket.",
   "settings.backup": "Backup",
   "settings.backupDescription": "Exports the notes, notebooks and attachments on this device to a single file, still encrypted. To restore, choose “Restore a backup” on the first screen of a freshly installed app and enter the current passphrase.",

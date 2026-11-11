@@ -43,5 +43,5 @@ test("CORS でこの画面の origin を許していないと、CORS の設定�
     ...rule, AllowedOrigins: rule.AllowedOrigins.filter((origin) => origin !== PAGE_ORIGIN),
   })));
   await startNewVault(page, config);
-  await expect(page.getByRole("alert")).toContainText("CORS の設定を確かめてください");
+  await expect(page.getByRole("alert")).toContainText("バケットに CORS の設定を入れてあるかを確かめてください");
 });

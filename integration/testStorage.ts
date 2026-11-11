@@ -24,9 +24,28 @@ async function ensureBucket(bucket: string): Promise<void> {
   }
 }
 
+// 実際のストレージ（Cloudflare R2、AWS S3 など）を相手に統合試験を流すときの接続先。環境変数
+// R2_ENDPOINT・R2_BUCKET・R2_ACCESS_KEY_ID・R2_SECRET_ACCESS_KEY を渡すと、SeaweedFS の代わりにそこへつなぐ
+// （リージョンは R2_REGION、無ければ auto）。試験は run-<乱数> のフォルダに書くので、終わったら消す
+// （integration/README.md）。
+function externalRemoteConfig(): Omit<RemoteConfig, "prefix"> | null {
+  const { R2_ENDPOINT, R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_REGION } = process.env;
+  if (!R2_ENDPOINT || !R2_BUCKET || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY) {
+    return null;
+  }
+  return { endpoint: R2_ENDPOINT, bucket: R2_BUCKET, region: R2_REGION ?? "auto", accessKeyId: R2_ACCESS_KEY_ID, secretAccessKey: R2_SECRET_ACCESS_KEY };
+}
+
+export const TEST_RUN_PREFIX = "run-";
+
 export async function newTestRemoteConfig(): Promise<RemoteConfig> {
+  const prefix = `${TEST_RUN_PREFIX}${newRandomId()}`;
+  const external = externalRemoteConfig();
+  if (external) {
+    return { ...external, prefix };
+  }
   await ensureBucket(TEST_BUCKET);
-  return { endpoint: TEST_ENDPOINT, bucket: TEST_BUCKET, region: "us-east-1", prefix: `run-${newRandomId()}`, ...TEST_CREDENTIALS };
+  return { endpoint: TEST_ENDPOINT, bucket: TEST_BUCKET, region: "us-east-1", prefix, ...TEST_CREDENTIALS };
 }
 
 // 設定画面が案内する形（S3 の JSON）の CORS の規則。
