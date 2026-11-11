@@ -1,20 +1,11 @@
 import { type Browser, expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
 import { S3ObjectStore } from "../src/core/remote/s3ObjectStore";
-import type { RemoteConfig } from "../src/core/remote/remoteConfig";
+import { startSyncedVault } from "./devices";
 
 const PASSPHRASE = "correct horse battery";
 // 画面の確認用の画像を置く場所。artifacts は git に入れない。
 const SCREENSHOT_DIRECTORY = process.env.SCREENSHOT_DIRECTORY;
-
-async function fillRemoteConfig(page: Page, config: RemoteConfig): Promise<void> {
-  await page.getByLabel("エンドポイント").fill(config.endpoint);
-  await page.getByLabel("バケット").fill(config.bucket);
-  await page.getByLabel("リージョン").fill(config.region);
-  await page.getByLabel("フォルダ").fill(config.prefix);
-  await page.getByLabel("アクセスキー ID").fill(config.accessKeyId);
-  await page.getByLabel("シークレットアクセスキー").fill(config.secretAccessKey);
-}
 
 async function newDevice(browser: Browser, viewport: { width: number; height: number }): Promise<Page> {
   const context = await browser.newContext({ viewport, deviceScaleFactor: viewport.width < 500 ? 2 : 1 });
@@ -49,12 +40,7 @@ test("PC で書いた写真付きのメモが、スマホの大きさのもう 1
   const remoteConfig = await newTestRemoteConfig();
 
   const laptop = await newDevice(browser, { width: 1280, height: 820 });
-  await laptop.goto("/");
-  await laptop.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
-  await laptop.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
-  await laptop.getByLabel("ほかのデバイスと同期する").check();
-  await fillRemoteConfig(laptop, remoteConfig);
-  await laptop.getByRole("button", { name: "作成" }).click();
+  await startSyncedVault(laptop, { remoteConfig, join: false });
 
   await laptop.getByRole("button", { name: "ノートブックを追加" }).click();
   await laptop.getByPlaceholder("ノートブックの名前").fill("旅行");
@@ -87,10 +73,7 @@ test("PC で書いた写真付きのメモが、スマホの大きさのもう 1
   await phone.goto("/");
   await capture(phone, "mobile-setup");
   await expect.poll(() => phone.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-  await phone.getByRole("tab", { name: "既存のメモに参加" }).click();
-  await phone.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
-  await fillRemoteConfig(phone, remoteConfig);
-  await phone.getByRole("button", { name: "参加" }).click();
+  await startSyncedVault(phone, { remoteConfig, join: true });
 
   await expect(phone.getByRole("button", { name: /沖縄旅行の持ち物/ })).toBeVisible({ timeout: 20_000 });
   await expect(phone.locator(".note-item .thumb")).toBeVisible();

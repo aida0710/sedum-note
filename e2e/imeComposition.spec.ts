@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
-
-const PASSPHRASE = "correct horse battery";
+import { openSyncedDevice } from "./devices";
 
 // 日本語の変換中（未確定の文字がある間）に、ほかのデバイスの変更が同じ段落へマージされても、
 // 変換が壊れず、確定した文字とほかのデバイスの文字の両方が残ることを確かめる。
@@ -9,25 +8,7 @@ const PASSPHRASE = "correct horse battery";
 test("日本語の変換中に、ほかのデバイスの変更が同じ段落に入っても、変換した文字が残る", async ({ browser, browserName }) => {
   test.skip(browserName !== "chromium", "変換は Chromium の DevTools で作る");
   const remoteConfig = await newTestRemoteConfig();
-  const open = async (join: boolean) => {
-    const page = await (await browser.newContext({ viewport: { width: 1280, height: 820 } })).newPage();
-    await page.goto("/");
-    if (join) {
-      await page.getByRole("tab", { name: "既存のメモに参加" }).click();
-    } else {
-      await page.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
-      await page.getByLabel("ほかのデバイスと同期する").check();
-    }
-    await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
-    await page.getByLabel("エンドポイント").fill(remoteConfig.endpoint);
-    await page.getByLabel("バケット").fill(remoteConfig.bucket);
-    await page.getByLabel("リージョン").fill(remoteConfig.region);
-    await page.getByLabel("フォルダ").fill(remoteConfig.prefix);
-    await page.getByLabel("アクセスキー ID").fill(remoteConfig.accessKeyId);
-    await page.getByLabel("シークレットアクセスキー").fill(remoteConfig.secretAccessKey);
-    await page.getByRole("button", { name: join ? "参加" : "作成" }).click();
-    return page;
-  };
+  const open = (join: boolean) => openSyncedDevice(browser, { remoteConfig, join });
 
   const laptop = await open(false);
   await laptop.getByRole("button", { name: "新しいメモ" }).click();

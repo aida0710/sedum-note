@@ -6,7 +6,8 @@ import { appendAttachmentFile, appendParagraph } from "../notes/bodyFixtures";
 import { bodyPlainText } from "../notes/bodyText";
 import { MemoryObjectStore } from "../remote/memoryObjectStore";
 import { WrongPassphraseError } from "../vault/vaultDocument";
-import { connectRemote, createNewVault, joinExistingVault, readVaultState, unlockLocalVault, type VaultSessionEnvironment } from "../vault/vaultSession";
+import { readVaultState, unlockLocalVault, type VaultSessionEnvironment } from "../vault/vaultSession";
+import { connectSyncedRemote, createLocalVault, joinSyncedVault } from "../vault/vaultTestDevices";
 import { InvalidBackupError } from "./backupFile";
 import { exportBackup, restoreBackup } from "./vaultBackup";
 
@@ -29,7 +30,7 @@ function joinParts(parts: Uint8Array[]): Uint8Array {
 
 async function deviceWithNoteAndFile() {
   const source = environment();
-  const vault = await createNewVault(source, { passphrase: PASSPHRASE, remoteConfig: null });
+  const vault = await createLocalVault(source, PASSPHRASE);
   const notebook = await vault.repository.createNotebook("仕事");
   const note = await vault.repository.createNote({ title: "議事録", notebookIds: [notebook.id], pinned: true });
   appendParagraph(note.body, "決まったこと");
@@ -58,7 +59,7 @@ describe("バックアップ", () => {
 
   it("バックアップには、タイトルも本文もファイル名も平文で入らない", async () => {
     const source = environment();
-    const vault = await createNewVault(source, { passphrase: PASSPHRASE, remoteConfig: null });
+    const vault = await createLocalVault(source, PASSPHRASE);
     const note = await vault.repository.createNote({ title: "secret-title" });
     appendParagraph(note.body, "secret-body");
     appendAttachmentFile(note.body, await vault.repository.storeAttachment({ bytes: new Uint8Array([1]), mimeType: "text/plain", fileName: "secret-name.txt" }));
@@ -86,10 +87,10 @@ describe("バックアップ", () => {
     const store = new MemoryObjectStore();
     const target = environment(store);
     await restoreBackup(target.localStore, joinParts(backup.parts), PASSPHRASE);
-    const connected = await connectRemote(target, await unlockLocalVault(target, PASSPHRASE), remoteConfig);
+    const connected = await connectSyncedRemote(target, await unlockLocalVault(target, PASSPHRASE), { passphrase: PASSPHRASE, remoteConfig });
     await connected.syncEngine!.syncOnce();
 
-    const other = await joinExistingVault(environment(store), { passphrase: PASSPHRASE, remoteConfig });
+    const other = await joinSyncedVault(environment(store), { passphrase: PASSPHRASE, remoteConfig });
     await other.syncEngine!.syncOnce();
     expect(other.repository.note(note.id)?.content.title).toBe("議事録");
     expect(await other.repository.readAttachment(attachment.id)).toEqual(fileBytes);

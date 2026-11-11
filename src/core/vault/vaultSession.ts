@@ -1,8 +1,10 @@
 // vault の作成・参加・ロック解除と、ロック解除中に使う部品の組み立て。
 //
-// 同期先の設定（認証情報を含む）もマスターキーで暗号化して手元に置く。
+// 手元の vault はこのデバイスのパスフレーズで、同期先の vault.json は全部のデバイスで共通の暗号化キーで
+// 包む（vaultDocument.ts）。同期先の設定（認証情報を含む）もマスターキーで暗号化して手元に置く。
 // ロックしている間は、手元にも平文の認証情報が無い。
 
+import { newGeneratedPassphrase } from "../crypto/generatedPassphrase";
 import { newRandomId } from "../crypto/randomId";
 import { open, seal } from "../crypto/sealedBox";
 import type { LocalStore } from "../local/localStore";
@@ -15,7 +17,8 @@ import { PreconditionFailedError } from "../remote/objectStore";
 import type { RemoteConfig } from "../remote/remoteConfig";
 import { SyncEngine } from "../sync/syncEngine";
 import { readRemoteVault, writeRemoteVault } from "./remoteVault";
-import { changeVaultPassphrase, createVault, unlockVault, type VaultDocument } from "./vaultDocument";
+import { ensureSyncTargetUnchanged, inspectSyncTarget, SyncTargetChangedError, SyncTargetIncompleteError, type SyncTargetInspection } from "./syncTarget";
+import { createVault, rewrapVault, unlockVault, type VaultDocument, WrongPassphraseError } from "./vaultDocument";
 
 const REMOTE_CONFIG_BINDING = "settings:remote-config";
 const textEncoder = new TextEncoder();
@@ -43,6 +46,8 @@ export type VaultSessionEnvironment = {
 };
 
 export type UnlockedVault = {
+  // この vault の ID。同期先に置かれたメモが、同じ vault のものかを見分けるのに使う。
+  vaultId: string;
   // 取り出せない形の CryptoKey。設定の暗号化と、同期先を付け替えるときに使う。
   masterKey: CryptoKey;
   // この vault の手元の保存先。暗号化した設定（MCP など）の読み書きに使う。
@@ -84,42 +89,84 @@ export async function wipeDeviceData(localStore: LocalStore, unlocked: UnlockedV
   await localStore.destroy();
 }
 
-// 新しい vault を作る。同期先を指定したら、同期先にも vault.json を置く。
+// 同期先と、そこを画面で確かめたときの状態、そこで使う暗号化キー。
+export type SyncTargetChoice = {
+  remoteConfig: RemoteConfig;
+  // 画面で確かめたときの状態（vault/syncTarget.ts）。保存の直前に、変わっていないかを確かめ直す。
+  inspected: SyncTargetInspection;
+  // 既存の同期先に参加するときは、そこの暗号化キー（v0.2 までの同期先では、作ったときのパスフレーズ）。
+  // 空の同期先に作るときは、自分で決めた暗号化キー。null なら生成する。
+  syncKey: string | null;
+};
+
+export type VaultEntry = {
+  unlocked: UnlockedVault;
+  // 暗号化キーを生成したときだけ値がある。1 度だけ利用者に見せ、どこにも保存しない。
+  generatedSyncKey: string | null;
+};
+
+// 新しい vault を作る。同期先を指定したら、空であることを確かめて、暗号化キーで包んだ vault.json を置く。
 export async function createNewVault(
   environment: VaultSessionEnvironment,
-  input: { passphrase: string; remoteConfig: RemoteConfig | null },
-): Promise<UnlockedVault> {
+  input: { passphrase: string; syncTarget: SyncTargetChoice | null },
+): Promise<VaultEntry> {
   const { document, masterKey } = await createVault(input.passphrase);
-  if (input.remoteConfig) {
-    const objectStore = environment.createObjectStore(input.remoteConfig);
-    await ensureConditionalWrites(objectStore);
-    try {
-      await writeRemoteVault(objectStore, document, { ifAbsent: true });
-    } catch (error) {
-      throw error instanceof PreconditionFailedError ? new VaultAlreadyExistsError() : error;
+  let generatedSyncKey: string | null = null;
+  if (input.syncTarget) {
+    if (input.syncTarget.inspected.state !== "empty") {
+      throw new VaultAlreadyExistsError();
     }
+    generatedSyncKey = await placeRemoteVault(environment, { document, passphrase: input.passphrase, syncTarget: input.syncTarget });
   }
-  await saveVaultLocally(environment.localStore, { document, masterKey, remoteConfig: input.remoteConfig });
-  return assembleUnlockedVault(environment, masterKey, input.remoteConfig);
+  const remoteConfig = input.syncTarget?.remoteConfig ?? null;
+  await saveVaultLocally(environment.localStore, { document, masterKey, remoteConfig });
+  return { unlocked: await assembleUnlockedVault(environment, masterKey, remoteConfig), generatedSyncKey };
 }
 
-// ほかのデバイスで作った vault に、このデバイスを加える。
+type PlaceRemoteVaultInput = { document: VaultDocument; passphrase: string; syncTarget: SyncTargetChoice };
+
+// 空の同期先に、手元と同じマスターキーを暗号化キーで包んだ vault.json を置く。生成した暗号化キーを返す
+// （自分で決めたものを使ったら null）。
+async function placeRemoteVault(environment: VaultSessionEnvironment, input: PlaceRemoteVaultInput): Promise<string | null> {
+  const { syncTarget } = input;
+  const objectStore = environment.createObjectStore(syncTarget.remoteConfig);
+  await ensureConditionalWrites(objectStore);
+  await ensureSyncTargetUnchanged(objectStore, syncTarget.inspected);
+  const syncKey = syncTarget.syncKey ?? newGeneratedPassphrase();
+  const remoteDocument = await rewrapVault(input.document, input.passphrase, { secret: syncKey, wrapping: "syncKey" });
+  try {
+    await writeRemoteVault(objectStore, remoteDocument, { ifAbsent: true });
+  } catch (error) {
+    throw error instanceof PreconditionFailedError ? new SyncTargetChangedError() : error;
+  }
+  return syncTarget.syncKey === null ? syncKey : null;
+}
+
+// ほかのデバイスで作った vault に、このデバイスを加える。同期先の vault.json を暗号化キーで開き、
+// 同じマスターキーを、このデバイスのパスフレーズで包んで手元に置く。
 export async function joinExistingVault(
   environment: VaultSessionEnvironment,
-  input: { passphrase: string; remoteConfig: RemoteConfig },
-): Promise<UnlockedVault> {
-  const objectStore = environment.createObjectStore(input.remoteConfig);
+  input: { passphrase: string; syncTarget: SyncTargetChoice },
+): Promise<VaultEntry> {
+  const { remoteConfig, inspected, syncKey } = input.syncTarget;
+  if (inspected.state !== "existing" || syncKey === null) {
+    throw new VaultNotFoundError();
+  }
+  const objectStore = environment.createObjectStore(remoteConfig);
   await ensureConditionalWrites(objectStore);
   const stored = await readRemoteVault(objectStore);
   if (stored === null) {
     throw new VaultNotFoundError();
   }
-  const { document } = stored;
+  if (stored.etag !== inspected.vaultEtag) {
+    throw new SyncTargetChangedError();
+  }
   // 手元に何も書かないうちに確かめる（書いてから断ると、開けない vault が手元に残る）。
-  ensureBodySchemaSupported(document.bodySchema, environment.bodySchemaVersion ?? BODY_SCHEMA_VERSION);
+  ensureBodySchemaSupported(stored.document.bodySchema, environment.bodySchemaVersion ?? BODY_SCHEMA_VERSION);
+  const document = await rewrapVault(stored.document, syncKey, { secret: input.passphrase, wrapping: "passphrase" });
   const masterKey = await unlockVault(document, input.passphrase);
-  await saveVaultLocally(environment.localStore, { document, masterKey, remoteConfig: input.remoteConfig });
-  return assembleUnlockedVault(environment, masterKey, input.remoteConfig);
+  await saveVaultLocally(environment.localStore, { document, masterKey, remoteConfig });
+  return { unlocked: await assembleUnlockedVault(environment, masterKey, remoteConfig), generatedSyncKey: null };
 }
 
 export async function unlockLocalVault(environment: VaultSessionEnvironment, passphrase: string): Promise<UnlockedVault> {
@@ -152,7 +199,7 @@ async function assembleUnlockedVault(
 ): Promise<UnlockedVault> {
   const { localStore } = environment;
   const bodySchemaVersion = environment.bodySchemaVersion ?? BODY_SCHEMA_VERSION;
-  await adoptBodySchema(localStore, bodySchemaVersion);
+  const { vaultId } = await adoptBodySchema(localStore, bodySchemaVersion);
   const deviceId = (await localStore.readSetting<string>("deviceId")) ?? newRandomId();
   // 添付の取得は同期の部品が行い、同期の部品は記録の書き込みに repository を使う。
   // 互いを使うので、repository を先に作り、添付の取得はあとから作る syncEngine へ回す。
@@ -168,61 +215,93 @@ async function assembleUnlockedVault(
     syncEngine = new SyncEngine({ localStore, objectStore: environment.createObjectStore(remoteConfig), repository, bodySchemaVersion });
   }
   await repository.load();
-  return { masterKey, localStore, repository, syncEngine, remoteConfig };
+  return { vaultId, masterKey, localStore, repository, syncEngine, remoteConfig };
 }
 
 // メモを開く前に、手元の vault の本文の形の版を確かめる。このアプリより新しければ開かない
 // （開くと、エディタが知らないノードを消す）。古ければ、このアプリの版に引き上げる。
-async function adoptBodySchema(localStore: LocalStore, bodySchemaVersion: number): Promise<void> {
+async function adoptBodySchema(localStore: LocalStore, bodySchemaVersion: number): Promise<VaultDocument> {
   const document = await readLocalVaultDocument(localStore);
   ensureBodySchemaSupported(document.bodySchema, bodySchemaVersion);
   if (document.bodySchema < bodySchemaVersion) {
     await localStore.writeSetting("vault", { ...document, bodySchema: bodySchemaVersion });
   }
+  return document;
 }
 
-// ロック解除中に同期先を設定する（または付け替える）。同期先に vault.json が無ければ
-// 置き、あれば同じ vault かを確かめる。別の vault のバケットには混ぜない。
+// ロック解除中に同期先を設定する（または付け替える）。空の同期先なら vault.json を置き、既存の同期先なら
+// 同じ vault かを確かめる。別の vault のバケットには混ぜない。
+// 空の同期先に置くには、マスターキーを暗号化キーで包み直すので、このデバイスのパスフレーズが要る。
 export async function connectRemote(
   environment: VaultSessionEnvironment,
   unlocked: UnlockedVault,
-  remoteConfig: RemoteConfig,
-): Promise<UnlockedVault> {
+  input: { syncTarget: SyncTargetChoice; passphrase: string | null },
+): Promise<VaultEntry> {
+  const { remoteConfig, inspected } = input.syncTarget;
   const document = await readLocalVaultDocument(environment.localStore);
-  const objectStore = environment.createObjectStore(remoteConfig);
-  await ensureConditionalWrites(objectStore);
-  try {
-    await writeRemoteVault(objectStore, document, { ifAbsent: true });
-  } catch (error) {
-    if (!(error instanceof PreconditionFailedError)) {
-      throw error;
-    }
-    const existing = await readRemoteVault(objectStore);
-    if (existing?.document.vaultId !== document.vaultId) {
+  let generatedSyncKey: string | null = null;
+  if (inspected.state === "incomplete") {
+    throw new SyncTargetIncompleteError();
+  }
+  if (inspected.state === "existing") {
+    if (inspected.vaultId !== unlocked.vaultId) {
       throw new VaultAlreadyExistsError();
     }
+    const objectStore = environment.createObjectStore(remoteConfig);
+    await ensureConditionalWrites(objectStore);
+    await ensureSyncTargetUnchanged(objectStore, inspected);
+  } else {
+    if (input.passphrase === null) {
+      throw new WrongPassphraseError();
+    }
+    generatedSyncKey = await placeRemoteVault(environment, { document, passphrase: input.passphrase, syncTarget: input.syncTarget });
   }
   await saveVaultLocally(environment.localStore, { document, masterKey: unlocked.masterKey, remoteConfig });
-  return assembleUnlockedVault(environment, unlocked.masterKey, remoteConfig);
+  return { unlocked: await assembleUnlockedVault(environment, unlocked.masterKey, remoteConfig), generatedSyncKey };
 }
 
-// パスフレーズを変える。同期先の vault.json は、読んだときの ETag のときだけ書き換える。
-export async function changePassphrase(
+// 同期先の暗号化キーを作り直す。vault.json を新しいキーで包み直すだけで、メモは暗号化し直さない。
+// 参加済みのデバイスは、手元にマスターキーを持っているので、そのまま同期を続けられる。新しく参加する
+// デバイスは、新しいキーを使う。v0.2 までの同期先（パスフレーズで包んだ vault.json）を新しい形にするのにも使う。
+// 生成した暗号化キーを返す（自分で決めたものを使ったら null）。
+export async function replaceSyncKey(
   environment: VaultSessionEnvironment,
   unlocked: UnlockedVault,
+  input: { passphrase: string; syncKey: string | null },
+): Promise<string | null> {
+  if (!unlocked.remoteConfig) {
+    throw new VaultNotFoundError();
+  }
+  const document = await readLocalVaultDocument(environment.localStore);
+  const objectStore = environment.createObjectStore(unlocked.remoteConfig);
+  const existing = await readRemoteVault(objectStore);
+  if (existing?.document.vaultId !== document.vaultId) {
+    throw new VaultNotFoundError();
+  }
+  const syncKey = input.syncKey ?? newGeneratedPassphrase();
+  const rewrapped = await rewrapVault(document, input.passphrase, { secret: syncKey, wrapping: "syncKey" });
+  try {
+    // 本文の形の版は、同期先の値を保つ（手元より新しいことがある）。
+    await writeRemoteVault(objectStore, { ...rewrapped, bodySchema: existing.document.bodySchema }, { ifMatch: existing.etag });
+  } catch (error) {
+    throw error instanceof PreconditionFailedError ? new SyncTargetChangedError() : error;
+  }
+  return input.syncKey === null ? syncKey : null;
+}
+
+// このデバイスのパスフレーズを変える。手元の vault を包み直すだけで、同期先とほかのデバイスは変わらない。
+export async function changePassphrase(
+  environment: VaultSessionEnvironment,
   passphrases: { current: string; next: string },
 ): Promise<void> {
   const document = await readLocalVaultDocument(environment.localStore);
-  const changed = await changeVaultPassphrase(document, passphrases.current, passphrases.next);
-  if (unlocked.remoteConfig) {
-    const objectStore = environment.createObjectStore(unlocked.remoteConfig);
-    const existing = await readRemoteVault(objectStore);
-    if (existing?.document.vaultId !== document.vaultId) {
-      throw new VaultNotFoundError();
-    }
-    await writeRemoteVault(objectStore, changed, { ifMatch: existing.etag });
-  }
+  const changed = await rewrapVault(document, passphrases.current, { secret: passphrases.next, wrapping: "passphrase" });
   await environment.localStore.writeSetting("vault", changed);
+}
+
+// 設定した同期先の今の状態。設定の画面で、v0.2 までの形の同期先かどうかを知らせるのに使う。
+export function inspectConnectedRemote(environment: VaultSessionEnvironment, unlocked: UnlockedVault): Promise<SyncTargetInspection | null> {
+  return unlocked.remoteConfig ? inspectSyncTarget(environment.createObjectStore(unlocked.remoteConfig)) : Promise.resolve(null);
 }
 
 async function readLocalVaultDocument(localStore: LocalStore): Promise<VaultDocument> {

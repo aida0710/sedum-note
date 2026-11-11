@@ -6,7 +6,8 @@ import { appendAttachmentImage, appendParagraph } from "../notes/bodyFixtures";
 import { bodyPlainText } from "../notes/bodyText";
 import { MemoryObjectStore } from "../remote/memoryObjectStore";
 import type { RemoteConfig } from "../remote/remoteConfig";
-import { createNewVault, joinExistingVault, type UnlockedVault, unlockLocalVault, type VaultSessionEnvironment } from "../vault/vaultSession";
+import { type UnlockedVault, unlockLocalVault, type VaultSessionEnvironment } from "../vault/vaultSession";
+import { createSyncedVault, joinSyncedVault } from "../vault/vaultTestDevices";
 import { blobObjectKey, recordObjectKey } from "./remoteLayout";
 
 const PASSPHRASE = "correct horse battery";
@@ -20,9 +21,9 @@ function deviceEnvironment(objectStore: MemoryObjectStore): VaultSessionEnvironm
 
 async function twoDevices(): Promise<{ store: MemoryObjectStore; laptop: UnlockedVault; phone: UnlockedVault; phoneEnvironment: VaultSessionEnvironment }> {
   const store = new MemoryObjectStore();
-  const laptop = await createNewVault(deviceEnvironment(store), { passphrase: PASSPHRASE, remoteConfig });
+  const laptop = await createSyncedVault(deviceEnvironment(store), { passphrase: PASSPHRASE, remoteConfig });
   const phoneEnvironment = deviceEnvironment(store);
-  const phone = await joinExistingVault(phoneEnvironment, { passphrase: PASSPHRASE, remoteConfig });
+  const phone = await joinSyncedVault(phoneEnvironment, { passphrase: PASSPHRASE, remoteConfig });
   return { store, laptop, phone, phoneEnvironment };
 }
 

@@ -1,4 +1,4 @@
-// ListObjectsV2 の応答（XML）から、キー・ETag・続きの印を取り出す。
+// ListObjectsV2 の応答（XML）から、キー・ETag・まとめられた prefix・続きの印を取り出す。
 //
 // DOMParser は Web Worker と Node に無いので使わない。このアプリが置くキーは
 // 16 進の ID と決まった名前だけなので、要素を素直に拾えば足りる。
@@ -8,6 +8,8 @@ import { normalizeEtag } from "./objectStore";
 
 export type ListObjectsPage = {
   objects: ObjectSummary[];
+  // delimiter を付けて一覧したときの、まとめられた prefix（末尾の「/」つき）。
+  commonPrefixes: string[];
   // 続きがあるときだけ値がある。
   nextContinuationToken: string | null;
 };
@@ -43,6 +45,13 @@ export function parseListObjectsPage(xml: string): ListObjectsPage {
       objects.push({ key, etag: normalizeEtag(etag) });
     }
   }
+  const commonPrefixes: string[] = [];
+  for (const match of xml.matchAll(/<CommonPrefixes>([\s\S]*?)<\/CommonPrefixes>/g)) {
+    const prefix = firstElementText(match[1] ?? "", "Prefix");
+    if (prefix !== null) {
+      commonPrefixes.push(prefix);
+    }
+  }
   const isTruncated = firstElementText(xml, "IsTruncated") === "true";
-  return { objects, nextContinuationToken: isTruncated ? firstElementText(xml, "NextContinuationToken") : null };
+  return { objects, commonPrefixes, nextContinuationToken: isTruncated ? firstElementText(xml, "NextContinuationToken") : null };
 }

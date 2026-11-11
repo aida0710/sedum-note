@@ -29,6 +29,21 @@ export class MemoryObjectStore implements ObjectStore {
       .map(([key, object]) => ({ key, etag: object.etag }));
   }
 
+  async hasObjectsUnder(prefix: string): Promise<boolean> {
+    return [...this.#objects.keys()].some((key) => key.startsWith(prefix));
+  }
+
+  async listFolders(prefix: string, maxCount: number): Promise<string[]> {
+    const folders = new Set<string>();
+    for (const key of this.#objects.keys()) {
+      const rest = key.startsWith(prefix) ? key.slice(prefix.length) : "";
+      if (rest.includes("/")) {
+        folders.add(rest.slice(0, rest.indexOf("/")));
+      }
+    }
+    return [...folders].sort().slice(0, maxCount);
+  }
+
   async get(key: string): Promise<StoredObject | null> {
     const object = this.#objects.get(key);
     return object ? { body: object.body.slice(), etag: object.etag } : null;

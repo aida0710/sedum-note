@@ -12,6 +12,10 @@ export type WriteCondition = { ifMatch: string } | { ifAbsent: true };
 export interface ObjectStore {
   // prefix の下のオブジェクトを全部返す（ページ送りは中で行う）。
   list(prefix: string): Promise<ObjectSummary[]>;
+  // prefix の下にオブジェクトが 1 つでもあるか。全部を数えずに確かめる。
+  hasObjectsUnder(prefix: string): Promise<boolean>;
+  // prefix のすぐ下の「フォルダ」（次の「/」までの名前）を返す。多ければ maxCount までで切る。
+  listFolders(prefix: string, maxCount: number): Promise<string[]>;
   // 無ければ null。
   get(key: string): Promise<StoredObject | null>;
   // 条件が合わなければ PreconditionFailedError を投げる。

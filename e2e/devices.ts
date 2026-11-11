@@ -15,30 +15,52 @@ export async function startLocalVault(page: Page): Promise<void> {
   await page.getByRole("button", { name: "作成" }).click();
 }
 
-type SyncedDeviceInput = {
-  remoteConfig: RemoteConfig;
-  // true なら、ほかのデバイスが作った vault に参加する。
-  join: boolean;
-  viewport?: { width: number; height: number };
-};
+// 試験の同期先で使う、自分で決めた暗号化キー。
+export const SYNC_KEY = "shared-key-for-e2e";
 
-export async function openSyncedDevice(browser: Browser, { remoteConfig, join, viewport = DESKTOP_VIEWPORT }: SyncedDeviceInput): Promise<Page> {
-  const page = await (await browser.newContext({ viewport })).newPage();
-  await page.goto("/");
-  if (join) {
-    await page.getByRole("tab", { name: "既存のメモに参加" }).click();
-  } else {
-    await page.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
-    await page.getByLabel("ほかのデバイスと同期する").check();
-  }
-  await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
+// 最初の画面で「ほかのデバイスと同期する」を選び、同期先を入れる。
+export async function fillSyncTarget(page: Page, remoteConfig: RemoteConfig): Promise<void> {
+  await page.getByLabel("ほかのデバイスと同期する").check();
+  await fillRemoteConfigFields(page, remoteConfig);
+}
+
+// 同期先の入力欄（最初の画面と、設定の同期の欄で同じ）を埋める。
+export async function fillRemoteConfigFields(page: Page, remoteConfig: RemoteConfig): Promise<void> {
   await page.getByLabel("エンドポイント").fill(remoteConfig.endpoint);
   await page.getByLabel("バケット").fill(remoteConfig.bucket);
   await page.getByLabel("リージョン").fill(remoteConfig.region);
   await page.getByLabel("フォルダ").fill(remoteConfig.prefix);
   await page.getByLabel("アクセスキー ID").fill(remoteConfig.accessKeyId);
   await page.getByLabel("シークレットアクセスキー").fill(remoteConfig.secretAccessKey);
+}
+
+type SyncedVaultInput = {
+  remoteConfig: RemoteConfig;
+  // true なら、ほかのデバイスが作ったメモに参加する。
+  join: boolean;
+};
+
+// 最初の画面から、同期するメモを始める。同期先を確かめ、空なら暗号化キーを決めて作り、既存のメモがあれば
+// 暗号化キーを入れて参加する。パスフレーズはデバイスごとのものだが、試験では同じにしておく。
+export async function startSyncedVault(page: Page, { remoteConfig, join }: SyncedVaultInput): Promise<void> {
+  await page.goto("/");
+  await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
+  await page.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
+  await fillSyncTarget(page, remoteConfig);
+  await page.getByRole("button", { name: "接続を確認" }).click();
+  await expect(page.getByRole("status")).toContainText(join ? "既存のメモが見つかりました" : "空の同期先です");
+  if (!join) {
+    await page.getByLabel("暗号化キーを自分で決める").check();
+  }
+  await page.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
   await page.getByRole("button", { name: join ? "参加" : "作成" }).click();
+}
+
+type SyncedDeviceInput = SyncedVaultInput & { viewport?: { width: number; height: number } };
+
+export async function openSyncedDevice(browser: Browser, { remoteConfig, join, viewport = DESKTOP_VIEWPORT }: SyncedDeviceInput): Promise<Page> {
+  const page = await (await browser.newContext({ viewport })).newPage();
+  await startSyncedVault(page, { remoteConfig, join });
   return page;
 }
 
@@ -53,7 +75,7 @@ export async function syncNowOnDesktop(page: Page, noteTitle: string): Promise<v
 
 // PC の画面で新しいメモを作り、タイトルを入れて、本文にカーソルを移す。
 export async function createNoteOnDesktop(page: Page, title: string): Promise<void> {
-  // メモの画面が出てから数える（最初の画面の「新しく始める」などの切り替えもタブなので）。
+  // メモの画面が出てから数える（最初の画面の「始める」などの切り替えもタブなので）。
   const newNoteButton = page.getByRole("button", { name: "新しいメモ" });
   await newNoteButton.waitFor();
   const tabsBefore = await page.getByRole("tab").count();

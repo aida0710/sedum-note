@@ -5,7 +5,10 @@ import { MIN_PASSPHRASE_LENGTH } from "../../core/crypto/passphraseKey";
 import { AppUpdateRequiredError } from "../../core/notes/bodySchema";
 import { ObjectStoreError } from "../../core/remote/objectStore";
 import { VaultReplacedError } from "../../core/sync/syncEngine";
-import { WeakPassphraseError, WrongPassphraseError } from "../../core/vault/vaultDocument";
+import { SyncTargetChangedError, SyncTargetIncompleteError } from "../../core/vault/syncTarget";
+import {
+  InvalidVaultDocumentError, MIN_SYNC_KEY_LENGTH, WeakPassphraseError, WeakSyncKeyError, WrongPassphraseError, WrongSyncKeyError,
+} from "../../core/vault/vaultDocument";
 import { VaultAlreadyExistsError, VaultNotFoundError } from "../../core/vault/vaultSession";
 import { isRunningInTauri } from "../platform/runtime";
 import { translate } from "./translate";
@@ -17,6 +20,21 @@ export function describeError(error: unknown): string {
   }
   if (error instanceof WeakPassphraseError) {
     return translate("error.weakPassphrase", { minimum: MIN_PASSPHRASE_LENGTH });
+  }
+  if (error instanceof WrongSyncKeyError) {
+    return translate("error.wrongSyncKey");
+  }
+  if (error instanceof WeakSyncKeyError) {
+    return translate("error.weakSyncKey", { minimum: MIN_SYNC_KEY_LENGTH });
+  }
+  if (error instanceof SyncTargetChangedError) {
+    return translate("error.syncTargetChanged");
+  }
+  if (error instanceof SyncTargetIncompleteError) {
+    return translate("syncTarget.incomplete");
+  }
+  if (error instanceof InvalidVaultDocumentError) {
+    return translate("error.invalidVault");
   }
   if (error instanceof VaultAlreadyExistsError) {
     return translate("error.vaultAlreadyExists");

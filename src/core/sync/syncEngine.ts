@@ -1,6 +1,6 @@
 // 手元の記録と同期先を揃える。1 回の syncOnce で次の順に行う。
 //
-// 1. 同期先の vault.json を確かめる（ほかのデバイスでのパスフレーズの変更を取り込み、本文の形の版を揃える）
+// 1. 同期先の vault.json を確かめる（同じ vault か。本文の形の版を揃える）
 // 2. 送っていない添付を送る（記録より先に置き、参照先の無いメモを見せない）
 // 3. 同期先の一覧と手元の ETag を比べ、変わった記録を取り込んでマージする
 // 4. 手元で変えた記録を条件付き PUT で送る。先に変えられていたら、取り込んでマージしてから送り直す
@@ -59,7 +59,7 @@ export class SyncEngine {
 
   async #sync(): Promise<SyncReport> {
     const report: SyncReport = { pulledCount: 0, pushedCount: 0, unreadableIds: [] };
-    await this.#adoptRemoteVaultDocument();
+    await this.#checkRemoteVault();
     await this.#uploadWaitingBlobs();
     const remoteEtags = await this.#listRemoteRecords();
     await this.#pullChangedRecords(remoteEtags, report);
@@ -69,10 +69,11 @@ export class SyncEngine {
     return report;
   }
 
-  // ほかのデバイスでパスフレーズを変えたら、同期先の vault.json だけが新しくなる。
-  // 同じ vault のものなら手元の写しを差し替え、次のロック解除から新しいパスフレーズにする。
-  // 本文の形の版は、同期先の方が新しければ同期を止め、このアプリの方が新しければ同期先を引き上げる。
-  async #adoptRemoteVaultDocument(): Promise<void> {
+  // 同期先が同じ vault かを確かめ、本文の形の版を揃える。同期先の方が新しければ同期を止め、
+  // このアプリの方が新しければ同期先を引き上げる。
+  // 同期先の文書は暗号化キーで、手元の文書はこのデバイスのパスフレーズで包んであるので、互いに写さない
+  // （写すと、手元のパスフレーズでロックを解除できなくなる）。
+  async #checkRemoteVault(): Promise<void> {
     const { localStore, objectStore, bodySchemaVersion } = this.#dependencies;
     const stored = await readRemoteVault(objectStore);
     const local = await localStore.readSetting<VaultDocument>("vault");
@@ -80,14 +81,13 @@ export class SyncEngine {
       throw new VaultReplacedError();
     }
     ensureBodySchemaSupported(stored.document.bodySchema, bodySchemaVersion);
-    let current = stored.document;
-    if (current.bodySchema < bodySchemaVersion) {
-      current = { ...current, bodySchema: bodySchemaVersion };
+    if (stored.document.bodySchema < bodySchemaVersion) {
       // 新しい形のメモを送る前に引き上げる。ほかのデバイスが同時に書き換えたら、失敗させて次の同期でやり直す。
-      await writeRemoteVault(objectStore, current, { ifMatch: stored.etag });
+      await writeRemoteVault(objectStore, { ...stored.document, bodySchema: bodySchemaVersion }, { ifMatch: stored.etag });
     }
-    if (current.wrappedMasterKey !== local.wrappedMasterKey || current.bodySchema !== local.bodySchema) {
-      await localStore.writeSetting("vault", current);
+    const bodySchema = Math.max(stored.document.bodySchema, bodySchemaVersion);
+    if (bodySchema !== local.bodySchema) {
+      await localStore.writeSetting("vault", { ...local, bodySchema });
     }
   }
 

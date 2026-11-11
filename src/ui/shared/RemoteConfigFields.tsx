@@ -4,7 +4,7 @@ import type { RemoteConfig } from "../../core/remote/remoteConfig";
 import { translate } from "../i18n/translate";
 
 export const EMPTY_REMOTE_CONFIG: RemoteConfig = {
-  endpoint: "", bucket: "", region: "auto", prefix: "memo", accessKeyId: "", secretAccessKey: "",
+  endpoint: "", bucket: "", region: "auto", prefix: "", accessKeyId: "", secretAccessKey: "",
 };
 
 type RemoteConfigFieldsProps = {

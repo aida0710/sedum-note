@@ -42,7 +42,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
       <main className="main">
         <NoteTabs navigation={navigation} repository={repository} />
         {navigation.activeTab === SETTINGS_TAB && (
-          <SettingsPanel session={session} repository={repository} remoteConfig={vault.remoteConfig} unreadableCount={snapshot.unreadableCount} isMobile={false} />
+          <SettingsPanel session={session} vault={vault} unreadableCount={snapshot.unreadableCount} isMobile={false} />
         )}
         {activeNote && (
           <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, navigation.openNote)}>

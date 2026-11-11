@@ -52,7 +52,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
 
   return (
     <div className="phone">
-      {tab === "settings" && <SettingsPanel session={session} repository={repository} remoteConfig={vault.remoteConfig} unreadableCount={snapshot.unreadableCount} isMobile />}
+      {tab === "settings" && <SettingsPanel session={session} vault={vault} unreadableCount={snapshot.unreadableCount} isMobile />}
       {tab === "notebooks" && (
         <MobileLibrary snapshot={snapshot} repository={repository}
           onPick={(picked) => { navigation.selectView(picked); setTab("notes"); }} />

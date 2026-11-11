@@ -5,7 +5,9 @@ import { IndexedDbLocalStore } from "../src/core/local/indexedDbLocalStore";
 import { PreconditionFailedError } from "../src/core/remote/objectStore";
 import { S3ObjectStore } from "../src/core/remote/s3ObjectStore";
 import type { RemoteConfig } from "../src/core/remote/remoteConfig";
-import { createNewVault, joinExistingVault, VaultAlreadyExistsError, type VaultSessionEnvironment } from "../src/core/vault/vaultSession";
+import { findVaultFolders } from "../src/core/vault/syncTarget";
+import { VaultAlreadyExistsError, type VaultSessionEnvironment } from "../src/core/vault/vaultSession";
+import { createSyncedVault, joinSyncedVault } from "../src/core/vault/vaultTestDevices";
 import { appendAttachmentImage, appendParagraph } from "../src/core/notes/bodyFixtures";
 import { bodyPlainText } from "../src/core/notes/bodyText";
 import { newTestRemoteConfig } from "./testStorage";
@@ -32,9 +34,11 @@ describe("S3ObjectStore（SeaweedFS）", () => {
 
   it("2 台のデバイスが同じバケットで同期し、同時の編集が 1 つのメモにマージされる", async () => {
     const remoteConfig = await newTestRemoteConfig();
-    const laptop = await createNewVault(environment(), { passphrase: PASSPHRASE, remoteConfig });
-    await expect(createNewVault(environment(), { passphrase: PASSPHRASE, remoteConfig })).rejects.toBeInstanceOf(VaultAlreadyExistsError);
-    const phone = await joinExistingVault(environment(), { passphrase: PASSPHRASE, remoteConfig });
+    const laptop = await createSyncedVault(environment(), { passphrase: PASSPHRASE, remoteConfig });
+    await expect(createSyncedVault(environment(), { passphrase: PASSPHRASE, remoteConfig })).rejects.toBeInstanceOf(VaultAlreadyExistsError);
+    // バケットのフォルダを探すと、いま作った場所が見つかる（S3 の delimiter つきの一覧）。
+    expect(await findVaultFolders(new S3ObjectStore({ ...remoteConfig, prefix: "" }))).toContain(remoteConfig.prefix);
+    const phone = await joinSyncedVault(environment(), { passphrase: PASSPHRASE, remoteConfig });
 
     const note = await laptop.repository.createNote({ title: "共有メモ" });
     const photo = Uint8Array.from({ length: 300_000 }, (_, index) => index % 251);

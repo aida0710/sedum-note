@@ -1,8 +1,12 @@
-// vault.json: パスフレーズで包んだマスターキーと、包み方（Argon2id の値）を持つ文書。
+// vault の文書: 包んだマスターキーと、包み方（Argon2id の値）を持つ。
 //
-// S3 の `<prefix>/vault.json` と手元の両方に同じものを置く。手元の写しがあれば、
-// オフラインでもロックを解除できる。中のマスターキーは暗号文なので、この文書を
-// 読めてもメモは読めない。
+// マスターキー（メモを暗号化するランダムなキー）を、置き場所ごとに別の秘密で包む。
+//   手元     このデバイスのパスフレーズで包む。同期先には置かない。ロックの解除に使う
+//   同期先   全部のデバイスで共通の「暗号化キー」で包み、`<prefix>/vault.json` に置く。参加のときに使う
+// そのため、パスフレーズはデバイスごとに決められ、変えても同期先は変わらない。暗号化キーを作り直しても、
+// 包み直すだけで、メモを暗号化し直す必要はない。
+//
+// v0.2 までは、同期先にもパスフレーズで包んだ文書（版 2）を置いていた。その同期先も読める。
 
 import { base64ToBytes, bytesToBase64 } from "../crypto/base64";
 import {
@@ -18,12 +22,18 @@ import { importAesKey, open, seal, SealedBoxError } from "../crypto/sealedBox";
 
 const VAULT_FORMAT = "sedum-note-vault";
 // 2 から、記録の中身が Yjs の文書の状態になった。1 の同期先とは混ぜられない。
-const VAULT_VERSION = 2;
+// 2 はパスフレーズで、3 は暗号化キーで包んだ文書。記録の形は 2 と 3 で同じ。
+const VERSION_BY_WRAPPING = { passphrase: 2, syncKey: 3 } as const;
 const MASTER_KEY_LENGTH = 32;
+// 自分で決める暗号化キーの下限（sshc と同じ）。生成したものは 29 文字。
+export const MIN_SYNC_KEY_LENGTH = 12;
+
+// マスターキーを何で包んだか。
+export type KeyWrapping = keyof typeof VERSION_BY_WRAPPING;
 
 export type VaultDocument = {
   format: typeof VAULT_FORMAT;
-  version: typeof VAULT_VERSION;
+  version: (typeof VERSION_BY_WRAPPING)[KeyWrapping];
   // 同期先ごとの vault を見分ける。包んだキーの binding にも入れる。
   vaultId: string;
   kdf: Argon2idParameters;
@@ -36,6 +46,20 @@ export class WrongPassphraseError extends Error {
   constructor() {
     super("the passphrase does not open this vault");
     this.name = "WrongPassphraseError";
+  }
+}
+
+export class WrongSyncKeyError extends Error {
+  constructor() {
+    super("the encryption key does not open this vault");
+    this.name = "WrongSyncKeyError";
+  }
+}
+
+export class WeakSyncKeyError extends Error {
+  constructor() {
+    super(`the encryption key must be at least ${MIN_SYNC_KEY_LENGTH} characters`);
+    this.name = "WeakSyncKeyError";
   }
 }
 
@@ -53,53 +77,73 @@ export class InvalidVaultDocumentError extends Error {
   }
 }
 
-function masterKeyBinding(vaultId: string): string {
-  return `vault:${vaultId}:master-key`;
+export function keyWrappingOf(document: VaultDocument): KeyWrapping {
+  return document.version === VERSION_BY_WRAPPING.syncKey ? "syncKey" : "passphrase";
 }
 
-function checkPassphraseStrength(passphrase: string): void {
-  if ([...passphrase].length < MIN_PASSPHRASE_LENGTH) {
+// 包み方ごとに binding を分ける。暗号化キーで包んだものを、パスフレーズで包んだものとして差し替えられない。
+function masterKeyBinding(vaultId: string, wrapping: KeyWrapping): string {
+  return wrapping === "syncKey" ? `vault:${vaultId}:master-key:sync-key` : `vault:${vaultId}:master-key`;
+}
+
+function checkSecretStrength(secret: string, wrapping: KeyWrapping): void {
+  const length = [...secret].length;
+  if (wrapping === "passphrase" && length < MIN_PASSPHRASE_LENGTH) {
     throw new WeakPassphraseError();
   }
+  if (wrapping === "syncKey" && length < MIN_SYNC_KEY_LENGTH) {
+    throw new WeakSyncKeyError();
+  }
+}
+
+function newRawMasterKey(): Uint8Array {
+  return crypto.getRandomValues(new Uint8Array(MASTER_KEY_LENGTH));
+}
+
+// 取り出せない形のキーにする。メモの暗号化にはこれを使う。
+function importMasterKey(rawMasterKey: Uint8Array): Promise<CryptoKey> {
+  return importAesKey(rawMasterKey, false);
 }
 
 export type CreatedVault = { document: VaultDocument; masterKey: CryptoKey };
 
+// 手元の vault を新しく作る（パスフレーズで包む）。
 export async function createVault(
   passphrase: string,
   kdfCost?: Omit<Argon2idParameters, "salt">,
 ): Promise<CreatedVault> {
-  checkPassphraseStrength(passphrase);
-  const rawMasterKey = crypto.getRandomValues(new Uint8Array(MASTER_KEY_LENGTH));
+  const rawMasterKey = newRawMasterKey();
   try {
-    const vaultId = newRandomId();
-    const document = await wrapMasterKey({ rawMasterKey, passphrase, vaultId, kdfCost, bodySchema: BODY_SCHEMA_VERSION });
-    return { document, masterKey: await importAesKey(rawMasterKey, false) };
+    const document = await wrapMasterKey({
+      rawMasterKey, secret: passphrase, wrapping: "passphrase", vaultId: newRandomId(), kdfCost, bodySchema: BODY_SCHEMA_VERSION,
+    });
+    return { document, masterKey: await importMasterKey(rawMasterKey) };
   } finally {
     rawMasterKey.fill(0);
   }
 }
 
-export async function unlockVault(document: VaultDocument, passphrase: string): Promise<CryptoKey> {
-  const rawMasterKey = await unwrapRawMasterKey(document, passphrase);
+export async function unlockVault(document: VaultDocument, secret: string): Promise<CryptoKey> {
+  const rawMasterKey = await unwrapRawMasterKey(document, secret);
   try {
-    return await importAesKey(rawMasterKey, false);
+    return await importMasterKey(rawMasterKey);
   } finally {
     rawMasterKey.fill(0);
   }
 }
 
-// パスフレーズを変える。マスターキーは同じなので、メモを暗号化し直す必要はない。
-export async function changeVaultPassphrase(
+// 同じマスターキーを、別の秘密（新しいパスフレーズ、暗号化キー）で包み直した文書を作る。
+// マスターキーは同じなので、メモを暗号化し直す必要はない。
+export async function rewrapVault(
   document: VaultDocument,
-  currentPassphrase: string,
-  newPassphrase: string,
+  currentSecret: string,
+  next: { secret: string; wrapping: KeyWrapping },
 ): Promise<VaultDocument> {
-  checkPassphraseStrength(newPassphrase);
-  const rawMasterKey = await unwrapRawMasterKey(document, currentPassphrase);
+  checkSecretStrength(next.secret, next.wrapping);
+  const rawMasterKey = await unwrapRawMasterKey(document, currentSecret);
   try {
     return await wrapMasterKey({
-      rawMasterKey, passphrase: newPassphrase, vaultId: document.vaultId, kdfCost: document.kdf, bodySchema: document.bodySchema,
+      rawMasterKey, secret: next.secret, wrapping: next.wrapping, vaultId: document.vaultId, kdfCost: document.kdf, bodySchema: document.bodySchema,
     });
   } finally {
     rawMasterKey.fill(0);
@@ -108,13 +152,15 @@ export async function changeVaultPassphrase(
 
 type WrapMasterKeyInput = {
   rawMasterKey: Uint8Array;
-  passphrase: string;
+  secret: string;
+  wrapping: KeyWrapping;
   vaultId: string;
   kdfCost: Omit<Argon2idParameters, "salt"> | undefined;
   bodySchema: number;
 };
 
 async function wrapMasterKey(input: WrapMasterKeyInput): Promise<VaultDocument> {
+  checkSecretStrength(input.secret, input.wrapping);
   const kdf = input.kdfCost
     ? newArgon2idParameters({
         iterations: input.kdfCost.iterations,
@@ -122,11 +168,11 @@ async function wrapMasterKey(input: WrapMasterKeyInput): Promise<VaultDocument> 
         parallelism: input.kdfCost.parallelism,
       })
     : newArgon2idParameters();
-  const passphraseKey = await derivePassphraseKey(input.passphrase, kdf);
-  const wrapped = await seal(passphraseKey, input.rawMasterKey, masterKeyBinding(input.vaultId));
+  const wrappingKey = await derivePassphraseKey(input.secret, kdf);
+  const wrapped = await seal(wrappingKey, input.rawMasterKey, masterKeyBinding(input.vaultId, input.wrapping));
   return {
     format: VAULT_FORMAT,
-    version: VAULT_VERSION,
+    version: VERSION_BY_WRAPPING[input.wrapping],
     vaultId: input.vaultId,
     kdf,
     wrappedMasterKey: bytesToBase64(wrapped),
@@ -134,13 +180,14 @@ async function wrapMasterKey(input: WrapMasterKeyInput): Promise<VaultDocument> 
   };
 }
 
-async function unwrapRawMasterKey(document: VaultDocument, passphrase: string): Promise<Uint8Array> {
-  const passphraseKey = await derivePassphraseKey(passphrase, document.kdf);
+async function unwrapRawMasterKey(document: VaultDocument, secret: string): Promise<Uint8Array> {
+  const wrapping = keyWrappingOf(document);
+  const wrappingKey = await derivePassphraseKey(secret, document.kdf);
   try {
-    return await open(passphraseKey, base64ToBytes(document.wrappedMasterKey), masterKeyBinding(document.vaultId));
+    return await open(wrappingKey, base64ToBytes(document.wrappedMasterKey), masterKeyBinding(document.vaultId, wrapping));
   } catch (error) {
     if (error instanceof SealedBoxError) {
-      throw new WrongPassphraseError();
+      throw wrapping === "syncKey" ? new WrongSyncKeyError() : new WrongPassphraseError();
     }
     throw error;
   }
@@ -157,7 +204,7 @@ export function parseVaultDocument(text: string): VaultDocument {
     throw new InvalidVaultDocumentError("vault.json is not an object");
   }
   const candidate = value as Partial<VaultDocument>;
-  if (candidate.format !== VAULT_FORMAT || candidate.version !== VAULT_VERSION) {
+  if (candidate.format !== VAULT_FORMAT || (candidate.version !== VERSION_BY_WRAPPING.passphrase && candidate.version !== VERSION_BY_WRAPPING.syncKey)) {
     throw new InvalidVaultDocumentError("vault.json is not a vault of a supported version");
   }
   if (typeof candidate.vaultId !== "string" || !isRandomId(candidate.vaultId) ||
@@ -168,7 +215,7 @@ export function parseVaultDocument(text: string): VaultDocument {
   const kdf = candidate.kdf;
   const parsed: VaultDocument = {
     format: VAULT_FORMAT,
-    version: VAULT_VERSION,
+    version: candidate.version,
     vaultId: candidate.vaultId,
     kdf: { iterations: kdf.iterations, memoryKiB: kdf.memoryKiB, parallelism: kdf.parallelism, salt: kdf.salt },
     wrappedMasterKey: candidate.wrappedMasterKey,

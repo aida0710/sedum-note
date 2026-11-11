@@ -6,7 +6,7 @@
 // （ui/platform/storageRequestSender.ts）。
 
 import { AwsClient } from "aws4fetch";
-import { parseListObjectsPage } from "./listObjectsResponse";
+import { type ListObjectsPage, parseListObjectsPage } from "./listObjectsResponse";
 import {
   type ObjectStore,
   ObjectStoreError,
@@ -49,26 +49,42 @@ export class S3ObjectStore implements ObjectStore {
   }
 
   async list(prefix: string): Promise<ObjectSummary[]> {
-    const fullPrefix = this.#keyPrefix + prefix;
     const objects: ObjectSummary[] = [];
     let continuationToken: string | null = null;
     do {
-      const url = new URL(this.#bucketUrl);
-      url.searchParams.set("list-type", "2");
-      url.searchParams.set("prefix", fullPrefix);
-      url.searchParams.set("max-keys", String(LIST_PAGE_SIZE));
-      if (continuationToken !== null) {
-        url.searchParams.set("continuation-token", continuationToken);
-      }
-      const response = await this.#send(url.toString(), { method: "GET" });
-      await throwUnlessOk(response, "list");
-      const page = parseListObjectsPage(await response.text());
+      const page: ListObjectsPage = await this.#listPage({ prefix, maxKeys: LIST_PAGE_SIZE, continuationToken });
       for (const object of page.objects) {
         objects.push({ key: object.key.slice(this.#keyPrefix.length), etag: object.etag });
       }
       continuationToken = page.nextContinuationToken;
     } while (continuationToken !== null);
     return objects;
+  }
+
+  async hasObjectsUnder(prefix: string): Promise<boolean> {
+    return (await this.#listPage({ prefix, maxKeys: 1, continuationToken: null })).objects.length > 0;
+  }
+
+  async listFolders(prefix: string, maxCount: number): Promise<string[]> {
+    const page = await this.#listPage({ prefix, maxKeys: maxCount, continuationToken: null, delimiter: "/" });
+    const fullPrefixLength = this.#keyPrefix.length + prefix.length;
+    return page.commonPrefixes.map((commonPrefix) => commonPrefix.slice(fullPrefixLength).replace(/\/$/, ""));
+  }
+
+  async #listPage(query: { prefix: string; maxKeys: number; continuationToken: string | null; delimiter?: string }): Promise<ListObjectsPage> {
+    const url = new URL(this.#bucketUrl);
+    url.searchParams.set("list-type", "2");
+    url.searchParams.set("prefix", this.#keyPrefix + query.prefix);
+    url.searchParams.set("max-keys", String(query.maxKeys));
+    if (query.delimiter !== undefined) {
+      url.searchParams.set("delimiter", query.delimiter);
+    }
+    if (query.continuationToken !== null) {
+      url.searchParams.set("continuation-token", query.continuationToken);
+    }
+    const response = await this.#send(url.toString(), { method: "GET" });
+    await throwUnlessOk(response, "list");
+    return parseListObjectsPage(await response.text());
   }
 
   async get(key: string): Promise<StoredObject | null> {

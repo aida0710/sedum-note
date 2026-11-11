@@ -9,6 +9,7 @@ describe("parseListObjectsPage", () => {
       <NextContinuationToken>token+1</NextContinuationToken></ListBucketResult>`;
     expect(parseListObjectsPage(xml)).toEqual({
       objects: [{ key: "notes/records/abc", etag: "d41d8" }, { key: "notes/records/def", etag: "e5f6" }],
+      commonPrefixes: [],
       nextContinuationToken: "token+1",
     });
   });
@@ -18,7 +19,13 @@ describe("parseListObjectsPage", () => {
     expect(parseListObjectsPage(xml).objects).toEqual([{ key: "a", etag: "86ab" }]);
   });
 
+  it("delimiter を付けた一覧の、まとめられた prefix を取り出す", () => {
+    const xml = `<ListBucketResult><Contents><Key>vault.json</Key><ETag>"a1"</ETag></Contents>
+      <CommonPrefixes><Prefix>notes/</Prefix></CommonPrefixes><CommonPrefixes><Prefix>work/</Prefix></CommonPrefixes></ListBucketResult>`;
+    expect(parseListObjectsPage(xml)).toMatchObject({ objects: [{ key: "vault.json", etag: "a1" }], commonPrefixes: ["notes/", "work/"] });
+  });
+
   it("最後のページでは続きの印を返さない", () => {
-    expect(parseListObjectsPage("<ListBucketResult><IsTruncated>false</IsTruncated></ListBucketResult>")).toEqual({ objects: [], nextContinuationToken: null });
+    expect(parseListObjectsPage("<ListBucketResult><IsTruncated>false</IsTruncated></ListBucketResult>")).toEqual({ objects: [], commonPrefixes: [], nextContinuationToken: null });
   });
 });

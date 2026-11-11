@@ -234,6 +234,11 @@ kbd { font: inherit; font-size: 12px; background: var(--tag); border: 1px solid 
 .checkbox-line { display: flex; gap: 8px; align-items: center; }
 .form-error { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); border-radius: 8px; padding: 8px 10px; line-height: 1.5; }
 .form-success { color: var(--ok); }
+.form-notice { background: var(--accent-soft); border-radius: 8px; padding: 8px 10px; line-height: 1.5; }
+.sync-target-result, .sync-overview { display: flex; flex-direction: column; gap: 10px; }
+.sync-target-result .hint, .sync-overview .hint { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.found-folders { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.found-folders .hint { flex-basis: 100%; }
 .primary-button { background: var(--accent); color: var(--on-accent); border-radius: 8px; height: 36px; padding: 0 16px; font-weight: 600; }
 .secondary-button { border: 1px solid var(--line); border-radius: 8px; height: 32px; padding: 0 12px; background: var(--panel); }
 .danger-button { color: var(--danger); border: 1px solid var(--line); border-radius: 8px; height: 32px; padding: 0 12px; }

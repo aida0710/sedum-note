@@ -1,4 +1,4 @@
-// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
@@ -36,6 +36,8 @@ export type DevicePreferences = {
   imageAttachment: ImageAttachmentChoice;
   // PC の画面の、左の列の幅（px）。
   sidebarWidth: number;
+  // このデバイスで、同期を自動で流すか。切っても「今すぐ同期」は使える。
+  autoSync: boolean;
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
@@ -49,6 +51,7 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   showOutline: false,
   imageAttachment: "original",
   sidebarWidth: 290,
+  autoSync: true,
 };
 
 let current: DevicePreferences | null = null;
@@ -114,6 +117,7 @@ function validPreferences(stored: unknown): DevicePreferences {
     trashRetentionDays: isTrashRetentionDays(candidate.trashRetentionDays) ? candidate.trashRetentionDays : DEFAULT_DEVICE_PREFERENCES.trashRetentionDays,
     showOutline: typeof candidate.showOutline === "boolean" ? candidate.showOutline : DEFAULT_DEVICE_PREFERENCES.showOutline,
     imageAttachment: IMAGE_ATTACHMENT_CHOICES.find((choice) => choice === candidate.imageAttachment) ?? DEFAULT_DEVICE_PREFERENCES.imageAttachment,
+    autoSync: typeof candidate.autoSync === "boolean" ? candidate.autoSync : DEFAULT_DEVICE_PREFERENCES.autoSync,
     sidebarWidth: clampSidebarWidth(typeof candidate.sidebarWidth === "number" ? candidate.sidebarWidth : DEFAULT_DEVICE_PREFERENCES.sidebarWidth),
   };
 }

@@ -12,6 +12,7 @@ import { SetupScreen } from "./entry/SetupScreen";
 import { UnlockScreen } from "./entry/UnlockScreen";
 import { DialogProvider } from "./shared/DialogProvider";
 import { ToastProvider } from "./shared/ToastProvider";
+import { GeneratedSyncKeyDialog } from "./sync/GeneratedSyncKeyDialog";
 import { AttachmentReaderContext } from "./editor/attachmentReader";
 import { MobileWorkspace } from "./mobile/MobileWorkspace";
 import { UnsyncedRecordsContext, useRepositorySnapshot } from "./session/useRepositorySnapshot";
@@ -63,7 +64,12 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   const availableUpdate = useAvailableUpdate();
   useTrashRetention(vault, session.syncStatus);
   const props = { session, vault, snapshot, navigation };
-  const workspace = isMobile ? <MobileWorkspace {...props} /> : <DesktopWorkspace {...props} />;
+  const workspace = (
+    <>
+      {isMobile ? <MobileWorkspace {...props} /> : <DesktopWorkspace {...props} />}
+      {session.generatedSyncKey !== null && <GeneratedSyncKeyDialog syncKey={session.generatedSyncKey} onClose={session.dismissGeneratedSyncKey} />}
+    </>
+  );
   return (
     <AttachmentReaderContext.Provider value={vault.repository.readAttachment.bind(vault.repository)}>
       <UnsyncedRecordsContext.Provider value={vault.syncEngine ? snapshot.unsyncedIds : NO_UNSYNCED_RECORDS}>

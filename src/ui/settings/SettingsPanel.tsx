@@ -1,38 +1,34 @@
-// 設定の画面。表示、テーマ、同期先、バックアップ、Markdown、パスフレーズの変更、ゴミ箱、MCP、更新、ロック、データの消去を並べる。
+// 設定の画面。表示、テーマ、同期（同期先と暗号化キー）、バックアップ、Markdown、パスフレーズの変更、ゴミ箱、MCP、更新、ロック、データの消去を並べる。
 
 import { useContext, useState } from "react";
 import { MIN_PASSPHRASE_LENGTH } from "../../core/crypto/passphraseKey";
-import type { NoteRepository } from "../../core/notes/noteRepository";
-import type { RemoteConfig } from "../../core/remote/remoteConfig";
-import { describeError } from "../i18n/describeError";
+import type { UnlockedVault } from "../../core/vault/vaultSession";
 import { translate } from "../i18n/translate";
 import { fileNameDate } from "../platform/fileNameDate";
 import { BACKUP_FILE_EXTENSION, saveFile } from "../platform/saveFile";
 import type { VaultSession } from "../session/useVaultSession";
 import { WipeDeviceDataButton } from "../session/WipeDeviceDataButton";
-import { CorsGuide } from "../shared/CorsGuide";
 import { PassphraseGenerator } from "../shared/PassphraseGenerator";
-import { EMPTY_REMOTE_CONFIG, RemoteConfigFields } from "../shared/RemoteConfigFields";
-import { checkRemoteConfigInput } from "../shared/remoteConfigProblemMessage";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { DisplaySection } from "./DisplaySection";
 import { MarkdownSection } from "./MarkdownSection";
 import { McpSectionSlot } from "./mcpSectionSlot";
 import { ShortcutsSection } from "./ShortcutsSection";
+import { SyncSection } from "./SyncSection";
 import { ThemeSection } from "./ThemeSection";
 import { TrashSection } from "./TrashSection";
 import { UpdateSection } from "./UpdateSection";
 
 type SettingsPanelProps = {
   session: VaultSession;
-  repository: NoteRepository;
-  remoteConfig: RemoteConfig | null;
+  vault: UnlockedVault;
   unreadableCount: number;
   // スマホの組み方か。キーボードの無い画面には、ショートカットの一覧を出さない。
   isMobile: boolean;
 };
 
-export function SettingsPanel({ session, repository, remoteConfig, unreadableCount, isMobile }: SettingsPanelProps) {
+export function SettingsPanel({ session, vault, unreadableCount, isMobile }: SettingsPanelProps) {
+  const { repository } = vault;
   // PC 版では MCP の欄が入っている。Web 版と Android のアプリでは null。
   const mcpSection = useContext(McpSectionSlot);
   return (
@@ -42,7 +38,7 @@ export function SettingsPanel({ session, repository, remoteConfig, unreadableCou
         {unreadableCount > 0 && <div className="form-error">{translate("settings.unreadable", { count: unreadableCount })}</div>}
         <DisplaySection />
         <ThemeSection />
-        <SyncSection session={session} remoteConfig={remoteConfig} />
+        <SyncSection session={session} vault={vault} />
         <BackupSection session={session} />
         <MarkdownSection repository={repository} />
         <PassphraseSection session={session} />
@@ -62,46 +58,6 @@ export function SettingsPanel({ session, repository, remoteConfig, unreadableCou
         </section>
       </div>
     </div>
-  );
-}
-
-function SyncSection({ session, remoteConfig }: { session: VaultSession; remoteConfig: RemoteConfig | null }) {
-  const [draft, setDraft] = useState<RemoteConfig>(remoteConfig ?? EMPTY_REMOTE_CONFIG);
-  const [problem, setProblem] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
-  const save = useAsyncAction(session.saveRemoteConfig);
-  const syncNow = useAsyncAction(session.syncNow);
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setSaved(false);
-    const checked = checkRemoteConfigInput(draft);
-    if ("problem" in checked) {
-      setProblem(checked.problem);
-      return;
-    }
-    setProblem(null);
-    setSaved(await save.run(checked.config));
-  };
-  const status = session.syncStatus;
-  const lastFailure = status?.state === "failed" ? translate("settings.lastSyncFailed", { reason: describeError(status.error) }) : null;
-  const message = problem ?? save.errorMessage ?? syncNow.errorMessage ?? lastFailure;
-  return (
-    <form className="settings-section" onSubmit={submit}>
-      <h2>{translate("settings.sync")}</h2>
-      <p>{translate("settings.syncDescription")}</p>
-      <RemoteConfigFields value={draft} onChange={setDraft} />
-      <CorsGuide />
-      {message && <div className="form-error" role="alert">{message}</div>}
-      <div className="form-actions">
-        {saved && <span className="form-success">{translate("settings.syncSaved")}</span>}
-        {remoteConfig && (
-          <button type="button" className="secondary-button" disabled={syncNow.busy} onClick={() => void syncNow.run(undefined)}>
-            {translate("settings.syncNow")}
-          </button>
-        )}
-        <button type="submit" className="primary-button" disabled={save.busy}>{translate("settings.syncSave")}</button>
-      </div>
-    </form>
   );
 }
 
@@ -154,6 +110,7 @@ function PassphraseSection({ session }: { session: VaultSession }) {
       }
     }}>
       <h2>{translate("settings.passphrase")}</h2>
+      <p>{translate("settings.passphraseDescription")}</p>
       <div className="field-grid">
         <div className="field">
           <label htmlFor="current-passphrase">{translate("settings.currentPassphrase")}</label>
