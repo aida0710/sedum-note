@@ -1,3 +1,4 @@
+import { readFileSync, writeFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import { type CorsRule, newTestRemoteConfig, newTestRemoteConfigWithCors } from "../integration/testStorage";
 import type { RemoteConfig } from "../src/core/remote/remoteConfig";
@@ -5,7 +6,7 @@ import { S3ObjectStore } from "../src/core/remote/s3ObjectStore";
 import { writeRemoteVault } from "../src/core/vault/remoteVault";
 import { createVault } from "../src/core/vault/vaultDocument";
 import { corsRuleJson } from "../src/ui/settings/corsRule";
-import { createNoteOnDesktop, DESKTOP_VIEWPORT, fillRemoteConfigFields, fillSyncTarget, openSyncedDevice, PASSPHRASE, startLocalVault, SYNC_KEY } from "./devices";
+import { createNoteOnDesktop, DESKTOP_VIEWPORT, fillRemoteConfigFields, fillSyncTarget, openSyncedDevice, PASSPHRASE, PHONE_VIEWPORT, startLocalVault, SYNC_KEY } from "./devices";
 
 // 画面の試験の開発サーバーの origin（playwright.config.ts の baseURL）。
 const PAGE_ORIGIN = "http://127.0.0.1:5173";
@@ -206,4 +207,110 @@ test("同期を設定したあとの設定の画面は、同期先の要約を�
   // 保存すると、要約に戻る。
   await expect(syncSection.getByRole("button", { name: "同期先を変更" })).toBeVisible();
   await expect(laptop.locator(".sync-line")).toContainText("同期済み", { timeout: 20_000 });
+});
+
+test("同期の設定を、暗号化キーを入力せずに書き出せる。ファイルでも QR でも、暗号化キーを入れると取り込めて参加できる", async ({ browser }, testInfo) => {
+  const remoteConfig = await newTestRemoteConfig();
+  const laptop = await openSyncedDevice(browser, { remoteConfig, join: false });
+  await createNoteOnDesktop(laptop, "書き出す側のメモ");
+  await expect(laptop.getByText(/同期済み/)).toBeVisible({ timeout: 20_000 });
+
+  // 書き出す。暗号化キーもパスフレーズも聞かれない。
+  await laptop.locator(".sync-line").click();
+  await laptop.getByRole("button", { name: "同期の設定を書き出す" }).click();
+  const exportDialog = laptop.getByRole("dialog", { name: "同期の設定を渡す" });
+  const download = laptop.waitForEvent("download");
+  await exportDialog.getByRole("button", { name: "ファイルに保存" }).click();
+  const setupFile = testInfo.outputPath("sync-setup.sedumsync");
+  await (await download).saveAs(setupFile);
+  const setupText = readFileSync(setupFile, "utf8");
+  for (const secret of [remoteConfig.secretAccessKey, remoteConfig.accessKeyId, remoteConfig.bucket, SYNC_KEY, PASSPHRASE]) {
+    expect(setupText).not.toContain(secret);
+  }
+  // 画面の QR を、撮った写真の代わりに画像のファイルにする。
+  const qrCodeImage = await exportDialog.getByRole("img", { name: "同期の設定の QR コード" }).getAttribute("src");
+  const qrCodeFile = testInfo.outputPath("sync-setup-qr.png");
+  writeFileSync(qrCodeFile, Buffer.from(qrCodeImage!.split(",")[1]!, "base64"));
+
+  const joinWith = async (pickLabel: string, file: string) => {
+    const device = await (await browser.newContext({ viewport: DESKTOP_VIEWPORT })).newPage();
+    await device.goto("/");
+    await device.getByLabel("パスフレーズ", { exact: true }).fill(SECOND_DEVICE_PASSPHRASE);
+    await device.getByLabel("パスフレーズ（確認）").fill(SECOND_DEVICE_PASSPHRASE);
+    await device.getByLabel("ほかのデバイスと同期する").check();
+    await device.locator(`input[type="file"][aria-label="${pickLabel}"]`).setInputFiles(file);
+    await expect(device.getByText("同期の設定を読みました")).toBeVisible();
+    // 違う暗号化キーでは開かず、同期先の欄にも何も入らない。
+    await device.getByLabel("暗号化キー", { exact: true }).fill("not-the-shared-key");
+    await device.getByRole("button", { name: "取り込む" }).click();
+    await expect(device.getByRole("alert")).toContainText("暗号化キーが違います");
+    await expect(device.getByLabel("バケット")).toHaveValue("");
+    await device.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
+    await device.getByRole("button", { name: "取り込む" }).click();
+    // 同期先が入り、確かめまで済んで、暗号化キーも入っている。あとは参加を押すだけ。
+    await expect(device.getByText("同期の設定を取り込みました")).toBeVisible();
+    await expect(device.getByLabel("バケット")).toHaveValue(remoteConfig.bucket);
+    await expect(device.getByLabel("フォルダ")).toHaveValue(remoteConfig.prefix);
+    await expect(device.locator(".sync-target-result")).toContainText("既存のメモが見つかりました");
+    await expect(device.getByLabel("暗号化キー", { exact: true })).toHaveValue(SYNC_KEY);
+    await device.getByRole("button", { name: "参加" }).click();
+    await expect(device.getByRole("button", { name: /書き出す側のメモ/ }).first()).toBeVisible({ timeout: 20_000 });
+  };
+  await joinWith("設定のファイルを選ぶ", setupFile);
+  await joinWith("QR の画像を選ぶ", qrCodeFile);
+
+  // カメラで読む。カメラの映像の代わりに、QR を描いた映像を返す。
+  const phone = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
+  await phone.addInitScript((image) => {
+    navigator.mediaDevices.getUserMedia = async () => {
+      const picture = new Image();
+      picture.src = image;
+      await picture.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = picture.width;
+      canvas.height = picture.height;
+      const context = canvas.getContext("2d")!;
+      // 止まった絵だと映像のコマが出ないブラウザがあるので、描き続ける。
+      setInterval(() => context.drawImage(picture, 0, 0), 100);
+      context.drawImage(picture, 0, 0);
+      return canvas.captureStream(10);
+    };
+  }, qrCodeImage!);
+  await phone.goto("/");
+  await phone.getByLabel("ほかのデバイスと同期する").check();
+  await phone.getByRole("button", { name: "カメラで QR を読む" }).click();
+  // 読めたら、ダイアログが閉じて、暗号化キーを聞く。
+  await expect(phone.getByText("同期の設定を読みました")).toBeVisible();
+  await expect(phone.getByRole("dialog", { name: "QR を読む" })).toBeHidden();
+  await phone.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
+  await phone.getByRole("button", { name: "取り込む" }).click();
+  await expect(phone.locator(".sync-target-result")).toContainText("既存のメモが見つかりました");
+});
+
+test("カメラを許可しなかったときは、ほかの読み方を案内する", async ({ page }) => {
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException("denied", "NotAllowedError"));
+  });
+  await page.goto("/");
+  await page.getByLabel("ほかのデバイスと同期する").check();
+  await page.getByRole("button", { name: "カメラで QR を読む" }).click();
+  const scanner = page.getByRole("dialog", { name: "QR を読む" });
+  await expect(scanner.getByRole("alert")).toContainText("カメラを使う許可がありません");
+  await scanner.getByRole("button", { name: "閉じる" }).click();
+  await expect(page.getByRole("button", { name: "QR の画像を選ぶ" })).toBeVisible();
+});
+
+test("同期の設定でないファイルや、QR の無い写真を選ぶと、暗号化キーを聞く前に知らせる", async ({ page }, testInfo) => {
+  await page.goto("/");
+  await page.getByLabel("ほかのデバイスと同期する").check();
+  const otherFile = testInfo.outputPath("notes.json");
+  writeFileSync(otherFile, JSON.stringify({ hello: "world" }));
+  await page.locator('input[type="file"][aria-label="設定のファイルを選ぶ"]').setInputFiles(otherFile);
+  await expect(page.getByRole("alert")).toContainText("同期の設定として読めません");
+  // 1x1 の PNG（QR は写っていない）。
+  const blankPhoto = testInfo.outputPath("blank.png");
+  writeFileSync(blankPhoto, Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64"));
+  await page.locator('input[type="file"][aria-label="QR の画像を選ぶ"]').setInputFiles(blankPhoto);
+  await expect(page.getByRole("alert")).toContainText("画像から QR を読めませんでした");
+  await expect(page.getByLabel("暗号化キー", { exact: true })).toBeHidden();
 });

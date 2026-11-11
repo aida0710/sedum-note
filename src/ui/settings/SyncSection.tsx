@@ -10,6 +10,7 @@ import { updateDevicePreferences, useDevicePreferences } from "../preferences/de
 import type { VaultSession } from "../session/useVaultSession";
 import { formatDateTime } from "../shared/formatTime";
 import { useAsyncAction } from "../shared/useAsyncAction";
+import { SyncSetupExportDialog } from "../sync/SyncSetupExportDialog";
 import { SyncTargetFields } from "../sync/SyncTargetFields";
 import { useSyncTargetForm } from "../sync/useSyncTargetForm";
 import { SyncKeySection } from "./SyncKeySection";
@@ -27,10 +28,13 @@ export function SyncSection({ session, vault }: SyncSectionProps) {
         <p>{translate("settings.syncDescription")}</p>
         {remoteConfig && <SyncOverview session={session} />}
         {remoteConfig && !changingTarget ? (
-          <div className="sync-target-summary">
-            <span>{translate("settings.syncTarget", { bucket: remoteConfig.bucket, folder: remoteConfig.prefix === "" ? translate("syncTarget.bucketRoot") : remoteConfig.prefix })}</span>
-            <button type="button" className="secondary-button" onClick={() => setChangingTarget(true)}>{translate("settings.syncChangeTarget")}</button>
-          </div>
+          <>
+            <div className="sync-target-summary">
+              <span>{translate("settings.syncTarget", { bucket: remoteConfig.bucket, folder: remoteConfig.prefix === "" ? translate("syncTarget.bucketRoot") : remoteConfig.prefix })}</span>
+              <button type="button" className="secondary-button" onClick={() => setChangingTarget(true)}>{translate("settings.syncChangeTarget")}</button>
+            </div>
+            <SyncSetupExport session={session} />
+          </>
         ) : (
           <SyncTargetEditor session={session} vault={vault} onClose={remoteConfig ? () => setChangingTarget(false) : null} />
         )}
@@ -90,6 +94,22 @@ function SyncTargetEditor({ session, vault, onClose }: SyncTargetEditorProps) {
         <button type="submit" className="primary-button" disabled={save.busy || form.checked === null || holdsOtherVault}>{translate("settings.syncSave")}</button>
       </div>
     </form>
+  );
+}
+
+// ほかのデバイスを加えるための、同期の設定の書き出し（QR とファイル）。
+function SyncSetupExport({ session }: { session: VaultSession }) {
+  const [setup, setSetup] = useState<string | null>(null);
+  const exportSetup = useAsyncAction(async () => setSetup(await session.exportSyncSetup()));
+  return (
+    <div className="sync-setup-export-entry">
+      <span className="hint">{translate("syncSetup.exportHint")}</span>
+      {exportSetup.errorMessage && <div className="form-error" role="alert">{exportSetup.errorMessage}</div>}
+      <div className="form-actions">
+        <button type="button" className="secondary-button" disabled={exportSetup.busy} onClick={() => void exportSetup.run(undefined)}>{translate("syncSetup.export")}</button>
+      </div>
+      {setup !== null && <SyncSetupExportDialog setup={setup} onClose={() => setSetup(null)} />}
+    </div>
   );
 }
 

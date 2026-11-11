@@ -19,6 +19,8 @@ export type SyncTargetForm = {
   changeRemoteConfig: (remoteConfig: RemoteConfig) => void;
   // 「接続を確認」。フォルダを渡したら、そのフォルダに入れ替えて確かめる（見つかった候補を選んだとき）。
   check: AsyncAction<{ folder?: string }>;
+  // ほかのデバイスが書き出した同期の設定を入れて、そのまま確かめる。暗号化キーは、参加にもそのまま使う。
+  applySyncSetup: (setup: { remoteConfig: RemoteConfig; syncKey: string }) => Promise<void>;
   checked: SyncTargetCheck | null;
   inputProblem: string | null;
   // 既存のメモに参加するときに入れる、そのメモの暗号化キー。
@@ -37,9 +39,10 @@ export function useSyncTargetForm(session: VaultSession, initialRemoteConfig: Re
   const [inputProblem, setInputProblem] = useState<string | null>(null);
   const [existingSyncKey, setExistingSyncKey] = useState("");
   const [newSyncKey, setNewSyncKey] = useState(GENERATED_SYNC_KEY);
-  const check = useAsyncAction(async ({ folder }: { folder?: string }) => {
+  const check = useAsyncAction(async ({ folder, replacement }: { folder?: string; replacement?: RemoteConfig }) => {
     setChecked(null);
-    const input = checkRemoteConfigInput(folder === undefined ? remoteConfig : { ...remoteConfig, prefix: folder });
+    const entered = replacement ?? remoteConfig;
+    const input = checkRemoteConfigInput(folder === undefined ? entered : { ...entered, prefix: folder });
     if ("problem" in input) {
       setInputProblem(input.problem);
       return;
@@ -57,6 +60,11 @@ export function useSyncTargetForm(session: VaultSession, initialRemoteConfig: Re
       setChecked(null);
     },
     check,
+    applySyncSetup: async (setup) => {
+      setRemoteConfig(setup.remoteConfig);
+      setExistingSyncKey(setup.syncKey);
+      await check.run({ replacement: setup.remoteConfig });
+    },
     checked,
     inputProblem,
     existingSyncKey,

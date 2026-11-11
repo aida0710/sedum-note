@@ -239,6 +239,16 @@ kbd { font: inherit; font-size: 12px; background: var(--tag); border: 1px solid 
 .sync-target-result .hint, .sync-overview .hint { color: var(--muted); font-size: 12px; line-height: 1.6; }
 .sync-target-summary { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
 .sync-target-editor { display: flex; flex-direction: column; gap: 12px; }
+.sync-setup-import, .sync-setup-export-entry { display: flex; flex-direction: column; gap: 10px; }
+.sync-setup-import .hint, .sync-setup-export-entry .hint { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.sync-setup-import-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.sync-setup-import-buttons button { display: inline-flex; align-items: center; gap: 6px; }
+.dialog.sync-setup-export { width: min(480px, 100%); }
+/* QR は、暗いテーマでも読めるよう、白地のままにする。 */
+.sync-setup-qr { width: min(100%, 360px); align-self: center; border-radius: 8px; background: #fff; }
+.dialog.qr-code-scanner { width: min(480px, 100%); }
+/* カメラに写っている範囲を全部見せる（切り取ると、QR が枠に入っているかが分からない）。 */
+.qr-code-scanner-video { width: 100%; max-height: 60vh; border-radius: 8px; background: #000; object-fit: contain; }
 .found-folders { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .found-folders .hint { flex-basis: 100%; }
 .primary-button { background: var(--accent); color: var(--on-accent); border-radius: 8px; height: 36px; padding: 0 16px; font-weight: 600; }

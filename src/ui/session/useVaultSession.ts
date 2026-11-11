@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type BackupExport, exportBackup, restoreBackup } from "../../core/backup/vaultBackup";
 import type { RemoteConfig } from "../../core/remote/remoteConfig";
 import { AutoSync, type SyncStatus } from "../../core/sync/autoSync";
+import { exportSyncSetup } from "../../core/vault/syncSetupFile";
 import { checkSyncTarget, type SyncTargetCheck } from "../../core/vault/syncTarget";
 import {
   changePassphrase,
@@ -41,6 +42,8 @@ export type VaultSession = {
   // 確かめた同期先を保存して、同期を始める。空の同期先に置くときは、このデバイスのパスフレーズが要る。
   connectSyncTarget: (input: { syncTarget: SyncTargetChoice; passphrase: string | null }) => Promise<void>;
   replaceSyncKey: (input: { passphrase: string; syncKey: string | null }) => Promise<void>;
+  // 同期の設定を、ほかのデバイスへ渡すための文書にする（暗号化キーが無いと読めない）。
+  exportSyncSetup: () => Promise<string>;
   // 生成したばかりの暗号化キー。1 度だけ見せるためにメモリに持ち、閉じたら捨てる。
   generatedSyncKey: string | null;
   dismissGeneratedSyncKey: () => void;
@@ -146,6 +149,12 @@ export function useVaultSession(): VaultSession {
       if (vault) {
         setGeneratedSyncKey(await replaceSyncKey(environment, vault, input));
       }
+    },
+    exportSyncSetup: () => {
+      if (!vault) {
+        throw new Error("the vault is locked");
+      }
+      return exportSyncSetup(environment, vault);
     },
     changePassphrase: (passphrases) => changePassphrase(environment, passphrases),
     exportBackup: () => {

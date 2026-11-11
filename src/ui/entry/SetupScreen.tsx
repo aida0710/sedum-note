@@ -9,6 +9,7 @@ import { translate } from "../i18n/translate";
 import type { VaultSession } from "../session/useVaultSession";
 import { PassphraseGenerator } from "../shared/PassphraseGenerator";
 import { useAsyncAction } from "../shared/useAsyncAction";
+import { SyncSetupImport } from "../sync/SyncSetupImport";
 import { SyncTargetFields } from "../sync/SyncTargetFields";
 import { useSyncTargetForm } from "../sync/useSyncTargetForm";
 
@@ -103,6 +104,7 @@ export function SetupScreen({ session }: { session: VaultSession }) {
             </div>
           </>
         )}
+        {usesSync && <SyncSetupImport form={syncTargetForm} />}
         {usesSync && <SyncTargetFields form={syncTargetForm} />}
         {message && <div className="form-error" role="alert">{message}</div>}
         <div className="form-actions">

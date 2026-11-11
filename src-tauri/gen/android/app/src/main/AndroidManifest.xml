@@ -1,12 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 同期の設定の QR を、アプリの中のカメラで読むのに使う（初めて使うときに許可を聞く）。
+         カメラの無い端末にも入れられるよう、必須にはしない。 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
     <!-- AndroidTV support -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
 
     <!-- 本文の「カメラで撮る」が、カメラのアプリを呼べるようにする。この宣言が無いと、Android 11 以降では
-         カメラのアプリが見えず、写真の選択画面に切り替わる。撮るのはカメラのアプリなので、CAMERA の権限は要らない。 -->
+         カメラのアプリが見えず、写真の選択画面に切り替わる。CAMERA の権限を宣言しているので、撮る前にも許可を聞く
+         （宣言したアプリは、許可が無いとカメラのアプリを呼べない決まり）。 -->
     <queries>
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />

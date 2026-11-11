@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 同期の設定の QR をカメラで読むときに、macOS が利用者に見せる理由。 -->
+	<key>NSCameraUsageDescription</key>
+	<string>Sedum Note uses the camera to read the QR code of the sync settings.</string>
+</dict>
+</plist>

@@ -6,6 +6,7 @@ import { AppUpdateRequiredError } from "../../core/notes/bodySchema";
 import { ObjectStoreError } from "../../core/remote/objectStore";
 import { VaultReplacedError } from "../../core/sync/syncEngine";
 import { OutdatedSyncTargetError } from "../../core/vault/remoteVault";
+import { InvalidSyncSetupError } from "../../core/vault/syncSetupFile";
 import { SyncTargetChangedError, SyncTargetIncompleteError } from "../../core/vault/syncTarget";
 import {
   InvalidVaultDocumentError, MIN_SYNC_KEY_LENGTH, WeakPassphraseError, WeakSyncKeyError, WrongPassphraseError, WrongSyncKeyError,
@@ -33,6 +34,9 @@ export function describeError(error: unknown): string {
   }
   if (error instanceof SyncTargetIncompleteError) {
     return translate("syncTarget.incomplete");
+  }
+  if (error instanceof InvalidSyncSetupError) {
+    return translate("syncSetup.notSyncSetup");
   }
   if (error instanceof OutdatedSyncTargetError) {
     return translate("error.outdatedSyncTarget");
