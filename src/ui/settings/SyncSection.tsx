@@ -70,6 +70,8 @@ function SyncTargetEditor({ session, vault, onClose }: SyncTargetEditorProps) {
       onClose?.();
     }
   };
+  // 別のメモがある場所は、同期先にできない（知らせは SyncTargetFields が出す）。
+  const holdsOtherVault = form.checked?.inspected.state === "existing" && !isOwnVault(form.checked);
   const message = problem ?? save.errorMessage;
   return (
     <form className="sync-target-editor" onSubmit={submit}>
@@ -85,7 +87,7 @@ function SyncTargetEditor({ session, vault, onClose }: SyncTargetEditorProps) {
       <div className="form-actions">
         {form.checked === null && <span className="hint">{translate("syncTarget.checkFirst")}</span>}
         {onClose && <button type="button" className="secondary-button" onClick={onClose}>{translate("common.cancel")}</button>}
-        <button type="submit" className="primary-button" disabled={save.busy || form.checked === null}>{translate("settings.syncSave")}</button>
+        <button type="submit" className="primary-button" disabled={save.busy || form.checked === null || holdsOtherVault}>{translate("settings.syncSave")}</button>
       </div>
     </form>
   );

@@ -15,7 +15,7 @@ import { ensureConditionalWrites } from "../remote/conditionalWriteCheck";
 import type { ObjectStore } from "../remote/objectStore";
 import { ObjectStoreError, PreconditionFailedError } from "../remote/objectStore";
 import type { RemoteConfig } from "../remote/remoteConfig";
-import { VAULT_OBJECT_KEY } from "../sync/remoteLayout";
+import { BLOBS_PREFIX, VAULT_OBJECT_KEY } from "../sync/remoteLayout";
 import { SyncEngine } from "../sync/syncEngine";
 import { readRemoteVault, writeRemoteVault } from "./remoteVault";
 import { ensureSyncTargetUnchanged, SyncTargetChangedError, SyncTargetIncompleteError, type SyncTargetInspection } from "./syncTarget";
@@ -267,9 +267,36 @@ export async function connectRemote(
     // 新しい同期先には添付が 1 つも無い。前の同期先へ送り終えた添付も、送り直す
     // （記録は、同期先に無ければ同期の中で送り直しになる）。
     await environment.localStore.markAllBlobsForUpload();
+    if (unlocked.remoteConfig) {
+      await copyRemoteBlobs(environment.createObjectStore(unlocked.remoteConfig), environment.createObjectStore(remoteConfig));
+    }
   }
   await saveVaultLocally(environment.localStore, { document, masterKey: unlocked.masterKey, remoteConfig });
   return { unlocked: await assembleUnlockedVault(environment, unlocked.masterKey, remoteConfig), generatedSyncKey };
+}
+
+// 前の同期先の添付を、新しい同期先へ写す。添付は開いたときに取ってくるので、このデバイスが持っていない
+// 添付（ほかのデバイスが貼って、ここではまだ開いていないもの）は、手元から送り直せない。
+// 添付はマスターキーで暗号化してあり、マスターキーは同じなので、暗号文のまま写せば読める。
+// 前の同期先につながらなければ、写さずに進む（手元にある添付は、同期で送り直す）。
+async function copyRemoteBlobs(previous: ObjectStore, next: ObjectStore): Promise<void> {
+  try {
+    for (const { key } of await previous.list(BLOBS_PREFIX)) {
+      const stored = await previous.get(key);
+      if (stored !== null) {
+        await next.put(key, stored.body, { ifAbsent: true }).catch((error: unknown) => {
+          // 既にあれば、写し終えたのと同じ。
+          if (!(error instanceof PreconditionFailedError)) {
+            throw error;
+          }
+        });
+      }
+    }
+  } catch (error) {
+    if (!(error instanceof ObjectStoreError)) {
+      throw error;
+    }
+  }
 }
 
 // 同期先の暗号化キーを作り直す。vault.json を新しいキーで包み直すだけで、メモは暗号化し直さない。

@@ -237,7 +237,7 @@ describe("v0.2 までの同期先（パスフレーズで包んだ vault.json）
     expect(await findVaultFolders(store)).toEqual([]);
   });
 
-  it("同期していたデバイスは同期を止める。空の同期先へ付け替えると、メモと添付を送り直す", async () => {
+  it("同期していたデバイスは同期を止める。空の同期先へ付け替えると、メモと、手元に無い添付も新しい同期先に届く", async () => {
     const oldStore = new MemoryObjectStore();
     const newStore = new MemoryObjectStore();
     const deviceEnvironment: VaultSessionEnvironment = {
@@ -250,6 +250,12 @@ describe("v0.2 までの同期先（パスフレーズで包んだ vault.json）
     const photo = Uint8Array.from({ length: 2_000 }, (_, index) => index % 251);
     const attachment = await device.repository.storeAttachment({ bytes: photo, mimeType: "image/png", fileName: "a.png" });
     await device.syncEngine!.syncOnce();
+    // ほかのデバイスが貼って、このデバイスではまだ開いていない添付（手元に無い）も、前の同期先にある。
+    const otherDevice = await joinSyncedVault({ localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: () => oldStore }, { passphrase: "the tablet has its own", remoteConfig });
+    const elsewhere = Uint8Array.from({ length: 1_500 }, (_, index) => index % 13);
+    const attachedElsewhere = await otherDevice.repository.storeAttachment({ bytes: elsewhere, mimeType: "image/png", fileName: "b.png" });
+    await otherDevice.syncEngine!.syncOnce();
+    expect(await deviceEnvironment.localStore.getBlob(attachedElsewhere.id)).toBeUndefined();
     await oldStore.delete("vault.json");
     await placeOutdatedVault(oldStore, deviceEnvironment);
     await expect(device.syncEngine!.syncOnce()).rejects.toBeInstanceOf(OutdatedSyncTargetError);
@@ -260,6 +266,7 @@ describe("v0.2 までの同期先（パスフレーズで包んだ vault.json）
     await other.syncEngine!.syncOnce();
     expect(other.repository.note(note.id)?.content.title).toBe("前の同期先に送ったメモ");
     expect(await other.repository.readAttachment(attachment.id)).toEqual(photo);
+    expect(await other.repository.readAttachment(attachedElsewhere.id)).toEqual(elsewhere);
   });
 });
 
