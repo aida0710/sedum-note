@@ -34,7 +34,7 @@ export function MobileLibrary({ snapshot, repository, onPick }: MobileLibraryPro
         {snapshot.notebooks.map((notebook) => (
           <button key={notebook.id} className="library-row" onClick={() => onPick({ kind: "notebook", notebookId: notebook.id })}>
             <span className="dot" style={{ background: notebookColors.colorOf(notebook.id) }} />{notebook.content.name}
-            <span className="count">{selectNotes(snapshot.summaries, { kind: "notebook", notebookId: notebook.id }).length}</span>
+            <span className="count">{selectNotes(snapshot.summaries, { view: { kind: "notebook", notebookId: notebook.id } }).length}</span>
           </button>
         ))}
         {tags.length > 0 && <div className="section-title">{translate("sidebar.tags")}</div>}
@@ -46,7 +46,7 @@ export function MobileLibrary({ snapshot, repository, onPick }: MobileLibraryPro
         <div className="section-title" />
         <button className="library-row" onClick={() => onPick({ kind: "trash" })}>
           <Trash2 size={15} />{translate("sidebar.trash")}
-          <span className="count">{selectNotes(snapshot.summaries, { kind: "trash" }).length}</span>
+          <span className="count">{selectNotes(snapshot.summaries, { view: { kind: "trash" } }).length}</span>
         </button>
       </div>
     </>

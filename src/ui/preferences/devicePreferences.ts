@@ -1,7 +1,8 @@
-// このデバイスだけの表示の設定（言語など）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順など）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
+import { NOTE_SORT_ORDERS, type NoteSortOrder } from "../../core/notes/noteQueries";
 
 // Web 版はほかのページと同じ origin（github.io）に載るので、キーにアプリの名前を付ける。
 const STORAGE_KEY = "sedum-note:devicePreferences";
@@ -11,10 +12,12 @@ export type LanguageChoice = (typeof LANGUAGE_CHOICES)[number];
 
 export type DevicePreferences = {
   language: LanguageChoice;
+  noteSortOrder: NoteSortOrder;
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   language: "system",
+  noteSortOrder: "updatedAt",
 };
 
 let current: DevicePreferences | null = null;
@@ -70,6 +73,7 @@ function validPreferences(stored: unknown): DevicePreferences {
   const candidate = (typeof stored === "object" && stored !== null ? stored : {}) as Partial<Record<keyof DevicePreferences, unknown>>;
   return {
     language: LANGUAGE_CHOICES.find((choice) => choice === candidate.language) ?? DEFAULT_DEVICE_PREFERENCES.language,
+    noteSortOrder: NOTE_SORT_ORDERS.find((order) => order === candidate.noteSortOrder) ?? DEFAULT_DEVICE_PREFERENCES.noteSortOrder,
   };
 }
 

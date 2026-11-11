@@ -150,6 +150,10 @@ export const englishMessages: Record<MessageKey, string> = {
   "settings.display": "Display",
   "settings.language": "Language",
   "settings.language.system": "Match the system",
+  "settings.noteSortOrder": "Note order",
+  "settings.noteSortOrder.updatedAt": "Recently updated first",
+  "settings.noteSortOrder.createdAt": "Recently created first",
+  "settings.noteSortOrder.title": "By title",
 
   "mobile.notes": "Notes",
   "mobile.notebooks": "Notebooks",

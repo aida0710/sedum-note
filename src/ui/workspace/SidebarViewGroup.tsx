@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { type ReactNode, useContext } from "react";
 import { type NoteSummary, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import { translate } from "../i18n/translate";
+import { useDevicePreferences } from "../preferences/devicePreferences";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { viewKey, type WorkspaceNavigation } from "./useWorkspaceNavigation";
 
@@ -31,7 +32,8 @@ export type ViewGroupProps = {
 export function ViewGroup({ view, icon, label, summaries, navigation, depth = 0, actions, childBranches, expandedByDefault = false }: ViewGroupProps) {
   const key = viewKey(view);
   const expanded = navigation.isExpanded(key, expandedByDefault);
-  const notes = selectNotes(summaries, view);
+  const { noteSortOrder } = useDevicePreferences();
+  const notes = selectNotes(summaries, { view, sortOrder: noteSortOrder });
   const isActive = viewKey(navigation.view) === key;
   const indent = { paddingLeft: ROW_PADDING_LEFT + depth * TREE_INDENT_STEP };
   return (

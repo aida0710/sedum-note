@@ -1,5 +1,6 @@
-// 設定: このデバイスの表示（言語）。
+// 設定: このデバイスの表示（言語、メモの並び順）。
 
+import { NOTE_SORT_ORDERS, type NoteSortOrder } from "../../core/notes/noteQueries";
 import { type Language } from "../i18n/languageInUse";
 import { translate } from "../i18n/translate";
 import { LANGUAGE_CHOICES, type LanguageChoice, updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
@@ -24,6 +25,16 @@ export function DisplaySection() {
               {choice === "system" ? translate("settings.language.system") : LANGUAGE_NAMES[choice]}
             </option>
           ))}
+        </select>
+      </div>
+      <div className="field">
+        <label htmlFor="display-note-sort-order">{translate("settings.noteSortOrder")}</label>
+        <select
+          id="display-note-sort-order"
+          value={preferences.noteSortOrder}
+          onChange={(event) => updateDevicePreferences({ noteSortOrder: event.target.value as NoteSortOrder })}
+        >
+          {NOTE_SORT_ORDERS.map((order) => <option key={order} value={order}>{translate(`settings.noteSortOrder.${order}`)}</option>)}
         </select>
       </div>
     </section>

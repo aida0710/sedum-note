@@ -3,6 +3,7 @@
 import { FileText, FolderOpen, Plus, Settings, Star } from "lucide-react";
 import { useState } from "react";
 import { selectNotes, type NoteView } from "../../core/notes/noteQueries";
+import { useDevicePreferences } from "../preferences/devicePreferences";
 import { NoteEditor } from "../editor/NoteEditor";
 import { translate } from "../i18n/translate";
 import { SettingsPanel } from "../settings/SettingsPanel";
@@ -17,6 +18,7 @@ type MobileTab = "notes" | "notebooks" | "bookmarked" | "settings";
 export function MobileWorkspace({ session, vault, snapshot, navigation }: WorkspaceProps) {
   const { repository } = vault;
   const [tab, setTab] = useState<MobileTab>("notes");
+  const { noteSortOrder } = useDevicePreferences();
   const [openNoteId, setOpenNoteId] = useState<string | null>(null);
   const openNote = openNoteId ? repository.note(openNoteId) : undefined;
   const goBack = useBackGestureToClose(openNote !== undefined, () => setOpenNoteId(null));
@@ -47,7 +49,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
           onPick={(picked) => { navigation.selectView(picked); setTab("notes"); }} />
       )}
       {(tab === "notes" || tab === "bookmarked") && (
-        <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, view, navigation.searchText)}
+        <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, { view, searchText: navigation.searchText, sortOrder: noteSortOrder })}
           notebooks={snapshot.notebooks.map((notebook) => ({ id: notebook.id, name: notebook.content.name }))}
           view={view} showChips={tab === "notes"} navigation={navigation} onOpen={setOpenNoteId} />
       )}

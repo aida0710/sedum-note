@@ -39,21 +39,48 @@ describe("selectNotes", () => {
   ].map(summarizeNote);
 
   it("すべてのメモはピン留めを先に、新しい順に並べ、ゴミ箱のものは入れない", () => {
-    expect(selectNotes(summaries, { kind: "all" }).map((item) => item.note.id)).toEqual(["c", "b", "a"]);
+    expect(selectNotes(summaries, { view: { kind: "all" } }).map((item) => item.note.id)).toEqual(["c", "b", "a"]);
   });
 
   it("検索はタイトルと本文の両方を見て、空白で区切った語をすべて含むものを返す", () => {
-    expect(selectNotes(summaries, { kind: "all" }, "牛乳 todo").map((item) => item.note.id)).toEqual(["a"]);
+    expect(selectNotes(summaries, { view: { kind: "all" }, searchText: "牛乳 todo" }).map((item) => item.note.id)).toEqual(["a"]);
   });
 
   it("ノートブック・タグ・ゴミ箱で絞り込める", () => {
-    expect(selectNotes(summaries, { kind: "notebook", notebookId: "n1" }).map((item) => item.note.id)).toEqual(["b"]);
-    expect(selectNotes(summaries, { kind: "tag", tag: "todo" }).map((item) => item.note.id)).toEqual(["a"]);
-    expect(selectNotes(summaries, { kind: "trash" }).map((item) => item.note.id)).toEqual(["d"]);
+    expect(selectNotes(summaries, { view: { kind: "notebook", notebookId: "n1" } }).map((item) => item.note.id)).toEqual(["b"]);
+    expect(selectNotes(summaries, { view: { kind: "tag", tag: "todo" } }).map((item) => item.note.id)).toEqual(["a"]);
+    expect(selectNotes(summaries, { view: { kind: "trash" } }).map((item) => item.note.id)).toEqual(["d"]);
   });
 
   it("タグの件数にはゴミ箱のメモを数えない", () => {
     expect(countTags(summaries)).toEqual([{ tag: "todo", count: 1 }]);
+  });
+});
+
+describe("selectNotes の並び順", () => {
+  const created = (id: string, title: string, createdAt: string, updatedAt: string) => {
+    const made = note(id, { title }, updatedAt);
+    return summarizeNote({ ...made, content: { ...made.content, createdAt } });
+  };
+  const summaries = [
+    created("old-edited", "メモ10", "2026-01-01T00:00:00Z", "2026-11-09T00:00:00Z"),
+    created("new-untouched", "メモ2", "2026-11-05T00:00:00Z", "2026-11-05T00:00:00Z"),
+    summarizeNote(note("pinned", { title: "ん", pinned: true }, "2025-01-01T00:00:00Z")),
+  ];
+  const idsSortedBy = (sortOrder: "updatedAt" | "createdAt" | "title") =>
+    selectNotes(summaries, { view: { kind: "all" }, sortOrder }).map((item) => item.note.id);
+
+  it("作成日の順では、新しく作ったメモを先に並べる", () => {
+    expect(idsSortedBy("createdAt")).toEqual(["pinned", "new-untouched", "old-edited"]);
+  });
+
+  it("タイトルの順では、数字を大きさで比べて並べる", () => {
+    // 「メモ2」（new-untouched）が「メモ10」（old-edited）より前。
+    expect(idsSortedBy("title")).toEqual(["pinned", "new-untouched", "old-edited"]);
+  });
+
+  it("どの並び順でも、ピン留めしたメモを先に並べる", () => {
+    expect(idsSortedBy("updatedAt")).toEqual(["pinned", "old-edited", "new-untouched"]);
   });
 });
 

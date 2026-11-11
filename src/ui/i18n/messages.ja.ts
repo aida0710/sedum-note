@@ -149,6 +149,10 @@ export const japaneseMessages = {
   "settings.display": "表示",
   "settings.language": "言語",
   "settings.language.system": "システムに合わせる",
+  "settings.noteSortOrder": "メモの並び順",
+  "settings.noteSortOrder.updatedAt": "更新が新しい順",
+  "settings.noteSortOrder.createdAt": "作成が新しい順",
+  "settings.noteSortOrder.title": "タイトルの順",
 
   "mobile.notes": "メモ",
   "mobile.notebooks": "ノートブック",

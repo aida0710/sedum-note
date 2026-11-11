@@ -6,6 +6,7 @@ import { type ReactNode, useState } from "react";
 import { buildNotebookTree, countTags, selectNotes } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
+import { useDevicePreferences } from "../preferences/devicePreferences";
 import type { RepositorySnapshot } from "../session/useRepositorySnapshot";
 import { assignNotebookColors } from "../shared/notebookColor";
 import { NotebookBranch, NotebookNameInput } from "./NotebookBranch";
@@ -27,6 +28,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, footer
   const notebookTree = buildNotebookTree(snapshot.notebooks);
   const tags = countTags(summaries);
   const notebookColors = assignNotebookColors(snapshot.notebooks);
+  const { noteSortOrder } = useDevicePreferences();
   const searching = navigation.searchText.trim() !== "";
 
   const closeSearch = () => {
@@ -53,7 +55,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, footer
       <button className="new-note" onClick={onCreateNote}><Plus size={16} />{translate("sidebar.newNote")}</button>
       <div className="sidebar-scroll">
         {searching ? (
-          <SearchResults summaries={selectNotes(summaries, { kind: "all" }, navigation.searchText)} navigation={navigation} />
+          <SearchResults summaries={selectNotes(summaries, { view: { kind: "all" }, searchText: navigation.searchText, sortOrder: noteSortOrder })} navigation={navigation} />
         ) : (
           <>
             {/* ノートブックが無いうちは、メモを並べる所がほかに無いので開いておく。 */}

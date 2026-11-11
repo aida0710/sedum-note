@@ -46,19 +46,40 @@ function matchesSearch(summary: NoteSummary, words: string[]): boolean {
   return words.every((word) => haystack.includes(word));
 }
 
-// ピン留めを先に、残りは新しく変えた順。
-export function compareNotesForList(left: NoteSummary, right: NoteSummary): number {
-  if (left.note.content.pinned !== right.note.content.pinned) {
-    return left.note.content.pinned ? -1 : 1;
+export const NOTE_SORT_ORDERS = ["updatedAt", "createdAt", "title"] as const;
+// 一覧の並び順。updatedAt と createdAt は新しい順、title は名前の順。
+export type NoteSortOrder = (typeof NOTE_SORT_ORDERS)[number];
+
+function compareBySortOrder(left: LiveNote, right: LiveNote, sortOrder: NoteSortOrder): number {
+  switch (sortOrder) {
+    case "updatedAt":
+      return right.updatedAt.localeCompare(left.updatedAt);
+    case "createdAt":
+      return right.content.createdAt.localeCompare(left.content.createdAt);
+    case "title":
+      // 数字は大きさで比べる（「メモ2」を「メモ10」の前に置く）。同じ名前は新しく変えた順。
+      return left.content.title.localeCompare(right.content.title, undefined, { numeric: true }) ||
+        right.updatedAt.localeCompare(left.updatedAt);
   }
-  return right.note.updatedAt.localeCompare(left.note.updatedAt);
 }
 
-export function selectNotes(summaries: NoteSummary[], view: NoteView, searchText = ""): NoteSummary[] {
+export type NoteSelection = {
+  view: NoteView;
+  searchText?: string;
+  sortOrder?: NoteSortOrder;
+};
+
+// ピン留めを先に、残りは選んだ並び順で返す。
+export function selectNotes(summaries: NoteSummary[], { view, searchText = "", sortOrder = "updatedAt" }: NoteSelection): NoteSummary[] {
   const words = searchText.toLocaleLowerCase().split(/\s+/).filter((word) => word !== "");
   return summaries
     .filter((summary) => belongsToView(summary, view) && matchesSearch(summary, words))
-    .sort(compareNotesForList);
+    .sort((left, right) => {
+      if (left.note.content.pinned !== right.note.content.pinned) {
+        return left.note.content.pinned ? -1 : 1;
+      }
+      return compareBySortOrder(left.note, right.note, sortOrder);
+    });
 }
 
 export function countTags(summaries: NoteSummary[]): Array<{ tag: string; count: number }> {
