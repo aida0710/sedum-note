@@ -1,0 +1,32 @@
+name: CI image
+
+# CI（ci.yml）の Linux のビルドが使うコンテナイメージを作って、GHCR に置く。
+# イメージの定義を変えたときと、手で起動したときに流す。
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/ci-images/**
+      - .github/workflows/ci-image.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  linux-build:
+    name: Linux build image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/sedum-note-ci-linux
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Build and push the image
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build -t "$IMAGE:latest" -f .github/ci-images/linux-build.Dockerfile .github/ci-images
+          docker push "$IMAGE:latest"
