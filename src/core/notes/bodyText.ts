@@ -8,6 +8,9 @@ import type { AttachmentReference } from "./noteRecords";
 const BLOCK_NODE_NAMES = new Set(["paragraph", "heading", "listItem", "taskItem", "blockquote", "codeBlock"]);
 // 本文に貼った写真のノード（src/ui/editor/attachmentImageNode.tsx）。
 export const ATTACHMENT_IMAGE_NODE = "attachmentImage";
+// 本文に添付した写真以外のファイルのノード（src/ui/editor/attachmentFileNode.tsx）。
+export const ATTACHMENT_FILE_NODE = "attachmentFile";
+const ATTACHMENT_NODE_NAMES = new Set([ATTACHMENT_IMAGE_NODE, ATTACHMENT_FILE_NODE]);
 
 type BodyNode = Y.XmlFragment | Y.XmlElement | Y.XmlText | Y.XmlHook;
 
@@ -38,11 +41,11 @@ function collectText(node: BodyNode, parts: string[]): void {
   }
 }
 
-// 本文に貼ってある添付。本文のノードから導くので、別に持つ一覧と食い違うことがない。
+// 本文に貼ってある添付（写真とファイル）。本文のノードから導くので、別に持つ一覧と食い違うことがない。
 export function bodyAttachments(body: Y.XmlFragment): AttachmentReference[] {
   const attachments: AttachmentReference[] = [];
   const visit = (node: BodyNode) => {
-    if (node instanceof Y.XmlElement && node.nodeName === ATTACHMENT_IMAGE_NODE) {
+    if (node instanceof Y.XmlElement && ATTACHMENT_NODE_NAMES.has(node.nodeName)) {
       const id = node.getAttribute("attachmentId");
       if (typeof id === "string") {
         attachments.push({

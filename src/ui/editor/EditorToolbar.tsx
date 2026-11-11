@@ -1,14 +1,14 @@
-// 本文の書式と、写真を貼るボタン。PC では本文の上、スマホでは画面の下に出す。
+// 本文の書式と、写真・ファイルを添付するボタン。PC では本文の上、スマホでは画面の下に出す。
 
 import { type Editor, useEditorState } from "@tiptap/react";
-import { Bold, Code, Heading, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, Underline } from "lucide-react";
+import { Bold, Code, Heading, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, Paperclip, Underline } from "lucide-react";
 import { type ReactNode, useRef } from "react";
 import { translate, type MessageKey } from "../i18n/translate";
-import { imageFilesOf } from "./imageFiles";
 
 type EditorToolbarProps = {
   editor: Editor;
-  onImageFiles: (files: File[]) => void;
+  // 選んだファイル（写真も、それ以外も）を添付する。
+  onFiles: (files: File[]) => void;
   // リンク先を聞く。やめたら null。
   onAskLink: () => Promise<string | null>;
   trailing?: ReactNode;
@@ -16,7 +16,7 @@ type EditorToolbarProps = {
 
 const ICON_SIZE = 16;
 
-export function EditorToolbar({ editor, onImageFiles, onAskLink, trailing }: EditorToolbarProps) {
+export function EditorToolbar({ editor, onFiles, onAskLink, trailing }: EditorToolbarProps) {
   const imageInput = useRef<HTMLInputElement>(null);
   const active = useEditorState({
     editor,
@@ -51,11 +51,12 @@ export function EditorToolbar({ editor, onImageFiles, onAskLink, trailing }: Edi
     }
   };
 
+  const fileInput = useRef<HTMLInputElement>(null);
   const pickFiles = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = imageFilesOf(event.target.files);
+    const files = Array.from(event.target.files ?? []);
     event.target.value = "";
     if (files.length > 0) {
-      onImageFiles(files);
+      onFiles(files);
     }
   };
 
@@ -71,9 +72,11 @@ export function EditorToolbar({ editor, onImageFiles, onAskLink, trailing }: Edi
       {tool("editor.taskList", active.taskList, () => editor.chain().focus().toggleTaskList().run(), <ListChecks size={ICON_SIZE} />)}
       <span className="tool-separator" />
       {tool("editor.image", false, () => imageInput.current?.click(), <ImagePlus size={ICON_SIZE} />)}
+      {tool("editor.file", false, () => fileInput.current?.click(), <Paperclip size={ICON_SIZE} />)}
       {tool("editor.link", active.link, () => void toggleLink(), <Link size={ICON_SIZE} />)}
       {tool("editor.code", active.codeBlock, () => editor.chain().focus().toggleCodeBlock().run(), <Code size={ICON_SIZE} />)}
       <input ref={imageInput} type="file" accept="image/*" multiple hidden onChange={pickFiles} />
+      <input ref={fileInput} type="file" multiple hidden onChange={pickFiles} />
       {trailing && <span className="bar-end">{trailing}</span>}
     </div>
   );

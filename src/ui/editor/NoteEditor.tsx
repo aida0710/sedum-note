@@ -9,11 +9,12 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { useDialogs } from "../shared/DialogProvider";
+import { useAsyncAction } from "../shared/useAsyncAction";
 import { formatDateTime } from "../shared/formatTime";
 import { assignNotebookColors } from "../shared/notebookColor";
 import { EditorToolbar } from "./EditorToolbar";
 import { createEditorExtensions } from "./editorExtensions";
-import { imageFilesOf, insertImageFiles } from "./imageFiles";
+import { attachFiles } from "./attachFiles";
 import { NoteActionsMenu } from "./NoteActionsMenu";
 
 type NoteEditorProps = {
@@ -41,16 +42,18 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
     extensions: createEditorExtensions(note.body),
     editable: !inTrash,
     editorProps: {
-      handlePaste: (_view, event) => takeImageFiles(imageFilesOf(event.clipboardData?.files)),
-      handleDrop: (_view, event) => takeImageFiles(imageFilesOf((event as DragEvent).dataTransfer?.files)),
+      handlePaste: (_view, event) => takeFiles(Array.from(event.clipboardData?.files ?? [])),
+      handleDrop: (_view, event) => takeFiles(Array.from((event as DragEvent).dataTransfer?.files ?? [])),
     },
   }, [noteId]);
 
-  function takeImageFiles(files: File[]): boolean {
+  const attach = useAsyncAction((files: File[]) => (editor ? attachFiles({ files, editor, repository }) : Promise.resolve()));
+  // 貼り付け・ドロップにファイルが含まれていれば、添付として受け取る（true を返すと、エディタの既定の処理を止める）。
+  function takeFiles(files: File[]): boolean {
     if (files.length === 0 || !editor) {
       return false;
     }
-    void insertImageFiles({ files, editor, repository });
+    void attach.run(files);
     return true;
   }
 
@@ -96,7 +99,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
   }
   return (
     <>
-      {!isMobile && <EditorToolbar editor={editor} onImageFiles={takeImageFiles} onAskLink={askLink} trailing={trailing} />}
+      {!isMobile && <EditorToolbar editor={editor} onFiles={takeFiles} onAskLink={askLink} trailing={trailing} />}
       {isMobile && (
         <div className="phone-top">
           <button className="phone-back" onClick={onBack}><ChevronLeft size={20} />{translate("editor.back")}</button>
@@ -120,6 +123,9 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
                 }}>{translate("editor.removePermanently")}</button>
               </span>
             </div>
+          )}
+          {attach.errorMessage && (
+            <div className="form-error" role="alert">{attach.errorMessage}</div>
           )}
           <div className="document-meta">
             {noteNotebooks.map((notebook) => (
@@ -145,7 +151,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
           <EditorContent editor={editor} />
         </div>
       </div>
-      {isMobile && !inTrash && <EditorToolbar editor={editor} onImageFiles={takeImageFiles} onAskLink={askLink} />}
+      {isMobile && !inTrash && <EditorToolbar editor={editor} onFiles={takeFiles} onAskLink={askLink} />}
       {menuAnchor && (
         <NoteActionsMenu anchor={menuAnchor} note={note} notebooks={notebooks} repository={repository} onClose={() => setMenuAnchor(null)} />
       )}

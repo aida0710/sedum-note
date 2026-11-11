@@ -1,6 +1,7 @@
 // vault の状態（未作成・ロック中・解除中）と、解除中の自動同期をまとめて持つ hook。
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type BackupExport, exportBackup, restoreBackup } from "../../core/backup/vaultBackup";
 import type { RemoteConfig } from "../../core/remote/remoteConfig";
 import { AutoSync, type SyncStatus } from "../../core/sync/autoSync";
 import {
@@ -30,6 +31,9 @@ export type VaultSession = {
   saveRemoteConfig: (remoteConfig: RemoteConfig) => Promise<void>;
   changePassphrase: (passphrases: { current: string; next: string }) => Promise<void>;
   syncNow: () => Promise<void>;
+  exportBackup: () => Promise<BackupExport>;
+  // 空のデバイスにバックアップを戻し、そのままロックを解除する。
+  restoreBackup: (input: { file: Uint8Array; passphrase: string }) => Promise<void>;
 };
 
 export function useVaultSession(): VaultSession {
@@ -101,6 +105,16 @@ export function useVaultSession(): VaultSession {
       if (vault) {
         await changePassphrase(environment, vault, passphrases);
       }
+    },
+    exportBackup: () => {
+      if (!vault) {
+        throw new Error("the vault is locked");
+      }
+      return exportBackup(environment.localStore, vault.repository, new Date());
+    },
+    restoreBackup: async ({ file, passphrase }) => {
+      await restoreBackup(environment.localStore, file, passphrase);
+      enter(await unlockLocalVault(environment, passphrase));
     },
     syncNow: async () => {
       await autoSyncRef.current?.syncNow();

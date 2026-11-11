@@ -7,6 +7,7 @@ import { Placeholder } from "@tiptap/extensions";
 import StarterKit from "@tiptap/starter-kit";
 import type * as Y from "yjs";
 import { translate } from "../i18n/translate";
+import { AttachmentFile } from "./attachmentFileNode";
 import { AttachmentImage } from "./attachmentImageNode";
 
 export function createEditorExtensions(body: Y.XmlFragment) {
@@ -22,5 +23,6 @@ export function createEditorExtensions(body: Y.XmlFragment) {
     TaskItem.configure({ nested: true }),
     Placeholder.configure({ placeholder: translate("editor.bodyPlaceholder") }),
     AttachmentImage,
+    AttachmentFile,
   ];
 }

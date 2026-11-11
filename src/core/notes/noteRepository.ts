@@ -28,8 +28,10 @@ import {
   writeField,
 } from "./recordDocument";
 
-// 打ち終わってからこれだけ待って手元に保存する。毎打鍵の暗号化と書き込みを避ける。
-const PERSIST_DELAY_MILLISECONDS = 400;
+// 最初の変更からこれだけ待って、その間の変更をまとめて手元に保存する。暗号化と書き込みは
+// 非同期なので、アプリを閉じる瞬間には書き切れない。打ってすぐ閉じても失うのがこの時間の分で
+// 済むよう短くしつつ、毎打鍵の暗号化は避ける。
+const PERSIST_DELAY_MILLISECONDS = 150;
 // ノートブックへの所属の項目名の先頭。後ろにノートブックの ID が続く。
 const NOTEBOOK_MEMBERSHIP_PREFIX = "notebook:";
 
