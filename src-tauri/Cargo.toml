@@ -10,6 +10,10 @@ rust-version = "1.90"
 name = "sedum_note_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+# CI の更新の予行でだけ有効にする。起動したらすぐ自分を更新して終わるアプリになる（src/update_rehearsal.rs）。
+update-rehearsal = []
+
 [build-dependencies]
 tauri-build = { version = "2.7.4", features = [] }
 
@@ -22,3 +26,10 @@ tauri-plugin-log = "2"
 # 添付とバックアップを、利用者が選んだ場所に保存するのに使う。
 tauri-plugin-dialog = "2.8"
 tauri-plugin-fs = "2.7"
+# 更新の知らせから、リリースのページをブラウザで開くのに使う。
+tauri-plugin-opener = "2.7"
+
+# アプリが自分を更新する（デスクトップだけ。Android は APK を入れ直す）。
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2.14"
+tauri-plugin-process = "2.4"

@@ -53,6 +53,9 @@ button:disabled { cursor: default; opacity: .55; }
 .tree-empty { color: var(--muted); padding: 4px 8px; font-size: 12px; }
 .inline-input { width: 100%; height: 28px; border: 1px solid var(--accent); border-radius: 6px; padding: 0 8px; background: var(--panel); }
 
+.update-chip { margin-top: auto; display: flex; align-items: center; gap: 6px; padding: 7px 8px; border-radius: 6px; color: var(--accent); background: var(--accent-soft); font-size: 12px; text-align: left; flex: none; }
+.update-chip + .sync-line { margin-top: 8px; }
+.phone .update-chip { margin: max(10px, env(safe-area-inset-top)) 16px 0; }
 .sync-line { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 10px 8px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); flex: none; width: 100%; text-align: left; }
 .sync-line .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
 .sync-line .status-dot.syncing { background: var(--accent); }

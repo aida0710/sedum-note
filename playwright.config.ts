@@ -11,6 +11,9 @@ if (process.env.E2E_WEBKIT) {
 export default defineConfig({
   testDir: "e2e",
   timeout: 60_000,
+  // 鍵の導出（Argon2id、64 MiB）は、試験を並べて流すと 1 回に数秒かかる。既定の 5 秒では、
+  // 作成やロック解除の直後の表示を待ち切れないことがある。
+  expect: { timeout: 15_000 },
   projects,
   use: { baseURL: "http://127.0.0.1:5173", locale: "ja-JP" },
   webServer: { command: "npx vite --host 127.0.0.1 --port 5173 --strictPort", url: "http://127.0.0.1:5173", reuseExistingServer: true },

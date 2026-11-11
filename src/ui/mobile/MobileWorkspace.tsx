@@ -12,6 +12,7 @@ import { createNoteInView } from "../workspace/createNoteInView";
 import { MobileLibrary } from "./MobileLibrary";
 import { listTitle, NoteList } from "./MobileNoteList";
 import { useBackGestureToClose } from "./useBackGestureToClose";
+import { UpdateChip } from "../update/UpdateChip";
 import { SETTINGS_TAB } from "../workspace/useWorkspaceNavigation";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
 
@@ -54,6 +55,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
         <MobileLibrary snapshot={snapshot} repository={repository}
           onPick={(picked) => { navigation.selectView(picked); setTab("notes"); }} />
       )}
+      {tab !== "settings" && <UpdateChip onOpenSettings={() => selectTab("settings")} />}
       {(tab === "notes" || tab === "bookmarked") && (
         <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, { view, searchText: navigation.searchText, sortOrder: noteSortOrder })}
           notebooks={snapshot.notebooks.map((notebook) => ({ id: notebook.id, name: notebook.content.name }))}

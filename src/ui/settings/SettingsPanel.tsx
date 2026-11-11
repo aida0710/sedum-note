@@ -1,4 +1,4 @@
-// 設定の画面。表示、テーマ、同期先、バックアップ、Markdown、パスフレーズの変更、ロック、データの消去を並べる。
+// 設定の画面。表示、テーマ、同期先、バックアップ、Markdown、パスフレーズの変更、更新、ロック、データの消去を並べる。
 
 import { useState } from "react";
 import { MIN_PASSPHRASE_LENGTH } from "../../core/crypto/passphraseKey";
@@ -16,6 +16,7 @@ import { corsRuleJson } from "./corsRule";
 import { DisplaySection } from "./DisplaySection";
 import { MarkdownSection } from "./MarkdownSection";
 import { ThemeSection } from "./ThemeSection";
+import { UpdateSection } from "./UpdateSection";
 
 type SettingsPanelProps = {
   session: VaultSession;
@@ -36,6 +37,7 @@ export function SettingsPanel({ session, repository, remoteConfig, unreadableCou
         <BackupSection session={session} />
         <MarkdownSection repository={repository} />
         <PassphraseSection session={session} />
+        <UpdateSection repository={repository} />
         <section className="settings-section">
           <h2>{translate("settings.lock")}</h2>
           <p>{translate("settings.lockDescription")}</p>

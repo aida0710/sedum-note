@@ -6,6 +6,7 @@ import { useDevicePreferences } from "./preferences/devicePreferences";
 import { useSharedContentInbox } from "./share/useSharedContentInbox";
 import { applyAppearance } from "./theme/applyAppearance";
 import { useThemeInUse } from "./theme/themeInUse";
+import { AvailableUpdateContext, useAvailableUpdate } from "./update/useAvailableUpdate";
 import { SetupScreen } from "./entry/SetupScreen";
 import { UnlockScreen } from "./entry/UnlockScreen";
 import { DialogProvider } from "./shared/DialogProvider";
@@ -51,11 +52,14 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   const navigation = useWorkspaceNavigation();
   const isMobile = useMediaQuery(MOBILE_LAYOUT_QUERY);
   useSharedContentInbox(vault.repository, navigation.openNote);
+  const availableUpdate = useAvailableUpdate();
   const props = { session, vault, snapshot, navigation };
   return (
     <AttachmentReaderContext.Provider value={vault.repository.readAttachment.bind(vault.repository)}>
       <UnsyncedRecordsContext.Provider value={vault.syncEngine ? snapshot.unsyncedIds : NO_UNSYNCED_RECORDS}>
-        {isMobile ? <MobileWorkspace {...props} /> : <DesktopWorkspace {...props} />}
+        <AvailableUpdateContext.Provider value={availableUpdate}>
+          {isMobile ? <MobileWorkspace {...props} /> : <DesktopWorkspace {...props} />}
+        </AvailableUpdateContext.Provider>
       </UnsyncedRecordsContext.Provider>
     </AttachmentReaderContext.Provider>
   );

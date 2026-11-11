@@ -76,9 +76,23 @@ jobs:
         if: matrix.name == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev xvfb ffmpeg fonts-noto-cjk
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libdbus-1-dev libayatana-appindicator3-dev librsvg2-dev xvfb ffmpeg fonts-noto-cjk
       - run: rustup toolchain install stable --profile minimal && rustup target add ${{ matrix.rust-targets }}
-      - run: npx tauri build ${{ matrix.tauri-arguments }}
+      # 更新用のファイル（各インストーラーの署名 .sig と、macOS の .app.tar.gz）も作る。署名のキーは
+      # Actions のシークレットにあり、フォークからの PR には渡らないので、そのときは更新用のファイルを作らない。
+      - name: Build the app
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            npx tauri build ${{ matrix.tauri-arguments }}
+          else
+            npx tauri build ${{ matrix.tauri-arguments }} --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          fi
+          find src-tauri/target -path '*/release/bundle/*' -name '*.sig'
+
       # 手元に Mac が無いので、組み立てたアプリを起動して最初の画面を撮り、成果物に入れる。
       - name: Launch the app and capture the first screen
         if: matrix.name == 'macOS'
@@ -121,6 +135,45 @@ jobs:
           ffmpeg -loglevel error -y -f x11grab -video_size 1280x820 -i :99 -frames:v 1 linux-first-screen.png
           cat linux-app.log
           pgrep -x sedum-note
+      # 更新の予行。古いバージョン（0.0.1）のアプリを作り、上で組み立てた AppImage へ実際に更新させる。
+      # 更新元はこのランナーの中の HTTP サーバーにし、latest.json はリリースと同じスクリプトで書く。
+      # 古いバージョンには、起動したらすぐ更新して終わる仕掛け（update-rehearsal）を入れる。
+      # 署名の検証は配布するものと同じ公開鍵で行うので、署名が合わなければここで落ちる。
+      - name: Rehearse an update from an older version
+        if: matrix.name == 'Linux'
+        run: |
+          set -eu
+          bundle=src-tauri/target/release/bundle/appimage
+          new_appimage=$(find "$bundle" -name '*.AppImage')
+          if [ ! -f "$new_appimage.sig" ]; then
+            echo "the build is not signed (no signing key in this run); skipping the rehearsal"
+            exit 0
+          fi
+          mkdir -p update-rehearsal/served update-rehearsal/installed
+          cp "$new_appimage" update-rehearsal/served/new.AppImage
+          cp "$new_appimage.sig" update-rehearsal/served/new.AppImage.sig
+          node scripts/release/writeUpdateManifest.mjs --version "$(jq -r .version src-tauri/tauri.conf.json)" \
+            --base-url http://127.0.0.1:8765 --directory update-rehearsal/served --output update-rehearsal/served/latest.json \
+            linux-x86_64-appimage=new.AppImage
+          cat update-rehearsal/served/latest.json
+          # 配布する AppImage を上書きしないよう、よけておいてから古いバージョンを組み立てる。
+          mv "$bundle" "$bundle.release"
+          npx tauri build --features update-rehearsal --bundles appimage --config '{"version":"0.0.1","bundle":{"createUpdaterArtifacts":false},"plugins":{"updater":{"endpoints":["http://127.0.0.1:8765/latest.json"],"dangerousInsecureTransportProtocol":true}}}'
+          mv "$(find "$bundle" -name '*.AppImage')" update-rehearsal/installed/sedum-note.AppImage
+          rm -rf "$bundle"
+          mv "$bundle.release" "$bundle"
+          (cd update-rehearsal/served && python3 -m http.server 8765 --bind 127.0.0.1 > ../server.log 2>&1 &)
+          Xvfb :98 -screen 0 1280x820x24 &
+          sleep 2
+          chmod +x update-rehearsal/installed/sedum-note.AppImage
+          DISPLAY=:98 APPIMAGE_EXTRACT_AND_RUN=1 timeout 300 update-rehearsal/installed/sedum-note.AppImage || {
+            echo "the old version could not update itself" >&2
+            cat update-rehearsal/server.log
+            exit 1
+          }
+          cat update-rehearsal/server.log
+          # 入れてあった AppImage が、新しいバージョンのものと同じ中身に入れ替わっている。
+          cmp update-rehearsal/installed/sedum-note.AppImage update-rehearsal/served/new.AppImage
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sedum-note-${{ matrix.name }}
@@ -128,6 +181,8 @@ jobs:
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app.tar.gz
+            src-tauri/target/**/release/bundle/**/*.sig
             mac-first-screen.png
             mac-signature.txt
             src-tauri/target/release/bundle/deb/*.deb
@@ -237,7 +292,7 @@ jobs:
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
-  # タグの push のときだけ、組み立てたインストーラーと APK を GitHub Releases に置く。
+  # タグの push のときだけ、組み立てたインストーラーと APK、アプリの更新用の latest.json を GitHub Releases に置く。
   # リリースノートは docs/releases/<タグ>.md。
   release:
     name: GitHub Release
@@ -269,14 +324,40 @@ jobs:
             test "$(printf '%s\n' "$found" | grep -c .)" = 1 || { echo "expected one $2 in $1, found: $found" >&2; exit 1; }
             cp "$found" "release-files/$3"
           }
-          take sedum-note-Windows '*-setup.exe' "sedum-note_${version}_windows-x64-setup.exe"
-          take sedum-note-Windows '*.msi' "sedum-note_${version}_windows-x64.msi"
+          # アプリが自分を更新するのに使うファイル。署名（.sig）は latest.json に書くので、signatures に分けて置く。
+          mkdir signatures
+          take_signed() {
+            take "$1" "$2" "$3"
+            signature=$(find "built/$1" -type f -name "$2.sig")
+            test "$(printf '%s\n' "$signature" | grep -c .)" = 1 || { echo "expected one $2.sig in $1, found: $signature" >&2; exit 1; }
+            cp "release-files/$3" "signatures/$3"
+            cp "$signature" "signatures/$3.sig"
+          }
+          take_signed sedum-note-Windows '*-setup.exe' "sedum-note_${version}_windows-x64-setup.exe"
+          take_signed sedum-note-Windows '*.msi' "sedum-note_${version}_windows-x64.msi"
           take sedum-note-macOS '*.dmg' "sedum-note_${version}_macos-universal.dmg"
+          take_signed sedum-note-macOS '*.app.tar.gz' "sedum-note_${version}_macos-universal.app.tar.gz"
           take sedum-note-Android '*.apk' "sedum-note_${version}_android-arm64.apk"
-          take sedum-note-Linux '*.AppImage' "sedum-note_${version}_linux-x86_64.AppImage"
-          take sedum-note-Linux '*.deb' "sedum-note_${version}_linux-amd64.deb"
-          take sedum-note-Linux '*.rpm' "sedum-note_${version}_linux-x86_64.rpm"
+          take_signed sedum-note-Linux '*.AppImage' "sedum-note_${version}_linux-x86_64.AppImage"
+          take_signed sedum-note-Linux '*.deb' "sedum-note_${version}_linux-amd64.deb"
+          take_signed sedum-note-Linux '*.rpm' "sedum-note_${version}_linux-x86_64.rpm"
           (cd release-files && sha256sum * > SHA256SUMS)
+          # 入れてあるアプリは、リリースの latest.json を見て、自分の入れ方（インストーラーの種類）に合うファイルで更新する。
+          # 入れ方の付かないキーは、入れ方が分からないアプリのためのもの。
+          node scripts/release/writeUpdateManifest.mjs --version "$version" \
+            --base-url "https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME" \
+            --directory signatures --output release-files/latest.json \
+            "windows-x86_64-nsis=sedum-note_${version}_windows-x64-setup.exe" \
+            "windows-x86_64-msi=sedum-note_${version}_windows-x64.msi" \
+            "windows-x86_64=sedum-note_${version}_windows-x64-setup.exe" \
+            "darwin-aarch64-app=sedum-note_${version}_macos-universal.app.tar.gz" \
+            "darwin-x86_64-app=sedum-note_${version}_macos-universal.app.tar.gz" \
+            "darwin-aarch64=sedum-note_${version}_macos-universal.app.tar.gz" \
+            "darwin-x86_64=sedum-note_${version}_macos-universal.app.tar.gz" \
+            "linux-x86_64-appimage=sedum-note_${version}_linux-x86_64.AppImage" \
+            "linux-x86_64-deb=sedum-note_${version}_linux-amd64.deb" \
+            "linux-x86_64-rpm=sedum-note_${version}_linux-x86_64.rpm" \
+            "linux-x86_64=sedum-note_${version}_linux-x86_64.AppImage"
           ls -l release-files
       - name: Create the release
         env:

@@ -9,6 +9,7 @@ import { NoteTabs } from "./NoteTabs";
 import { Sidebar } from "./Sidebar";
 import { SyncStatusLine } from "./SyncStatusLine";
 import { createNoteInView } from "./createNoteInView";
+import { UpdateChip } from "../update/UpdateChip";
 import { SETTINGS_TAB } from "./useWorkspaceNavigation";
 
 export function DesktopWorkspace({ session, vault, snapshot, navigation }: WorkspaceProps) {
@@ -18,7 +19,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
   return (
     <div className="workspace">
       <Sidebar snapshot={snapshot} repository={repository} navigation={navigation} onCreateNote={() => void createNote()}
-        footer={<SyncStatusLine status={session.syncStatus} onOpenSettings={navigation.openSettings} />} />
+        footer={<><UpdateChip onOpenSettings={navigation.openSettings} /><SyncStatusLine status={session.syncStatus} onOpenSettings={navigation.openSettings} /></>} />
       <main className="main">
         <NoteTabs navigation={navigation} repository={repository} />
         {navigation.activeTab === SETTINGS_TAB && (

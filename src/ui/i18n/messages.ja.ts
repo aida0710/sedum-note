@@ -222,6 +222,15 @@ export const japaneseMessages = {
   "theme.sampleMuted": "補助の文字",
   "theme.sampleLink": "リンク",
 
+  "settings.update": "更新",
+  "update.currentVersion": "このアプリのバージョンは {version} です。",
+  "update.checkOnStart": "ロックを解除したときに、新しいバージョンがあるかを確かめる",
+  "update.checkDescription": "確かめるときは GitHub（このアプリの配布元）へつなぎます。送るのはアプリのバージョンと OS の種類だけで、メモの中身は送りません。",
+  "update.available": "新しいバージョン {version} があります",
+  "update.openReleasePage": "リリースのページを開く",
+  "update.installAndRelaunch": "更新して再起動",
+  "update.installing": "更新をダウンロードしています…",
+
   "wipe.title": "このデバイスのデータを消す",
   "wipe.description": "このデバイスに保存したメモ・添付・同期先の設定・表示の設定をすべて消し、最初の画面に戻ります。同期先のメモは消えません。",
   "wipe.forgotPassphrase": "パスフレーズを忘れたとき",

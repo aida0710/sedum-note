@@ -1,4 +1,4 @@
-// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
@@ -23,6 +23,8 @@ export type DevicePreferences = {
   themeId: string;
   customThemes: CustomTheme[];
   editorFontSize: EditorFontSize;
+  // アプリを開いたときに、新しいバージョンがあるかを確かめる（GitHub へつなぐ）。
+  checkForUpdates: boolean;
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
@@ -31,6 +33,7 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   themeId: SYSTEM_THEME_ID,
   customThemes: [],
   editorFontSize: "medium",
+  checkForUpdates: true,
 };
 
 let current: DevicePreferences | null = null;
@@ -92,6 +95,7 @@ function validPreferences(stored: unknown): DevicePreferences {
       .map(parseStoredCustomTheme)
       .filter((theme) => theme !== null),
     editorFontSize: EDITOR_FONT_SIZES.find((size) => size === candidate.editorFontSize) ?? DEFAULT_DEVICE_PREFERENCES.editorFontSize,
+    checkForUpdates: typeof candidate.checkForUpdates === "boolean" ? candidate.checkForUpdates : DEFAULT_DEVICE_PREFERENCES.checkForUpdates,
   };
 }
 

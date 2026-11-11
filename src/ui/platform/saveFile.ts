@@ -6,6 +6,7 @@
 
 import { save as chooseSavePath } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
+import { isRunningInTauri } from "./runtime";
 
 // バックアップのファイルの拡張子。初回の画面のファイルの選択でも使う。
 export const BACKUP_FILE_EXTENSION = "sedumbackup";
@@ -16,10 +17,6 @@ export type FileToSave = {
   parts: Uint8Array[];
   mimeType: string;
 };
-
-function isRunningInTauri(): boolean {
-  return "__TAURI_INTERNALS__" in window;
-}
 
 // 保存したら true。利用者が場所の選択をやめたら false。
 export async function saveFile(file: FileToSave): Promise<boolean> {

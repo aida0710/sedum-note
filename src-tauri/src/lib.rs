@@ -1,9 +1,21 @@
+#[cfg(all(desktop, feature = "update-rehearsal"))]
+mod update_rehearsal;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_dialog::init())
     .plugin(tauri_plugin_fs::init())
+    .plugin(tauri_plugin_opener::init())
     .setup(|app| {
+      // アプリが自分を更新できるのはデスクトップだけ。Android は、更新を知らせてリリースのページを開く。
+      #[cfg(desktop)]
+      {
+        app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+        app.handle().plugin(tauri_plugin_process::init())?;
+      }
+      #[cfg(all(desktop, feature = "update-rehearsal"))]
+      update_rehearsal::run(app.handle().clone());
       if cfg!(debug_assertions) {
         app.handle().plugin(
           tauri_plugin_log::Builder::default()

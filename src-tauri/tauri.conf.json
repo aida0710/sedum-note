@@ -49,7 +49,16 @@
     },
     "macOS": {
       "signingIdentity": "-"
-    }
+    },
+    "createUpdaterArtifacts": true
   },
-  "mainBinaryName": "sedum-note"
+  "mainBinaryName": "sedum-note",
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQyMkY1Qjg0Q0FBQzNBQTUKUldTbE9xektoRnN2UW1LRWt5MHFWQlVHdU9BMXZNUktabHVzMHdQU0FGczI1RVdpTWVwOGFjQkUK",
+      "endpoints": [
+        "https://github.com/aida0710/sedum-note/releases/latest/download/latest.json"
+      ]
+    }
+  }
 }

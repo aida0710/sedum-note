@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "画面から使える Tauri の機能。ファイルは、保存のダイアログで利用者が選んだ場所にだけ書ける（dialog が選んだ場所を fs の範囲に足す）。",
+  "description": "画面から使える Tauri の機能。ファイルは、保存のダイアログで利用者が選んだ場所にだけ書ける（dialog が選んだ場所を fs の範囲に足す）。ブラウザで開けるのは、このアプリのリリースのページだけ。",
   "windows": [
     "main"
   ],
@@ -10,7 +10,15 @@
     "dialog:allow-save",
     "fs:allow-write-file",
     "fs:allow-open",
-    "fs:allow-write"
+    "fs:allow-write",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://github.com/aida0710/sedum-note/releases/*"
+        }
+      ]
+    }
   ],
   "platforms": [
     "linux",

@@ -1,0 +1,17 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "desktop-update",
+  "description": "デスクトップのアプリが自分を更新するための機能（更新の確認・ダウンロード・入れ替えと、入れ替えたあとの再起動）。Android には更新のプラグインが無いので、分けて置く。",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "updater:default",
+    "process:allow-restart"
+  ],
+  "platforms": [
+    "linux",
+    "macOS",
+    "windows"
+  ]
+}
