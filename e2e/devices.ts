@@ -63,3 +63,10 @@ export async function createNoteOnDesktop(page: Page, title: string): Promise<vo
   await page.getByPlaceholder("タイトル").fill(title);
   await page.getByPlaceholder("タイトル").press("Enter");
 }
+
+// PC の画面の左の列で、ノートブックを足す。
+export async function addNotebookOnDesktop(page: Page, name: string): Promise<void> {
+  await page.getByRole("button", { name: "ノートブックを追加" }).click();
+  await page.getByPlaceholder("ノートブックの名前").fill(name);
+  await page.getByPlaceholder("ノートブックの名前").press("Enter");
+}

@@ -7,9 +7,9 @@ import { type NoteSummary, type NoteView, selectNotes } from "../../core/notes/n
 import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import type { NoteRepository } from "../../core/notes/noteRepository";
-import { useToast } from "../shared/ToastProvider";
 import { acceptsNoteDrop, dropNoteOnView, isNoteDrag } from "./noteDrag";
 import { SidebarNoteRow } from "./SidebarNoteRow";
+import { useTrashWithUndo } from "./useTrashWithUndo";
 import { viewKey, type WorkspaceNavigation } from "./useWorkspaceNavigation";
 
 // 木の 1 段ごとの字下げ。開閉の印（12px）とアイコンの間が揃う幅。
@@ -39,17 +39,11 @@ export type ViewGroupProps = {
 export function ViewGroup({ view, icon, label, summaries, navigation, repository, depth = 0, actions, onContextMenu, childBranches, expandedByDefault = false }: ViewGroupProps) {
   // メモをドラッグして、この行の上に来ている間は true。
   const [droppingNote, setDroppingNote] = useState(false);
-  const showToast = useToast();
-  const dropNote = async (event: React.DragEvent) => {
+  const moveToTrash = useTrashWithUndo(repository);
+  const dropNote = (event: React.DragEvent) => {
     event.preventDefault();
     setDroppingNote(false);
-    const droppedNoteId = await dropNoteOnView(event, view, repository);
-    if (droppedNoteId !== null && view.kind === "trash") {
-      showToast({
-        message: translate("toast.movedToTrash"),
-        action: { label: translate("toast.undo"), run: () => void repository.restoreNoteFromTrash(droppedNoteId) },
-      });
-    }
+    void dropNoteOnView(event, view, { repository, moveToTrash });
   };
   const dropHandlers = acceptsNoteDrop(view) ? {
     onDragOver: (event: React.DragEvent) => {
@@ -59,7 +53,7 @@ export function ViewGroup({ view, icon, label, summaries, navigation, repository
       }
     },
     onDragLeave: () => setDroppingNote(false),
-    onDrop: (event: React.DragEvent) => void dropNote(event),
+    onDrop: dropNote,
   } : {};
   const key = viewKey(view);
   const expanded = navigation.isExpanded(key, expandedByDefault);

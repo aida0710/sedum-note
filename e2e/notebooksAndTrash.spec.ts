@@ -1,15 +1,9 @@
-import { expect, type Page, test } from "@playwright/test";
-import { startLocalVault } from "./devices";
-
-async function addNotebook(page: Page, name: string): Promise<void> {
-  await page.getByRole("button", { name: "ノートブックを追加" }).click();
-  await page.getByPlaceholder("ノートブックの名前").fill(name);
-  await page.getByPlaceholder("ノートブックの名前").press("Enter");
-}
+import { expect, test } from "@playwright/test";
+import { addNotebookOnDesktop, startLocalVault } from "./devices";
 
 test("ノートブックの色とアイコンを選ぶと、左の列の印が変わり、開き直しても保たれる", async ({ page }) => {
   await startLocalVault(page);
-  await addNotebook(page, "旅行");
+  await addNotebookOnDesktop(page, "旅行");
   const row = page.locator(".nav-row", { hasText: "旅行" });
   // 選ぶ前は、自動の色（1 つ目は青）の点。
   await expect(row.locator(".dot")).toHaveCSS("background-color", "rgb(47, 111, 222)");

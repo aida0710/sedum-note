@@ -1,11 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, startLocalVault } from "./devices";
-
-async function addNotebook(page: Page, name: string): Promise<void> {
-  await page.getByRole("button", { name: "ノートブックを追加" }).click();
-  await page.getByPlaceholder("ノートブックの名前").fill(name);
-  await page.getByPlaceholder("ノートブックの名前").press("Enter");
-}
+import { addNotebookOnDesktop, createNoteOnDesktop, PHONE_VIEWPORT, startLocalVault } from "./devices";
 
 function viewRow(page: Page, label: string) {
   return page.locator(".nav-row", { has: page.locator(".nav", { hasText: label }) });
@@ -18,7 +12,7 @@ function noteRow(page: Page, title: string) {
 test("メモをノートブックへドラッグすると、そのノートブックに入る", async ({ page }) => {
   await startLocalVault(page);
   await createNoteOnDesktop(page, "買い物");
-  await addNotebook(page, "旅行");
+  await addNotebookOnDesktop(page, "旅行");
   await expect(viewRow(page, "旅行").locator(".count")).toHaveText("0");
 
   await viewRow(page, "すべてのメモ").locator(".nav").click();
@@ -49,6 +43,13 @@ test("左の列のメモの「…」から、名前を変えたり、ゴミ箱�
   await page.locator(".sidebar .inline-input").fill("週末の買い物");
   await page.locator(".sidebar .inline-input").press("Enter");
   await expect(page.getByRole("tab", { name: "週末の買い物" })).toBeVisible();
+
+  // 名前を変えている途中で Escape を押すと、変えない。
+  await noteRow(page, "週末の買い物").locator(".tree-note").dblclick();
+  await page.locator(".sidebar .inline-input").fill("やめる名前");
+  await page.locator(".sidebar .inline-input").press("Escape");
+  await expect(page.getByRole("tab", { name: "週末の買い物" })).toBeVisible();
+  await expect(page.locator(".sidebar")).not.toContainText("やめる名前");
 
   // 右クリックでも同じメニューが出る。
   await noteRow(page, "週末の買い物").click({ button: "right" });
@@ -83,4 +84,20 @@ test("左の列の端をドラッグすると幅が変わり、開き直して�
   await page.getByLabel("パスフレーズ").fill("correct horse battery");
   await page.getByRole("button", { name: "解除" }).click();
   await expect.poll(async () => (await sidebar.boundingBox())!.width).toBe(400);
+});
+
+test("スマホの幅では、ゴミ箱に入れた知らせが、下のメニューと「新しいメモ」のボタンに重ならない", async ({ browser }) => {
+  const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await page.getByPlaceholder("タイトル").fill("捨てるメモ");
+  await page.getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+  await page.getByRole("button", { name: "戻る" }).click();
+
+  const toast = (await page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" }).boundingBox())!;
+  const bottomNavigation = (await page.locator(".tabbar").boundingBox())!;
+  const newNoteButton = (await page.getByRole("button", { name: "新しいメモ" }).boundingBox())!;
+  expect(toast.y + toast.height).toBeLessThanOrEqual(bottomNavigation.y);
+  expect(toast.x + toast.width <= newNoteButton.x || toast.y + toast.height <= newNoteButton.y).toBe(true);
 });

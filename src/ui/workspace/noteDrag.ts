@@ -28,16 +28,22 @@ export function acceptsNoteDrop(view: NoteView): boolean {
   return view.kind !== "tag";
 }
 
-// 落とした先に合わせてメモを変える。変えたら、そのメモの ID を返す（ゴミ箱に入れたことを知らせるのに使う）。
-export async function dropNoteOnView(event: React.DragEvent, view: NoteView, repository: NoteRepository): Promise<string | null> {
+type NoteDropActions = {
+  repository: NoteRepository;
+  // ゴミ箱に入れる操作。取り消せる知らせを出すもの（useTrashWithUndo）を呼び出し側が渡す。
+  moveToTrash: (noteId: string) => Promise<void>;
+};
+
+// 落とした先に合わせてメモを変える。
+export async function dropNoteOnView(event: React.DragEvent, view: NoteView, { repository, moveToTrash }: NoteDropActions): Promise<void> {
   const data = event.dataTransfer.getData(NOTE_DRAG_TYPE);
   if (data === "") {
-    return null;
+    return;
   }
   const { noteId, fromNotebookId } = JSON.parse(data) as DraggedNote;
   const note = repository.note(noteId);
   if (!note) {
-    return null;
+    return;
   }
   const otherNotebookIds = note.content.notebookIds.filter((notebookId) => notebookId !== fromNotebookId);
   switch (view.kind) {
@@ -56,10 +62,9 @@ export async function dropNoteOnView(event: React.DragEvent, view: NoteView, rep
       await repository.updateNote(noteId, { trashedAt: null, isTemplate: true, pinned: false });
       break;
     case "trash":
-      await repository.moveNoteToTrash(noteId);
+      await moveToTrash(noteId);
       break;
     case "tag":
-      return null;
+      break;
   }
-  return noteId;
 }
