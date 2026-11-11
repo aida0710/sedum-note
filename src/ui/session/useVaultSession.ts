@@ -4,13 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type BackupExport, exportBackup, restoreBackup } from "../../core/backup/vaultBackup";
 import type { RemoteConfig } from "../../core/remote/remoteConfig";
 import { AutoSync, type SyncStatus } from "../../core/sync/autoSync";
-import { checkSyncTarget, type SyncTargetCheck, type SyncTargetInspection } from "../../core/vault/syncTarget";
+import { checkSyncTarget, type SyncTargetCheck } from "../../core/vault/syncTarget";
 import {
   changePassphrase,
   connectRemote,
   createNewVault,
   type DeviceDataSummary,
-  inspectConnectedRemote,
   joinExistingVault,
   readVaultState,
   replaceSyncKey,
@@ -41,8 +40,6 @@ export type VaultSession = {
   checkSyncTarget: (remoteConfig: RemoteConfig) => Promise<SyncTargetCheck>;
   // 確かめた同期先を保存して、同期を始める。空の同期先に置くときは、このデバイスのパスフレーズが要る。
   connectSyncTarget: (input: { syncTarget: SyncTargetChoice; passphrase: string | null }) => Promise<void>;
-  // 設定してある同期先の今の状態。同期を設定していなければ null。
-  inspectConnectedRemote: () => Promise<SyncTargetInspection | null>;
   replaceSyncKey: (input: { passphrase: string; syncKey: string | null }) => Promise<void>;
   // 生成したばかりの暗号化キー。1 度だけ見せるためにメモリに持ち、閉じたら捨てる。
   generatedSyncKey: string | null;
@@ -145,7 +142,6 @@ export function useVaultSession(): VaultSession {
         enterWithSyncKey(await connectRemote(environment, vault, input));
       }
     },
-    inspectConnectedRemote: () => (vault ? inspectConnectedRemote(environment, vault) : Promise.resolve(null)),
     replaceSyncKey: async (input) => {
       if (vault) {
         setGeneratedSyncKey(await replaceSyncKey(environment, vault, input));

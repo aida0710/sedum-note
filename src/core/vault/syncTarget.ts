@@ -5,13 +5,13 @@ import { type ObjectStore, ObjectStoreError } from "../remote/objectStore";
 import { normalizePrefix, type RemoteConfig } from "../remote/remoteConfig";
 import { RECORDS_PREFIX, VAULT_OBJECT_KEY } from "../sync/remoteLayout";
 import { readRemoteVault } from "./remoteVault";
-import { InvalidVaultDocumentError, type KeyWrapping, keyWrappingOf, parseVaultDocument } from "./vaultDocument";
+import { InvalidVaultDocumentError, keyWrappingOf, parseVaultDocument } from "./vaultDocument";
 
 export type SyncTargetInspection =
   // 何も無い。ここに新しく作れる。
   | { state: "empty" }
-  // 既存のメモがある。keyWrapping が passphrase なら v0.2 までの形で、参加には作ったときのパスフレーズを使う。
-  | { state: "existing"; keyWrapping: KeyWrapping; vaultId: string; vaultEtag: string }
+  // 既存のメモがある。その暗号化キーを入れると参加できる。
+  | { state: "existing"; vaultId: string; vaultEtag: string }
   // メモはあるのに vault.json が無い。どのキーで暗号化したものか分からないので、ここには作らせない。
   | { state: "incomplete" };
 
@@ -32,7 +32,7 @@ export class SyncTargetIncompleteError extends Error {
 export async function inspectSyncTarget(objectStore: ObjectStore): Promise<SyncTargetInspection> {
   const stored = await readRemoteVault(objectStore);
   if (stored !== null) {
-    return { state: "existing", keyWrapping: keyWrappingOf(stored.document), vaultId: stored.document.vaultId, vaultEtag: stored.etag };
+    return { state: "existing", vaultId: stored.document.vaultId, vaultEtag: stored.etag };
   }
   return (await objectStore.hasObjectsUnder(RECORDS_PREFIX)) ? { state: "incomplete" } : { state: "empty" };
 }
@@ -60,9 +60,8 @@ export async function findVaultFolders(bucketRoot: ObjectStore): Promise<string[
       if (stored === null) {
         return null;
       }
-      // ほかの用途の vault.json は数えない。
-      parseVaultDocument(new TextDecoder().decode(stored.body));
-      return folder;
+      // ほかの用途の vault.json と、v0.2 までの形（参加できない）は数えない。
+      return keyWrappingOf(parseVaultDocument(new TextDecoder().decode(stored.body))) === "syncKey" ? folder : null;
     } catch (error) {
       if (error instanceof InvalidVaultDocumentError) {
         return null;

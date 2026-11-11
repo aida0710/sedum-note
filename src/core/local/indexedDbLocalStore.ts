@@ -103,6 +103,15 @@ export class IndexedDbLocalStore implements LocalStore {
     return stored.map((blob) => withoutUploadedFlag(blob as StoredBlob));
   }
 
+  async markAllBlobsForUpload(): Promise<void> {
+    const transaction = (await this.#database).transaction("blobs", "readwrite");
+    for (let cursor = await transaction.store.openCursor(); cursor; cursor = await cursor.continue()) {
+      const waiting: StoredBlob = { ...cursor.value, uploaded: false, uploadedFlag: 0 };
+      await cursor.update(waiting);
+    }
+    await transaction.done;
+  }
+
   async putVersion(entry: LocalVersionEntry): Promise<void> {
     await (await this.#database).put("versions", entry);
   }

@@ -45,7 +45,7 @@ export async function startBrowserDevice(remote) {
     await page.getByLabel(label).fill(remote[field]);
   }
   await page.getByRole("button", { name: "接続を確認" }).click();
-  await page.getByLabel("暗号化キーを自分で決める").check();
+  await page.getByRole("radio", { name: "自分で入力する" }).click();
   await page.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
   await page.getByRole("button", { name: "作成" }).click();
   await page.getByRole("button", { name: "新しいメモ" }).click();

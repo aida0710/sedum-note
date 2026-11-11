@@ -50,7 +50,7 @@ export async function startSyncedVault(page: Page, { remoteConfig, join }: Synce
   await page.getByRole("button", { name: "接続を確認" }).click();
   await expect(page.getByRole("status")).toContainText(join ? "既存のメモが見つかりました" : "空の同期先です");
   if (!join) {
-    await page.getByLabel("暗号化キーを自分で決める").check();
+    await page.getByRole("radio", { name: "自分で入力する" }).click();
   }
   await page.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
   await page.getByRole("button", { name: join ? "参加" : "作成" }).click();

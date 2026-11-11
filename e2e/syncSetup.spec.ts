@@ -143,39 +143,67 @@ test("自動の同期を切ると、編集しても送らず、「今すぐ同�
   await expect(laptop.locator(".sync-line")).not.toContainText("未送信");
 });
 
-test("v0.2 までの同期先には、作ったときのパスフレーズで参加でき、設定で暗号化キーを作ると新しい形になる", async ({ browser }) => {
-  // v0.2 のアプリが作った同期先: パスフレーズで包んだ vault.json だけがある。
+test("暗号化キーは、自動で生成するか自分で入力するかを選べる。短すぎるキーは断る", async ({ browser }) => {
+  const remoteConfig = await newTestRemoteConfig();
+  const laptop = await (await browser.newContext({ viewport: DESKTOP_VIEWPORT })).newPage();
+  await openSetupWithSync(laptop, remoteConfig, PASSPHRASE);
+  await laptop.getByRole("button", { name: "接続を確認" }).click();
+  // 既定は「自動で生成する」。
+  await expect(laptop.getByRole("radio", { name: "自動で生成する" })).toBeChecked();
+  await laptop.getByRole("radio", { name: "自分で入力する" }).click();
+  await laptop.getByLabel("暗号化キー", { exact: true }).fill("short");
+  await laptop.getByRole("button", { name: "作成" }).click();
+  await expect(laptop.getByRole("alert")).toContainText("暗号化キーは12文字以上にしてください");
+  await laptop.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
+  await laptop.getByRole("button", { name: "作成" }).click();
+  // 自分で入力したキーは、あらためて表示しない。
+  await expect(laptop.getByRole("button", { name: "新しいメモ" })).toBeVisible();
+  await expect(laptop.getByRole("dialog", { name: "暗号化キー" })).toBeHidden();
+
+  // 作り直すときも、どちらかを選べる。
+  await laptop.locator(".sync-line").click();
+  const keySection = laptop.locator(".settings-section", { has: laptop.getByRole("heading", { name: "暗号化キー", exact: true }) });
+  await keySection.getByRole("radio", { name: "自分で入力する" }).click();
+  await keySection.getByLabel("暗号化キー", { exact: true }).fill("another-key-of-my-own");
+  await keySection.getByLabel("このデバイスのパスフレーズ").fill(PASSPHRASE);
+  await keySection.getByLabel("前の暗号化キーでは参加できなくなること、メモは暗号化し直さないことを確かめました").check();
+  await keySection.getByRole("button", { name: "暗号化キーを作り直す" }).click();
+  await expect(keySection.getByText("暗号化キーを作り直しました")).toBeVisible();
+
+  const phone = await (await browser.newContext({ viewport: DESKTOP_VIEWPORT })).newPage();
+  await openSetupWithSync(phone, remoteConfig, SECOND_DEVICE_PASSPHRASE);
+  await phone.getByRole("button", { name: "接続を確認" }).click();
+  await phone.getByLabel("暗号化キー", { exact: true }).fill("another-key-of-my-own");
+  await phone.getByRole("button", { name: "参加" }).click();
+  await expect(phone.getByRole("button", { name: "新しいメモ" })).toBeVisible({ timeout: 20_000 });
+});
+
+test("v0.2 までのアプリで作った同期先は、確かめた時点で使えないと知らせる", async ({ page }) => {
+  // v0.2 のアプリが作った同期先: パスフレーズで包んだ vault.json がある。
   const remoteConfig = await newTestRemoteConfig();
   const { document } = await createVault(PASSPHRASE);
   await writeRemoteVault(new S3ObjectStore(remoteConfig), document, { ifAbsent: true });
+  await openSetupWithSync(page, remoteConfig, PASSPHRASE);
+  await page.getByRole("button", { name: "接続を確認" }).click();
+  await expect(page.getByRole("alert")).toContainText("v0.2 までのアプリで作られたもので、今のアプリでは使えません");
+  await expect(page.getByRole("button", { name: "作成" })).toBeDisabled();
+});
 
-  const laptop = await (await browser.newContext({ viewport: DESKTOP_VIEWPORT })).newPage();
-  await openSetupWithSync(laptop, remoteConfig, SECOND_DEVICE_PASSPHRASE);
-  await laptop.getByRole("button", { name: "接続を確認" }).click();
-  await expect(laptop.getByRole("status")).toContainText("既存のメモが見つかりました");
-  await laptop.getByLabel("作ったときのパスフレーズ").fill(PASSPHRASE);
-  await laptop.getByRole("button", { name: "参加" }).click();
-  await createNoteOnDesktop(laptop, "v0.2 の同期先に書いたメモ");
-  await expect(laptop.getByText(/同期済み/)).toBeVisible({ timeout: 20_000 });
-
+test("同期を設定したあとの設定の画面は、同期先の要約を出す。「同期先を変更」で開き、同じメモの同期先なら暗号化キーを聞かない", async ({ browser }) => {
+  const remoteConfig = await newTestRemoteConfig();
+  const laptop = await openSyncedDevice(browser, { remoteConfig, join: false });
   await laptop.locator(".sync-line").click();
-  const keySection = laptop.locator(".settings-section", { has: laptop.getByRole("heading", { name: "暗号化キー", exact: true }) });
-  await expect(keySection.getByRole("status")).toContainText("暗号化キーがまだありません");
-  await keySection.getByLabel("このデバイスのパスフレーズ").fill(SECOND_DEVICE_PASSPHRASE);
-  await keySection.getByLabel("v0.2 までのアプリを入れたデバイスは、アプリを更新するまで同期できなくなることを確かめました").check();
-  await keySection.getByRole("button", { name: "暗号化キーを作り直す" }).click();
-  const keyDialog = laptop.getByRole("dialog", { name: "暗号化キー" });
-  const newKey = await keyDialog.locator("code").innerText();
-  await keyDialog.getByRole("button", { name: "控えました" }).click();
-  await expect(keySection.getByText("暗号化キーがまだありません")).toBeHidden();
+  const syncSection = laptop.locator(".settings-section", { has: laptop.getByRole("heading", { name: "同期", exact: true }) });
+  await expect(syncSection).toContainText(`同期先: バケット「${remoteConfig.bucket}」の ${remoteConfig.prefix}`);
+  await expect(syncSection.getByLabel("エンドポイント")).toBeHidden();
 
-  // 新しい形になったあとも、このデバイスは同期を続けられる。新しいデバイスは暗号化キーで参加する。
-  await laptop.getByRole("button", { name: "今すぐ同期" }).click();
+  await syncSection.getByRole("button", { name: "同期先を変更" }).click();
+  await expect(syncSection.getByLabel("エンドポイント")).toHaveValue(remoteConfig.endpoint);
+  await syncSection.getByRole("button", { name: "接続を確認" }).click();
+  await expect(syncSection.locator(".sync-target-result")).toContainText("このデバイスのメモと同じものです");
+  await expect(syncSection.getByLabel("暗号化キー", { exact: true })).toBeHidden();
+  await syncSection.getByRole("button", { name: "保存して同期" }).click();
+  // 保存すると、要約に戻る。
+  await expect(syncSection.getByRole("button", { name: "同期先を変更" })).toBeVisible();
   await expect(laptop.locator(".sync-line")).toContainText("同期済み", { timeout: 20_000 });
-  const phone = await (await browser.newContext({ viewport: DESKTOP_VIEWPORT })).newPage();
-  await openSetupWithSync(phone, remoteConfig, PASSPHRASE);
-  await phone.getByRole("button", { name: "接続を確認" }).click();
-  await phone.getByLabel("暗号化キー", { exact: true }).fill(newKey);
-  await phone.getByRole("button", { name: "参加" }).click();
-  await expect(phone.getByRole("button", { name: /v0.2 の同期先に書いたメモ/ }).first()).toBeVisible({ timeout: 20_000 });
 });

@@ -51,6 +51,8 @@ export interface LocalStore {
   // 無くても成功にする。
   deleteBlob(id: string): Promise<void>;
   listBlobsWaitingForUpload(): Promise<LocalBlobEntry[]>;
+  // 手元の添付を全部、送っていないことにする（同期先を別の場所に付け替えたとき）。
+  markAllBlobsForUpload(): Promise<void>;
   putVersion(entry: LocalVersionEntry): Promise<void>;
   listVersions(recordId: string): Promise<LocalVersionEntry[]>;
   deleteVersion(id: string): Promise<void>;

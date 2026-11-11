@@ -84,6 +84,7 @@ export function SetupScreen({ session }: { session: VaultSession }) {
           <label htmlFor="setup-passphrase">{translate("setup.passphrase")}</label>
           <input id="setup-passphrase" type="password" value={passphrase} onChange={(event) => setPassphrase(event.target.value)} autoComplete="new-password" required />
           {mode === "start" && <span className="hint">{translate("setup.passphraseHint", { minimum: MIN_PASSPHRASE_LENGTH })}</span>}
+          {joins && <span className="hint">{translate("setup.passphraseForThisDevice")}</span>}
           {mode === "restore" && <span className="hint">{translate("setup.backupPassphraseHint")}</span>}
         </div>
         {mode === "start" && (
@@ -106,6 +107,7 @@ export function SetupScreen({ session }: { session: VaultSession }) {
         {message && <div className="form-error" role="alert">{message}</div>}
         <div className="form-actions">
           {action.busy && <span className="hint">{translate("setup.working")}</span>}
+          {usesSync && syncTargetForm.checked === null && !action.busy && <span className="hint">{translate("syncTarget.checkFirst")}</span>}
           <button className="primary-button" type="submit" disabled={action.busy || (usesSync && syncTargetForm.checked === null)}>
             {translate(mode === "restore" ? "setup.submitRestore" : joins ? "setup.submitJoin" : "setup.submitNew")}
           </button>

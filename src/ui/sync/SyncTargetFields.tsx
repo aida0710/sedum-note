@@ -2,10 +2,10 @@
 // 最初の画面と、設定の同期の欄で使う。
 
 import type { SyncTargetCheck } from "../../core/vault/syncTarget";
-import { MIN_SYNC_KEY_LENGTH } from "../../core/vault/vaultDocument";
 import { translate } from "../i18n/translate";
 import { CorsGuide } from "../shared/CorsGuide";
 import { RemoteConfigFields } from "../shared/RemoteConfigFields";
+import { NewSyncKeyChoice } from "./NewSyncKeyChoice";
 import type { SyncTargetForm } from "./useSyncTargetForm";
 
 // 見つかった既存のメモの場所を、ボタンで並べる数。多いバケットでは、残りはフォルダを入力して確かめてもらう。
@@ -49,7 +49,6 @@ function SyncTargetResult({ form, checked, relation }: { form: SyncTargetForm; c
     return <div className="form-error" role="alert">{translate("syncTarget.otherVault")}</div>;
   }
   if (inspected.state === "existing") {
-    const legacy = inspected.keyWrapping === "passphrase";
     return (
       <div className="sync-target-result" role="status">
         <p className="form-notice">
@@ -59,9 +58,10 @@ function SyncTargetResult({ form, checked, relation }: { form: SyncTargetForm; c
         </p>
         {relation === "own" ? <p className="hint">{translate("syncTarget.ownVault")}</p> : (
           <div className="field">
-            <label htmlFor="sync-key">{translate(legacy ? "syncTarget.legacyPassphrase" : "syncTarget.syncKey")}</label>
-            <input id="sync-key" type="password" value={form.syncKey} onChange={(event) => form.setSyncKey(event.target.value)} autoComplete="off" spellCheck={false} />
-            <span className="hint">{translate(legacy ? "syncTarget.legacyPassphraseHint" : "syncTarget.syncKeyHint")}</span>
+            <label htmlFor="sync-key">{translate("syncTarget.syncKey")}</label>
+            <input id="sync-key" type="password" value={form.existingSyncKey} onChange={(event) => form.setExistingSyncKey(event.target.value)}
+              autoComplete="off" autoCapitalize="off" spellCheck={false} />
+            <span className="hint">{translate("syncTarget.syncKeyHint")}</span>
           </div>
         )}
       </div>
@@ -83,17 +83,7 @@ function SyncTargetResult({ form, checked, relation }: { form: SyncTargetForm; c
           )}
         </div>
       )}
-      <label className="checkbox-line">
-        <input type="checkbox" checked={form.choosesOwnSyncKey} onChange={(event) => form.setChoosesOwnSyncKey(event.target.checked)} />
-        {translate("syncTarget.chooseOwnKey")}
-      </label>
-      {form.choosesOwnSyncKey ? (
-        <div className="field">
-          <label htmlFor="sync-key">{translate("syncTarget.syncKey")}</label>
-          <input id="sync-key" type="password" value={form.syncKey} onChange={(event) => form.setSyncKey(event.target.value)} autoComplete="off" spellCheck={false} />
-          <span className="hint">{translate("syncTarget.ownKeyHint", { minimum: MIN_SYNC_KEY_LENGTH })}</span>
-        </div>
-      ) : <p className="hint">{translate("syncTarget.keyWillBeGenerated")}</p>}
+      <NewSyncKeyChoice inputId="new-sync-key" value={form.newSyncKey} onChange={form.setNewSyncKey} />
     </div>
   );
 }

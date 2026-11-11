@@ -3,6 +3,7 @@
 
 import { AppUpdateRequiredError } from "../notes/bodySchema";
 import { ObjectStoreError, type ObjectStoreFailureReason } from "../remote/objectStore";
+import { OutdatedSyncTargetError } from "../vault/remoteVault";
 import { InvalidVaultDocumentError } from "../vault/vaultDocument";
 import { VaultReplacedError } from "./syncEngine";
 
@@ -15,6 +16,7 @@ export function isPermanentSyncFailure(error: unknown): boolean {
   if (error instanceof ObjectStoreError) {
     return PERMANENT_STORAGE_FAILURES.has(error.reason);
   }
-  // 同期先が別の vault になった、vault.json がこのアプリの読めない形になった、アプリの方が古い。
-  return error instanceof VaultReplacedError || error instanceof InvalidVaultDocumentError || error instanceof AppUpdateRequiredError;
+  // 同期先が別の vault になった、vault.json がこのアプリの読めない形（v0.2 までの形を含む）、アプリの方が古い。
+  return error instanceof VaultReplacedError || error instanceof InvalidVaultDocumentError ||
+    error instanceof OutdatedSyncTargetError || error instanceof AppUpdateRequiredError;
 }

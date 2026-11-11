@@ -13,11 +13,12 @@ import { BODY_SCHEMA_VERSION, ensureBodySchemaSupported } from "../notes/bodySch
 import { NoteRepository } from "../notes/noteRepository";
 import { ensureConditionalWrites } from "../remote/conditionalWriteCheck";
 import type { ObjectStore } from "../remote/objectStore";
-import { PreconditionFailedError } from "../remote/objectStore";
+import { ObjectStoreError, PreconditionFailedError } from "../remote/objectStore";
 import type { RemoteConfig } from "../remote/remoteConfig";
+import { VAULT_OBJECT_KEY } from "../sync/remoteLayout";
 import { SyncEngine } from "../sync/syncEngine";
 import { readRemoteVault, writeRemoteVault } from "./remoteVault";
-import { ensureSyncTargetUnchanged, inspectSyncTarget, SyncTargetChangedError, SyncTargetIncompleteError, type SyncTargetInspection } from "./syncTarget";
+import { ensureSyncTargetUnchanged, SyncTargetChangedError, SyncTargetIncompleteError, type SyncTargetInspection } from "./syncTarget";
 import { createVault, rewrapVault, unlockVault, type VaultDocument, WrongPassphraseError } from "./vaultDocument";
 
 const REMOTE_CONFIG_BINDING = "settings:remote-config";
@@ -94,7 +95,7 @@ export type SyncTargetChoice = {
   remoteConfig: RemoteConfig;
   // 画面で確かめたときの状態（vault/syncTarget.ts）。保存の直前に、変わっていないかを確かめ直す。
   inspected: SyncTargetInspection;
-  // 既存の同期先に参加するときは、そこの暗号化キー（v0.2 までの同期先では、作ったときのパスフレーズ）。
+  // 既存の同期先に参加するときは、そこの暗号化キー。
   // 空の同期先に作るときは、自分で決めた暗号化キー。null なら生成する。
   syncKey: string | null;
 };
@@ -137,7 +138,15 @@ async function placeRemoteVault(environment: VaultSessionEnvironment, input: Pla
   try {
     await writeRemoteVault(objectStore, remoteDocument, { ifAbsent: true });
   } catch (error) {
-    throw error instanceof PreconditionFailedError ? new SyncTargetChangedError() : error;
+    if (error instanceof PreconditionFailedError) {
+      throw new SyncTargetChangedError();
+    }
+    // 書き込みは届いたのに ETag を読めなかった（CORS の ExposeHeaders に ETag が無い）。置いたままにすると、
+    // 誰も暗号化キーを見ていない vault.json が残り、次に確かめたときに「既存のメモ」に見える。
+    if (error instanceof ObjectStoreError && error.reason === "etag_hidden") {
+      await objectStore.delete(VAULT_OBJECT_KEY).catch(() => undefined);
+    }
+    throw error;
   }
   return syncTarget.syncKey === null ? syncKey : null;
 }
@@ -255,6 +264,9 @@ export async function connectRemote(
       throw new WrongPassphraseError();
     }
     generatedSyncKey = await placeRemoteVault(environment, { document, passphrase: input.passphrase, syncTarget: input.syncTarget });
+    // 新しい同期先には添付が 1 つも無い。前の同期先へ送り終えた添付も、送り直す
+    // （記録は、同期先に無ければ同期の中で送り直しになる）。
+    await environment.localStore.markAllBlobsForUpload();
   }
   await saveVaultLocally(environment.localStore, { document, masterKey: unlocked.masterKey, remoteConfig });
   return { unlocked: await assembleUnlockedVault(environment, unlocked.masterKey, remoteConfig), generatedSyncKey };
@@ -262,7 +274,7 @@ export async function connectRemote(
 
 // 同期先の暗号化キーを作り直す。vault.json を新しいキーで包み直すだけで、メモは暗号化し直さない。
 // 参加済みのデバイスは、手元にマスターキーを持っているので、そのまま同期を続けられる。新しく参加する
-// デバイスは、新しいキーを使う。v0.2 までの同期先（パスフレーズで包んだ vault.json）を新しい形にするのにも使う。
+// デバイスは、新しいキーを使う。
 // 生成した暗号化キーを返す（自分で決めたものを使ったら null）。
 export async function replaceSyncKey(
   environment: VaultSessionEnvironment,
@@ -297,11 +309,6 @@ export async function changePassphrase(
   const document = await readLocalVaultDocument(environment.localStore);
   const changed = await rewrapVault(document, passphrases.current, { secret: passphrases.next, wrapping: "passphrase" });
   await environment.localStore.writeSetting("vault", changed);
-}
-
-// 設定した同期先の今の状態。設定の画面で、v0.2 までの形の同期先かどうかを知らせるのに使う。
-export function inspectConnectedRemote(environment: VaultSessionEnvironment, unlocked: UnlockedVault): Promise<SyncTargetInspection | null> {
-  return unlocked.remoteConfig ? inspectSyncTarget(environment.createObjectStore(unlocked.remoteConfig)) : Promise.resolve(null);
 }
 
 async function readLocalVaultDocument(localStore: LocalStore): Promise<VaultDocument> {

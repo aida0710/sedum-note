@@ -6,12 +6,11 @@ import { AppUpdateRequiredError } from "../notes/bodySchema";
 import { MemoryObjectStore } from "../remote/memoryObjectStore";
 import { type ObjectStore, ObjectStoreError } from "../remote/objectStore";
 import type { RemoteConfig } from "../remote/remoteConfig";
-import { readRemoteVault, writeRemoteVault } from "./remoteVault";
+import { OutdatedSyncTargetError, readRemoteVault, writeRemoteVault } from "./remoteVault";
 import { checkSyncTarget, findVaultFolders, inspectSyncTarget, SyncTargetChangedError, SyncTargetIncompleteError } from "./syncTarget";
 import { keyWrappingOf, type VaultDocument, WrongPassphraseError, WrongSyncKeyError } from "./vaultDocument";
 import {
   changePassphrase,
-  connectRemote,
   createNewVault,
   joinExistingVault,
   readVaultState,
@@ -224,43 +223,43 @@ describe("パスフレーズと暗号化キー", () => {
 
 describe("v0.2 までの同期先（パスフレーズで包んだ vault.json）", () => {
   // v0.2 のアプリが作った同期先を作る: 手元と同じ、パスフレーズで包んだ文書を同期先に置く。
-  async function legacyDevice(store: MemoryObjectStore) {
-    const deviceEnvironment = environment(store);
-    await createLocalVault(deviceEnvironment, "correct horse battery");
+  async function placeOutdatedVault(store: MemoryObjectStore, deviceEnvironment: VaultSessionEnvironment): Promise<void> {
     const document = (await deviceEnvironment.localStore.readSetting<VaultDocument>("vault"))!;
     await writeRemoteVault(store, document, { ifAbsent: true });
-    const inspected = await inspectSyncTarget(store);
-    const unlocked = await unlockLocalVault(deviceEnvironment, "correct horse battery");
-    const connected = await connectRemote(deviceEnvironment, unlocked, { syncTarget: { remoteConfig, inspected, syncKey: null }, passphrase: null });
-    return { deviceEnvironment, unlocked: connected.unlocked };
   }
 
-  it("そのまま同期を続けられ、新しいデバイスは作ったときのパスフレーズで参加できる", async () => {
+  it("確かめる時点で断り、候補にも数えない。作ったときのパスフレーズでも参加できない", async () => {
     const store = new MemoryObjectStore();
-    const { unlocked: laptop } = await legacyDevice(store);
-    await laptop.repository.createNote({ title: "v0.2 から使っているメモ" });
-    await laptop.syncEngine!.syncOnce();
-    expect(await inspectSyncTarget(store)).toMatchObject({ state: "existing", keyWrapping: "passphrase" });
-
-    const phone = await joinSyncedVault(environment(store), { passphrase: "the phone has its own", remoteConfig, syncKey: "correct horse battery" });
-    await phone.syncEngine!.syncOnce();
-    expect(phone.repository.notes()).toHaveLength(1);
+    const creator = environment(store);
+    await createLocalVault(creator, "correct horse battery");
+    await placeOutdatedVault(store, creator);
+    await expect(inspectSyncTarget(store)).rejects.toBeInstanceOf(OutdatedSyncTargetError);
+    expect(await findVaultFolders(store)).toEqual([]);
   });
 
-  it("暗号化キーを作ると新しい形になり、参加済みのデバイスはキーを入れずに同期を続けられる", async () => {
-    const store = new MemoryObjectStore();
-    const { deviceEnvironment, unlocked: laptop } = await legacyDevice(store);
-    const phone = await joinSyncedVault(environment(store), { passphrase: "the phone has its own", remoteConfig, syncKey: "correct horse battery" });
+  it("同期していたデバイスは同期を止める。空の同期先へ付け替えると、メモと添付を送り直す", async () => {
+    const oldStore = new MemoryObjectStore();
+    const newStore = new MemoryObjectStore();
+    const deviceEnvironment: VaultSessionEnvironment = {
+      localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`),
+      createObjectStore: (config) => (config.bucket === "new-notes" ? newStore : oldStore),
+    };
+    // 新しい形の同期先で使っていたデバイスの同期先が、v0.2 までの形に置き換わった状態を作る。
+    const device = await createSyncedVault(deviceEnvironment, { passphrase: "correct horse battery", remoteConfig });
+    const note = await device.repository.createNote({ title: "前の同期先に送ったメモ" });
+    const photo = Uint8Array.from({ length: 2_000 }, (_, index) => index % 251);
+    const attachment = await device.repository.storeAttachment({ bytes: photo, mimeType: "image/png", fileName: "a.png" });
+    await device.syncEngine!.syncOnce();
+    await oldStore.delete("vault.json");
+    await placeOutdatedVault(oldStore, deviceEnvironment);
+    await expect(device.syncEngine!.syncOnce()).rejects.toBeInstanceOf(OutdatedSyncTargetError);
 
-    const newKey = await replaceSyncKey(deviceEnvironment, laptop, { passphrase: "correct horse battery", syncKey: null });
-    expect(await inspectSyncTarget(store)).toMatchObject({ state: "existing", keyWrapping: "syncKey" });
-
-    await laptop.repository.createNote({ title: "新しい形にしたあとに書いた" });
-    await laptop.syncEngine!.syncOnce();
-    await phone.syncEngine!.syncOnce();
-    expect(phone.repository.notes()).toHaveLength(1);
-    await expect(joinSyncedVault(environment(store), { passphrase: "a third passphrase", remoteConfig, syncKey: "correct horse battery" })).rejects.toBeInstanceOf(WrongSyncKeyError);
-    await expect(joinSyncedVault(environment(store), { passphrase: "a third passphrase", remoteConfig, syncKey: newKey! })).resolves.toBeDefined();
+    const moved = await connectSyncedRemote(deviceEnvironment, device, { passphrase: "correct horse battery", remoteConfig: { ...remoteConfig, bucket: "new-notes" } });
+    await moved.syncEngine!.syncOnce();
+    const other = await joinSyncedVault({ localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: () => newStore }, { passphrase: "the phone has its own", remoteConfig });
+    await other.syncEngine!.syncOnce();
+    expect(other.repository.note(note.id)?.content.title).toBe("前の同期先に送ったメモ");
+    expect(await other.repository.readAttachment(attachment.id)).toEqual(photo);
   });
 });
 
@@ -269,7 +268,7 @@ describe("同期先の確認", () => {
     const store = new MemoryObjectStore();
     expect(await inspectSyncTarget(store)).toEqual({ state: "empty" });
     await createSyncedVault(environment(store), { passphrase: "correct horse battery", remoteConfig });
-    expect(await inspectSyncTarget(store)).toMatchObject({ state: "existing", keyWrapping: "syncKey" });
+    expect(await inspectSyncTarget(store)).toMatchObject({ state: "existing" });
 
     const orphaned = new MemoryObjectStore();
     await orphaned.put("records/0123456789abcdef0123456789abcdef", new Uint8Array([1]), { ifAbsent: true });
@@ -277,6 +276,30 @@ describe("同期先の確認", () => {
     const localEnvironment = environment(orphaned);
     const local = await createLocalVault(localEnvironment, "correct horse battery");
     await expect(connectSyncedRemote(localEnvironment, local, { passphrase: "correct horse battery", remoteConfig })).rejects.toBeInstanceOf(SyncTargetIncompleteError);
+  });
+
+  it("書き込みは届いたのに ETag を読めなかったら、置いた vault.json を消して、同期先を空に戻す", async () => {
+    const store = new MemoryObjectStore();
+    const hidesEtag: VaultSessionEnvironment = {
+      ...environment(store),
+      createObjectStore: () => ({
+        list: (prefix) => store.list(prefix),
+        hasObjectsUnder: (prefix) => store.hasObjectsUnder(prefix),
+        listFolders: (prefix, maxCount) => store.listFolders(prefix, maxCount),
+        get: (key) => store.get(key),
+        delete: (key) => store.delete(key),
+        put: async (key, body, condition) => {
+          const written = await store.put(key, body, condition);
+          if (key === "vault.json") {
+            throw new ObjectStoreError("etag_hidden", "the ETag header is not exposed");
+          }
+          return written;
+        },
+      }),
+    };
+    await expect(createSyncedVault(hidesEtag, { passphrase: "correct horse battery", remoteConfig })).rejects.toMatchObject({ reason: "etag_hidden" });
+    expect(await inspectSyncTarget(store)).toEqual({ state: "empty" });
+    expect(await readVaultState(hidesEtag.localStore)).toBe("absent");
   });
 
   it("確かめたあとに同期先が変わっていたら、作成も参加も断り、手元に何も残さない", async () => {
