@@ -1,4 +1,4 @@
-// 設定の画面。表示、同期先、バックアップ、パスフレーズの変更、ロックを並べる。
+// 設定の画面。表示、テーマ、同期先、バックアップ、パスフレーズの変更、ロックを並べる。
 
 import { useState } from "react";
 import { MIN_PASSPHRASE_LENGTH } from "../../core/crypto/passphraseKey";
@@ -12,6 +12,7 @@ import { checkRemoteConfigInput } from "../shared/remoteConfigProblemMessage";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { corsRuleJson } from "./corsRule";
 import { DisplaySection } from "./DisplaySection";
+import { ThemeSection } from "./ThemeSection";
 
 type SettingsPanelProps = {
   session: VaultSession;
@@ -26,6 +27,7 @@ export function SettingsPanel({ session, remoteConfig, unreadableCount }: Settin
         <h1>{translate("settings.title")}</h1>
         {unreadableCount > 0 && <div className="form-error">{translate("settings.unreadable", { count: unreadableCount })}</div>}
         <DisplaySection />
+        <ThemeSection />
         <SyncSection session={session} remoteConfig={remoteConfig} />
         <BackupSection session={session} />
         <PassphraseSection session={session} />

@@ -1,7 +1,8 @@
-// このデバイスだけの表示の設定（言語、一覧の並び順など）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
+import { type CustomTheme, parseStoredCustomTheme } from "../theme/customTheme";
 import { NOTE_SORT_ORDERS, type NoteSortOrder } from "../../core/notes/noteQueries";
 
 // Web 版はほかのページと同じ origin（github.io）に載るので、キーにアプリの名前を付ける。
@@ -10,14 +11,26 @@ const STORAGE_KEY = "sedum-note:devicePreferences";
 export const LANGUAGE_CHOICES = ["system", "ja", "en"] as const;
 export type LanguageChoice = (typeof LANGUAGE_CHOICES)[number];
 
+export const SYSTEM_THEME_ID = "system";
+
+export const EDITOR_FONT_SIZES = ["small", "medium", "large"] as const;
+export type EditorFontSize = (typeof EDITOR_FONT_SIZES)[number];
+
 export type DevicePreferences = {
   language: LanguageChoice;
   noteSortOrder: NoteSortOrder;
+  // "system"（OS の明るさに合わせる）か、組み込みのテーマか自作のテーマの ID。
+  themeId: string;
+  customThemes: CustomTheme[];
+  editorFontSize: EditorFontSize;
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   language: "system",
   noteSortOrder: "updatedAt",
+  themeId: SYSTEM_THEME_ID,
+  customThemes: [],
+  editorFontSize: "medium",
 };
 
 let current: DevicePreferences | null = null;
@@ -74,6 +87,11 @@ function validPreferences(stored: unknown): DevicePreferences {
   return {
     language: LANGUAGE_CHOICES.find((choice) => choice === candidate.language) ?? DEFAULT_DEVICE_PREFERENCES.language,
     noteSortOrder: NOTE_SORT_ORDERS.find((order) => order === candidate.noteSortOrder) ?? DEFAULT_DEVICE_PREFERENCES.noteSortOrder,
+    themeId: typeof candidate.themeId === "string" ? candidate.themeId : DEFAULT_DEVICE_PREFERENCES.themeId,
+    customThemes: (Array.isArray(candidate.customThemes) ? candidate.customThemes : [])
+      .map(parseStoredCustomTheme)
+      .filter((theme) => theme !== null),
+    editorFontSize: EDITOR_FONT_SIZES.find((size) => size === candidate.editorFontSize) ?? DEFAULT_DEVICE_PREFERENCES.editorFontSize,
   };
 }
 

@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { languageInUse } from "./i18n/languageInUse";
 import { useDevicePreferences } from "./preferences/devicePreferences";
+import { applyAppearance } from "./theme/applyAppearance";
+import { useThemeInUse } from "./theme/themeInUse";
 import { SetupScreen } from "./entry/SetupScreen";
 import { UnlockScreen } from "./entry/UnlockScreen";
 import { DialogProvider } from "./shared/DialogProvider";
@@ -18,10 +20,12 @@ import type { UnlockedVault } from "../core/vault/vaultSession";
 export function App() {
   const session = useVaultSession();
   // 言語を変えたら、ここから下を描き直して文言を入れ替える。
-  const { language } = useDevicePreferences();
+  const { language, editorFontSize } = useDevicePreferences();
   useEffect(() => {
     document.documentElement.lang = languageInUse();
   }, [language]);
+  const theme = useThemeInUse();
+  useEffect(() => applyAppearance({ theme, editorFontSize }), [theme, editorFontSize]);
   switch (session.state.phase) {
     case "loading":
       return null;

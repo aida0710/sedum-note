@@ -4,6 +4,8 @@ import { chromium } from "@playwright/test";
 import { AwsClient } from "aws4fetch";
 
 export const PASSPHRASE = "correct horse battery";
+// 道具は日本語の文言で画面を操作するので、ブラウザの言語を日本語にして開く。
+export const UI_LOCALE = "ja-JP";
 
 // integration/s3-up.sh の SeaweedFS。バケットは使い回し、確認ごとに prefix を分ける。
 export async function newCheckRemoteConfig() {
@@ -32,7 +34,7 @@ export const REMOTE_FIELDS = [
 // 手元のブラウザで vault を作り、メモを 1 件書いて送る。vite の開発サーバー（5173）を使う。
 export async function startBrowserDevice(remote) {
   const browser = await chromium.launch();
-  const page = await (await browser.newContext({ viewport: { width: 1280, height: 820 } })).newPage();
+  const page = await (await browser.newContext({ viewport: { width: 1280, height: 820 }, locale: UI_LOCALE })).newPage();
   await page.goto("http://127.0.0.1:5173/");
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await page.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
