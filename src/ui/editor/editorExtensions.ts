@@ -14,6 +14,7 @@ import { translate } from "../i18n/translate";
 import { AttachmentFile } from "./attachmentFileNode";
 import { AttachmentImage } from "./attachmentImageNode";
 import { NoteLink } from "./noteLinkNode";
+import { SearchHighlight } from "./searchHighlightExtension";
 import { SlashCommands } from "./slashCommandExtension";
 import type { SlashMenuController } from "./slashMenuController";
 
@@ -46,6 +47,7 @@ export function createEditorExtensions(body: Y.XmlFragment, slashMenuController:
   return [
     ...documentExtensions(),
     SlashCommands.configure({ controller: slashMenuController }),
+    SearchHighlight,
     Collaboration.configure({ fragment: body }),
     Placeholder.configure({ placeholder: translate("editor.bodyPlaceholder") }),
   ];

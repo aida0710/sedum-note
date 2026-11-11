@@ -9,6 +9,7 @@ import { NoteTabs } from "./NoteTabs";
 import { Sidebar } from "./Sidebar";
 import { SyncStatusLine } from "./SyncStatusLine";
 import { createNoteInView } from "./createNoteInView";
+import { useKeyboardShortcuts } from "./keyboardShortcuts";
 import { UpdateChip } from "../update/UpdateChip";
 import { SETTINGS_TAB } from "./useWorkspaceNavigation";
 
@@ -16,6 +17,24 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
   const { repository } = vault;
   const activeNote = navigation.activeTab && navigation.activeTab !== SETTINGS_TAB ? repository.note(navigation.activeTab) : undefined;
   const createNote = async () => navigation.openNote((await createNoteInView(repository, navigation.view)).id);
+  const openNeighborTab = (step: 1 | -1) => {
+    const { openTabs, activeTab } = navigation;
+    const neighbor = openTabs[(openTabs.indexOf(activeTab ?? "") + step + openTabs.length) % openTabs.length];
+    if (neighbor === SETTINGS_TAB) {
+      navigation.openSettings();
+    } else if (neighbor !== undefined) {
+      navigation.openNote(neighbor);
+    }
+  };
+  useKeyboardShortcuts({
+    newNote: () => void createNote(),
+    searchNotes: navigation.requestSearchFocus,
+    findInNote: navigation.requestFindInNote,
+    nextTab: () => openNeighborTab(1),
+    previousTab: () => openNeighborTab(-1),
+    closeTab: () => navigation.activeTab && navigation.closeTab(navigation.activeTab),
+    openSettings: navigation.openSettings,
+  });
   return (
     <div className="workspace">
       <Sidebar snapshot={snapshot} repository={repository} navigation={navigation} onCreateNote={() => void createNote()}
@@ -23,12 +42,13 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
       <main className="main">
         <NoteTabs navigation={navigation} repository={repository} />
         {navigation.activeTab === SETTINGS_TAB && (
-          <SettingsPanel session={session} repository={repository} remoteConfig={vault.remoteConfig} unreadableCount={snapshot.unreadableCount} />
+          <SettingsPanel session={session} repository={repository} remoteConfig={vault.remoteConfig} unreadableCount={snapshot.unreadableCount} isMobile={false} />
         )}
         {activeNote && (
           <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, navigation.openNote)}>
             <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} repository={repository}
-              syncConfigured={vault.remoteConfig !== null} isMobile={false} />
+              syncConfigured={vault.remoteConfig !== null} isMobile={false}
+              highlightedText={navigation.searchText} findRequest={navigation.findInNoteRequest} />
           </NoteLinkTargetsContext.Provider>
         )}
         {!activeNote && navigation.activeTab !== SETTINGS_TAB && <div className="empty-state">{translate("editor.empty")}</div>}

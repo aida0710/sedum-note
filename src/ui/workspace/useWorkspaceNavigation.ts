@@ -20,6 +20,11 @@ export type WorkspaceNavigation = {
   setExpanded: (key: string, expanded: boolean) => void;
   searchText: string;
   setSearchText: (text: string) => void;
+  // ショートカットからの合図。押すたびに数が増え、受け取る側が欄を開いてカーソルを置く。
+  searchFocusRequest: number;
+  requestSearchFocus: () => void;
+  findInNoteRequest: number;
+  requestFindInNote: () => void;
 };
 
 export function viewKey(view: NoteView): string {
@@ -39,6 +44,8 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
   // 利用者が開け閉めした行だけを持つ。持っていない行は既定の状態。
   const [expandedOverrides, setExpandedOverrides] = useState<ReadonlyMap<string, boolean>>(new Map());
   const [searchText, setSearchText] = useState("");
+  const [searchFocusRequest, setSearchFocusRequest] = useState(0);
+  const [findInNoteRequest, setFindInNoteRequest] = useState(0);
 
   const openTab = useCallback((tabId: string) => {
     setTabs(({ openTabs }) => ({ openTabs: openTabs.includes(tabId) ? openTabs : [...openTabs, tabId], activeTab: tabId }));
@@ -71,5 +78,7 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
   return {
     view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote: openTab, openSettings: () => openTab(SETTINGS_TAB), closeTab,
     isExpanded, setExpanded, searchText, setSearchText,
+    searchFocusRequest, requestSearchFocus: () => setSearchFocusRequest((count) => count + 1),
+    findInNoteRequest, requestFindInNote: () => setFindInNoteRequest((count) => count + 1),
   };
 }

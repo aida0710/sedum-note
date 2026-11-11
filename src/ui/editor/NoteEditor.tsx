@@ -14,6 +14,7 @@ import { useAsyncAction } from "../shared/useAsyncAction";
 import { formatDateTime } from "../shared/formatTime";
 import { assignNotebookColors, NotebookMark } from "../shared/notebookAppearance";
 import { EditorToolbar } from "./EditorToolbar";
+import { FindBar } from "./FindBar";
 import { createEditorExtensions } from "./editorExtensions";
 import { attachFiles } from "./attachFiles";
 import { NoteActionsMenu } from "./NoteActionsMenu";
@@ -31,9 +32,13 @@ type NoteEditorProps = {
   isMobile: boolean;
   // スマホでは上のバーに「戻る」を出す。
   onBack?: () => void;
+  // 一覧の検索で探している言葉。開いたメモの中の当たりに色を付ける。
+  highlightedText?: string;
+  // メモの中の検索を開く合図（ショートカット）。押すたびに数が増える。
+  findRequest?: number;
 };
 
-export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobile, onBack }: NoteEditorProps) {
+export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobile, onBack, highlightedText = "", findRequest = 0 }: NoteEditorProps) {
   const [title, setTitle] = useState(note.content.title);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [pickingNoteLink, setPickingNoteLink] = useState(false);
@@ -80,6 +85,21 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
   useEffect(() => {
     editor?.setEditable(!inTrash);
   }, [editor, inTrash]);
+
+  // メモの中の検索。開いている間は、検索の欄の言葉に色を付ける。閉じている間は、一覧の検索の言葉に色を付ける。
+  const [findBarOpen, setFindBarOpen] = useState(false);
+  const openedFindRequest = useRef(findRequest);
+  useEffect(() => {
+    if (findRequest !== openedFindRequest.current) {
+      openedFindRequest.current = findRequest;
+      setFindBarOpen(true);
+    }
+  }, [findRequest]);
+  useEffect(() => {
+    if (!findBarOpen) {
+      editor?.commands.setSearchQuery(highlightedText);
+    }
+  }, [editor, findBarOpen, highlightedText]);
 
   // note は本文が変わるたびに作り直されるので、タグもそのたびに取り直す。
   const tags = useMemo(() => plainTextHashtags(bodyPlainText(note.body)), [note]);
@@ -133,6 +153,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
           <div className="phone-top-end">{trailing}</div>
         </div>
       )}
+      {findBarOpen && <FindBar editor={editor} focusRequest={findRequest} onClose={() => setFindBarOpen(false)} />}
       <div className="document-scroll">
         <div className="document">
           {inTrash && (
@@ -188,6 +209,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
       )}
       {menuAnchor && (
         <NoteActionsMenu anchor={menuAnchor} note={note} notebooks={notebooks} repository={repository}
+          onFind={() => setFindBarOpen(true)}
           onShowHistory={() => setShowingHistory(true)} onExportMarkdown={() => void exportMarkdown.run([note])} onClose={() => setMenuAnchor(null)} />
       )}
       {showingHistory && (

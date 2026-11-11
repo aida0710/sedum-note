@@ -2,8 +2,8 @@
 // 開いた所にメモを並べる。
 
 import { FileText, Hash, Plus, Search, Star, Trash2, X } from "lucide-react";
-import { type ReactNode, useState } from "react";
-import { buildNotebookTree, countTags, selectNotes } from "../../core/notes/noteQueries";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { buildNotebookTree, countTags, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
@@ -31,6 +31,22 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, footer
   const { noteSortOrder } = useDevicePreferences();
   const searching = navigation.searchText.trim() !== "";
 
+  // 検索の欄を開く合図（ショートカット）が来たら開く。開いていれば、欄にカーソルを置き直す。
+  const searchInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (navigation.searchFocusRequest > 0) {
+      setSearchOpen(true);
+      searchInput.current?.focus();
+    }
+  }, [navigation.searchFocusRequest]);
+  // ノートブックかタグを開いているときは、まずその中を探す。「すべてのメモ」に広げられる。
+  const [searchEverywhere, setSearchEverywhere] = useState(false);
+  const scopedView = navigation.view.kind === "notebook" || navigation.view.kind === "tag" ? navigation.view : null;
+  const searchView: NoteView = scopedView && !searchEverywhere ? scopedView : { kind: "all" };
+  const scopeName = scopedView?.kind === "notebook"
+    ? snapshot.notebooks.find((notebook) => notebook.id === scopedView.notebookId)?.content.name ?? ""
+    : scopedView?.kind === "tag" ? `#${scopedView.tag}` : "";
+
   const closeSearch = () => {
     setSearchOpen(false);
     navigation.setSearchText("");
@@ -47,7 +63,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, footer
       {searchOpen && (
         <label className="sidebar-search">
           <Search size={14} />
-          <input autoFocus value={navigation.searchText} placeholder={translate("sidebar.searchPlaceholder")}
+          <input ref={searchInput} autoFocus value={navigation.searchText} placeholder={translate("sidebar.searchPlaceholder")}
             onChange={(event) => navigation.setSearchText(event.target.value)}
             onKeyDown={(event) => event.key === "Escape" && closeSearch()} />
         </label>
@@ -55,7 +71,14 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, footer
       <button className="new-note" onClick={onCreateNote}><Plus size={16} />{translate("sidebar.newNote")}</button>
       <div className="sidebar-scroll">
         {searching ? (
-          <SearchResults summaries={selectNotes(summaries, { view: { kind: "all" }, searchText: navigation.searchText, sortOrder: noteSortOrder })} navigation={navigation} />
+          <>
+            {scopedView && (
+              <button className="search-scope" onClick={() => setSearchEverywhere(!searchEverywhere)}>
+                {searchEverywhere ? translate("sidebar.searchOnlyIn", { name: scopeName }) : translate("sidebar.searchingIn", { name: scopeName })}
+              </button>
+            )}
+            <SearchResults summaries={selectNotes(summaries, { view: searchView, searchText: navigation.searchText, sortOrder: noteSortOrder })} navigation={navigation} />
+          </>
         ) : (
           <>
             {/* ノートブックが無いうちは、メモを並べる所がほかに無いので開いておく。 */}

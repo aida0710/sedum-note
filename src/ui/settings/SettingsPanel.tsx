@@ -17,6 +17,7 @@ import { corsRuleJson } from "./corsRule";
 import { DisplaySection } from "./DisplaySection";
 import { MarkdownSection } from "./MarkdownSection";
 import { McpSection } from "./McpSection";
+import { ShortcutsSection } from "./ShortcutsSection";
 import { ThemeSection } from "./ThemeSection";
 import { TrashSection } from "./TrashSection";
 import { UpdateSection } from "./UpdateSection";
@@ -26,9 +27,11 @@ type SettingsPanelProps = {
   repository: NoteRepository;
   remoteConfig: RemoteConfig | null;
   unreadableCount: number;
+  // スマホの組み方か。キーボードの無い画面には、ショートカットの一覧を出さない。
+  isMobile: boolean;
 };
 
-export function SettingsPanel({ session, repository, remoteConfig, unreadableCount }: SettingsPanelProps) {
+export function SettingsPanel({ session, repository, remoteConfig, unreadableCount, isMobile }: SettingsPanelProps) {
   return (
     <div className="document-scroll">
       <div className="settings">
@@ -40,6 +43,7 @@ export function SettingsPanel({ session, repository, remoteConfig, unreadableCou
         <BackupSection session={session} />
         <MarkdownSection repository={repository} />
         <PassphraseSection session={session} />
+        {!isMobile && <ShortcutsSection />}
         <TrashSection />
         <McpSection />
         <UpdateSection repository={repository} />
