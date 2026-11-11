@@ -11,6 +11,7 @@ import { checkSyncTarget, findVaultFolders, inspectSyncTarget, SyncTargetChanged
 import { keyWrappingOf, type VaultDocument, WrongPassphraseError, WrongSyncKeyError } from "./vaultDocument";
 import {
   changePassphrase,
+  connectRemote,
   createNewVault,
   joinExistingVault,
   readVaultState,
@@ -268,6 +269,31 @@ describe("v0.2 までの同期先（パスフレーズで包んだ vault.json）
     expect(other.repository.note(note.id)?.content.title).toBe("前の同期先に送ったメモ");
     expect(await other.repository.readAttachment(attachment.id)).toEqual(photo);
     expect(await other.repository.readAttachment(attachedElsewhere.id)).toEqual(elsewhere);
+  });
+
+  it("同じメモを持つほかのデバイスは、付け替えた先へ暗号化キーなしでつなぎ直せ、そのデバイスにしか無いメモも届く", async () => {
+    const oldStore = new MemoryObjectStore();
+    const newStore = new MemoryObjectStore();
+    const moved = { ...remoteConfig, bucket: "new-notes" };
+    const deviceIn = (): VaultSessionEnvironment => ({
+      localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`),
+      kdfCost: TEST_KDF_COST,
+      createObjectStore: (config) => (config.bucket === "new-notes" ? newStore : oldStore),
+    });
+    const laptopEnvironment = deviceIn();
+    const laptop = await createSyncedVault(laptopEnvironment, { passphrase: "correct horse battery", remoteConfig });
+    const phoneEnvironment = deviceIn();
+    const phone = await joinSyncedVault(phoneEnvironment, { passphrase: "the phone has its own", remoteConfig });
+    await phone.repository.createNote({ title: "スマホにしか無いメモ" });
+
+    const movedLaptop = await connectSyncedRemote(laptopEnvironment, laptop, { passphrase: "correct horse battery", remoteConfig: moved });
+    await movedLaptop.syncEngine!.syncOnce();
+    // スマホは、新しい同期先を確かめると同じ vault と分かるので、暗号化キーもパスフレーズも入れずに保存できる。
+    const inspected = await inspectSyncTarget(newStore);
+    const movedPhone = (await connectRemote(phoneEnvironment, phone, { syncTarget: { remoteConfig: moved, inspected, syncKey: null }, passphrase: null })).unlocked;
+    await movedPhone.syncEngine!.syncOnce();
+    await movedLaptop.syncEngine!.syncOnce();
+    expect(movedLaptop.repository.notes().map((note) => note.content.title)).toEqual(["スマホにしか無いメモ"]);
   });
 });
 
