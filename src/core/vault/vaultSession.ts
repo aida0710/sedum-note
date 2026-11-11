@@ -5,6 +5,7 @@
 // ロックしている間は、手元にも平文の認証情報が無い。
 
 import { newGeneratedPassphrase } from "../crypto/generatedPassphrase";
+import type { Argon2idParameters } from "../crypto/passphraseKey";
 import { newRandomId } from "../crypto/randomId";
 import { open, seal } from "../crypto/sealedBox";
 import type { LocalStore } from "../local/localStore";
@@ -44,6 +45,9 @@ export type VaultSessionEnvironment = {
   createObjectStore: (config: RemoteConfig) => ObjectStore;
   // このアプリが扱える本文の形の版。指定しなければ BODY_SCHEMA_VERSION。試験で新しいアプリを模すのに使う。
   bodySchemaVersion?: number;
+  // 新しく作る vault の、パスフレーズからキーを導出する重さ。指定しなければ製品の値（64 MiB）。
+  // 試験では軽くする（何十回も導出するので、製品の値だと CI で時間切れになる）。
+  kdfCost?: Omit<Argon2idParameters, "salt">;
 };
 
 export type UnlockedVault = {
@@ -111,7 +115,7 @@ export async function createNewVault(
   environment: VaultSessionEnvironment,
   input: { passphrase: string; syncTarget: SyncTargetChoice | null },
 ): Promise<VaultEntry> {
-  const { document, masterKey } = await createVault(input.passphrase);
+  const { document, masterKey } = await createVault(input.passphrase, environment.kdfCost);
   let generatedSyncKey: string | null = null;
   if (input.syncTarget) {
     if (input.syncTarget.inspected.state !== "empty") {

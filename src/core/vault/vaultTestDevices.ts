@@ -5,6 +5,9 @@ import type { RemoteConfig } from "../remote/remoteConfig";
 import { inspectSyncTarget } from "./syncTarget";
 import { connectRemote, createNewVault, joinExistingVault, type UnlockedVault, type VaultSessionEnvironment } from "./vaultSession";
 
+// 試験で使う、軽い鍵の導出。形式は製品と同じ。VaultSessionEnvironment の kdfCost に渡す。
+export const TEST_KDF_COST = { iterations: 1, memoryKiB: 64, parallelism: 1 };
+
 // 試験の同期先で使う、自分で決めた暗号化キー。
 export const TEST_SYNC_KEY = "shared-sync-key-for-tests";
 

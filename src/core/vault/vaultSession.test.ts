@@ -21,13 +21,13 @@ import {
   type VaultSessionEnvironment,
   wipeDeviceData,
 } from "./vaultSession";
-import { connectSyncedRemote, createLocalVault, createSyncedVault, joinSyncedVault, TEST_SYNC_KEY } from "./vaultTestDevices";
+import { connectSyncedRemote, createLocalVault, createSyncedVault, joinSyncedVault, TEST_KDF_COST, TEST_SYNC_KEY } from "./vaultTestDevices";
 
 const remoteConfig: RemoteConfig = { endpoint: "https://s3.example.com", bucket: "notes", region: "auto", prefix: "", accessKeyId: "k", secretAccessKey: "s" };
 
 // sameDevice を渡すと、そのデバイスの手元の保存を使う（同じデバイスを、別の版のアプリで開く試験用）。
 function environment(store: MemoryObjectStore, sameDevice?: VaultSessionEnvironment): VaultSessionEnvironment {
-  return { localStore: sameDevice?.localStore ?? new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: () => store };
+  return { localStore: sameDevice?.localStore ?? new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: () => store, kdfCost: TEST_KDF_COST };
 }
 
 describe("本文の形の版", () => {
@@ -72,7 +72,7 @@ describe("本文の形の版", () => {
 describe("wipeDeviceData", () => {
   it("入力の直後に消しても、保存待ちの入力が書き戻されず、最初の状態に戻る", async () => {
     const databaseName = `vault-${newRandomId()}`;
-    const wiped = { localStore: new IndexedDbLocalStore(databaseName), createObjectStore: () => new MemoryObjectStore() };
+    const wiped = { localStore: new IndexedDbLocalStore(databaseName), createObjectStore: () => new MemoryObjectStore(), kdfCost: TEST_KDF_COST };
     const unlocked = await createLocalVault(wiped, "correct horse battery");
     const note = await unlocked.repository.createNote({ title: "消える前のメモ" });
     expect(await summarizeDeviceData(wiped.localStore)).toEqual({ recordCount: 1, waitingForPushCount: 1, syncConfigured: false });
@@ -90,7 +90,7 @@ describe("wipeDeviceData", () => {
   it("ロック中でも消せる（パスフレーズを忘れたとき）", async () => {
     const databaseName = `vault-${newRandomId()}`;
     const locked = new IndexedDbLocalStore(databaseName);
-    await createLocalVault({ localStore: locked, createObjectStore: () => new MemoryObjectStore() }, "correct horse battery");
+    await createLocalVault({ localStore: locked, createObjectStore: () => new MemoryObjectStore(), kdfCost: TEST_KDF_COST }, "correct horse battery");
     await wipeDeviceData(new IndexedDbLocalStore(databaseName), null);
     expect(await readVaultState(new IndexedDbLocalStore(databaseName))).toBe("absent");
   });
@@ -242,6 +242,7 @@ describe("v0.2 までの同期先（パスフレーズで包んだ vault.json）
     const newStore = new MemoryObjectStore();
     const deviceEnvironment: VaultSessionEnvironment = {
       localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`),
+      kdfCost: TEST_KDF_COST,
       createObjectStore: (config) => (config.bucket === "new-notes" ? newStore : oldStore),
     };
     // 新しい形の同期先で使っていたデバイスの同期先が、v0.2 までの形に置き換わった状態を作る。
@@ -330,6 +331,7 @@ describe("同期先の確認", () => {
     const bucket = new MemoryObjectStore();
     const inFolder = (folder: string): VaultSessionEnvironment => ({
       localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`),
+      kdfCost: TEST_KDF_COST,
       createObjectStore: () => storeUnder(bucket, folder),
     });
     expect(await findVaultFolders(bucket)).toEqual([]);
@@ -344,11 +346,11 @@ describe("同期先の確認", () => {
   it("フォルダを入れずに確かめると、1 か所だけ見つかった既存のメモを同期先にする。2 か所以上なら候補として返す", async () => {
     const bucket = new MemoryObjectStore();
     const inBucket = (config: RemoteConfig) => storeUnder(bucket, config.prefix);
-    await createSyncedVault({ localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: inBucket }, { passphrase: "correct horse battery", remoteConfig: { ...remoteConfig, prefix: "notes" } });
+    await createSyncedVault({ localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: inBucket, kdfCost: TEST_KDF_COST }, { passphrase: "correct horse battery", remoteConfig: { ...remoteConfig, prefix: "notes" } });
     const single = await checkSyncTarget(inBucket, { ...remoteConfig, prefix: "" });
     expect(single).toMatchObject({ foundFolderAutomatically: true, remoteConfig: { prefix: "notes" }, inspected: { state: "existing" } });
 
-    await createSyncedVault({ localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: inBucket }, { passphrase: "correct horse battery", remoteConfig: { ...remoteConfig, prefix: "work" } });
+    await createSyncedVault({ localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: inBucket, kdfCost: TEST_KDF_COST }, { passphrase: "correct horse battery", remoteConfig: { ...remoteConfig, prefix: "work" } });
     const several = await checkSyncTarget(inBucket, { ...remoteConfig, prefix: "" });
     expect(several).toMatchObject({ foundFolderAutomatically: false, inspected: { state: "empty" }, otherVaultFolders: ["notes", "work"] });
     // フォルダを入力して確かめたときは、入れ替えずに、ほかの場所を候補として返す。

@@ -7,7 +7,7 @@ import { bodyPlainText } from "../notes/bodyText";
 import { MemoryObjectStore } from "../remote/memoryObjectStore";
 import type { RemoteConfig } from "../remote/remoteConfig";
 import { type UnlockedVault, unlockLocalVault, type VaultSessionEnvironment } from "../vault/vaultSession";
-import { createSyncedVault, joinSyncedVault } from "../vault/vaultTestDevices";
+import { createSyncedVault, joinSyncedVault, TEST_KDF_COST } from "../vault/vaultTestDevices";
 import { blobObjectKey, recordObjectKey } from "./remoteLayout";
 
 const PASSPHRASE = "correct horse battery";
@@ -16,7 +16,7 @@ const remoteConfig: RemoteConfig = {
 };
 
 function deviceEnvironment(objectStore: MemoryObjectStore): VaultSessionEnvironment {
-  return { localStore: new IndexedDbLocalStore(`device-${newRandomId()}`), createObjectStore: () => objectStore };
+  return { localStore: new IndexedDbLocalStore(`device-${newRandomId()}`), createObjectStore: () => objectStore, kdfCost: TEST_KDF_COST };
 }
 
 async function twoDevices(): Promise<{ store: MemoryObjectStore; laptop: UnlockedVault; phone: UnlockedVault; phoneEnvironment: VaultSessionEnvironment }> {

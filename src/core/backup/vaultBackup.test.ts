@@ -7,7 +7,7 @@ import { bodyPlainText } from "../notes/bodyText";
 import { MemoryObjectStore } from "../remote/memoryObjectStore";
 import { WrongPassphraseError } from "../vault/vaultDocument";
 import { readVaultState, unlockLocalVault, type VaultSessionEnvironment } from "../vault/vaultSession";
-import { connectSyncedRemote, createLocalVault, joinSyncedVault } from "../vault/vaultTestDevices";
+import { connectSyncedRemote, createLocalVault, joinSyncedVault, TEST_KDF_COST } from "../vault/vaultTestDevices";
 import { InvalidBackupError } from "./backupFile";
 import { exportBackup, restoreBackup } from "./vaultBackup";
 
@@ -15,7 +15,7 @@ const PASSPHRASE = "correct horse battery";
 const remoteConfig = { endpoint: "https://s3.example.com", bucket: "notes", region: "auto", prefix: "", accessKeyId: "k", secretAccessKey: "s" };
 
 function environment(store = new MemoryObjectStore()): VaultSessionEnvironment {
-  return { localStore: new IndexedDbLocalStore(`backup-${newRandomId()}`), createObjectStore: () => store };
+  return { localStore: new IndexedDbLocalStore(`backup-${newRandomId()}`), createObjectStore: () => store, kdfCost: TEST_KDF_COST };
 }
 
 function joinParts(parts: Uint8Array[]): Uint8Array {
