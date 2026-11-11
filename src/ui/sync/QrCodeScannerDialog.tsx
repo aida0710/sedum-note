@@ -28,7 +28,7 @@ export function QrCodeScannerDialog({ onRead, onClose }: QrCodeScannerDialogProp
     const canvas = document.createElement("canvas");
     // 背面のカメラを優先する（スマホで、相手の画面に向けるため）。
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
-      .then(async (opened) => {
+      .then((opened) => {
         if (closed) {
           opened.getTracks().forEach((track) => track.stop());
           return;
@@ -39,7 +39,8 @@ export function QrCodeScannerDialog({ onRead, onClose }: QrCodeScannerDialogProp
           return;
         }
         element.srcObject = opened;
-        await element.play();
+        // 再生の開始を断るブラウザがあっても、autoplay で始まれば読める。始まらなければ、映像が出ないだけで待ち続ける。
+        void element.play().catch(() => undefined);
         timer = setInterval(() => {
           const text = readQrCodeFromVideoFrame(element, canvas);
           if (text !== null && timer !== null) {
@@ -70,7 +71,7 @@ export function QrCodeScannerDialog({ onRead, onClose }: QrCodeScannerDialogProp
         <>
           <p>{translate("syncSetup.scanDescription")}</p>
           {/* playsInline が無いと、iPhone では全画面の再生に切り替わる。 */}
-          <video ref={video} className="qr-code-scanner-video" playsInline muted />
+          <video ref={video} className="qr-code-scanner-video" playsInline muted autoPlay />
         </>
       ) : <div className="form-error" role="alert">{cameraProblem}</div>}
       <div className="form-actions">

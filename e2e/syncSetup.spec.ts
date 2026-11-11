@@ -259,7 +259,17 @@ test("同期の設定を、暗号化キーを入力せずに書き出せる。�
   await joinWith("設定のファイルを選ぶ", setupFile);
   await joinWith("QR の画像を選ぶ", qrCodeFile);
 
+});
+
+test("カメラをかざして QR を読むと、暗号化キーを聞かれ、入れると同期先が入って確認まで進む", async ({ browser, browserName }) => {
+  test.skip(browserName !== "chromium", "カメラの映像の代わりに使う canvas の映像は、試験用の WebKit では再生されない");
   // カメラで読む。カメラの映像の代わりに、QR を描いた映像を返す。
+  const remoteConfig = await newTestRemoteConfig();
+  const laptop = await openSyncedDevice(browser, { remoteConfig, join: false });
+  await laptop.locator(".sync-line").click();
+  await laptop.getByRole("button", { name: "同期の設定を書き出す" }).click();
+  const qrCodeImage = await laptop.getByRole("img", { name: "同期の設定の QR コード" }).getAttribute("src");
+
   const phone = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
   await phone.addInitScript((image) => {
     navigator.mediaDevices.getUserMedia = async () => {
