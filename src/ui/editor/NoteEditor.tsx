@@ -8,6 +8,7 @@ import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
+import { useMarkdownExport } from "../markdown/useMarkdownExport";
 import { useDialogs } from "../shared/DialogProvider";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { formatDateTime } from "../shared/formatTime";
@@ -53,6 +54,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
     },
   }, [noteId]);
 
+  const exportMarkdown = useMarkdownExport(repository);
   const attach = useAsyncAction((files: File[]) => (editor ? attachFiles({ files, editor, repository }) : Promise.resolve()));
   // 貼り付け・ドロップにファイルが含まれていれば、添付として受け取る（true を返すと、エディタの既定の処理を止める）。
   function takeFiles(files: File[]): boolean {
@@ -135,8 +137,8 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
               </span>
             </div>
           )}
-          {attach.errorMessage && (
-            <div className="form-error" role="alert">{attach.errorMessage}</div>
+          {(attach.errorMessage ?? exportMarkdown.errorMessage) && (
+            <div className="form-error" role="alert">{attach.errorMessage ?? exportMarkdown.errorMessage}</div>
           )}
           <div className="document-meta">
             {noteNotebooks.map((notebook) => (
@@ -169,7 +171,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
       )}
       {menuAnchor && (
         <NoteActionsMenu anchor={menuAnchor} note={note} notebooks={notebooks} repository={repository}
-          onShowHistory={() => setShowingHistory(true)} onClose={() => setMenuAnchor(null)} />
+          onShowHistory={() => setShowingHistory(true)} onExportMarkdown={() => void exportMarkdown.run([note])} onClose={() => setMenuAnchor(null)} />
       )}
       {showingHistory && (
         <NoteHistoryDialog note={note} repository={repository} onClose={() => setShowingHistory(false)}

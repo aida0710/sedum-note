@@ -75,3 +75,38 @@ test("バックアップを書き出し、別のデバイスの最初の画面�
   await target.getByRole("button", { name: "memo.txt を保存" }).click();
   expect((await readFile(await (await restoredFile).path())).toString()).toBe("添付の中身");
 });
+
+test("Markdown で書き出すと暗号化されないことを確かめられ、書き出した zip を別のデバイスに取り込める", async ({ browser }) => {
+  const source = await (await browser.newContext({ viewport: { width: 1280, height: 820 } })).newPage();
+  await startLocalVault(source);
+  await source.getByPlaceholder("タイトル").fill("旅のメモ");
+  await source.getByPlaceholder("タイトル").press("Enter");
+  await source.keyboard.type("## 持ち物");
+  await source.keyboard.press("Enter");
+  await source.keyboard.type("日焼け止め");
+  await source.locator('input[type="file"]:not([accept])').setInputFiles({ name: "memo.txt", mimeType: "text/plain", buffer: Buffer.from("添付の中身") });
+  await expect(source.locator(".attachment-file")).toContainText("memo.txt");
+
+  await source.getByRole("button", { name: /同期は未設定/ }).click();
+  await source.getByRole("button", { name: "すべてのメモを Markdown で書き出す" }).click();
+  const confirmation = source.getByRole("dialog");
+  await expect(confirmation).toContainText("書き出したファイルは暗号化されません");
+  const download = source.waitForEvent("download");
+  await confirmation.getByRole("button", { name: "書き出す" }).click();
+  const exported = await download;
+  expect(exported.suggestedFilename()).toMatch(/^sedum-note-markdown-\d{8}\.zip$/);
+  await expect(source.getByText("1件のメモを書き出しました")).toBeVisible();
+
+  const target = await (await browser.newContext({ viewport: { width: 1280, height: 820 } })).newPage();
+  await target.goto("/");
+  await target.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
+  await target.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
+  await target.getByRole("button", { name: "作成" }).click();
+  await target.getByRole("button", { name: /同期は未設定/ }).click();
+  await target.getByLabel("Markdown を取り込む").setInputFiles(await exported.path());
+  await expect(target.getByText("1件のメモを取り込みました")).toBeVisible();
+  await target.getByRole("button", { name: "旅のメモ" }).click();
+  await expect(target.locator(".ProseMirror h2")).toHaveText("持ち物");
+  await expect(target.locator(".ProseMirror")).toContainText("日焼け止め");
+  await expect(target.locator(".attachment-file")).toContainText("memo.txt");
+});

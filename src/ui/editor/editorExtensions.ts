@@ -18,25 +18,32 @@ import { NoteLink } from "./noteLinkNode";
 // よく使われる言語（highlight.js の common の組）だけを入れる。言語の指定が無いコードは中身から推す。
 const codeHighlighter = createLowlight(common);
 
-export function createEditorExtensions(body: Y.XmlFragment) {
+// 文書の形（ノードと書式）を決める機能。エディタのほか、Markdown との変換（ui/markdown）でも使う。
+export function documentExtensions() {
   return [
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
+      link: { openOnClick: false, autolink: true },
       // コードの色付けつきのもの（CodeBlockLowlight）に置き換える。ノード名は同じ codeBlock。
       codeBlock: false,
-      link: { openOnClick: false, autolink: true },
       // 取り消しは Collaboration が持つ（自分の変更だけを取り消し、ほかのデバイスの変更は残す）。
       undoRedo: false,
     }),
-    Collaboration.configure({ fragment: body }),
     TaskList,
     TaskItem.configure({ nested: true }),
-    Placeholder.configure({ placeholder: translate("editor.bodyPlaceholder") }),
     CodeBlockLowlight.configure({ lowlight: codeHighlighter }),
     // スマホの幅では表が画面をはみ出すので、包んだ要素の中で横に送れるようにする。
     TableKit.configure({ table: { resizable: false, renderWrapper: true } }),
     AttachmentImage,
     AttachmentFile,
     NoteLink,
+  ];
+}
+
+export function createEditorExtensions(body: Y.XmlFragment) {
+  return [
+    ...documentExtensions(),
+    Collaboration.configure({ fragment: body }),
+    Placeholder.configure({ placeholder: translate("editor.bodyPlaceholder") }),
   ];
 }

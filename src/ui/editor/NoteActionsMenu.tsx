@@ -1,6 +1,6 @@
-// メモの「…」メニュー: ピン留め、ノートブックの付け外し、履歴、ゴミ箱。
+// メモの「…」メニュー: ピン留め、ノートブックの付け外し、履歴、Markdown での書き出し、ゴミ箱。
 
-import { Check, History, Pin, PinOff, Trash2 } from "lucide-react";
+import { Check, FileDown, History, Pin, PinOff, Trash2 } from "lucide-react";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
@@ -12,10 +12,11 @@ type NoteActionsMenuProps = {
   notebooks: LiveNotebook[];
   repository: NoteRepository;
   onShowHistory: () => void;
+  onExportMarkdown: () => void;
   onClose: () => void;
 };
 
-export function NoteActionsMenu({ anchor, note, notebooks, repository, onShowHistory, onClose }: NoteActionsMenuProps) {
+export function NoteActionsMenu({ anchor, note, notebooks, repository, onShowHistory, onExportMarkdown, onClose }: NoteActionsMenuProps) {
   const { content } = note;
   const toggleNotebook = (notebookId: string) => {
     const notebookIds = content.notebookIds.includes(notebookId)
@@ -48,6 +49,9 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onShowHis
       <div className="menu-separator" />
       <button className="menu-item" role="menuitem" onClick={() => { onClose(); onShowHistory(); }}>
         <History size={15} />{translate("editor.history")}
+      </button>
+      <button className="menu-item" role="menuitem" onClick={() => { onClose(); onExportMarkdown(); }}>
+        <FileDown size={15} />{translate("editor.exportMarkdown")}
       </button>
       <button className="menu-item danger" role="menuitem" onClick={runAndClose(() => repository.moveNoteToTrash(note.id))}>
         <Trash2 size={15} />{translate("editor.moveToTrash")}

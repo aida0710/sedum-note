@@ -1,7 +1,8 @@
-// 設定の画面。表示、テーマ、同期先、バックアップ、パスフレーズの変更、ロック、データの消去を並べる。
+// 設定の画面。表示、テーマ、同期先、バックアップ、Markdown、パスフレーズの変更、ロック、データの消去を並べる。
 
 import { useState } from "react";
 import { MIN_PASSPHRASE_LENGTH } from "../../core/crypto/passphraseKey";
+import type { NoteRepository } from "../../core/notes/noteRepository";
 import type { RemoteConfig } from "../../core/remote/remoteConfig";
 import { describeError } from "../i18n/describeError";
 import { translate } from "../i18n/translate";
@@ -13,15 +14,17 @@ import { checkRemoteConfigInput } from "../shared/remoteConfigProblemMessage";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { corsRuleJson } from "./corsRule";
 import { DisplaySection } from "./DisplaySection";
+import { MarkdownSection } from "./MarkdownSection";
 import { ThemeSection } from "./ThemeSection";
 
 type SettingsPanelProps = {
   session: VaultSession;
+  repository: NoteRepository;
   remoteConfig: RemoteConfig | null;
   unreadableCount: number;
 };
 
-export function SettingsPanel({ session, remoteConfig, unreadableCount }: SettingsPanelProps) {
+export function SettingsPanel({ session, repository, remoteConfig, unreadableCount }: SettingsPanelProps) {
   return (
     <div className="document-scroll">
       <div className="settings">
@@ -31,6 +34,7 @@ export function SettingsPanel({ session, remoteConfig, unreadableCount }: Settin
         <ThemeSection />
         <SyncSection session={session} remoteConfig={remoteConfig} />
         <BackupSection session={session} />
+        <MarkdownSection repository={repository} />
         <PassphraseSection session={session} />
         <section className="settings-section">
           <h2>{translate("settings.lock")}</h2>
