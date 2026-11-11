@@ -1,4 +1,5 @@
-// 1 件のメモの編集画面（タイトル・タグとノートブックの表示・本文）。
+// 1 件のメモの編集画面。タイトル・タグとノートブックの表示・本文を並べ、ツールバーやメニューから開く部品
+// （添付、メモの中の検索、目次、履歴、リンク先の選択、「/」の候補）をつなぐ。それぞれの中身は別のファイルにある。
 
 import { EditorContent, type JSONContent, useEditor } from "@tiptap/react";
 import { yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
@@ -10,9 +11,8 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { useMarkdownExport } from "../markdown/useMarkdownExport";
-import { deleteCapturedPhotos } from "../platform/capturedPhotos";
 import { printPage } from "../platform/printPage";
-import { readDevicePreferences, updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
+import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { useDialogs } from "../shared/DialogProvider";
 import { PopupMenu } from "../shared/PopupMenu";
 import { useAsyncAction } from "../shared/useAsyncAction";
@@ -21,14 +21,13 @@ import { assignNotebookColors, NotebookMark } from "../shared/notebookAppearance
 import { EditorToolbar } from "./EditorToolbar";
 import { FindBar } from "./FindBar";
 import { createEditorExtensions } from "./editorExtensions";
-import { attachFiles } from "./attachFiles";
 import { NoteActionsMenu } from "./NoteActionsMenu";
 import { NoteHistoryDialog } from "./NoteHistoryDialog";
 import { NoteLinkPicker } from "./NoteLinkPicker";
 import { NoteOutline } from "./NoteOutline";
-import { REDUCED_IMAGE_MAX_EDGE } from "./reduceImage";
 import { NoteLinkTargetsContext } from "./noteLinkTargets";
 import { SlashMenu } from "./SlashMenu";
+import { useNoteAttachments } from "./useNoteAttachments";
 import { SlashMenuController } from "./slashMenuController";
 
 type NoteEditorProps = {
@@ -57,9 +56,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
   const { openNote } = useContext(NoteLinkTargetsContext);
   const titleInput = useRef<HTMLInputElement>(null);
   const dialogs = useDialogs();
-  const imageInput = useRef<HTMLInputElement>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
-  const cameraInput = useRef<HTMLInputElement>(null);
+  const attachments = useNoteAttachments(repository);
   const slashMenuController = useMemo(() => new SlashMenuController(), []);
   const unsyncedIds = useContext(UnsyncedRecordsContext);
   const noteId = note.id;
@@ -71,41 +68,14 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
     extensions: createEditorExtensions(note.body, slashMenuController),
     editable: !inTrash,
     editorProps: {
-      handlePaste: (_view, event) => takeFiles(Array.from(event.clipboardData?.files ?? [])),
-      handleDrop: (_view, event) => takeFiles(Array.from((event as DragEvent).dataTransfer?.files ?? [])),
+      handlePaste: (_view, event) => attachments.takeFiles(Array.from(event.clipboardData?.files ?? [])),
+      handleDrop: (_view, event) => attachments.takeFiles(Array.from((event as DragEvent).dataTransfer?.files ?? [])),
     },
   }, [noteId]);
+  attachments.editor.current = editor;
 
   const exportMarkdown = useMarkdownExport(repository);
   const print = useAsyncAction(printPage);
-  const attach = useAsyncAction(async (files: File[]) => {
-    if (!editor) {
-      return;
-    }
-    // 写真を小さくするかは設定で決まる。「毎回聞く」なら、写真が入っているときに 1 回だけ聞く。
-    const { imageAttachment } = readDevicePreferences();
-    const reduceImages = imageAttachment === "ask" && files.some((file) => file.type.startsWith("image/"))
-      ? await dialogs.confirm({
-        message: translate("editor.reduceImageQuestion", { edge: REDUCED_IMAGE_MAX_EDGE }),
-        confirmLabel: translate("editor.reduceImage"), cancelLabel: translate("editor.keepOriginalImage"),
-      })
-      : imageAttachment === "reduced";
-    try {
-      await attachFiles({ files, reduceImages, editor, repository });
-    } finally {
-      // Android のカメラで撮った写真は、暗号化されない一時ファイルで届く。添付にしたら消す。
-      deleteCapturedPhotos();
-    }
-  });
-  // 貼り付け・ドロップにファイルが含まれていれば、添付として受け取る（true を返すと、エディタの既定の処理を止める）。
-  function takeFiles(files: File[]): boolean {
-    if (files.length === 0 || !editor) {
-      return false;
-    }
-    void attach.run(files);
-    return true;
-  }
-
   // ほかのデバイスがタイトルを変えたら、打っている最中でなければ表示を差し替える。
   useEffect(() => {
     if (document.activeElement !== titleInput.current) {
@@ -165,13 +135,12 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
     editor?.chain().focus().insertContent({ type: NOTE_LINK_NODE, attrs: { noteId: linkedNoteId } }).run();
   };
   const askLink = () => dialogs.prompt({ message: translate("editor.linkPrompt"), initialValue: "https://" });
-  const pickImage = () => imageInput.current?.click();
-  const pickFile = () => fileInput.current?.click();
+  const { pickImage, pickFile } = attachments;
   const pickNoteLink = () => setPickingNoteLink(true);
   const toolbarActions = {
     onPickImage: pickImage, onPickFile: pickFile, onAskLink: askLink, onPickNoteLink: pickNoteLink,
     // スマホでは、カメラを開いてその場で撮れる。
-    onCapturePhoto: isMobile ? () => cameraInput.current?.click() : undefined,
+    onCapturePhoto: isMobile ? attachments.capturePhoto : undefined,
   };
   // テンプレートの本文を、カーソルの所に入れる。
   const insertTemplate = (templateId: string) => {
@@ -184,12 +153,8 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
     .filter((candidate) => candidate.content.isTemplate && candidate.content.trashedAt === null && candidate.id !== noteId)
     .map((template) => ({ id: template.id, title: template.content.title }));
   slashMenuController.actions = { pickImage, pickFile, pickNoteLink, templates, insertTemplate };
-  const takePickedFiles = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = "";
-    takeFiles(files);
-  };
 
+  const actionError = attachments.errorMessage ?? exportMarkdown.errorMessage ?? print.errorMessage;
   if (!editor) {
     return null;
   }
@@ -232,9 +197,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
               </span>
             </div>
           )}
-          {(attach.errorMessage ?? exportMarkdown.errorMessage ?? print.errorMessage) && (
-            <div className="form-error" role="alert">{attach.errorMessage ?? exportMarkdown.errorMessage ?? print.errorMessage}</div>
-          )}
+          {actionError && <div className="form-error" role="alert">{actionError}</div>}
           <div className="document-meta">
             {noteNotebooks.map((notebook) => (
               <span key={notebook.id} className="chip"><NotebookMark notebook={notebook} colors={notebookColors} />{notebook.content.name}</span>
@@ -267,9 +230,7 @@ export function NoteEditor({ note, notebooks, repository, syncConfigured, isMobi
         </PopupMenu>
       )}
       {isMobile && !inTrash && <EditorToolbar editor={editor} {...toolbarActions} />}
-      <input ref={imageInput} type="file" accept="image/*" multiple hidden onChange={takePickedFiles} />
-      <input ref={fileInput} type="file" multiple hidden onChange={takePickedFiles} />
-      <input ref={cameraInput} type="file" accept="image/*" capture="environment" hidden onChange={takePickedFiles} />
+      {attachments.fileInputs}
       <SlashMenu controller={slashMenuController} />
       {pickingNoteLink && (
         <NoteLinkPicker candidates={repository.notes().filter((candidate) => candidate.id !== noteId && candidate.content.trashedAt === null)}

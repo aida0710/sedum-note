@@ -20,7 +20,7 @@ const INVALID_PARAMS = -32602;
 const HEADER_MISMATCH = -32020;
 const UNSUPPORTED_PROTOCOL_VERSION = -32022;
 
-// サーバーの説明の使い回してよい時間（ミリ秒）。ツールの一覧はアプリの版ごとに決まっているので長くてよい。
+// サーバーの説明（対応する版と、ツールを持つこと）を使い回してよい時間（ミリ秒）。アプリの版ごとに決まっているので長くてよい。
 const DISCOVERY_TTL_MILLISECONDS = 3_600_000;
 
 type JsonObject = Record<string, unknown>;
@@ -116,7 +116,8 @@ export async function handleMcpRequest(request: McpHttpRequest, server: McpServe
         cacheScope: "private",
       });
     case "tools/list":
-      return success({ tools: server.tools.map(describeTool) });
+      // ツールの一覧は設定（完全な削除を許すか）で変わるので、クライアントに使い回させない。
+      return success({ tools: server.tools.map(describeTool), ttlMs: 0, cacheScope: "private" });
     case "tools/call": {
       const tool = server.tools.find((candidate) => candidate.name === params.name);
       if (!tool) {

@@ -284,6 +284,7 @@ export const japaneseMessages = {
   "settings.trash": "ゴミ箱",
   "trash.autoDelete": "ゴミ箱のメモを、日数がたったら完全に削除する",
   "trash.retentionDays": "ゴミ箱に残す日数",
+  "trash.retentionDaysHint": "今の設定は {days} 日です。変えた日数は、欄を離れたときに決まります。",
   "trash.retentionDaysInvalid": "{minimum}〜{maximum} の整数を入れてください",
   "trash.autoDeleteDescription": "オフのときは、手で消すまでゴミ箱に残ります。オンにすると、このデバイスが同期のあとに消し、ほかのデバイスからも消えます。完全に削除したメモは元に戻せません。",
 

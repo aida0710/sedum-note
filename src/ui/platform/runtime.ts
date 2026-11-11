@@ -3,3 +3,8 @@
 export function isRunningInTauri(): boolean {
   return "__TAURI_INTERNALS__" in window;
 }
+
+// Android のアプリ（Tauri の WebView）の中か。デスクトップのアプリにだけある機能（MCP の窓口、印刷）を出し分ける。
+export function isAndroidApp(): boolean {
+  return isRunningInTauri() && /Android/i.test(navigator.userAgent);
+}

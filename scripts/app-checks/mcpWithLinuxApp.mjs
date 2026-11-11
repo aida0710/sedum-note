@@ -6,15 +6,18 @@
 // 確かめること:
 //   1. 設定で有効にすると窓口が開き、トークンなし・違うトークン・Web ページからの要求（Origin つき）を断る
 //   2. MCP の手順（server/discover、tools/list、tools/call）で、メモの作成・検索・読み取り・書き換え・ゴミ箱が通る
-//   3. 窓を最小化していても応答が返る
-//   4. アプリをロックすると窓口が閉じる
+//   3. 有効のまま設定（完全な削除を許す、トークンの作り直し）を変えても、窓口が開き直る
+//   4. 窓の最小化を頼んだあとも応答が返る（Xvfb には窓の管理が無いので、実際に最小化されているかは分からない）
+//   5. アプリをロックすると窓口が閉じる
 
 import { writeFileSync } from "node:fs";
+import { connect } from "node:net";
 import { PASSPHRASE } from "./checkDevices.mjs";
 import { WebDriverSession } from "./webDriverSession.mjs";
 
 const outputDirectory = process.argv[2];
-const ENDPOINT = "http://127.0.0.1:47821/mcp";
+const MCP_PORT = 47821;
+const ENDPOINT = `http://127.0.0.1:${MCP_PORT}/mcp`;
 const PROTOCOL_VERSION = "2026-07-28";
 
 const app = await WebDriverSession.start("http://127.0.0.1:14444", { browserName: "wry", "tauri:options": { application: "/app/sedum-note" } });
@@ -58,7 +61,7 @@ try {
   await app.click(await app.waitForXPath("//label[contains(., 'MCP の窓口を開く')]/input", 30_000));
   await clickButton("トークンを表示");
   await pause(1_000);
-  const token = /Bearer ([0-9a-f]{64})/.exec(await execute(`return document.querySelector(".settings").innerText`))?.[1];
+  let token = /Bearer ([0-9a-f]{64})/.exec(await execute(`return document.querySelector(".settings").innerText`))?.[1];
   expect(Boolean(token), "the settings screen shows a 256-bit token");
   writeFileSync(`${outputDirectory}/mcp-settings.png`, await app.screenshotPng());
 
@@ -92,19 +95,36 @@ try {
   expect((await callTool("move_note_to_trash", { noteId: created.noteId })).inTrash === true, "a note can be moved to the trash");
   expect((await callTool("restore_note_from_trash", { noteId: created.noteId })).inTrash === false, "and restored");
 
+  // 有効のまま設定を変えても、窓口が開き直る。
+  await app.click(await app.waitForXPath("//label[contains(., '完全な削除も許す')]/input", 10_000));
+  await pause(1_500);
+  const toolsAfterAllowing = (await post("tools/list", {}, { token })).message.result.tools.map((tool) => tool.name);
+  expect(toolsAfterAllowing.includes("delete_note_permanently"), "after allowing permanent deletion, the endpoint reopens with that tool");
+  await clickButton("トークンを作り直す");
+  await pause(1_500);
+  const renewedToken = /Bearer ([0-9a-f]{64})/.exec(await execute(`return document.querySelector(".settings").innerText`))?.[1];
+  expect(renewedToken !== token && (await post("server/discover", {}, { token })).status === 401, "after renewing the token, the old token is refused");
+  expect((await post("server/discover", {}, { token: renewedToken })).status === 200, "and the new token is accepted");
+  token = renewedToken;
+
   // 3. 窓を最小化した状態。
   await app.command("POST", "/window/minimize", {});
   await pause(5_000);
   const startedAt = Date.now();
   const whileMinimized = await callTool("search_notes", {});
-  expect(whileMinimized.totalCount === 1, `a request is answered while the window is minimized (${Date.now() - startedAt} ms)`);
+  expect(whileMinimized.totalCount === 1, `a request is answered after asking to minimize the window (${Date.now() - startedAt} ms)`);
   await app.command("POST", "/window/maximize", {});
 
   // 4. ロックすると閉じる。
   await clickButton("ロック");
   await pause(1_500);
-  const afterLock = await post("server/discover", {}, { token }).then((response) => `answered with ${response.status}`, () => "refused");
-  expect(afterLock === "refused", "after locking the app, the endpoint is closed");
+  // 閉じたかは、接続そのものを試して確かめる（fetch は、前の要求の接続を使い回して待ち続けることがある）。
+  const afterLock = await new Promise((resolve) => {
+    const socket = connect({ host: "127.0.0.1", port: MCP_PORT });
+    socket.once("connect", () => { socket.destroy(); resolve("connected"); });
+    socket.once("error", (error) => resolve(error.code));
+  });
+  expect(afterLock === "ECONNREFUSED", "after locking the app, the endpoint is closed (connections are refused)");
 } finally {
   await app.end().catch(() => undefined);
 }

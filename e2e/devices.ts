@@ -1,6 +1,6 @@
 // 画面の試験で使う「デバイス」（別々の保存を持つブラウザのページ）の用意。
 
-import type { Browser, Page } from "@playwright/test";
+import { type Browser, expect, type Page } from "@playwright/test";
 import type { RemoteConfig } from "../src/core/remote/remoteConfig";
 
 export const PASSPHRASE = "correct horse battery";
@@ -49,4 +49,17 @@ export async function syncNowOnDesktop(page: Page, noteTitle: string): Promise<v
   await syncNow.click();
   await syncNow.and(page.locator(":enabled")).waitFor();
   await page.getByRole("tab", { name: noteTitle }).click();
+}
+
+// PC の画面で新しいメモを作り、タイトルを入れて、本文にカーソルを移す。
+export async function createNoteOnDesktop(page: Page, title: string): Promise<void> {
+  // メモの画面が出てから数える（最初の画面の「新しく始める」などの切り替えもタブなので）。
+  const newNoteButton = page.getByRole("button", { name: "新しいメモ" });
+  await newNoteButton.waitFor();
+  const tabsBefore = await page.getByRole("tab").count();
+  await newNoteButton.click();
+  // 新しいメモのタブが開いてから打つ。早すぎると、前に開いていたメモのタイトル欄に入る。
+  await expect(page.getByRole("tab")).toHaveCount(tabsBefore + 1);
+  await page.getByPlaceholder("タイトル").fill(title);
+  await page.getByPlaceholder("タイトル").press("Enter");
 }

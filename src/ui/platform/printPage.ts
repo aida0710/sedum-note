@@ -2,14 +2,10 @@
 // @media print が決める。Android のアプリには印刷の画面を出す手段が無い。
 
 import { invoke } from "@tauri-apps/api/core";
-import { isRunningInTauri } from "./runtime";
+import { isAndroidApp, isRunningInTauri } from "./runtime";
 
 // 印刷の前に、写真が描かれるのを待つ上限。
 const IMAGE_WAIT_MILLISECONDS = 5_000;
-
-function isAndroidApp(): boolean {
-  return isRunningInTauri() && /Android/i.test(navigator.userAgent);
-}
 
 export function isPrintAvailable(): boolean {
   return !isAndroidApp();

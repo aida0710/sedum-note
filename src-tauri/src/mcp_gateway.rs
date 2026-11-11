@@ -30,6 +30,9 @@ const STOP_POLL_INTERVAL: Duration = Duration::from_millis(200);
 // 画面へ渡す要求のヘッダー（MCP が決めているもの）。ほかのヘッダーは渡さない。
 const FORWARDED_HEADERS: [&str; 4] = ["accept", "mcp-protocol-version", "mcp-method", "mcp-name"];
 
+// 画面から呼ぶコマンドは、どれもアプリの主スレッドの外で動かす（command(async)）。止めるときに待ち受けの
+// スレッドの終わりを待つので、主スレッドで待つと、そのスレッドの後始末と互いに待ち合って止まる。
+
 type PendingResponses = Arc<Mutex<HashMap<u64, Sender<GatewayResponse>>>>;
 
 struct GatewayResponse {
@@ -39,14 +42,20 @@ struct GatewayResponse {
 }
 
 struct RunningGateway {
+  // 開くたびに変わる番号。画面は、自分が開いたものだけを止める。
+  generation: u64,
   stop: Sender<()>,
-  port: u16,
+  // 受け付けるトークン。待ち受けを開き直さずに差し替えられる（mcp_set_token）。
+  token: Arc<Mutex<String>>,
+  // 待ち受けのスレッド。終わるのを待ってから、次の待ち受けを同じポートに開く。
+  thread: thread::JoinHandle<()>,
 }
 
 #[derive(Default)]
 pub struct McpGatewayState {
   running: Mutex<Option<RunningGateway>>,
   pending: PendingResponses,
+  last_generation: Mutex<u64>,
 }
 
 #[derive(Clone, Serialize)]
@@ -57,19 +66,27 @@ struct ForwardedRequest {
   body: String,
 }
 
-// 待ち受けを始める。既に動いていれば、止めてから始め直す（トークンを変えたとき）。
-#[tauri::command]
-pub fn mcp_start(app: AppHandle, state: State<'_, McpGatewayState>, port: u16, token: String) -> Result<(), String> {
+// 待ち受けを始め、その番号を返す。既に動いていれば、止めて終わるのを待ってから始め直す（トークンを変えたとき）。
+#[tauri::command(async)]
+pub fn mcp_start(app: AppHandle, state: State<'_, McpGatewayState>, port: u16, token: String) -> Result<u64, String> {
   stop_running(&state);
   let server = Server::http(("127.0.0.1", port)).map_err(|error| error.to_string())?;
   let (stop, stopped) = mpsc::channel::<()>();
   let pending = state.pending.clone();
-  thread::spawn(move || {
+  let token = Arc::new(Mutex::new(token));
+  let accepted_token = token.clone();
+  let generation = {
+    let mut last_generation = state.last_generation.lock().unwrap();
+    *last_generation += 1;
+    *last_generation
+  };
+  let thread = thread::spawn(move || {
     let mut next_request_id: u64 = 1;
     // 要求は 1 つずつ順に流す（画面の側で、読んでから書くまでの間に別の要求を割り込ませない）。
     while stopped.try_recv().is_err() {
       match server.recv_timeout(STOP_POLL_INTERVAL) {
         Ok(Some(request)) => {
+          let token = accepted_token.lock().unwrap().clone();
           serve(request, &app, &pending, &token, port, next_request_id);
           next_request_id += 1;
         }
@@ -78,23 +95,35 @@ pub fn mcp_start(app: AppHandle, state: State<'_, McpGatewayState>, port: u16, t
       }
     }
   });
-  *state.running.lock().unwrap() = Some(RunningGateway { stop, port });
-  Ok(())
+  *state.running.lock().unwrap() = Some(RunningGateway { generation, stop, token, thread });
+  Ok(generation)
 }
 
-#[tauri::command]
-pub fn mcp_stop(state: State<'_, McpGatewayState>) {
-  stop_running(&state);
+// 動いている待ち受けのトークンを差し替える。待ち受けは開いたままにする（開き直すと、クライアントが
+// つないだままにしている接続が古い待ち受けに残り、次の要求に応答が返らなくなる）。
+#[tauri::command(async)]
+pub fn mcp_set_token(state: State<'_, McpGatewayState>, token: String) {
+  if let Some(gateway) = state.running.lock().unwrap().as_ref() {
+    *gateway.token.lock().unwrap() = token;
+  }
 }
 
-// 動いていれば、待ち受けているポート。
-#[tauri::command]
-pub fn mcp_running_port(state: State<'_, McpGatewayState>) -> Option<u16> {
-  state.running.lock().unwrap().as_ref().map(|gateway| gateway.port)
+// 待ち受けを止める。generation を渡すと、その番号の待ち受けが動いているときだけ止める
+// （あとから開いた待ち受けを、前の画面の後始末が止めてしまわないように）。渡さなければ、動いているものを止める。
+#[tauri::command(async)]
+pub fn mcp_stop(state: State<'_, McpGatewayState>, generation: Option<u64>) {
+  let is_current = match (generation, state.running.lock().unwrap().as_ref()) {
+    (Some(generation), Some(gateway)) => gateway.generation == generation,
+    (None, _) => true,
+    (Some(_), None) => false,
+  };
+  if is_current {
+    stop_running(&state);
+  }
 }
 
 // 画面が、渡された要求への応答を返す。
-#[tauri::command]
+#[tauri::command(async)]
 pub fn mcp_respond(state: State<'_, McpGatewayState>, request_id: u64, status: u16, body: String) {
   if let Some(waiting) = state.pending.lock().unwrap().remove(&request_id) {
     let _ = waiting.send(GatewayResponse { status, body });
@@ -102,10 +131,13 @@ pub fn mcp_respond(state: State<'_, McpGatewayState>, request_id: u64, status: u
 }
 
 fn stop_running(state: &State<'_, McpGatewayState>) {
+  // 応答を待っている要求を先に外す（待ち受けのスレッドが、画面の応答を待ったまま止まらないように）。
+  state.pending.lock().unwrap().clear();
   if let Some(gateway) = state.running.lock().unwrap().take() {
     let _ = gateway.stop.send(());
+    // スレッドが終わるとポートが空く。止める合図を見に行く間隔（STOP_POLL_INTERVAL）のうちに終わる。
+    let _ = gateway.thread.join();
   }
-  state.pending.lock().unwrap().clear();
 }
 
 fn serve(mut request: Request, app: &AppHandle, pending: &PendingResponses, token: &str, port: u16, request_id: u64) {
@@ -115,6 +147,10 @@ fn serve(mut request: Request, app: &AppHandle, pending: &PendingResponses, toke
   };
   let mut reply = Response::from_string(response.body).with_status_code(response.status);
   if let Ok(header) = Header::from_bytes("Content-Type", "application/json") {
+    reply.add_header(header);
+  }
+  // 応答のたびに接続を閉じる。つないだままの接続があると、待ち受けを止めたあとの要求が、断られずに待たされる。
+  if let Ok(header) = Header::from_bytes("Connection", "close") {
     reply.add_header(header);
   }
   if response.status == 401 {

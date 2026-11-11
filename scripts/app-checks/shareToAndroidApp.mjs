@@ -10,30 +10,14 @@
 //   2. 写真の共有は、写真を貼ったメモになる。読めない写真は、添付できなかったことを書いたメモになる
 //   3. アプリを止めた状態で共有されても、起動してロックを解除するとメモになる
 
-import { execFileSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { APP_PACKAGE, captureScreen as captureDeviceScreen, connectToApp, pause, shell } from "./androidDevice.mjs";
 import { PASSPHRASE } from "./checkDevices.mjs";
-import { connectToAppPage } from "./devToolsPage.mjs";
 
 const outputDirectory = process.argv[2];
-const adb = `${process.env.ANDROID_HOME}/platform-tools/adb`;
-const device = process.env.ANDROID_SERIAL ?? "emulator-5580";
-const APP_PACKAGE = "com.github.aida0710.sedumnote";
-const DEVTOOLS_PORT = 9333;
-// 1x1 の PNG。写真の共有に使う。
+const captureScreen = (name) => captureDeviceScreen(outputDirectory, name);
+// 1x1 の PNG。読めないファイルの共有に使う。
 const TINY_PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 const TITLE_VALUE = `document.querySelector(".title-input")?.value`;
-
-const shell = (...args) => execFileSync(adb, ["-s", device, "shell", ...args], { encoding: "utf8" });
-const captureScreen = (name) => writeFileSync(`${outputDirectory}/${name}.png`, execFileSync(adb, ["-s", device, "exec-out", "screencap", "-p"]));
-const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
-
-// 起動し直すと WebView の DevTools の口の名前（プロセスの番号つき）が変わるので、つなぎ直す。
-function connectToApp() {
-  const pid = shell("pidof", APP_PACKAGE).trim();
-  execFileSync(adb, ["-s", device, "forward", `tcp:${DEVTOOLS_PORT}`, `localabstract:webview_devtools_remote_${pid}`]);
-  return connectToAppPage(DEVTOOLS_PORT);
-}
 
 function shareText(subject, text) {
   shell("am", "start", "-a", "android.intent.action.SEND", "-t", "text/plain",

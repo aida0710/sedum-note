@@ -1,14 +1,14 @@
-// 設定: MCP（AI のクライアントからメモを操作する窓口）。デスクトップのアプリにだけ出る。
+// 設定の画面の MCP の欄（AI のクライアントからメモを操作する窓口）。PC 版にだけ同梱する。
 
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { type McpSettings, newMcpToken } from "../../core/vault/mcpSettings";
 import { translate } from "../i18n/translate";
-import { McpGatewayContext } from "../mcp/useMcpGateway";
+import type { McpGatewayControl } from "./useMcpGateway";
 import { MCP_ENDPOINT_URL } from "../platform/mcpGateway";
 import { useAsyncAction } from "../shared/useAsyncAction";
 
-export function McpSection() {
-  const { settings, errorMessage, saveSettings } = useContext(McpGatewayContext);
+export function McpSection({ gateway }: { gateway: McpGatewayControl }) {
+  const { settings, errorMessage, saveSettings } = gateway;
   const [tokenShown, setTokenShown] = useState(false);
   const save = useAsyncAction(saveSettings);
   if (settings === null) {

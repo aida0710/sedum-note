@@ -4,28 +4,15 @@
 // 前提: shareToAndroidApp.mjs を流したあと（vault があり、ロックを解除して、一覧が出ている）。
 // 使い方: ANDROID_HOME=... node scripts/app-checks/launchRequestsOnAndroid.mjs <画像を置くフォルダ>
 
-import { execFileSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { APP_PACKAGE, captureScreen as captureDeviceScreen, connectToApp, pause, shell } from "./androidDevice.mjs";
 import { PASSPHRASE } from "./checkDevices.mjs";
-import { connectToAppPage } from "./devToolsPage.mjs";
 
 const outputDirectory = process.argv[2];
-const adb = `${process.env.ANDROID_HOME}/platform-tools/adb`;
-const device = process.env.ANDROID_SERIAL ?? "emulator-5580";
-const APP_PACKAGE = "com.github.aida0710.sedumnote";
-const DEVTOOLS_PORT = 9333;
+const captureScreen = (name) => captureDeviceScreen(outputDirectory, name);
 const NOTE_COUNT = `document.querySelectorAll(".note-item").length`;
 
-const shell = (...args) => execFileSync(adb, ["-s", device, "shell", ...args], { encoding: "utf8" });
-const captureScreen = (name) => writeFileSync(`${outputDirectory}/${name}.png`, execFileSync(adb, ["-s", device, "exec-out", "screencap", "-p"]));
-const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const requestNewNote = () => shell("am", "start", "-a", `${APP_PACKAGE}.action.NEW_NOTE`, "-n", `${APP_PACKAGE}/.MainActivity`);
 
-function connectToApp() {
-  const pid = shell("pidof", APP_PACKAGE).trim();
-  execFileSync(adb, ["-s", device, "forward", `tcp:${DEVTOOLS_PORT}`, `localabstract:webview_devtools_remote_${pid}`]);
-  return connectToAppPage(DEVTOOLS_PORT);
-}
 async function expectEmptyNoteOpen(app, description) {
   await app.waitFor(description, `document.querySelector(".title-input")?.value === "" && Boolean(document.querySelector(".ProseMirror"))`);
   console.log(`ok: ${description}`);

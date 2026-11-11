@@ -14,7 +14,7 @@ pub fn run() {
   let builder = builder.manage(mcp_gateway::McpGatewayState::default()).invoke_handler(tauri::generate_handler![
     mcp_gateway::mcp_start,
     mcp_gateway::mcp_stop,
-    mcp_gateway::mcp_running_port,
+    mcp_gateway::mcp_set_token,
     mcp_gateway::mcp_respond,
     printing::print_window
   ]);

@@ -1,11 +1,9 @@
 import { expect, type Page, test } from "@playwright/test";
-import { startLocalVault } from "./devices";
+import { createNoteOnDesktop, startLocalVault } from "./devices";
 
 async function openNewNote(page: Page): Promise<void> {
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
-  await page.getByPlaceholder("タイトル").fill("ブロックの試し");
-  await page.getByPlaceholder("タイトル").press("Enter");
+  await createNoteOnDesktop(page, "ブロックの試し");
 }
 
 const slashMenu = (page: Page) => page.getByRole("listbox", { name: "ブロックの種類" });

@@ -285,6 +285,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "settings.trash": "Trash",
   "trash.autoDelete": "Permanently delete notes in the trash after a number of days",
   "trash.retentionDays": "Days to keep notes in the trash",
+  "trash.retentionDaysHint": "The current setting is {days} days. A new number takes effect when you leave the field.",
   "trash.retentionDaysInvalid": "Enter a whole number from {minimum} to {maximum}",
   "trash.autoDeleteDescription": "When off, notes stay in the trash until you delete them. When on, this device deletes them after a sync, and they disappear from your other devices too. Permanently deleted notes cannot be restored.",
 

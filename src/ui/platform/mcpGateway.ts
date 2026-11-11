@@ -1,10 +1,9 @@
 // アプリの Rust 側の MCP の窓口（src-tauri/src/mcp_gateway.rs）を、画面から始める・止める。
-// 窓口があるのはデスクトップのアプリだけ。Web 版と Android には無い。
+// 窓口があるのは PC 版（デスクトップのアプリ）だけで、このファイルを使うコードも PC 版にだけ同梱する。
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { McpHttpRequest, McpHttpResponse } from "../../core/mcp/mcpServer";
-import { isRunningInTauri } from "./runtime";
 
 // mcp_gateway.rs の REQUEST_EVENT と揃える。
 const REQUEST_EVENT = "mcp-request";
@@ -15,11 +14,6 @@ export const MCP_ENDPOINT_URL = `http://127.0.0.1:${MCP_PORT}/mcp`;
 
 type ForwardedRequest = { requestId: number; headers: Record<string, string>; body: string };
 
-export function isMcpGatewayAvailable(): boolean {
-  // Android のアプリも Tauri だが、窓口のコマンドを持たない。
-  return isRunningInTauri() && !/Android/i.test(navigator.userAgent);
-}
-
 // 窓口を開き、届いた要求を handle に渡して応答を返す。返り値を呼ぶと止まる。
 // ポートがほかのプログラムに使われているときなどは、理由を投げる。
 export async function startMcpGateway(token: string, handle: (request: McpHttpRequest) => Promise<McpHttpResponse>): Promise<() => Promise<void>> {
@@ -28,21 +22,26 @@ export async function startMcpGateway(token: string, handle: (request: McpHttpRe
       .catch((error): McpHttpResponse => ({ status: 500, body: JSON.stringify({ error: String(error) }) }))
       .then((response) => invoke("mcp_respond", { requestId: payload.requestId, status: response.status, body: response.body }));
   });
+  let generation: number;
   try {
-    await invoke("mcp_start", { port: MCP_PORT, token });
+    generation = await invoke<number>("mcp_start", { port: MCP_PORT, token });
   } catch (error) {
     stopListening();
     throw new Error(String(error));
   }
   return async () => {
     stopListening();
-    await invoke("mcp_stop");
+    // 自分が開いた待ち受けだけを止める（設定を変えて開き直したあとの、新しい待ち受けを止めない）。
+    await invoke("mcp_stop", { generation });
   };
+}
+
+// 開いている窓口のトークンを差し替える。窓口は開いたままにする。
+export async function setMcpGatewayToken(token: string): Promise<void> {
+  await invoke("mcp_set_token", { token });
 }
 
 // 画面を読み込み直したあとに、前の画面が開いた窓口が残っていれば止める。
 export async function stopMcpGateway(): Promise<void> {
-  if (isMcpGatewayAvailable()) {
-    await invoke("mcp_stop");
-  }
+  await invoke("mcp_stop");
 }

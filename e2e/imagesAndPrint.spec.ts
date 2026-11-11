@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { startLocalVault } from "./devices";
+import { createNoteOnDesktop, startLocalVault } from "./devices";
 
 // 写真の代わりの、細かいむらのある大きな画像を作る。
 async function largePhoto(page: Page, width: number, height: number): Promise<Buffer> {
@@ -26,9 +26,7 @@ async function largePhoto(page: Page, width: number, height: number): Promise<Bu
 
 async function openNewNote(page: Page): Promise<void> {
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
-  await page.getByPlaceholder("タイトル").fill("写真のメモ");
-  await page.getByPlaceholder("タイトル").press("Enter");
+  await createNoteOnDesktop(page, "写真のメモ");
 }
 
 const attachedImageWidth = (page: Page) => page.locator(".attachment-image img").evaluate((image: HTMLImageElement) => image.naturalWidth);

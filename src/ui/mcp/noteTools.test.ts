@@ -1,10 +1,13 @@
 import "fake-indexeddb/auto";
+import { prosemirrorJSONToYXmlFragment } from "@tiptap/y-tiptap";
 import { describe, expect, it } from "vitest";
+import * as Y from "yjs";
 import type { McpTool } from "../../core/mcp/mcpServer";
-import { appendAttachmentImage, appendParagraph } from "../../core/notes/bodyFixtures";
+import { appendAttachmentFile, appendAttachmentImage, appendParagraph } from "../../core/notes/bodyFixtures";
 import { bodyPlainText } from "../../core/notes/bodyText";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { newTestRepository } from "../../core/notes/repositoryFixtures";
+import { documentSchema } from "../editor/documentSchema";
 import { createNoteTools } from "./noteTools";
 
 async function toolsOver(allowPermanentDelete = false): Promise<{ repository: NoteRepository; run: (name: string, toolArguments?: Record<string, unknown>) => Promise<any> }> {
@@ -101,5 +104,31 @@ describe("MCP のメモのツール", () => {
     await run("move_note_to_trash", { noteId });
     await run("delete_note_permanently", { noteId });
     expect(repository.note(noteId)).toBeUndefined();
+  });
+});
+
+describe("MCP で本文を読んで書き戻したときに残るもの", () => {
+  it("太字・斜体・取り消し線・コード・下線と、添付ファイルが残る", async () => {
+    const { repository, run } = await toolsOver();
+    const report = await repository.storeAttachment({ bytes: new Uint8Array([1, 2, 3, 4]), mimeType: "application/pdf", fileName: "report.pdf" });
+    const note = await repository.createNote({ title: "書式のメモ" });
+    appendAttachmentFile(note.body, report);
+    const marked = (text: string, mark: string) => ({ type: "text", text, marks: [{ type: mark }] });
+    const space = { type: "text", text: " " };
+    const staged = new Y.Doc().getXmlFragment("staged");
+    prosemirrorJSONToYXmlFragment(documentSchema(), { type: "doc", content: [{ type: "paragraph", content: [
+      marked("太字", "bold"), space, marked("斜体", "italic"), space, marked("取り消し", "strike"), space, marked("コード", "code"), space, marked("下線", "underline"),
+    ] }] }, staged);
+    note.body.insert(note.body.length, staged.toArray().map((node) => node.clone() as Y.XmlElement));
+
+    const before = (await run("get_note", { noteId: note.id })).markdown;
+    await run("replace_note_body", { noteId: note.id, markdown: before });
+    const body = repository.note(note.id)!.body.toString();
+    for (const kept of ["<bold>太字</bold>", "<italic>斜体</italic>", "<strike>取り消し</strike>", "<code>コード</code>", "<underline>下線</underline>", "<attachmentfile"]) {
+      expect(body).toContain(kept);
+    }
+    expect((await run("get_note", { noteId: note.id })).attachments).toEqual([report]);
+    // 書き換える前の本文は履歴にある。
+    expect((await repository.noteVersions(note.id)).map((version) => version.reason)).toEqual(["replace"]);
   });
 });

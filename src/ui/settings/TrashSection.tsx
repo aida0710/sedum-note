@@ -9,14 +9,14 @@ const INITIAL_RETENTION_DAYS = 30;
 
 export function TrashSection() {
   const { trashRetentionDays } = useDevicePreferences();
-  // 入力の途中（空や範囲の外）も表示できるよう、文字のまま持つ。
+  // 打っている途中の値では確定しない（「365」と打つ途中の「3」で、3 日より古いゴミが消えてしまう）。
+  // 欄を離れたときか Enter で確定する。入力の途中（空や範囲の外）も表示できるよう、文字のまま持つ。
   const [daysText, setDaysText] = useState(String(trashRetentionDays ?? INITIAL_RETENTION_DAYS));
   const enabled = trashRetentionDays !== null;
   const typedDays = Number(daysText);
-  const changeDays = (text: string) => {
-    setDaysText(text);
-    if (isTrashRetentionDays(Number(text))) {
-      updateDevicePreferences({ trashRetentionDays: Number(text) });
+  const commitDays = () => {
+    if (isTrashRetentionDays(typedDays)) {
+      updateDevicePreferences({ trashRetentionDays: typedDays });
     }
   };
   return (
@@ -31,7 +31,9 @@ export function TrashSection() {
         <div className="field">
           <label htmlFor="trash-retention-days">{translate("trash.retentionDays")}</label>
           <input id="trash-retention-days" type="number" inputMode="numeric" min={TRASH_RETENTION_DAYS_RANGE.minimum} max={TRASH_RETENTION_DAYS_RANGE.maximum}
-            value={daysText} onChange={(event) => changeDays(event.target.value)} />
+            value={daysText} onChange={(event) => setDaysText(event.target.value)} onBlur={commitDays}
+            onKeyDown={(event) => event.key === "Enter" && commitDays()} />
+          <span className="hint">{translate("trash.retentionDaysHint", { days: trashRetentionDays })}</span>
           {!isTrashRetentionDays(typedDays) && (
             <span className="form-error" role="alert">{translate("trash.retentionDaysInvalid", TRASH_RETENTION_DAYS_RANGE)}</span>
           )}

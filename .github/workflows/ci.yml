@@ -42,6 +42,13 @@ jobs:
         env:
           E2E_WEBKIT: "1"
       - run: npm run build
+      # MCP は PC 版にだけ同梱する。Web 版のビルドに MCP のコードが入っていないことを確かめる。
+      - name: Check that the web build does not include MCP
+        run: |
+          if grep -rlE 'replace_note_body|mcp_start' dist; then
+            echo "the web build includes MCP code" >&2
+            exit 1
+          fi
 
   desktop:
     name: Desktop (${{ matrix.name }})

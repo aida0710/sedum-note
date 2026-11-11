@@ -1,14 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
-import { startLocalVault } from "./devices";
+import { createNoteOnDesktop, startLocalVault } from "./devices";
 
 async function newNote(page: Page, title: string, body: string): Promise<void> {
-  const newNoteButton = page.getByRole("button", { name: "新しいメモ" });
-  await newNoteButton.waitFor();
-  const tabsBefore = await page.getByRole("tab").count();
-  await newNoteButton.click();
-  await expect(page.getByRole("tab")).toHaveCount(tabsBefore + 1);
-  await page.getByPlaceholder("タイトル").fill(title);
-  await page.getByPlaceholder("タイトル").press("Enter");
+  await createNoteOnDesktop(page, title);
   await page.keyboard.type(body);
 }
 

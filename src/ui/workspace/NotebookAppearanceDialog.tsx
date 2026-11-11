@@ -3,6 +3,7 @@
 import type { LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
+import { ModalDialog } from "../shared/ModalDialog";
 import { NOTEBOOK_COLOR_CHOICES, NOTEBOOK_ICON_CHOICES } from "../shared/notebookAppearance";
 
 const ICON_CHOICE_SIZE = 16;
@@ -13,8 +14,7 @@ export function NotebookAppearanceDialog({ notebook, repository, onClose }: Note
   const { colorName, iconName } = notebook.content;
   const change = (changes: { colorName?: string | null; iconName?: string | null }) => void repository.updateNotebook(notebook.id, changes);
   return (
-    <div className="dialog-backdrop" onPointerDown={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="dialog" role="dialog" aria-modal="true" aria-label={translate("notebook.appearance")} onKeyDown={(event) => event.key === "Escape" && onClose()}>
+    <ModalDialog label={translate("notebook.appearance")} onClose={onClose}>
         <p>{translate("notebook.appearanceOf", { name: notebook.content.name })}</p>
         <div className="choice-grid" role="radiogroup" aria-label={translate("notebook.color")}>
           <button type="button" role="radio" aria-checked={colorName === null} className={`choice${colorName === null ? " on" : ""}`} onClick={() => change({ colorName: null })}>
@@ -39,7 +39,6 @@ export function NotebookAppearanceDialog({ notebook, repository, onClose }: Note
         <div className="form-actions">
           <button type="button" className="secondary-button" onClick={onClose}>{translate("common.close")}</button>
         </div>
-      </div>
-    </div>
+    </ModalDialog>
   );
 }

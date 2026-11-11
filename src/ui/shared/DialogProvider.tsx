@@ -3,6 +3,7 @@
 
 import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
 import { translate } from "../i18n/translate";
+import { ModalDialog } from "./ModalDialog";
 
 type ConfirmRequest = { kind: "confirm"; message: string; confirmLabel: string; cancelLabel: string; danger: boolean; resolve: (accepted: boolean) => void };
 type PromptRequest = { kind: "prompt"; message: string; initialValue: string; resolve: (value: string | null) => void };
@@ -54,10 +55,9 @@ function DialogView({ request, onDone }: { request: DialogRequest; onDone: () =>
     onDone();
   };
   return (
-    <div className="dialog-backdrop" onPointerDown={(event) => event.target === event.currentTarget && finish(false)}>
-      <form className="dialog" role="dialog" aria-modal="true" aria-label={request.message}
-        onSubmit={(event) => { event.preventDefault(); finish(true); }}
-        onKeyDown={(event) => event.key === "Escape" && finish(false)}>
+    <ModalDialog label={request.message} onClose={() => finish(false)}>
+      {/* Enter で決められるよう、中身をフォームにする。並べ方は枠（.dialog）のまま。 */}
+      <form className="dialog-form" onSubmit={(event) => { event.preventDefault(); finish(true); }}>
         <p>{request.message}</p>
         {request.kind === "prompt" && (
           <input className="dialog-input" autoFocus value={value} onChange={(event) => setValue(event.target.value)} spellCheck={false} />
@@ -72,6 +72,6 @@ function DialogView({ request, onDone }: { request: DialogRequest; onDone: () =>
           </button>
         </div>
       </form>
-    </div>
+    </ModalDialog>
   );
 }

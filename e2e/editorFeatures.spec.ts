@@ -1,18 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
-import { openSyncedDevice, PHONE_VIEWPORT, startLocalVault, syncNowOnDesktop } from "./devices";
+import { createNoteOnDesktop, openSyncedDevice, PHONE_VIEWPORT, startLocalVault, syncNowOnDesktop } from "./devices";
 
-async function newNote(page: Page, title: string): Promise<void> {
-  // メモの画面が出てから数える（最初の画面の「新しく始める」などの切り替えもタブなので）。
-  const newNoteButton = page.getByRole("button", { name: "新しいメモ" });
-  await newNoteButton.waitFor();
-  const tabsBefore = await page.getByRole("tab").count();
-  await newNoteButton.click();
-  // 新しいメモのタブが開いてから打つ。早すぎると、前に開いていたメモのタイトル欄に入る。
-  await expect(page.getByRole("tab")).toHaveCount(tabsBefore + 1);
-  await page.getByPlaceholder("タイトル").fill(title);
-  await page.getByPlaceholder("タイトル").press("Enter");
-}
+const newNote = createNoteOnDesktop;
 
 async function chooseTableAction(page: Page, action: string): Promise<void> {
   await page.getByRole("button", { name: "表", exact: true }).click();

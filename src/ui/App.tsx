@@ -1,10 +1,10 @@
 // 画面の入口。vault の状態で、初回の設定・ロック解除・メモの画面を出し分ける。
 
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { languageInUse } from "./i18n/languageInUse";
 import { useDevicePreferences } from "./preferences/devicePreferences";
-import { McpGatewayContext, useMcpGateway } from "./mcp/useMcpGateway";
 import { useLaunchRequests } from "./share/useLaunchRequests";
+import { isRunningInTauri } from "./platform/runtime";
 import { applyAppearance } from "./theme/applyAppearance";
 import { useThemeInUse } from "./theme/themeInUse";
 import { AvailableUpdateContext, useAvailableUpdate } from "./update/useAvailableUpdate";
@@ -20,6 +20,11 @@ import { MOBILE_LAYOUT_QUERY, useMediaQuery } from "./shared/useMediaQuery";
 import { DesktopWorkspace } from "./workspace/DesktopWorkspace";
 import { useWorkspaceNavigation } from "./workspace/useWorkspaceNavigation";
 import type { UnlockedVault } from "../core/vault/vaultSession";
+
+// MCP は PC 版（デスクトップのアプリ）にだけ同梱する。__INCLUDES_MCP__ はビルドのときに決まる定数なので、
+// Web 版と Android のアプリのビルドでは、この読み込みごと取り除かれ、MCP のコードはファイルに入らない。
+// 開発サーバーは PC 版として組み立てるが、ブラウザで開いたときは窓口が無いので読み込まない。
+const McpGatewayProvider = __INCLUDES_MCP__ && isRunningInTauri() ? lazy(() => import("./mcp/McpGatewayProvider")) : null;
 
 export function App() {
   const session = useVaultSession();
@@ -55,16 +60,16 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   const isMobile = useMediaQuery(MOBILE_LAYOUT_QUERY);
   useLaunchRequests(vault.repository, navigation.openNote);
   const availableUpdate = useAvailableUpdate();
-  const mcpGateway = useMcpGateway(vault);
   useTrashRetention(vault, session.syncStatus);
   const props = { session, vault, snapshot, navigation };
+  const workspace = isMobile ? <MobileWorkspace {...props} /> : <DesktopWorkspace {...props} />;
   return (
     <AttachmentReaderContext.Provider value={vault.repository.readAttachment.bind(vault.repository)}>
       <UnsyncedRecordsContext.Provider value={vault.syncEngine ? snapshot.unsyncedIds : NO_UNSYNCED_RECORDS}>
         <AvailableUpdateContext.Provider value={availableUpdate}>
-          <McpGatewayContext.Provider value={mcpGateway}>
-            {isMobile ? <MobileWorkspace {...props} /> : <DesktopWorkspace {...props} />}
-          </McpGatewayContext.Provider>
+          {McpGatewayProvider
+            ? <Suspense fallback={null}><McpGatewayProvider vault={vault}>{workspace}</McpGatewayProvider></Suspense>
+            : workspace}
         </AvailableUpdateContext.Provider>
       </UnsyncedRecordsContext.Provider>
     </AttachmentReaderContext.Provider>

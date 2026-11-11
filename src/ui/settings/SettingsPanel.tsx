@@ -1,6 +1,6 @@
 // 設定の画面。表示、テーマ、同期先、バックアップ、Markdown、パスフレーズの変更、ゴミ箱、MCP、更新、ロック、データの消去を並べる。
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { MIN_PASSPHRASE_LENGTH } from "../../core/crypto/passphraseKey";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import type { RemoteConfig } from "../../core/remote/remoteConfig";
@@ -16,7 +16,7 @@ import { useAsyncAction } from "../shared/useAsyncAction";
 import { corsRuleJson } from "./corsRule";
 import { DisplaySection } from "./DisplaySection";
 import { MarkdownSection } from "./MarkdownSection";
-import { McpSection } from "./McpSection";
+import { McpSectionSlot } from "./mcpSectionSlot";
 import { ShortcutsSection } from "./ShortcutsSection";
 import { ThemeSection } from "./ThemeSection";
 import { TrashSection } from "./TrashSection";
@@ -32,6 +32,8 @@ type SettingsPanelProps = {
 };
 
 export function SettingsPanel({ session, repository, remoteConfig, unreadableCount, isMobile }: SettingsPanelProps) {
+  // PC 版では MCP の欄が入っている。Web 版と Android のアプリでは null。
+  const mcpSection = useContext(McpSectionSlot);
   return (
     <div className="document-scroll">
       <div className="settings">
@@ -45,7 +47,7 @@ export function SettingsPanel({ session, repository, remoteConfig, unreadableCou
         <PassphraseSection session={session} />
         {!isMobile && <ShortcutsSection />}
         <TrashSection />
-        <McpSection />
+        {mcpSection}
         <UpdateSection repository={repository} />
         <section className="settings-section">
           <h2>{translate("settings.lock")}</h2>

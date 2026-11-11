@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { useState } from "react";
 import type { LiveNote } from "../../core/notes/noteRecords";
 import { translate } from "../i18n/translate";
+import { ModalDialog } from "../shared/ModalDialog";
 
 // 一度に並べる件数。これより多いときは検索で絞ってもらう。
 const MAX_LISTED_NOTES = 50;
@@ -23,9 +24,7 @@ export function NoteLinkPicker({ candidates, onPick, onCancel }: NoteLinkPickerP
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
     .slice(0, MAX_LISTED_NOTES);
   return (
-    <div className="dialog-backdrop" onPointerDown={(event) => event.target === event.currentTarget && onCancel()}>
-      <div className="dialog note-picker" role="dialog" aria-modal="true" aria-label={translate("editor.noteLinkPickerTitle")}
-        onKeyDown={(event) => event.key === "Escape" && onCancel()}>
+    <ModalDialog label={translate("editor.noteLinkPickerTitle")} className="note-picker" onClose={onCancel}>
         <p>{translate("editor.noteLinkPickerTitle")}</p>
         <label className="sidebar-search">
           <Search size={14} />
@@ -42,7 +41,6 @@ export function NoteLinkPicker({ candidates, onPick, onCancel }: NoteLinkPickerP
         <div className="form-actions">
           <button type="button" className="secondary-button" onClick={onCancel}>{translate("common.cancel")}</button>
         </div>
-      </div>
-    </div>
+    </ModalDialog>
   );
 }

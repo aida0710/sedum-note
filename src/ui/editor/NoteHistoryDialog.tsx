@@ -6,6 +6,7 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import type { NoteVersion } from "../../core/notes/noteVersions";
 import { translate } from "../i18n/translate";
 import { formatDateTime } from "../shared/formatTime";
+import { ModalDialog } from "../shared/ModalDialog";
 import { useAsyncAction } from "../shared/useAsyncAction";
 
 type NoteHistoryDialogProps = {
@@ -36,9 +37,7 @@ export function NoteHistoryDialog({ note, repository, onRestored, onClose }: Not
   });
 
   return (
-    <div className="dialog-backdrop" onPointerDown={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="dialog note-history" role="dialog" aria-modal="true" aria-label={translate("editor.history")}
-        onKeyDown={(event) => event.key === "Escape" && onClose()}>
+    <ModalDialog label={translate("editor.history")} className="note-history" onClose={onClose}>
         <p className="note-history-title">{translate("editor.history")}</p>
         <p className="hint">{translate("history.localOnly")}</p>
         {versions?.length === 0 && <p>{translate("history.empty")}</p>}
@@ -74,7 +73,6 @@ export function NoteHistoryDialog({ note, repository, onRestored, onClose }: Not
             </button>
           )}
         </div>
-      </div>
-    </div>
+    </ModalDialog>
   );
 }
