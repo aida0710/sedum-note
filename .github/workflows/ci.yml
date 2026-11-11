@@ -92,21 +92,18 @@ jobs:
             runner: windows-latest
             rust-targets: x86_64-pc-windows-msvc
             tauri-arguments: ""
-            shell: bash
           # 配布するのは Intel と Apple シリコンの両方で動く universal。2 つ分を組み立てるので時間がかかる。
           # ふだんの push では Apple シリコンの分だけを組み立て、universal はリリースのタグと手で起動したときに作る。
           - name: macOS
             runner: macos-latest
             rust-targets: aarch64-apple-darwin x86_64-apple-darwin
             tauri-arguments: --target ${{ (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch') && 'universal-apple-darwin' || 'aarch64-apple-darwin' }}
-            shell: bash
           # 古い glibc で組み立てるほど、AppImage が動く Linux の範囲が広がる。
           # 組み立てと起動は、依存を入れてあるイメージの中で行う（scripts/ci/in-linux-image.sh）。
           - name: Linux
             runner: ubuntu-22.04
             rust-targets: x86_64-unknown-linux-gnu
             tauri-arguments: ""
-            shell: scripts/ci/in-linux-image.sh bash -e {0}
     runs-on: ${{ matrix.runner }}
     env:
       # .github/workflows/ci-image.yml が作って置くイメージ。
@@ -135,20 +132,20 @@ jobs:
         with:
           workspaces: src-tauri
           key: ${{ matrix.name }}
-      # 更新用のファイル（各インストーラーの署名 .sig と、macOS の .app.tar.gz）も作る。署名のキーは
-      # Actions のシークレットにあり、フォークからの PR には渡らないので、そのときは更新用のファイルを作らない。
+      # Linux は、依存を入れてあるイメージの中で組み立てる。
       - name: Build the app
-        shell: ${{ matrix.shell }}
+        if: matrix.name != 'Linux'
+        shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: |
-          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
-            npx tauri build ${{ matrix.tauri-arguments }}
-          else
-            npx tauri build ${{ matrix.tauri-arguments }} --config '{"bundle":{"createUpdaterArtifacts":false}}'
-          fi
-          find src-tauri/target -path '*/release/bundle/*' -name '*.sig'
+        run: scripts/ci/build-app.sh ${{ matrix.tauri-arguments }}
+      - name: Build the app in the Linux build image
+        if: matrix.name == 'Linux'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: scripts/ci/in-linux-image.sh scripts/ci/build-app.sh ${{ matrix.tauri-arguments }}
 
       # 手元に Mac が無いので、組み立てたアプリを起動して最初の画面を撮り、成果物に入れる。
       - name: Launch the app and capture the first screen
@@ -177,7 +174,7 @@ jobs:
       # Linux も同じく、組み立てた AppImage を画面の無い X（Xvfb）で起動して最初の画面を撮る。
       - name: Launch the app and capture the first screen
         if: matrix.name == 'Linux'
-        shell: ${{ matrix.shell }}
+        shell: scripts/ci/in-linux-image.sh bash -e {0}
         run: |
           appimage=$(find src-tauri/target/release/bundle/appimage -name '*.AppImage')
           chmod +x "$appimage"
@@ -201,7 +198,7 @@ jobs:
       # （落ちたら release の job が走らないので、更新できないリリースは出ない）。
       - name: Rehearse an update from an older version
         if: matrix.name == 'Linux' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
-        shell: ${{ matrix.shell }}
+        shell: scripts/ci/in-linux-image.sh bash -e {0}
         run: |
           set -eu
           bundle=src-tauri/target/release/bundle/appimage
