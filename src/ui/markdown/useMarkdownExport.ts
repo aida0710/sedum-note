@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
+import { fileNameDate } from "../platform/fileNameDate";
 import { saveFile } from "../platform/saveFile";
 import { useDialogs } from "../shared/DialogProvider";
 import { type AsyncAction, useAsyncAction } from "../shared/useAsyncAction";
@@ -36,6 +37,5 @@ export function useMarkdownExport(repository: NoteRepository): MarkdownExportAct
 
 // 例: sedum-note-markdown-20261111
 function markdownArchiveName(now: Date): string {
-  const day = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-  return `sedum-note-markdown-${day}`;
+  return `sedum-note-markdown-${fileNameDate(now)}`;
 }

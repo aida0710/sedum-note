@@ -24,8 +24,8 @@ class MainActivity : TauriActivity() {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
     keepContentAboveKeyboard(findViewById(android.R.id.content))
-    // 履歴から開き直したときは、前に受け取った共有の Intent が残っている。二重に取り込まない。
-    if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0) {
+    // 履歴から開き直したときと、画面を作り直したときは、前に受け取った共有の Intent が残っている。二重に取り込まない。
+    if (savedInstanceState == null && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0) {
       sharedContent.accept(intent)
     }
   }

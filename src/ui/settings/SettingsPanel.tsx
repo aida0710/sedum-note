@@ -6,6 +6,7 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import type { RemoteConfig } from "../../core/remote/remoteConfig";
 import { describeError } from "../i18n/describeError";
 import { translate } from "../i18n/translate";
+import { fileNameDate } from "../platform/fileNameDate";
 import { BACKUP_FILE_EXTENSION, saveFile } from "../platform/saveFile";
 import type { VaultSession } from "../session/useVaultSession";
 import { WipeDeviceDataButton } from "../session/WipeDeviceDataButton";
@@ -127,8 +128,7 @@ function BackupSection({ session }: { session: VaultSession }) {
 
 // 例: sedum-note-backup-20261111.sedumbackup
 function backupFileName(now: Date): string {
-  const day = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-  return `sedum-note-backup-${day}.${BACKUP_FILE_EXTENSION}`;
+  return `sedum-note-backup-${fileNameDate(now)}.${BACKUP_FILE_EXTENSION}`;
 }
 
 function PassphraseSection({ session }: { session: VaultSession }) {

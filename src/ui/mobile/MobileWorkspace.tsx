@@ -26,7 +26,10 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
   // メモ同士のリンクが、どちらの組み方でも同じ操作で開ける。
   const openNoteId = navigation.activeTab !== SETTINGS_TAB ? navigation.activeTab : null;
   const openNote = openNoteId ? repository.note(openNoteId) : undefined;
-  const goBack = useBackGestureToClose(openNote !== undefined, () => openNoteId && navigation.closeTab(openNoteId));
+  // 「戻る」は 1 回で一覧へ戻す。リンクや共有で、開いたメモの上に別のメモを開いていても、全部閉じる
+  // （戻るための履歴は、最初に開いたときの 1 つしか積んでいない）。
+  const closeOpenNotes = () => navigation.openTabs.filter((tabId) => tabId !== SETTINGS_TAB).forEach(navigation.closeTab);
+  const goBack = useBackGestureToClose(openNote !== undefined, closeOpenNotes);
 
   if (openNote) {
     return (

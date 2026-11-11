@@ -158,3 +158,28 @@ test("履歴から、書き直す前の状態を別のメモとして復元で�
   await page.getByRole("tab", { name: "議事録", exact: true }).click();
   await expect(page.locator(".ProseMirror")).toHaveText("書き直した文");
 });
+
+test("スマホで、リンクから別のメモを開いたあとも、端末の「戻る」1 回で一覧に戻り、アプリの外へ出ない", async ({ browser }) => {
+  const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
+  await startLocalVault(page);
+  const createNote = async (title: string) => {
+    await page.locator(".fab").click();
+    await page.getByPlaceholder("タイトル").fill(title);
+    await page.getByPlaceholder("タイトル").press("Enter");
+  };
+  await createNote("リンク先");
+  await page.getByRole("button", { name: "戻る" }).click();
+  await createNote("リンク元");
+  await page.getByRole("button", { name: "メモへのリンク" }).click();
+  await page.getByRole("dialog", { name: "リンクするメモを選ぶ" }).getByRole("button", { name: "リンク先" }).click();
+  await page.locator(".ProseMirror .note-link button").click();
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("リンク先");
+
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "すべてのメモ" })).toBeVisible();
+  // もう 1 回戻っても、積んだ履歴が残っていてメモが開き直る、ということがない。
+  await page.getByRole("button", { name: /リンク元/ }).click();
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("リンク元");
+  await page.getByRole("button", { name: "戻る" }).click();
+  await expect(page.getByRole("heading", { name: "すべてのメモ" })).toBeVisible();
+});

@@ -1,26 +1,12 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import type * as Y from "yjs";
-import { newRandomId } from "../../core/crypto/randomId";
-import { importAesKey } from "../../core/crypto/sealedBox";
-import { IndexedDbLocalStore } from "../../core/local/indexedDbLocalStore";
-import { SerialQueue } from "../../core/local/serialQueue";
 import { bodyPlainText } from "../../core/notes/bodyText";
-import { NoteRepository } from "../../core/notes/noteRepository";
+import { newTestRepository } from "../../core/notes/repositoryFixtures";
 import type { SharedFile } from "../platform/sharedContent";
 import { createNoteFromSharedContent } from "./createNoteFromSharedContent";
 
-async function newRepository(): Promise<NoteRepository> {
-  const repository = new NoteRepository({
-    localStore: new IndexedDbLocalStore(`share-${newRandomId()}`),
-    masterKey: await importAesKey(crypto.getRandomValues(new Uint8Array(32)), false),
-    deviceId: newRandomId(),
-    writeQueue: new SerialQueue(),
-    downloadBlob: async () => null,
-  });
-  await repository.load();
-  return repository;
-}
+const newRepository = async () => (await newTestRepository()).repository;
 
 function sharedFile(fileName: string, mimeType: string, bytes: Uint8Array | null): SharedFile {
   return { fileName, mimeType, byteLength: bytes?.length ?? null, read: () => bytes };

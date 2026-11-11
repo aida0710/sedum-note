@@ -1,28 +1,15 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
-import { newRandomId } from "../crypto/randomId";
-import { importAesKey } from "../crypto/sealedBox";
-import { IndexedDbLocalStore } from "../local/indexedDbLocalStore";
-import { SerialQueue } from "../local/serialQueue";
 import { appendAttachmentImage, appendParagraph } from "./bodyFixtures";
 import { bodyPlainText } from "./bodyText";
-import { NoteRepository } from "./noteRepository";
 import { EDIT_VERSION_INTERVAL_MILLISECONDS } from "./noteVersions";
+import { newTestRepository } from "./repositoryFixtures";
 
 const MINUTE = 60_000;
 
 async function repositoryWithClock() {
   const clock = { now: new Date("2026-11-11T09:00:00Z") };
-  const localStore = new IndexedDbLocalStore(`versions-${newRandomId()}`);
-  const repository = new NoteRepository({
-    localStore,
-    masterKey: await importAesKey(crypto.getRandomValues(new Uint8Array(32)), false),
-    deviceId: newRandomId(),
-    writeQueue: new SerialQueue(),
-    downloadBlob: async () => null,
-    now: () => clock.now,
-  });
-  await repository.load();
+  const { repository, localStore } = await newTestRepository(() => clock.now);
   const advance = (milliseconds: number) => {
     clock.now = new Date(clock.now.getTime() + milliseconds);
   };

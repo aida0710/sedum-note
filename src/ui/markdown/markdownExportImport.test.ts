@@ -1,27 +1,14 @@
 import "fake-indexeddb/auto";
 import { strFromU8, unzipSync } from "fflate";
 import { describe, expect, it } from "vitest";
-import { newRandomId } from "../../core/crypto/randomId";
-import { importAesKey } from "../../core/crypto/sealedBox";
-import { IndexedDbLocalStore } from "../../core/local/indexedDbLocalStore";
-import { SerialQueue } from "../../core/local/serialQueue";
 import { appendAttachmentImage, appendParagraph } from "../../core/notes/bodyFixtures";
 import { bodyPlainText } from "../../core/notes/bodyText";
-import { NoteRepository } from "../../core/notes/noteRepository";
+import type { NoteRepository } from "../../core/notes/noteRepository";
+import { newTestRepository } from "../../core/notes/repositoryFixtures";
 import { exportNotesAsMarkdown } from "./markdownExport";
 import { importMarkdownNotes, type ImportSourceFile } from "./markdownImport";
 
-async function newRepository(): Promise<NoteRepository> {
-  const repository = new NoteRepository({
-    localStore: new IndexedDbLocalStore(`markdown-${newRandomId()}`),
-    masterKey: await importAesKey(crypto.getRandomValues(new Uint8Array(32)), false),
-    deviceId: newRandomId(),
-    writeQueue: new SerialQueue(),
-    downloadBlob: async () => null,
-  });
-  await repository.load();
-  return repository;
-}
+const newRepository = async () => (await newTestRepository()).repository;
 
 const exportAll = (repository: NoteRepository) =>
   exportNotesAsMarkdown({ repository, notes: repository.notes(), untitledName: "無題のメモ", archiveName: "export" });
