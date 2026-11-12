@@ -13,7 +13,8 @@
 // 8: 段組みを足した。
 // 9: 脚注を足した。
 // 10: 動画・Web ページの埋め込みを足した。
-export const BODY_SCHEMA_VERSION = 10;
+// 11: ブロックの ID（段落、見出し、箇条書きの項目の属性）と、メモへのリンクのブロックの指定を足した。
+export const BODY_SCHEMA_VERSION = 11;
 
 export class AppUpdateRequiredError extends Error {
   constructor() {

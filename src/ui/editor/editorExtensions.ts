@@ -28,6 +28,7 @@ import { HEADING_LEVELS } from "./headingLevels";
 import { Highlight } from "./highlightMark";
 import { DateTimeShortcuts } from "./insertDateTime";
 import { BlockDragHandle } from "./blockDragHandle";
+import { BlockIds } from "./blockIds";
 import { ColoredTableCell, ColoredTableHeader } from "./tableCellBackground";
 import { TableRowFilterExtension } from "./tableRowFilter";
 import { TableShortcuts } from "./tableShortcuts";
@@ -64,6 +65,7 @@ export function documentExtensions() {
     Highlight,
     TextColor,
     Folding,
+    BlockIds,
     Callout,
     NoteQuery,
     InlineMath,

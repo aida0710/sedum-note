@@ -2,7 +2,7 @@
 
 import type { Editor } from "@tiptap/react";
 import {
-  CalendarClock, CalendarDays, Code, Columns2, FileSymlink, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, ImagePlus, Info, Lightbulb, ListFilter, MonitorPlay, OctagonAlert, Sigma, Superscript, TriangleAlert, Workflow, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Minus, Paperclip, Pilcrow, Table, TextQuote,
+  CalendarClock, CalendarDays, Code, Columns2, FileSymlink, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, ImagePlus, Info, Lightbulb, Link2, ListFilter, MonitorPlay, OctagonAlert, Sigma, Superscript, TriangleAlert, Workflow, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Minus, Paperclip, Pilcrow, Table, TextQuote,
 } from "lucide-react";
 import { translate } from "../i18n/translate";
 import { HEADING_LEVELS, type HeadingLevel } from "./headingLevels";
@@ -19,6 +19,7 @@ export type SlashCommandActions = {
   pickImage: () => void;
   pickFile: () => void;
   pickNoteLink: () => void;
+  pickBlockLink: () => void;
   // 登録してあるテンプレート。候補の最後に並べる。
   templates: Array<{ id: string; title: string }>;
   // テンプレートの本文を、カーソルの所に入れる。
@@ -84,6 +85,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   },
   { id: "noteQuery", icon: ListFilter, name: () => translate("editor.noteQuery"), keywords: ["query", "list", "kueri", "くえり", "いちらん"], run: (editor) => editor.chain().focus().insertContent({ type: NOTE_QUERY_NODE }).run() },
   { id: "noteLink", icon: FileSymlink, name: () => translate("editor.noteLink"), keywords: ["link", "note", "memo", "りんく", "めも"], run: (_editor, actions) => actions.pickNoteLink() },
+  { id: "blockLink", icon: Link2, name: () => translate("editor.blockLink"), keywords: ["link", "block", "burokku", "ぶろっく", "りんく"], run: (_editor, actions) => actions.pickBlockLink() },
 ];
 
 function templateCommands(actions: SlashCommandActions): SlashCommand[] {

@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { NoteView } from "../../core/notes/noteQueries";
+import type { BlockToReveal } from "../editor/noteLinkTargets";
 
 // 設定はメモと同じくタブで開く。メモの ID（16 進）と重ならない名前にする。
 export const SETTINGS_TAB = "settings";
@@ -25,7 +26,10 @@ export type WorkspaceNavigation = {
   selectView: (view: NoteView) => void;
   openTabs: string[];
   activeTab: string | null;
-  openNote: (noteId: string) => void;
+  // blockId を渡すと、メモを開いたあと、そのブロックまで送る（ブロックを指すリンクから開いたとき）。
+  openNote: (noteId: string, blockId?: string) => void;
+  // リンクから来て、開いたメモの中で見せるブロック。ほかのタブへ移ると消える。
+  blockToReveal: BlockToReveal | null;
   // メモ以外のタブ（データベース表示）を開く。
   openTab: (tabId: string) => void;
   openSettings: () => void;
@@ -65,9 +69,18 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
   const [searchFocusRequest, setSearchFocusRequest] = useState(0);
   const [findInNoteRequest, setFindInNoteRequest] = useState(0);
 
+  const [blockToReveal, setBlockToReveal] = useState<BlockToReveal | null>(null);
+
   const openTab = useCallback((tabId: string) => {
     setTabs(({ openTabs }) => ({ openTabs: openTabs.includes(tabId) ? openTabs : [...openTabs, tabId], activeTab: tabId }));
+    setBlockToReveal(null);
   }, []);
+
+  const openNote = useCallback((noteId: string, blockId?: string) => {
+    openTab(noteId);
+    // 一覧の行などは、押したときの出来事を 2 つ目の引数に渡してくることがあるので、文字のときだけブロックの指定として読む。
+    setBlockToReveal(typeof blockId === "string" ? { noteId, blockId } : null);
+  }, [openTab]);
 
   // 開いているタブを閉じたら、その右（無ければ左）のタブを開く。
   const closeTab = useCallback((tabId: string) => {
@@ -77,6 +90,7 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
       const nextActive = activeTab === tabId ? remaining[Math.min(index, remaining.length - 1)] ?? null : activeTab;
       return { openTabs: remaining, activeTab: nextActive };
     });
+    setBlockToReveal(null);
   }, []);
 
   const moveTab = useCallback((tabId: string, toTabId: string) => {
@@ -107,7 +121,7 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
   }, [setExpanded]);
 
   return {
-    view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote: openTab, openTab, openSettings: () => openTab(SETTINGS_TAB), closeTab, moveTab,
+    view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote, blockToReveal, openTab, openSettings: () => openTab(SETTINGS_TAB), closeTab, moveTab,
     isExpanded, setExpanded, searchText, setSearchText,
     searchFocusRequest, requestSearchFocus: () => setSearchFocusRequest((count) => count + 1),
     findInNoteRequest, requestFindInNote: () => setFindInNoteRequest((count) => count + 1),

@@ -89,7 +89,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
           <SettingsPanel session={session} vault={vault} unreadableCount={snapshot.unreadableCount} isMobile={false} />
         )}
         {activeNote && (
-          <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, navigation.openNote)}>
+          <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, navigation)}>
             <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
               <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, activeNote.id)}
               repository={repository} isMobile={false}

@@ -1,3 +1,4 @@
+import { blockLineText, ensureBlockId, findBlock, linkableBlocks } from "../../core/notes/bodyBlocks";
 import "fake-indexeddb/auto";
 import { prosemirrorJSONToYXmlFragment } from "@tiptap/y-tiptap";
 import { describe, expect, it } from "vitest";
@@ -40,12 +41,13 @@ describe("MCP のメモのツール", () => {
     expect((await run("list_tags")).tags).toEqual([{ tag: "todo", count: 1 }]);
   });
 
-  it("読んだ Markdown をそのまま書き戻しても、写真・メモへのリンク・表が本文に残る", async () => {
+  it("読んだ Markdown をそのまま書き戻しても、写真・メモへのリンク・表・ブロックの ID が本文に残る", async () => {
     const { repository, run } = await toolsOver();
     const linked = await repository.createNote({ title: "リンク先" });
     const note = await repository.createNote({ title: "議事録" });
     const photo = await repository.storeAttachment({ bytes: new Uint8Array([1, 2, 3]), mimeType: "image/png", fileName: "board (1).png" });
     appendParagraph(note.body, "決まったこと");
+    const blockId = ensureBlockId(linkableBlocks(note.body)[0]!.element);
     appendAttachmentImage(note.body, photo);
     await run("append_to_note", { noteId: note.id, markdown: `[リンク先](sedum-note://note/${linked.id})\n\n| a | b |\n|---|---|\n| 1 | 2 |\n` });
 
@@ -56,6 +58,8 @@ describe("MCP のメモのツール", () => {
     expect(after.markdown).toBe(before);
     expect(after.attachments).toEqual([photo]);
     expect(repository.note(note.id)!.body.toString()).toContain("<notelink noteId=");
+    expect(before).toContain(`決まったこと ^${blockId}`);
+    expect(blockLineText(findBlock(repository.note(note.id)!.body, blockId)!)).toBe("決まったこと");
   });
 
   it("本文を置き換える前の状態が、作ってすぐのメモでも履歴に残る", async () => {

@@ -22,6 +22,13 @@ export function bodyPlainText(body: Y.XmlFragment): string {
   return parts.join("").replace(/\n{2,}/g, "\n").trim();
 }
 
+// 本文の中の 1 つのノードの平文。
+export function nodePlainText(node: Y.XmlElement): string {
+  const parts: string[] = [];
+  collectText(node, parts);
+  return parts.join("").replace(/\n{2,}/g, "\n").trim();
+}
+
 function collectText(node: BodyNode, parts: string[]): void {
   if (node instanceof Y.XmlText) {
     // toString は書式をタグとして含むので、挿入された文字だけを拾う。

@@ -3,7 +3,8 @@
 //
 //   写真       ![名前](添付のパス)
 //   ファイル   [名前](添付のパス) だけの段落
-//   メモへのリンク  [タイトル](sedum-note://note/<メモの ID>)
+//   メモへのリンク  [タイトル](sedum-note://note/<メモの ID>)。ブロックを指すなら、後ろに #<ブロックの ID>
+//   ブロックの ID   行の末尾の「 ^ID」（blockIdMarks.ts）
 
 import { type JSONContent, Node } from "@tiptap/core";
 import { MarkdownManager } from "@tiptap/markdown";
@@ -11,6 +12,8 @@ import { prosemirrorJSONToYXmlFragment, yXmlFragmentToProsemirrorJSON } from "@t
 import type * as Y from "yjs";
 import { ATTACHMENT_FILE_NODE, ATTACHMENT_IMAGE_NODE, NOTE_LINK_NODE } from "../../core/notes/bodyText";
 import { isRandomId } from "../../core/crypto/randomId";
+import { isBlockId } from "../../core/notes/bodyBlocks";
+import { withBlockIdMarks, withImportedBlockIds } from "./blockIdMarks";
 import { documentSchema } from "../editor/documentSchema";
 import { documentExtensions } from "../editor/editorExtensions";
 import { decodeMarkdownPath } from "./markdownFileNames";
@@ -20,6 +23,8 @@ import { noteQueryFromCodeBlock } from "../editor/noteQueryNode";
 import { ImportedFootnoteDefinition, withFootnoteNumbers, withImportedFootnoteTexts } from "../editor/footnoteNode";
 
 const NOTE_LINK_HREF_PREFIX = "sedum-note://note/";
+// メモへのリンクの中で、メモの ID とブロックの ID を分ける字。
+const BLOCK_ID_SEPARATOR = "#";
 // Markdown の画像を読んだ直後の仮のノード。添付にするかリンクにするかを決めて、本文に入る前に置き換える。
 const IMPORTED_IMAGE_NODE = "importedMarkdownImage";
 
@@ -40,7 +45,7 @@ function escapeLinkLabel(label: string): string {
 const markdownRenderers: Record<string, (node: JSONContent) => string> = {
   [ATTACHMENT_IMAGE_NODE]: (node) => `![${escapeLinkLabel(String(node.attrs?.fileName ?? ""))}](${node.attrs?.exportPath})`,
   [ATTACHMENT_FILE_NODE]: (node) => `[${escapeLinkLabel(String(node.attrs?.fileName ?? ""))}](${node.attrs?.exportPath})`,
-  [NOTE_LINK_NODE]: (node) => `[${escapeLinkLabel(String(node.attrs?.exportTitle ?? ""))}](${NOTE_LINK_HREF_PREFIX}${node.attrs?.noteId})`,
+  [NOTE_LINK_NODE]: (node) => `[${escapeLinkLabel(String(node.attrs?.exportTitle ?? ""))}](${NOTE_LINK_HREF_PREFIX}${node.attrs?.noteId}${isBlockId(node.attrs?.blockId) ? BLOCK_ID_SEPARATOR + node.attrs.blockId : ""})`,
 };
 
 let manager: MarkdownManager | null = null;
@@ -88,7 +93,7 @@ export function bodyToMarkdown(body: Y.XmlFragment, context: BodyExportContext):
   // 脚注は、印に出てくる順の番号を付け、文を末尾に並べる。
   const { document, texts: footnoteTexts } = withFootnoteNumbers(bodyToExportDocument(body, context));
   // Markdown の表は結合を表せないので、結合を解いてから書き出す。
-  const markdown = markdownManager().serialize(mapNodes(document, (node) => [node.type === "table" ? withoutMergedCells(node) : node]));
+  const markdown = markdownManager().serialize(withBlockIdMarks(mapNodes(document, (node) => [node.type === "table" ? withoutMergedCells(node) : node])));
   const footnoteLines = footnoteTexts.map((text, index) => `[^${index + 1}]: ${text}`);
   return footnoteLines.length === 0 ? markdown : `${markdown}\n\n${footnoteLines.join("\n")}`;
 }
@@ -101,15 +106,20 @@ export type MarkdownImportContext = {
   noteExists: (noteId: string) => boolean;
 };
 
+// 行の末尾の、ブロックの ID の印の扱い。keep は ID をブロックに付ける（本文を丸ごと入れるとき）。
+// drop は捨てる（今ある本文に足すとき。同じ ID のブロックを増やさない）。
+export type ImportedBlockIds = "keep" | "drop";
+
 // Markdown を、本文に入れられるブロックの並びにする。
-export async function markdownToBodyBlocks(markdown: string, context: MarkdownImportContext): Promise<JSONContent[]> {
-  const parsed = await replaceImportedNodes(withImportedFootnoteTexts(markdownManager().parse(markdown)), context);
+export async function markdownToBodyBlocks(markdown: string, context: MarkdownImportContext, blockIds: ImportedBlockIds): Promise<JSONContent[]> {
+  const imported = await replaceImportedNodes(withImportedFootnoteTexts(markdownManager().parse(markdown)), context);
+  const parsed = withImportedBlockIds(imported, blockIds === "keep");
   return mapNodes(parsed, (node) => [node.type === "blockquote" ? calloutFromBlockquote(node) : node.type === "codeBlock" ? noteQueryFromCodeBlock(node) : node]).content ?? [];
 }
 
 // Markdown を本文に入れる。本文は空にしてから入れる。
-export async function writeMarkdownToBody(markdown: string, body: Y.XmlFragment, context: MarkdownImportContext): Promise<void> {
-  const blocks = await markdownToBodyBlocks(markdown, context);
+export async function writeMarkdownToBody(markdown: string, body: Y.XmlFragment, context: MarkdownImportContext, blockIds: ImportedBlockIds = "keep"): Promise<void> {
+  const blocks = await markdownToBodyBlocks(markdown, context, blockIds);
   // 本文は空にしない。空のままだと、開いたデバイスごとにエディタが段落を足し、マージで空の段落が重なる。
   const document = { type: "doc", content: blocks.length > 0 ? blocks : [{ type: "paragraph" }] };
   body.delete(0, body.length);
@@ -225,9 +235,9 @@ function replaceInlineNode(inlineNode: JSONContent, context: MarkdownImportConte
   }
   const href = linkHrefOf(inlineNode);
   if (href?.startsWith(NOTE_LINK_HREF_PREFIX)) {
-    const noteId = href.slice(NOTE_LINK_HREF_PREFIX.length);
+    const [noteId = "", blockId] = href.slice(NOTE_LINK_HREF_PREFIX.length).split(BLOCK_ID_SEPARATOR);
     if (isRandomId(noteId) && context.noteExists(noteId)) {
-      return { type: NOTE_LINK_NODE, attrs: { noteId } };
+      return { type: NOTE_LINK_NODE, attrs: { noteId, blockId: isBlockId(blockId) ? blockId : null } };
     }
     // リンク先がこのメモ帳に無ければ、文字だけを残す。
     return { ...inlineNode, marks: inlineNode.marks?.filter((mark) => mark.type !== "link") };

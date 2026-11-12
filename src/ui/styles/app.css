@@ -301,6 +301,9 @@ button:disabled { cursor: default; opacity: .55; }
 .note-link button { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 0 6px; vertical-align: baseline; max-width: 100%; }
 .note-link.trashed button, .note-link.missing button { color: var(--muted); background: var(--tag); }
 .note-link.ProseMirror-selectednode button { outline: 2px solid var(--accent); }
+/* リンクから来たブロックを、いったん色で目立たせる。 */
+.ProseMirror .revealed-block { animation: revealed-block-fade 2.4s ease-out; border-radius: 4px; }
+@keyframes revealed-block-fade { from { background: var(--accent-soft); } to { background: transparent; } }
 /* 候補は全部を一度に見せる。画面に収まらないとき（スマホでキーボードを開いているとき）だけ中を送れるが、スクロールバーは出さない。 */
 .slash-menu { max-height: min(520px, calc(var(--visible-height, 100vh) - 24px)); overflow-y: auto; scrollbar-width: none; min-width: 220px; }
 .slash-menu::-webkit-scrollbar { display: none; }

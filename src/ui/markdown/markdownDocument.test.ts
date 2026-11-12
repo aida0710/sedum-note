@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { prosemirrorJSONToYXmlFragment, yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
 import * as Y from "yjs";
+import { linkableBlocks } from "../../core/notes/bodyBlocks";
 import { bodyAttachments, bodyPlainText } from "../../core/notes/bodyText";
 import { documentSchema } from "../editor/documentSchema";
+import { appendMarkdownToBody } from "./appendMarkdown";
 import { bodyToMarkdown, type ImportedAttachment, type MarkdownImportContext, writeMarkdownToBody } from "./markdownDocument";
 
 const NOTE_ID = "0123456789abcdef0123456789abcdef";
@@ -108,6 +110,31 @@ describe("Markdown の取り込み", () => {
     const markdown = `[ある](sedum-note://note/${NOTE_ID}) と [無い](sedum-note://note/${"f".repeat(32)})\n`;
     const body = await bodyFromMarkdown(markdown, importContext({}, [NOTE_ID]));
     expect(bodyToMarkdown(body, exportContext).trim()).toBe(`[リンク先のメモ](sedum-note://note/${NOTE_ID}) と 無い`);
+  });
+});
+
+describe("ブロックの ID の印", () => {
+  const blockIdsOf = (body: Y.XmlFragment) => linkableBlocks(body).map((block) => [block.element.nodeName, block.text, block.element.getAttribute("blockId") ?? null]);
+  const markdown = "# 見出し ^1a-2b\n\n段落の **太字** ^1a-3c\n\n- 親 ^1a-4d\n  - 子\n\n印の無い段落 ^abc\n";
+
+  it("行の末尾の「 ^ID」は、段落・見出し・箇条書きの項目の ID と往復する。ID の形でない「^言葉」は文字のまま残す", async () => {
+    const body = await bodyFromMarkdown(markdown, importContext({}));
+    expect(blockIdsOf(body)).toEqual([
+      ["heading", "見出し", "1a-2b"], ["paragraph", "段落の 太字", "1a-3c"], ["listItem", "親", "1a-4d"], ["listItem", "子", null], ["paragraph", "印の無い段落 ^abc", null],
+    ]);
+    expect(bodyToMarkdown(body, exportContext).trim()).toBe(markdown.trim());
+  });
+
+  it("今ある本文に足すとき（末尾への追加）は、印を外して ID を捨てる", async () => {
+    const body = await bodyFromMarkdown("先にある段落 ^1a-3c\n", importContext({}));
+    await appendMarkdownToBody("足す段落 ^1a-3c\n", body, importContext({}));
+    expect(blockIdsOf(body)).toEqual([["paragraph", "先にある段落", "1a-3c"], ["paragraph", "足す段落", null]]);
+  });
+
+  it("ブロックを指すメモへのリンクは、リンク先の後ろの #ID と往復する", async () => {
+    const link = `[リンク先のメモ](sedum-note://note/${NOTE_ID}#1a-3c)`;
+    const body = await bodyFromMarkdown(`${link}\n`, importContext({}, [NOTE_ID]));
+    expect(bodyToMarkdown(body, exportContext).trim()).toBe(link);
   });
 });
 

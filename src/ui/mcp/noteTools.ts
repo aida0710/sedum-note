@@ -229,7 +229,7 @@ export function createNoteTools(repository: NoteRepository, options: NoteToolOpt
     {
       name: "replace_note_body",
       title: "Replace a note's body",
-      description: `Replaces the whole body with the given Markdown. The previous body is kept in the note's history on this device. Attachments stay only if their ${ATTACHMENT_HREF_PREFIX}<id> links are kept.`,
+      description: `Replaces the whole body with the given Markdown. The previous body is kept in the note's history on this device. Attachments stay only if their ${ATTACHMENT_HREF_PREFIX}<id> links are kept. A " ^id" mark at the end of a line is the ID that links from other notes point to; keep it on its block, or those links lose their target.`,
       readOnly: false,
       destructive: true,
       inputSchema: objectSchema({ ...NOTE_ID_PROPERTY, markdown: { type: "string" } }, ["noteId", "markdown"]),

@@ -56,6 +56,6 @@ export type PastedMarkdownContext = Pick<MarkdownImportContext, "noteExists">;
 
 export async function insertPastedMarkdown(editor: Editor, markdown: string, context: PastedMarkdownContext): Promise<void> {
   // 貼り付けた文字にファイルは付いてこないので、添付にできるリンク先は無い。
-  const blocks = await markdownToBodyBlocks(markdown, { ...context, attachFile: async () => null });
+  const blocks = await markdownToBodyBlocks(markdown, { ...context, attachFile: async () => null }, "drop");
   editor.chain().focus().insertContent(contentToInsert(blocks)).run();
 }
