@@ -21,6 +21,7 @@ import { UpdateSection } from "./UpdateSection";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 import { DailyNoteSection } from "./DailyNoteSection";
 import { CustomCssSection } from "./CustomCssSection";
+import { AiSection } from "../ai/AiSection";
 
 type SettingsPanelProps = {
   session: VaultSession;
@@ -50,6 +51,7 @@ export function SettingsPanel({ session, vault, unreadableCount, isMobile }: Set
         {!isMobile && <ShortcutsSection />}
         <TrashSection />
         {mcpSection}
+        <AiSection />
         <UpdateSection repository={repository} />
         <section className="settings-section">
           <h2>{translate("settings.lock")}</h2>

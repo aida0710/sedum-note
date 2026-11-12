@@ -35,7 +35,7 @@ export type LocalVersionEntry = {
   sealed: Uint8Array;
 };
 
-export type LocalSettingName = "vault" | "deviceId" | "sealedRemoteConfig" | "sealedMcpSettings";
+export type LocalSettingName = "vault" | "deviceId" | "sealedRemoteConfig" | "sealedMcpSettings" | "sealedAiSettings";
 
 export interface LocalStore {
   readSetting<Value>(name: LocalSettingName): Promise<Value | undefined>;

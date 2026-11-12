@@ -37,6 +37,9 @@ import { NoteProperties } from "./NoteProperties";
 import { propertiesOfNote } from "../../core/notes/noteProperties";
 import { NoteFootnotes } from "./NoteFootnotes";
 import { isAudioRecordingAvailable, useAudioRecorder } from "./useAudioRecorder";
+import { AiAssistantDialog } from "../ai/AiAssistantDialog";
+import { appendMarkdownToBody } from "../markdown/appendMarkdown";
+import { ATTACHMENT_HREF_PREFIX, bodyToMarkdown } from "../markdown/markdownDocument";
 
 type NoteEditorProps = {
   note: LiveNote;
@@ -58,6 +61,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [pickingNoteLink, setPickingNoteLink] = useState(false);
   const [pickingNoteToMerge, setPickingNoteToMerge] = useState(false);
+  const [showingAiAssistant, setShowingAiAssistant] = useState(false);
   const [showingHistory, setShowingHistory] = useState(false);
   // 目次。PC では本文の横に出したままにでき（設定に覚える）、スマホではメニューで出す。
   const { showOutline } = useDevicePreferences();
@@ -270,6 +274,15 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
         <NotePicker title={translate("editor.noteLinkPickerTitle")} candidates={otherNotes()}
           onPick={insertNoteLink} onCancel={() => setPickingNoteLink(false)} />
       )}
+      {showingAiAssistant && (
+        <AiAssistantDialog noteTitle={note.content.title} onClose={() => setShowingAiAssistant(false)}
+          // AI には、添付の中身は渡さない（添付は ID を指すリンクのまま渡る）。
+          noteMarkdown={() => bodyToMarkdown(note.body, {
+            attachmentHref: ({ id }) => ATTACHMENT_HREF_PREFIX + id,
+            noteTitle: (linkedNoteId) => repository.note(linkedNoteId)?.content.title ?? null,
+          })}
+          onAppend={(markdown) => appendMarkdownToBody(markdown, note.body, { noteExists: (id) => repository.note(id) !== undefined, attachFile: async () => null })} />
+      )}
       {pickingNoteToMerge && (
         <NotePicker title={translate("editor.mergeNotePickerTitle")} candidates={otherNotes()}
           onPick={(pickedNoteId) => { setPickingNoteToMerge(false); void repository.mergeNoteInto(noteId, pickedNoteId); }}
@@ -281,6 +294,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
           onPrint={() => void print.run(undefined)}
           onDuplicate={async () => openNote((await repository.duplicateNote(noteId, translate("editor.duplicateTitle", { title: note.content.title || translate("sidebar.untitled") }))).id)}
           onMergeNote={() => setPickingNoteToMerge(true)}
+          onOpenAiAssistant={() => setShowingAiAssistant(true)}
           onShowHistory={() => setShowingHistory(true)} onExport={(format) => void exportNote.run({ notes: [note], format })} onClose={() => setMenuAnchor(null)} />
       )}
       {showingHistory && (

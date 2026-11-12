@@ -1,6 +1,6 @@
 // メモの「…」メニュー: ピン留め、ノートブックの付け外し、テンプレートにする、複製、結合、メモの中の検索、履歴、ファイルへの書き出し、印刷、ゴミ箱。
 
-import { Check, Copy, FileDown, History, Merge, LayoutTemplate, Pin, PinOff, Printer, Search, Trash2 } from "lucide-react";
+import { Check, Copy, FileDown, History, Merge, LayoutTemplate, Pin, PinOff, Printer, Search, Sparkles, Trash2 } from "lucide-react";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { type MessageKey, translate } from "../i18n/translate";
@@ -24,12 +24,13 @@ type NoteActionsMenuProps = {
   onPrint: () => void;
   onDuplicate: () => Promise<unknown>;
   onMergeNote: () => void;
+  onOpenAiAssistant: () => void;
   onShowHistory: () => void;
   onExport: (format: NoteFileFormat) => void;
   onClose: () => void;
 };
 
-export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onShowHistory, onExport, onClose }: NoteActionsMenuProps) {
+export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onShowHistory, onExport, onClose }: NoteActionsMenuProps) {
   const { content } = note;
   const moveToTrash = useTrashWithUndo(repository);
   const toggleNotebook = (notebookId: string) => {
@@ -74,6 +75,9 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
       )}
       <button className="menu-item" role="menuitem" onClick={() => { onClose(); onFind(); }}>
         <Search size={15} />{translate("editor.find")}
+      </button>
+      <button className="menu-item" role="menuitem" onClick={() => { onClose(); onOpenAiAssistant(); }}>
+        <Sparkles size={15} />{translate("ai.assistant")}
       </button>
       <button className="menu-item" role="menuitem" onClick={() => { onClose(); onShowHistory(); }}>
         <History size={15} />{translate("editor.history")}

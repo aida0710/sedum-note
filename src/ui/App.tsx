@@ -23,6 +23,7 @@ import { DesktopWorkspace } from "./workspace/DesktopWorkspace";
 import { useWorkspaceNavigation } from "./workspace/useWorkspaceNavigation";
 import type { UnlockedVault } from "../core/vault/vaultSession";
 import { applyCustomCss } from "./theme/customCss";
+import { AiSettingsContext, useAiSettingsOfVault } from "./ai/aiSettingsAccess";
 
 // MCP は PC 版（デスクトップのアプリ）にだけ同梱する。__INCLUDES_MCP__ はビルドのときに決まる定数なので、
 // Web 版と Android のアプリのビルドでは、この読み込みごと取り除かれ、MCP のコードはファイルに入らない。
@@ -70,6 +71,7 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   useLaunchRequests(vault.repository, navigation.openNote);
   const availableUpdate = useAvailableUpdate();
   useTrashRetention(vault, session.syncStatus);
+  const aiSettings = useAiSettingsOfVault(vault);
   const props = { session, vault, snapshot, navigation };
   const workspace = (
     <>
@@ -81,9 +83,11 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
     <AttachmentReaderContext.Provider value={vault.repository.readAttachment.bind(vault.repository)}>
       <UnsyncedRecordsContext.Provider value={vault.syncEngine ? snapshot.unsyncedIds : NO_UNSYNCED_RECORDS}>
         <AvailableUpdateContext.Provider value={availableUpdate}>
+          <AiSettingsContext.Provider value={aiSettings}>
           {McpGatewayProvider
             ? <Suspense fallback={null}><McpGatewayProvider vault={vault}>{workspace}</McpGatewayProvider></Suspense>
             : workspace}
+          </AiSettingsContext.Provider>
         </AvailableUpdateContext.Provider>
       </UnsyncedRecordsContext.Provider>
     </AttachmentReaderContext.Provider>
