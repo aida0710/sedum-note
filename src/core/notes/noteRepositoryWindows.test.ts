@@ -32,7 +32,7 @@ async function twoWindows() {
     await second.flush();
     await writeQueue.run(async () => undefined);
   };
-  return { first, second, settle, openWindow };
+  return { first, second, settle, openWindow, hub };
 }
 
 const bodyLines = (repository: NoteRepository, noteId: string) => bodyPlainText(repository.note(noteId)!.body).split("\n").sort();
@@ -78,5 +78,25 @@ describe("同じ手元の保存を 2 つのウィンドウで開く", () => {
     await settle();
     expect(second.unsyncedIds().has(note.id)).toBe(true);
     expect((await second.entriesWaitingForPush()).map((entry) => entry.id)).toEqual([note.id]);
+  });
+
+  it("同期を受け持つウィンドウが送信の記録を書き直したあとでも、相手のウィンドウの編集を取り込む", async () => {
+    const { first, second, settle, hub } = await twoWindows();
+    const note = await first.createNote({ title: "共有メモ" });
+    appendParagraph(note.body, "1 つ目のウィンドウの行");
+    await settle();
+    // 1 つ目のウィンドウが、このメモを同期先へ送り始める。
+    const [sent] = await first.entriesWaitingForPush();
+    // 送っている間に、2 つ目のウィンドウが書く。その知らせは、まだ 1 つ目のウィンドウに届いていない。
+    hub.holdDeliveries();
+    appendParagraph(second.note(note.id)!.body, "2 つ目のウィンドウの行");
+    await second.flush();
+    // 送り終えて、送信の記録を書き直す（手元の保存には、もう 2 つ目のウィンドウの中身が入っている）。
+    await first.confirmPushed(sent!, "etag-1");
+    hub.deliverHeld();
+    await settle();
+    expect(bodyLines(first, note.id)).toEqual(["1 つ目のウィンドウの行", "2 つ目のウィンドウの行"]);
+    // 2 つ目のウィンドウの編集は、まだ送っていないものとして残る。
+    expect(first.unsyncedIds().has(note.id)).toBe(true);
   });
 });

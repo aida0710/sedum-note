@@ -50,6 +50,10 @@ export type WorkspaceNavigation = {
   // タブの右クリックのメニュー。ピン留めしたタブは、ほか・右を閉じるときに閉じない。
   closeOtherTabs: (tabId: string) => void;
   closeTabsToRight: (tabId: string) => void;
+  // 画面分割の右側に開いているメモ。分割していなければ null。
+  splitNoteId: string | null;
+  openInSplit: (noteId: string) => void;
+  closeSplit: () => void;
   pinnedTabs: string[];
   togglePinnedTab: (tabId: string) => void;
   // いちばん最近に閉じたタブを開き直す。閉じたタブが無ければ false。
@@ -112,6 +116,8 @@ export function useWorkspaceNavigation(initialNoteId: string | null = null): Wor
     setBlockToReveal(null);
   }, []);
   const closeTab = useCallback((tabId: string) => closeTabs([tabId]), [closeTabs]);
+  const [splitNoteId, setSplitNoteId] = useState<string | null>(null);
+  const closeSplit = useCallback(() => setSplitNoteId(null), []);
 
   const moveTab = useCallback((tabId: string, toTabId: string) => {
     setTabs((current) => moveTabIn(current, tabId, toTabId));
@@ -143,6 +149,7 @@ export function useWorkspaceNavigation(initialNoteId: string | null = null): Wor
     view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote, blockToReveal, openTab, openSettings, closeTab, moveTab,
     closeOtherTabs: (tabId) => closeTabs(otherTabsThan(tabs, tabId)),
     closeTabsToRight: (tabId) => closeTabs(tabsRightOf(tabs, tabId)),
+    splitNoteId, openInSplit: setSplitNoteId, closeSplit,
     pinnedTabs: tabs.pinnedTabs,
     togglePinnedTab: (tabId) => setTabs((current) => togglePinnedTabIn(current, tabId)),
     reopenClosedTab: () => {

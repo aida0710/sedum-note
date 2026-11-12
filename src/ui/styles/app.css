@@ -265,6 +265,12 @@ button:disabled { cursor: default; opacity: .55; }
 .sync-line .status-dot.off { background: var(--muted); }
 
 .main { background: var(--panel); display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+/* タブの下の本体。画面分割のときは、左（タブで選んだもの）と右（並べたメモ）を、半分ずつにする。 */
+.panes { flex: 1; min-height: 0; min-width: 0; display: flex; }
+.pane { flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.split-pane { border-left: 1px solid var(--line); }
+.split-pane-header { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 14px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: var(--font-size-small); }
+.split-pane-header .nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* タブの並びと、右端の「開いているタブの一覧」のボタン。タブが多いときは並びだけを横に送り、ボタンは右端に残す。 */
 .tabs-bar { display: flex; flex: none; background: var(--sidebar); }
 .tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--line); background: var(--sidebar); overflow-x: auto; flex: 1; min-width: 0; scrollbar-width: none; }
@@ -287,7 +293,8 @@ button:disabled { cursor: default; opacity: .55; }
 .tool:hover { background: var(--selected); }
 .tool.on { background: var(--selected); color: var(--accent); }
 .tool-separator { width: 1px; height: 18px; background: var(--line); margin: 0 4px; flex: none; }
-.editor-bar .bar-end { margin-left: auto; display: flex; gap: 6px; align-items: center; font-size: var(--font-size-small); flex: none; }
+/* 幅が足りないと、書式のボタンは横に送る。右端のボタン（目次・お気に入り・「…」）は、送っても右に出したままにする。 */
+.editor-bar .bar-end { margin-left: auto; display: flex; gap: 6px; align-items: center; font-size: var(--font-size-small); flex: none; position: sticky; right: -14px; padding: 0 14px 0 8px; margin-right: -14px; background: var(--panel); box-shadow: -10px 0 8px -4px var(--panel); }
 .icon-button { width: var(--control-height-compact); height: var(--control-height-compact); border-radius: var(--radius-row); display: grid; place-items: center; color: var(--muted); flex: none; }
 .icon-button:hover { background: var(--selected); color: var(--text); }
 .icon-button.on { color: var(--bookmark); }

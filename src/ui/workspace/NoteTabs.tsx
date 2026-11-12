@@ -3,7 +3,7 @@
 // 右クリックでタブのメニュー（閉じる・ほかを閉じる・右を閉じる・ピン留め・閉じたタブを開き直す）、
 // 右端のボタンで開いているタブの一覧を出す（タブが多くて隠れたときに選べるように）。
 
-import { Check, ChevronDown, Pin, PinOff, RotateCcw, X } from "lucide-react";
+import { Check, ChevronDown, Columns2, Pin, PinOff, RotateCcw, X } from "lucide-react";
 import { useState } from "react";
 import { showDragPreview } from "../shared/dragPreview";
 import { PopupMenu } from "../shared/PopupMenu";
@@ -105,6 +105,11 @@ export function NoteTabs({ navigation, repository }: { navigation: WorkspaceNavi
             <X size={15} />{translate("tabs.closeToRight")}
           </button>
           <div className="menu-separator" />
+          {repository.note(tabMenu.tabId) && (
+            <button className="menu-item" role="menuitem" onClick={runAndCloseMenu(() => navigation.openInSplit(tabMenu.tabId))}>
+              <Columns2 size={15} />{translate("split.open")}
+            </button>
+          )}
           <button className="menu-item" role="menuitem" onClick={runAndCloseMenu(() => navigation.togglePinnedTab(tabMenu.tabId))}>
             {navigation.pinnedTabs.includes(tabMenu.tabId) ? <PinOff size={15} /> : <Pin size={15} />}
             {translate(navigation.pinnedTabs.includes(tabMenu.tabId) ? "tabs.unpin" : "tabs.pin")}

@@ -1,6 +1,6 @@
-// メモの「…」メニュー: ピン留め、ノートブックの付け外し、本文の配置（PC だけ）、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、期限、別のウィンドウで開く、最前面に固定、プラグインのコマンド、AI チャット、履歴、ファイルへの書き出し、印刷、ロック、ゴミ箱。
+// メモの「…」メニュー: ピン留め、ノートブックの付け外し、本文の配置（PC だけ）、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、期限、画面分割、別のウィンドウで開く、最前面に固定、プラグインのコマンド、AI チャット、履歴、ファイルへの書き出し、印刷、ロック、ゴミ箱。
 
-import { AlarmClock, AppWindow, ArrowUpToLine, Check, Copy, FileDown, History, ListTree, Merge, LayoutTemplate, Pin, PinOff, Printer, Puzzle, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
+import { AlarmClock, AppWindow, ArrowUpToLine, Check, Columns2, Copy, FileDown, History, ListTree, Merge, LayoutTemplate, Pin, PinOff, Printer, Puzzle, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { type MessageKey, translate } from "../i18n/translate";
@@ -40,6 +40,8 @@ type NoteActionsMenuProps = {
   onSetTaskDue: (() => void) | undefined;
   // 有効なプラグインのコマンド。押すと、このメモに対して実行する。
   pluginCommands: Array<{ key: string; title: string; run: () => void }>;
+  // メモを、画面分割の右側に開く。分割できない画面（スマホ、分割の右側のメモ）では undefined。
+  onOpenInSplit: (() => void) | undefined;
   // メモを別のウィンドウで開く。開けない画面（スマホ）では undefined。
   onOpenInNewWindow: (() => void) | undefined;
   onShowHistory: () => void;
@@ -49,7 +51,7 @@ type NoteActionsMenuProps = {
   onClose: () => void;
 };
 
-export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, zoomTarget, onZoomIn, onSetNoteDue, onSetTaskDue, pluginCommands, onOpenInNewWindow, onShowHistory, onExport, canChoosePageAlignment, onClose }: NoteActionsMenuProps) {
+export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, zoomTarget, onZoomIn, onSetNoteDue, onSetTaskDue, pluginCommands, onOpenInSplit, onOpenInNewWindow, onShowHistory, onExport, canChoosePageAlignment, onClose }: NoteActionsMenuProps) {
   const { content } = note;
   const moveToTrash = useTrashWithUndo(repository);
   const { windowIsOnTop, toggleWindowOnTop } = useWindowOnTop();
@@ -133,6 +135,11 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
           ))}
           <div className="menu-separator" />
         </>
+      )}
+      {onOpenInSplit && (
+        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onOpenInSplit(); }}>
+          <Columns2 size={15} />{translate("split.open")}
+        </button>
       )}
       {onOpenInNewWindow && (
         <button className="menu-item" role="menuitem" onClick={() => { onClose(); onOpenInNewWindow(); }}>

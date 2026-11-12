@@ -73,12 +73,14 @@ type NoteEditorProps = {
   highlightedText?: string;
   // メモの中の検索を開く合図（ショートカット）。押すたびに serial が増える。
   findRequest?: FindRequest;
+  // このメモを、画面分割の右側に開く。分割できない画面（スマホ、分割の右側のメモ）では渡さない。
+  onOpenInSplit?: () => void;
 };
 
 // まだ一度も検索を開いていないときの合図。
 const NO_FIND_REQUEST: FindRequest = { serial: 0, showReplace: false };
 
-export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repository, isMobile, onBack, highlightedText = "", findRequest = NO_FIND_REQUEST }: NoteEditorProps) {
+export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repository, isMobile, onBack, onOpenInSplit, highlightedText = "", findRequest = NO_FIND_REQUEST }: NoteEditorProps) {
   const [title, setTitle] = useState(note.content.title);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [pickingNoteLink, setPickingNoteLink] = useState(false);
@@ -401,6 +403,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
           zoomTarget={editor ? zoomTargetAtCursor(editor.state) : null} onZoomIn={() => editor && zoomIntoCursor(editor)}
           onOpenInNewWindow={!isMobile && canOpenNoteWindows() ? () => void openInNewWindow.run(undefined) : undefined}
           pluginCommands={pluginCommands}
+          onOpenInSplit={onOpenInSplit}
           onSetNoteDue={() => setDueTarget("note")}
           onSetTaskDue={editor && isCursorInTaskItem(editor.state) ? () => setDueTarget("task") : undefined}
           onShowHistory={() => setShowingHistory(true)} onExport={(format) => void exportNote.run({ notes: [note], format })}

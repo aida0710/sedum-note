@@ -21,6 +21,7 @@ import { UpdateChip } from "../update/UpdateChip";
 import { NotebookDatabaseView } from "./NotebookDatabaseView";
 import { NoteGraphView } from "./NoteGraphView";
 import { RemindersView } from "./RemindersView";
+import { SplitNotePane } from "./SplitNotePane";
 import { GRAPH_TAB, notebookIdOfDatabaseTab, REMINDERS_TAB, SETTINGS_TAB } from "./useWorkspaceNavigation";
 import { findUnlinkedMentions } from "../../core/notes/noteMentions";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
@@ -37,6 +38,8 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
   const showsGraph = navigation.activeTab === GRAPH_TAB;
   const showsReminders = navigation.activeTab === REMINDERS_TAB;
   const activeNote = navigation.activeTab && navigation.activeTab !== SETTINGS_TAB && !showsGraph && !showsReminders ? repository.note(navigation.activeTab) : undefined;
+  // 画面分割の右側のメモ。完全に削除されたら、右側を閉じた形になる。
+  const splitNote = navigation.splitNoteId === null ? undefined : repository.note(navigation.splitNoteId);
   const databaseNotebook = snapshot.notebooks.find((notebook) => notebook.id === notebookIdOfDatabaseTab(navigation.activeTab));
   const createNote = async () => navigation.openNote((await createNoteInView(repository, navigation.view)).id);
   const openDailyNote = async () => {
@@ -113,6 +116,8 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
       )}
       <main className="main">
         <NoteTabs navigation={navigation} repository={repository} />
+        <div className="panes">
+        <div className="pane">
         {navigation.activeTab === SETTINGS_TAB && (
           <SettingsPanel session={session} vault={vault} unreadableCount={snapshot.unreadableCount} isMobile={false}
             page={navigation.settingsPage} onSelectPage={navigation.selectSettingsPage} revealRequest={navigation.settingRevealRequest} />
@@ -122,7 +127,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
             <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
               <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, activeNote.id)}
                 unlinkedMentions={findUnlinkedMentions(snapshot.summaries, activeNote)}
-              repository={repository} isMobile={false}
+              repository={repository} isMobile={false} onOpenInSplit={() => navigation.openInSplit(activeNote.id)}
               highlightedText={parseNoteSearchQuery(navigation.searchText).words.join(" ")} findRequest={navigation.findInNoteRequest} />
             </NoteQuerySourceContext.Provider>
           </NoteLinkTargetsContext.Provider>
@@ -134,6 +139,9 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
         {showsGraph && <NoteGraphView summaries={snapshot.summaries} onOpenNote={navigation.openNote} />}
         {showsReminders && <RemindersView summaries={snapshot.summaries} repository={repository} onOpenNote={navigation.openNote} />}
         {!activeNote && !databaseNotebook && !showsGraph && !showsReminders && navigation.activeTab !== SETTINGS_TAB && <div className="empty-state">{translate("editor.empty")}</div>}
+        </div>
+        {splitNote && <SplitNotePane note={splitNote} snapshot={snapshot} repository={repository} navigation={navigation} />}
+        </div>
       </main>
       {aiChat.open && (
         <AiChat repository={repository} notes={snapshot.notes.filter((note) => note.content.trashedAt === null)} onClose={() => aiChat.setOpen(false)} />

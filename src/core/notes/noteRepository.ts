@@ -426,7 +426,7 @@ export class NoteRepository {
         holder.doc.destroy();
       }
       this.#unsavedIds.delete(id);
-      this.#hold(id, payload);
+      this.#hold(id, payload, sealed);
       if (payload.kind === "removed") {
         await this.#deleteLocalBlobs(payload.attachmentIds);
         await this.#versionHistory.forget(id);
@@ -640,15 +640,15 @@ export class NoteRepository {
     const sealed = await sealRecordPayload(this.#dependencies.masterKey, id, { kind: "state", state: encodeRecordState(holder.doc) });
     const remoteEtag = bookkeeping.remoteEtag === undefined ? stored?.remoteEtag ?? null : bookkeeping.remoteEtag;
     await this.#putEntry({ id, sealed, remoteEtag, waitingForPush: bookkeeping.waitingForPush ?? true });
+    // いま書いた暗号文は、この文書の中身そのもの。送信の記録だけを書き直すとき（confirmPushed など）は、手元の保存にある
+    // 暗号文（ほかのウィンドウが書いたものかもしれない）をそのまま書くので、ここでは覚えない。覚えると、まだ取り込んでいない
+    // 相手の中身を、取り込み済みと見なして飛ばしてしまう。
+    holder.lastStoredSealed = sealed;
   }
 
   // 手元の保存に書いて、ほかのウィンドウへ知らせる。
   async #putEntry(entry: LocalRecordEntry): Promise<void> {
     await this.#dependencies.localStore.putRecordEntry(entry);
-    const holder = this.#holders.get(entry.id);
-    if (holder?.state === "live") {
-      holder.lastStoredSealed = entry.sealed;
-    }
     this.#rememberWaitingForPush(entry);
     this.#dependencies.recordChangeChannel?.announce(entry.id);
   }

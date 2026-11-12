@@ -14,6 +14,19 @@ export interface RecordChangeChannel {
 // 試験用。同じ hub から作った通り道どうしが、互いの知らせを受け取る。
 export class MemoryRecordChangeHub {
   readonly #listenersByChannel = new Map<object, Set<(recordId: string) => void>>();
+  // 止めている間にたまった知らせ。ブラウザでは、知らせは少し遅れて届く。その間にほかの処理が挟まる場面を作るのに使う。
+  #heldDeliveries: Array<() => void> | null = null;
+
+  // 知らせを届けるのを止める。deliverHeld を呼ぶまで、ためておく。
+  holdDeliveries(): void {
+    this.#heldDeliveries ??= [];
+  }
+
+  deliverHeld(): void {
+    const held = this.#heldDeliveries ?? [];
+    this.#heldDeliveries = null;
+    held.forEach((deliver) => deliver());
+  }
 
   createChannel(): RecordChangeChannel {
     const channel = {};
@@ -23,7 +36,12 @@ export class MemoryRecordChangeHub {
       announce: (recordId) => {
         for (const [other, otherListeners] of this.#listenersByChannel) {
           if (other !== channel) {
-            otherListeners.forEach((listener) => listener(recordId));
+            const deliver = () => otherListeners.forEach((listener) => listener(recordId));
+            if (this.#heldDeliveries) {
+              this.#heldDeliveries.push(deliver);
+            } else {
+              deliver();
+            }
           }
         }
       },
