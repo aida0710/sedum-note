@@ -16,6 +16,10 @@ export type AttachmentReference = {
   byteLength: number;
 };
 
+// 本文の列を、画面の左・中央・右のどこに置くか。
+export const PAGE_ALIGNMENTS = ["left", "center", "right"] as const;
+export type PageAlignment = (typeof PAGE_ALIGNMENTS)[number];
+
 export type NoteContent = {
   title: string;
   // UpNote と同じく、1 つのメモを複数のノートブックに入れられる。
@@ -30,6 +34,9 @@ export type NoteContent = {
   // アウトライン表示のメモ（本文が 1 つの箇条書きで、すべての行が項目）。本文の形はふつうのメモの箇条書きと同じなので、
   // アウトライン表示を知らない版のアプリでは、箇条書きだけのふつうのメモとして見える。
   isOutline: boolean;
+  // 本文の列の置き場所。null なら、このデバイスの表示の設定（既定の置き場所）に従う。
+  // 知らない値（新しい版のアプリが足したもの）も null として読む。
+  pageAlignment: PageAlignment | null;
   // 本文に貼ってある添付（本文から導く）。
   attachments: AttachmentReference[];
   // プロパティの値。キーはプロパティの ID。値の無いプロパティは入らない。

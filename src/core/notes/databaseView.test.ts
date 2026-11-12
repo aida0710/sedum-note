@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { boardColumns, boardGroupProperty, sortNotesForDatabase } from "./databaseView";
 import type { PropertyDefinition, PropertyValue } from "./noteProperties";
+import { noteContentFixture } from "./noteFixtures";
 import type { LiveNote } from "./noteRecords";
 
 function note(title: string, propertyValues: Record<string, PropertyValue> = {}, updatedAt = "2026-11-12T00:00:00.000Z"): LiveNote {
   return {
     id: title, kind: "note", updatedAt, revision: 0, body: new Y.Doc().getXmlFragment("body"),
-    content: { title, notebookIds: [], pinned: false, bookmarked: false, trashedAt: null, isTemplate: false, isOutline: false, attachments: [], propertyValues, createdAt: updatedAt },
+    content: noteContentFixture({ title, propertyValues, createdAt: updatedAt }),
   };
 }
 

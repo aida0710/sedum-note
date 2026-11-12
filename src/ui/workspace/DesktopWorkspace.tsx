@@ -1,7 +1,7 @@
 // 案C の PC の組み方: 左にノートブックの木、右にタブとエディタ。
 
 import { Minimize2, Settings } from "lucide-react";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { languageInUse } from "../i18n/languageInUse";
 import { translate } from "../i18n/translate";
 import { readDevicePreferences, updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
@@ -24,6 +24,9 @@ import { GRAPH_TAB, notebookIdOfDatabaseTab, SETTINGS_TAB } from "./useWorkspace
 import { notesLinkingTo } from "../../core/notes/noteQueries";
 import { NoteQuerySourceContext } from "../editor/noteQuerySource";
 import { AiChat } from "../ai/AiChat";
+import { McpSectionSlot } from "../settings/mcpSectionSlot";
+import { SETTINGS_SEARCH_ENTRIES } from "../settings/settingsSearchEntries";
+import { workspacePaletteCandidates } from "./workspacePaletteCandidates";
 import { useAiChatSession } from "../ai/aiChatSession";
 
 export function DesktopWorkspace({ session, vault, snapshot, navigation }: WorkspaceProps) {
@@ -55,7 +58,8 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
     commandPalette: () => setPaletteOpen(true),
     newNote: () => void createNote(),
     searchNotes: navigation.requestSearchFocus,
-    findInNote: navigation.requestFindInNote,
+    findInNote: () => navigation.requestFindInNote(),
+    replaceInNote: () => navigation.requestFindInNote(true),
     nextTab: () => openNeighborTab(1),
     previousTab: () => openNeighborTab(-1),
     closeTab: () => navigation.activeTab && navigation.closeTab(navigation.activeTab),
@@ -70,6 +74,8 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
   // コマンドパレットに並べる操作。ショートカットの一覧と同じもの（パレットを開く操作は除く）。
   const paletteCommands = KEYBOARD_SHORTCUTS.filter((shortcut) => shortcut.id !== "commandPalette")
     .map((shortcut) => ({ id: shortcut.id, label: translate(shortcut.label), shortcut: shortcutText(shortcut.keys), run: shortcutHandlers[shortcut.id] }));
+  // MCP の欄は PC 版（デスクトップのアプリ）にだけある。無い版では、パレットの設定の項目からも外す。
+  const includesMcp = useContext(McpSectionSlot) !== null;
   return (
     <div className={`workspace${focusMode ? " focus-mode" : ""}${typewriterMode ? " typewriter-mode" : ""}${aiChat.open ? " with-ai-chat" : ""}`}>
       {focusMode && (
@@ -91,14 +97,16 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
           </>
         )} />
       {paletteOpen && (
-        <CommandPalette notes={snapshot.notes.filter((note) => note.content.trashedAt === null)} commands={paletteCommands}
-          onOpenNote={navigation.openNote} onClose={() => setPaletteOpen(false)} />
+        <CommandPalette onClose={() => setPaletteOpen(false)} candidates={workspacePaletteCandidates({
+          summaries: snapshot.summaries, notebooks: snapshot.notebooks, commands: paletteCommands, navigation,
+          settingsEntries: SETTINGS_SEARCH_ENTRIES.filter((entry) => includesMcp || !entry.desktopAppOnly),
+        })} />
       )}
       <main className="main">
         <NoteTabs navigation={navigation} repository={repository} />
         {navigation.activeTab === SETTINGS_TAB && (
           <SettingsPanel session={session} vault={vault} unreadableCount={snapshot.unreadableCount} isMobile={false}
-            page={navigation.settingsPage} onSelectPage={navigation.selectSettingsPage} />
+            page={navigation.settingsPage} onSelectPage={navigation.selectSettingsPage} revealRequest={navigation.settingRevealRequest} />
         )}
         {activeNote && (
           <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, navigation)}>

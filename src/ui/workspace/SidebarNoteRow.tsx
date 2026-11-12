@@ -12,8 +12,9 @@ import { useDialogs } from "../shared/DialogProvider";
 import { PopupMenu } from "../shared/PopupMenu";
 import { InlineNameInput } from "./InlineNameInput";
 import { startNoteDrag } from "./noteDrag";
+import { useNoteDragState } from "./noteDragState";
 import { useTrashWithUndo } from "./useTrashWithUndo";
-import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
+import { viewKey, type WorkspaceNavigation } from "./useWorkspaceNavigation";
 
 type SidebarNoteRowProps = {
   note: LiveNote;
@@ -32,6 +33,10 @@ export function SidebarNoteRow({ note, view, paddingLeft, navigation, repository
   const [renaming, setRenaming] = useState(false);
   const { content } = note;
   const inTrash = content.trashedAt !== null;
+  const title = content.title || translate("sidebar.untitled");
+  // この行からドラッグしている間は、元の行を薄くする（持ち上げたことが分かるように）。
+  const dragState = useNoteDragState();
+  const isDragged = dragState?.noteId === note.id && dragState.fromViewKey === viewKey(view);
 
   if (renaming) {
     return (
@@ -56,15 +61,15 @@ export function SidebarNoteRow({ note, view, paddingLeft, navigation, repository
     }
   };
   return (
-    <div className="nav-row" onContextMenu={(event) => { event.preventDefault(); setMenuAnchor(event.currentTarget); }}>
+    <div className={`nav-row${isDragged ? " dragging" : ""}`} onContextMenu={(event) => { event.preventDefault(); setMenuAnchor(event.currentTarget); }}>
       <button className={`tree-note${navigation.activeTab === note.id ? " active" : ""}`} style={{ paddingLeft }}
-        draggable onDragStart={(event) => startNoteDrag(event, note.id, view)}
+        draggable onDragStart={(event) => startNoteDrag(event, { noteId: note.id, title, fromView: view })}
         onClick={() => navigation.openNote(note.id)} onDoubleClick={() => setRenaming(true)}>
         {unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}
-        {content.title || translate("sidebar.untitled")}
+        {title}
       </button>
       <span className="row-actions">
-        <button className="icon-button" aria-label={translate("sidebar.noteActions", { title: content.title || translate("sidebar.untitled") })} aria-haspopup="menu"
+        <button className="icon-button" aria-label={translate("sidebar.noteActions", { title })} aria-haspopup="menu"
           onClick={(event) => setMenuAnchor(event.currentTarget)}>
           <MoreHorizontal size={14} />
         </button>

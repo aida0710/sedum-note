@@ -216,6 +216,14 @@ button:disabled { cursor: default; opacity: .55; }
 .tree-note:hover { background: var(--selected); color: var(--text); }
 .tree-note.active { background: var(--accent-soft); color: var(--text); font-weight: 600; }
 .nav-row.drop-target > .nav { background: var(--accent-soft); outline: 1px dashed var(--accent); outline-offset: -1px; }
+/* ノートブックの行と中のメモをまとめた範囲。メモを落とせる範囲で、ドラッグ中に上に来ると、範囲全体を光らせる。
+   中の行の並びと間隔は、.sidebar-scroll の直下に並べていたときと同じにする。 */
+.view-group { display: flex; flex-direction: column; gap: 2px; border-radius: var(--radius-row); }
+.view-group.drop-target { background: var(--accent-soft); outline: 1px dashed var(--accent); outline-offset: -1px; }
+/* ドラッグして持ち上げたメモの、元の行。 */
+.nav-row.dragging .tree-note { opacity: .5; outline: 1px dashed var(--muted); outline-offset: -1px; }
+/* ドラッグしている間、指の下に出す札（shared/dragPreview.ts）。写し取ったらすぐ消すので、画面の外に置いて描く。 */
+.drag-preview { position: fixed; top: -100px; left: 0; max-width: 260px; padding: 4px 10px; border-radius: var(--radius-control); background: var(--panel); color: var(--text); border: 1px solid var(--accent); box-shadow: 0 4px 12px var(--shadow); font-size: var(--font-size-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .nav-row .tree-note { padding-right: 30px; }
 .tree-empty { color: var(--muted); padding: 4px 8px; font-size: var(--font-size-small); }
 .inline-input { width: 100%; height: var(--control-height-compact); border: 1px solid var(--accent); border-radius: var(--radius-control); padding: 0 8px; background: var(--panel); }
@@ -266,6 +274,9 @@ button:disabled { cursor: default; opacity: .55; }
 .outline-item:hover { background: var(--selected); color: var(--text); }
 .icon-button.active { background: var(--selected); color: var(--accent); }
 .document { padding: 28px 56px 80px; max-width: 760px; width: 100%; margin: 0 auto; }
+/* 本文の列の置き場所（メモごとか、表示の設定の既定）。中央は、上の margin のまま。 */
+.document.align-left { margin-left: 0; }
+.document.align-right { margin-right: 0; }
 .document-meta { color: var(--muted); font-size: var(--font-size-small); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; min-height: 22px; }
 .document-meta .character-count { margin-left: auto; }
 .document-meta .updated { margin-left: 12px; }
@@ -372,13 +383,18 @@ button:disabled { cursor: default; opacity: .55; }
 .ProseMirror mark { color: inherit; border-radius: var(--radius-inline); padding: 0 1px; }
 .search-match { background: color-mix(in srgb, var(--bookmark) 35%, transparent); border-radius: var(--radius-inline); }
 .search-match.active { background: var(--bookmark); color: #16181c; }
-.find-bar { display: flex; flex-direction: column; gap: 4px; padding: 6px 14px; border-bottom: 1px solid var(--line); flex: none; }
-.find-row { display: flex; align-items: center; gap: 4px; }
+/* メモの中の検索。左から「置換の欄の開閉」「入力欄（横幅いっぱい）」「操作」の 3 列にし、検索と置換の 2 行で列をそろえる
+   （置換の入力欄の左右の端が、検索の入力欄とそろうように）。閉じる × は 1 行目の右端。 */
+.find-bar { display: grid; grid-template-columns: var(--control-height-compact) minmax(0, 1fr) auto; align-items: center; gap: 4px 6px; padding: 6px 14px; border-bottom: 1px solid var(--line); flex: none; }
+.find-row { display: contents; }
+.find-controls { display: flex; align-items: center; gap: 4px; }
 .find-row .text-button { height: var(--control-height); padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius-control); color: var(--text); flex: none; }
 .find-row .text-button:disabled { color: var(--muted); }
-.find-row .icon-button.on { background: var(--selected); color: var(--text); }
-.find-bar input { flex: 1; min-width: 0; max-width: 320px; height: var(--control-height); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 10px; background: var(--panel); color: var(--text); }
-.find-count { color: var(--muted); font-size: var(--font-size-small); min-width: 48px; text-align: center; }
+.find-row .icon-button.on { background: var(--selected); color: var(--accent); }
+.find-bar input { width: 100%; min-width: 0; height: var(--control-height); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 10px; background: var(--panel); color: var(--text); }
+.find-bar input.invalid { border-color: var(--danger); }
+.find-count { color: var(--muted); font-size: var(--font-size-small); min-width: 48px; text-align: center; white-space: nowrap; }
+.find-count.invalid { color: var(--danger); }
 .search-scope { text-align: left; color: var(--accent); font-size: var(--font-size-small); padding: 4px 8px; line-height: 1.5; }
 .shortcut-list { display: grid; gap: 6px; }
 .shortcut-list > div { display: flex; justify-content: space-between; gap: 12px; }
@@ -394,10 +410,15 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 /* スマホの画面では、下のメニュー（とエディタの下のバー）の上に出す。 */
 :root:has(.phone) .toast { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
 .tab[draggable="true"] { cursor: grab; }
+.tab.dragging { opacity: .45; }
+.tab.drop-target { box-shadow: inset 2px 0 0 var(--accent); }
 .dialog.note-picker { width: min(480px, 100%); max-height: min(560px, 90%); }
 .note-picker .sidebar-search { margin-bottom: 0; flex: none; }
 .command-palette .menu-item.on { background: var(--selected); }
 .command-palette kbd { margin-left: auto; color: var(--muted); font-size: var(--font-size-caption); }
+.command-palette .palette-item-icon { color: var(--muted); flex: none; }
+.command-palette .palette-item-hint { margin-left: auto; color: var(--muted); font-size: var(--font-size-small); max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
+.command-palette .menu-heading:not(:first-child) { margin-top: 4px; }
 .note-picker-list { overflow-y: auto; min-height: 80px; display: flex; flex-direction: column; }
 .dialog.note-history { width: min(760px, 100%); max-height: min(620px, 92%); }
 .note-history .hint { color: var(--muted); font-size: var(--font-size-small); }
@@ -501,6 +522,9 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .settings h1 { font-size: var(--font-size-title); }
 .settings-section { display: flex; flex-direction: column; gap: 12px; padding-top: 18px; border-top: 1px solid var(--line); }
 .settings-section h2 { font-size: var(--font-size-heading); }
+/* コマンドパレットから選んだ設定の項目を、少しの間光らせる（settings/revealSetting.ts。時間はそちらと同じ）。 */
+.settings-revealed { animation: settings-revealed-fade 1.6s ease-out; border-radius: var(--radius-row); }
+@keyframes settings-revealed-fade { from { background: var(--accent-soft); box-shadow: 0 0 0 6px var(--accent-soft); } to { background: transparent; box-shadow: 0 0 0 6px transparent; } }
 /* ページの最初の欄には、上の区切り線を引かない（上に見出しが無いので）。 */
 .settings > .settings-section:first-child { border-top: 0; padding-top: 0; }
 /* PC: 左に設定のページの一覧、右に開いているページ。一覧の行は、左の列（ノートブックの木）の行と同じ形にする。 */

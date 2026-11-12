@@ -2,13 +2,14 @@
 // スマホでは、まずページの一覧を出し、選んだページを 1 画面で出す（「戻る」で一覧へ）。
 
 import { ChevronLeft } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import type { UnlockedVault } from "../../core/vault/vaultSession";
 import { translate } from "../i18n/translate";
 import type { VaultSession } from "../session/useVaultSession";
 import { SettingsNavigation, SettingsPageList } from "./SettingsNavigation";
 import { SettingsPageContent } from "./SettingsPageContent";
 import { FIRST_SETTINGS_PAGE, type SettingsPage, settingsPagesFor } from "./settingsPages";
+import { type SettingRevealRequest, useRevealSetting } from "./revealSetting";
 
 type SettingsPanelProps = {
   session: VaultSession;
@@ -21,10 +22,15 @@ type SettingsPanelProps = {
   onSelectPage: (page: SettingsPage | null) => void;
   // スマホで、開いているページからページの一覧へ戻る（端末の「戻る」の履歴も外す）。PC では使わない。
   onBackToPageList?: () => void;
+  // コマンドパレットで選んだ項目。開いたページの中で、そこまで送る（PC だけ）。
+  revealRequest?: SettingRevealRequest | null;
 };
 
-export function SettingsPanel({ session, vault, unreadableCount, isMobile, page, onSelectPage, onBackToPageList }: SettingsPanelProps) {
+export function SettingsPanel({ session, vault, unreadableCount, isMobile, page, onSelectPage, onBackToPageList, revealRequest = null }: SettingsPanelProps) {
   const pages = settingsPagesFor({ isMobile });
+  // 項目を探す範囲は、ページの中身だけ（左のページの一覧の「同期」などを当てないように）。
+  const pageContent = useRef<HTMLDivElement>(null);
+  useRevealSetting(revealRequest, pageContent);
   // 開けない記録の知らせは、どのページを開いていても出す。
   const unreadableWarning = unreadableCount > 0 && <div className="form-error">{translate("settings.unreadable", { count: unreadableCount })}</div>;
   if (isMobile) {
@@ -36,7 +42,7 @@ export function SettingsPanel({ session, vault, unreadableCount, isMobile, page,
     <div className="settings-layout">
       <SettingsNavigation pages={pages} current={shownPage} onSelect={onSelectPage} />
       <div className="document-scroll">
-        <div className="settings">
+        <div className="settings" ref={pageContent}>
           {unreadableWarning}
           <SettingsPageContent page={shownPage} session={session} vault={vault} />
         </div>

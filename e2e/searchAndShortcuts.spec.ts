@@ -75,11 +75,11 @@ test("メモの中の言葉を、1 つずつ、または全部まとめて置換
   await newNote(page, "置換の試し", "りんご と みかん。りんご の木。りんご の実。");
   await page.keyboard.press("Control+f");
   await page.getByPlaceholder("このメモの中を検索").fill("りんご");
-  await page.getByRole("button", { name: "置換", exact: true }).first().click();
+  await page.getByRole("button", { name: "置換の欄を出す" }).click();
   await page.getByPlaceholder("置換後の言葉").fill("もも");
 
   const body = page.locator(".ProseMirror");
-  await page.getByRole("button", { name: "置換", exact: true }).last().click();
+  await page.getByRole("button", { name: "置換", exact: true }).click();
   await expect(body).toHaveText("もも と みかん。りんご の木。りんご の実。");
   await page.getByRole("button", { name: "すべて置換" }).click();
   await expect(body).toHaveText("もも と みかん。もも の木。もも の実。");
@@ -87,6 +87,41 @@ test("メモの中の言葉を、1 つずつ、または全部まとめて置換
   await body.click();
   await page.keyboard.press("Control+z");
   await expect(body).toHaveText("もも と みかん。りんご の木。りんご の実。");
+});
+
+test("Ctrl+R で、置換の欄を開いた検索が出る。ブラウザの再読み込みはしない", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "置換の開き方", "りんご と みかん。");
+  // ブラウザが再読み込みに使うキーなので、アプリがキーの既定の動きを止めたかを見る。
+  await page.evaluate(() => window.addEventListener("keydown", (event) => {
+    (window as unknown as { reloadKeyPrevented: boolean }).reloadKeyPrevented = event.defaultPrevented;
+  }));
+  await page.keyboard.press("Control+r");
+  await expect(page.getByPlaceholder("置換後の言葉")).toBeVisible();
+  await expect(page.getByPlaceholder("このメモの中を検索")).toBeFocused();
+  expect(await page.evaluate(() => (window as unknown as { reloadKeyPrevented: boolean }).reloadKeyPrevented)).toBe(true);
+
+  // 置換の欄は、左端のボタンで閉じて、また開ける。
+  await page.getByRole("button", { name: "置換の欄を出す" }).click();
+  await expect(page.getByPlaceholder("置換後の言葉")).toBeHidden();
+});
+
+test("正規表現で探して、$1 を使って置換できる。読めない式は知らせる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "正規表現の試し", "締切は 2026-11-12、予備は 2026-12-01。");
+  await page.keyboard.press("Control+r");
+  await page.getByRole("button", { name: "正規表現で探す" }).click();
+  const query = page.getByPlaceholder("このメモの中を検索");
+
+  await query.fill("(\\d+)-(\\d+");
+  await expect(page.locator(".find-bar").getByRole("status")).toHaveText("正規表現が正しくありません");
+  await expect(query).toHaveAttribute("aria-invalid", "true");
+
+  await query.fill("(\\d{4})-(\\d{2})-(\\d{2})");
+  await expect(page.locator(".find-bar").getByRole("status")).toHaveText("1 / 2");
+  await page.getByPlaceholder(/置換後の言葉/).fill("$2/$3（$1）");
+  await page.getByRole("button", { name: "すべて置換" }).click();
+  await expect(page.locator(".ProseMirror")).toHaveText("締切は 11/12（2026）、予備は 12/01（2026）。");
 });
 
 test("本文の文字数が出て、選んでいる間は選んだ範囲の文字数も出る", async ({ page }) => {
@@ -161,11 +196,11 @@ test("タイプライターモードでは、打っている行が本文の領�
   expect(offsetFromCenter).toBeLessThan(40);
 });
 
-test("コマンドパレットで、メモを題で探して開ける。「>」で始めると操作を探して実行できる", async ({ page }) => {
+test("コマンドパレット（Ctrl+K）で、メモを題で探して開ける。「>」で始めると操作を探して実行できる", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "会議の記録", "");
   await newNote(page, "買い物リスト", "");
-  await page.keyboard.press("Control+Alt+k");
+  await page.keyboard.press("Control+k");
   const palette = page.getByRole("dialog", { name: "コマンドパレット" });
   await palette.getByRole("combobox").fill("会議");
   await expect(palette.getByRole("option")).toHaveText(["会議の記録"]);
@@ -173,11 +208,36 @@ test("コマンドパレットで、メモを題で探して開ける。「>」�
   await expect(palette).toHaveCount(0);
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("会議の記録");
 
-  await page.keyboard.press("Control+Alt+k");
+  await page.keyboard.press("Control+k");
   await palette.getByRole("combobox").fill(">フォーカス");
   await expect(palette.getByRole("option")).toContainText(["フォーカスモード"]);
   await page.keyboard.press("Enter");
   await expect(page.locator(".sidebar")).toBeHidden();
+});
+
+test("コマンドパレットは、メモの本文・ノートブック・設定の項目もまとめて探す。設定の項目を選ぶと、そのページのその項目へ移る", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "週の予定", "金曜に旅行の予約をする");
+  const palette = page.getByRole("dialog", { name: "コマンドパレット" });
+
+  await page.keyboard.press("Control+k");
+  await palette.getByRole("combobox").fill("旅行");
+  // 本文にだけ当たったメモは、本文の当たった所を添える。
+  await expect(palette.getByRole("option", { name: /週の予定/ })).toContainText("旅行の予約");
+  await page.keyboard.press("Escape");
+
+  await page.keyboard.press("Control+k");
+  await palette.getByRole("combobox").fill("文字の大きさ");
+  const setting = palette.getByRole("option", { name: /本文の文字の大きさ/ });
+  await expect(setting).toContainText("設定 › 一般");
+  await setting.click();
+  await expect(page.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: "一般", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByLabel("本文の文字の大きさ")).toBeFocused();
+
+  await page.keyboard.press("Control+k");
+  await palette.getByRole("combobox").fill("暗号化キー");
+  await palette.getByRole("option", { name: /暗号化キー/ }).first().click();
+  await expect(page.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: "同期", exact: true })).toHaveAttribute("aria-current", "page");
 });
 
 test("検索を名前を付けて保存でき、左の列から同じ検索を開ける。消すこともできる", async ({ page }) => {

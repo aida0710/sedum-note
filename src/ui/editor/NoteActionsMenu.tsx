@@ -1,4 +1,4 @@
-// メモの「…」メニュー: ピン留め、ノートブックの付け外し、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、AI チャット、履歴、ファイルへの書き出し、印刷、ゴミ箱。
+// メモの「…」メニュー: ピン留め、ノートブックの付け外し、本文の配置（PC だけ）、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、AI チャット、履歴、ファイルへの書き出し、印刷、ゴミ箱。
 
 import { Check, Copy, FileDown, History, ListTree, Merge, LayoutTemplate, Pin, PinOff, Printer, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
@@ -8,6 +8,7 @@ import type { NoteFileFormat } from "../markdown/noteFileExport";
 import { isPrintAvailable } from "../platform/printPage";
 import { PopupMenu } from "../shared/PopupMenu";
 import { useTrashWithUndo } from "../workspace/useTrashWithUndo";
+import { PageAlignmentChoices } from "./PageAlignmentChoices";
 
 const EXPORT_FORMATS: Array<{ format: NoteFileFormat; label: MessageKey }> = [
   { format: "markdown", label: "editor.exportMarkdown" },
@@ -31,10 +32,12 @@ type NoteActionsMenuProps = {
   onZoomIntoItem: (() => void) | undefined;
   onShowHistory: () => void;
   onExport: (format: NoteFileFormat) => void;
+  // 本文の列の置き場所を選べるか。スマホの幅では列が画面いっぱいなので出さない。
+  canChoosePageAlignment: boolean;
   onClose: () => void;
 };
 
-export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, onZoomIntoItem, onShowHistory, onExport, onClose }: NoteActionsMenuProps) {
+export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, onZoomIntoItem, onShowHistory, onExport, canChoosePageAlignment, onClose }: NoteActionsMenuProps) {
   const { content } = note;
   const moveToTrash = useTrashWithUndo(repository);
   const toggleNotebook = (notebookId: string) => {
@@ -63,6 +66,12 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
               {content.notebookIds.includes(notebook.id) && <Check size={15} className="menu-check" />}
             </button>
           ))}
+        </>
+      )}
+      {canChoosePageAlignment && (
+        <>
+          <div className="menu-separator" />
+          <PageAlignmentChoices selected={content.pageAlignment} onChoose={(pageAlignment) => runAndClose(() => repository.updateNote(note.id, { pageAlignment }))()} />
         </>
       )}
       <div className="menu-separator" />

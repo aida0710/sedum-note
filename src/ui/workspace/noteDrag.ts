@@ -1,8 +1,12 @@
 // 左の列で、メモをドラッグして別の一覧（ノートブック・お気に入り・ゴミ箱）へ落とす操作。
-// ドラッグしているメモは、ブラウザのドラッグのデータ（dataTransfer）に入れて運ぶ。
+// ドラッグしているメモは、ブラウザのドラッグのデータ（dataTransfer）に入れて運ぶ。画面の状態（noteDragState.ts）にも入れ、
+// 落とし先を光らせるのに使う。
 
 import type { NoteView } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
+import { showDragPreview } from "../shared/dragPreview";
+import { beginNoteDragState, type DraggedNoteState, endNoteDragState } from "./noteDragState";
+import { viewKey } from "./useWorkspaceNavigation";
 
 // ドラッグのデータの種類。ほかのアプリやファイルのドラッグと区別する。
 const NOTE_DRAG_TYPE = "application/x-sedum-note";
@@ -13,10 +17,14 @@ type DraggedNote = {
   fromNotebookId: string | null;
 };
 
-export function startNoteDrag(event: React.DragEvent, noteId: string, fromView: NoteView): void {
+type NoteDragInput = { noteId: string; title: string; fromView: NoteView };
+
+export function startNoteDrag(event: React.DragEvent, { noteId, title, fromView }: NoteDragInput): void {
   const dragged: DraggedNote = { noteId, fromNotebookId: fromView.kind === "notebook" ? fromView.notebookId : null };
   event.dataTransfer.setData(NOTE_DRAG_TYPE, JSON.stringify(dragged));
   event.dataTransfer.effectAllowed = "move";
+  showDragPreview(event, title);
+  beginNoteDragState({ ...dragged, fromViewKey: viewKey(fromView) });
 }
 
 export function isNoteDrag(event: React.DragEvent): boolean {
@@ -28,6 +36,11 @@ export function acceptsNoteDrop(view: NoteView): boolean {
   return view.kind !== "tag";
 }
 
+// いまドラッグしているメモを、この一覧へ落とせるか。始めた一覧そのものへ落としても何も変わらないので、落とし先にしない。
+export function canDropDraggedNote(view: NoteView, dragged: DraggedNoteState | null): boolean {
+  return dragged !== null && acceptsNoteDrop(view) && dragged.fromViewKey !== viewKey(view);
+}
+
 type NoteDropActions = {
   repository: NoteRepository;
   // ゴミ箱に入れる操作。取り消せる知らせを出すもの（useTrashWithUndo）を呼び出し側が渡す。
@@ -37,6 +50,7 @@ type NoteDropActions = {
 // 落とした先に合わせてメモを変える。
 export async function dropNoteOnView(event: React.DragEvent, view: NoteView, { repository, moveToTrash }: NoteDropActions): Promise<void> {
   const data = event.dataTransfer.getData(NOTE_DRAG_TYPE);
+  endNoteDragState();
   if (data === "") {
     return;
   }

@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
-import { createNoteOnDesktop, openSyncedDevice, PHONE_VIEWPORT, startLocalVault, syncNowOnDesktop } from "./devices";
+import { createNoteOnDesktop, openSettingsPage, openSyncedDevice, PHONE_VIEWPORT, startLocalVault, syncNowOnDesktop } from "./devices";
 
 const newNote = createNoteOnDesktop;
 
@@ -122,6 +122,39 @@ test("メモへのリンクは、リンク先の今のタイトルを出し、�
   await page.getByRole("tab", { name: "リンク元" }).click();
   await expect(link).toHaveText("削除されたメモ");
   await expect(link).toBeDisabled();
+});
+
+test("本文の配置は、メモの「…」でメモごとに選べ、既定は設定で選べる。複製したメモは配置を引き継ぐ", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "右に置くメモ");
+  const documentColumn = page.locator(".document");
+  await expect(documentColumn).toHaveClass(/align-center/);
+
+  await page.locator(".editor-bar").getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("group", { name: "本文の配置" }).getByRole("button", { name: "右寄せ" }).click();
+  await expect(documentColumn).toHaveClass(/align-right/);
+  const columnBox = await documentColumn.boundingBox();
+  const areaBox = await page.locator(".document-scroll").boundingBox();
+  expect(Math.round(columnBox!.x + columnBox!.width)).toBe(Math.round(areaBox!.x + areaBox!.width));
+
+  await page.locator(".editor-bar").getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "複製" }).click();
+  await expect(page.getByRole("tab", { name: "「右に置くメモ」のコピー" })).toHaveAttribute("aria-selected", "true");
+  await expect(documentColumn).toHaveClass(/align-right/);
+
+  // 既定を左寄せにすると、配置を選んでいないメモは左寄せになり、選んだメモは変わらない。
+  await newNote(page, "既定に従うメモ");
+  await openSettingsPage(page, "一般");
+  await page.getByLabel("本文の配置の既定").selectOption("left");
+  await page.getByRole("tab", { name: "既定に従うメモ" }).click();
+  await expect(documentColumn).toHaveClass(/align-left/);
+  await page.getByRole("tab", { name: "右に置くメモ", exact: true }).click();
+  await expect(documentColumn).toHaveClass(/align-right/);
+
+  // 「既定」に戻すと、設定の既定に従う。
+  await page.locator(".editor-bar").getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("group", { name: "本文の配置" }).getByRole("button", { name: "既定" }).click();
+  await expect(documentColumn).toHaveClass(/align-left/);
 });
 
 test("メニューから開いたダイアログも、Escape で閉じられる", async ({ page }) => {

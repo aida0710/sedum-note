@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { appendParagraph } from "./bodyFixtures";
 import { bodyPlainText, plainTextHashtags } from "./bodyText";
+import { noteContentFixture } from "./noteFixtures";
 import type { LiveNote, LiveNotebook } from "./noteRecords";
 import { buildNotebookTree, countTags, selectNotes, summarizeNote } from "./noteQueries";
 import { DEFAULT_DATABASE_VIEW } from "./databaseView";
@@ -15,7 +16,7 @@ function bodyWith(...paragraphs: string[]): Y.XmlFragment {
 function note(id: string, overrides: Partial<LiveNote["content"]>, updatedAt: string, body = bodyWith()): LiveNote {
   return {
     id, kind: "note", updatedAt, revision: 0, body,
-    content: { title: "", notebookIds: [], pinned: false, bookmarked: false, trashedAt: null, isTemplate: false, isOutline: false, attachments: [], propertyValues: {}, createdAt: updatedAt, ...overrides },
+    content: noteContentFixture({ createdAt: updatedAt, ...overrides }),
   };
 }
 

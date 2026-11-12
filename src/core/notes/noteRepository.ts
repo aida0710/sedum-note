@@ -15,7 +15,7 @@ import { blobBinding } from "../sync/remoteLayout";
 import { bodyAttachments } from "./bodyText";
 import { databaseViewFromField } from "./databaseView";
 import { PROPERTY_DEFINITION_FIELD_PREFIX, PROPERTY_VALUE_FIELD_PREFIX, type PropertyDefinition, propertyDefinitionFromField, type PropertyValue } from "./noteProperties";
-import type { AttachmentReference, LiveNote, LiveNotebook, LiveRecord, LiveSavedSearch, NotebookContent, SavedSearchContent } from "./noteRecords";
+import { type AttachmentReference, type LiveNote, type LiveNotebook, type LiveRecord, type LiveSavedSearch, type NotebookContent, PAGE_ALIGNMENTS, type PageAlignment, type SavedSearchContent } from "./noteRecords";
 import { type NoteVersion, NoteVersionHistory } from "./noteVersions";
 import { openRecordPayload, type RecordPayload, sealRecordPayload } from "./recordCodec";
 import {
@@ -56,6 +56,7 @@ export type NoteChanges = Partial<{
   trashedAt: string | null;
   isTemplate: boolean;
   isOutline: boolean;
+  pageAlignment: PageAlignment | null;
 }>;
 
 // local は、このデバイスで変えたもの（同期で送る必要がある）。stored は、手元の保存や
@@ -203,6 +204,7 @@ export class NoteRepository {
     }
     const restored = await this.#createNoteWithBodyOf(recordBody(versionDocument), {
       title: input.title, notebookIds: this.note(input.noteId)?.content.notebookIds ?? [],
+      pageAlignment: this.note(input.noteId)?.content.pageAlignment ?? null,
     });
     versionDocument.destroy();
     return restored;
@@ -214,7 +216,7 @@ export class NoteRepository {
     if (!template) {
       throw new RecordNotFoundError(templateId);
     }
-    return this.#createNoteWithBodyOf(template.body, { title: template.content.title, ...changes });
+    return this.#createNoteWithBodyOf(template.body, { title: template.content.title, pageAlignment: template.content.pageAlignment, ...changes });
   }
 
   // メモを複製する。本文とノートブックを引き継ぎ、添付は同じものを指す。
@@ -223,7 +225,7 @@ export class NoteRepository {
     if (!source) {
       throw new RecordNotFoundError(noteId);
     }
-    return this.#createNoteWithBodyOf(source.body, { title, notebookIds: source.content.notebookIds, isTemplate: false });
+    return this.#createNoteWithBodyOf(source.body, { title, notebookIds: source.content.notebookIds, isTemplate: false, pageAlignment: source.content.pageAlignment });
   }
 
   // ほかのメモを、このメモに結合する。相手のタイトルを見出しにして本文を末尾に足し、相手はゴミ箱に入れる。
@@ -685,11 +687,17 @@ function buildView(id: string, holder: LiveHolder): LiveRecord | null {
       trashedAt: readField<string | null>(doc, "trashedAt") ?? null,
       isTemplate: readField<boolean>(doc, "isTemplate") ?? false,
       isOutline: readField<boolean>(doc, "isOutline") ?? false,
+      pageAlignment: pageAlignmentOf(doc),
       attachments: bodyAttachments(body),
       propertyValues: propertyValuesOf(doc),
       createdAt,
     },
   };
+}
+
+function pageAlignmentOf(doc: Y.Doc): PageAlignment | null {
+  const stored = readField<unknown>(doc, "pageAlignment");
+  return PAGE_ALIGNMENTS.find((alignment) => alignment === stored) ?? null;
 }
 
 function sameBytes(left: Uint8Array, right: Uint8Array): boolean {

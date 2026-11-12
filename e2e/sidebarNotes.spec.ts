@@ -20,6 +20,34 @@ test("メモをノートブックへドラッグすると、そのノートブ�
   await expect(viewRow(page, "旅行").locator(".count")).toHaveText("1");
 });
 
+test("メモを別のノートブックの中のメモの上へ落としても、そのノートブックへ移る。ドラッグ中は、元の行が薄くなり、ノートブックの範囲全体が光る", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "仕事");
+  await addNotebookOnDesktop(page, "旅行");
+  await viewRow(page, "仕事").locator(".nav").click();
+  await createNoteOnDesktop(page, "議事録");
+  await viewRow(page, "旅行").locator(".nav").click();
+  await createNoteOnDesktop(page, "持ち物");
+
+  // 「議事録」を持ち上げて、旅行のノートブックの中の「持ち物」の行の上へ運ぶ。
+  const source = noteRow(page, "議事録").locator(".tree-note");
+  const target = noteRow(page, "持ち物").locator(".tree-note");
+  await source.hover();
+  await page.mouse.down();
+  const targetBox = (await target.boundingBox())!;
+  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, { steps: 8 });
+  await expect(noteRow(page, "議事録")).toHaveClass(/dragging/);
+  const travelGroup = page.locator(".view-group", { has: viewRow(page, "旅行") });
+  await expect(travelGroup).toHaveClass(/drop-target/);
+  await expect(page.locator(".view-group.drop-target")).toHaveCount(1);
+  await page.mouse.up();
+
+  await expect(viewRow(page, "旅行").locator(".count")).toHaveText("2");
+  await expect(viewRow(page, "仕事").locator(".count")).toHaveText("0");
+  await expect(page.locator(".view-group.drop-target")).toHaveCount(0);
+  await expect(page.locator(".nav-row.dragging")).toHaveCount(0);
+});
+
 test("メモをゴミ箱へドラッグすると知らせが出て、「元に戻す」で戻せる", async ({ page }) => {
   await startLocalVault(page);
   await createNoteOnDesktop(page, "買い物");

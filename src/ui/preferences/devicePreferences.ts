@@ -3,6 +3,7 @@
 
 import { useSyncExternalStore } from "react";
 import { type CustomTheme, parseStoredCustomTheme } from "../theme/customTheme";
+import { PAGE_ALIGNMENTS, type PageAlignment } from "../../core/notes/noteRecords";
 import { NOTE_SORT_ORDERS, type NoteSortOrder } from "../../core/notes/noteQueries";
 import { DAILY_NOTE_TITLE_FORMATS, type DailyNoteTitleFormat } from "../workspace/dailyNote";
 
@@ -47,6 +48,8 @@ export type DevicePreferences = {
   // 自分で書いた CSS と、それを当てるか。
   customCss: string;
   customCssEnabled: boolean;
+  // 本文の列の置き場所の既定。メモごとに選んだもの（NoteContent.pageAlignment）があれば、そちらが勝つ。
+  pageAlignment: PageAlignment;
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
@@ -66,6 +69,7 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   typewriterMode: false,
   customCss: "",
   customCssEnabled: true,
+  pageAlignment: "center",
 };
 
 let current: DevicePreferences | null = null;
@@ -137,6 +141,7 @@ function validPreferences(stored: unknown): DevicePreferences {
     typewriterMode: typeof candidate.typewriterMode === "boolean" ? candidate.typewriterMode : DEFAULT_DEVICE_PREFERENCES.typewriterMode,
     customCss: typeof candidate.customCss === "string" ? candidate.customCss : DEFAULT_DEVICE_PREFERENCES.customCss,
     customCssEnabled: typeof candidate.customCssEnabled === "boolean" ? candidate.customCssEnabled : DEFAULT_DEVICE_PREFERENCES.customCssEnabled,
+    pageAlignment: PAGE_ALIGNMENTS.find((alignment) => alignment === candidate.pageAlignment) ?? DEFAULT_DEVICE_PREFERENCES.pageAlignment,
     sidebarWidth: clampSidebarWidth(typeof candidate.sidebarWidth === "number" ? candidate.sidebarWidth : DEFAULT_DEVICE_PREFERENCES.sidebarWidth),
   };
 }

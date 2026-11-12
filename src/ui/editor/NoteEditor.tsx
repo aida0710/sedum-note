@@ -19,7 +19,7 @@ import { useAsyncAction } from "../shared/useAsyncAction";
 import { formatDateTime } from "../shared/formatTime";
 import { assignNotebookColors, NotebookMark } from "../shared/notebookAppearance";
 import { EditorToolbar } from "./EditorToolbar";
-import { FindBar } from "./FindBar";
+import { FindBar, type FindRequest } from "./FindBar";
 import { createEditorExtensions } from "./editorExtensions";
 import { NoteActionsMenu } from "./NoteActionsMenu";
 import { NoteHistoryDialog } from "./NoteHistoryDialog";
@@ -55,11 +55,14 @@ type NoteEditorProps = {
   backlinks: LiveNote[];
   // 一覧の検索で探している言葉。開いたメモの中の当たりに色を付ける。
   highlightedText?: string;
-  // メモの中の検索を開く合図（ショートカット）。押すたびに数が増える。
-  findRequest?: number;
+  // メモの中の検索を開く合図（ショートカット）。押すたびに serial が増える。
+  findRequest?: FindRequest;
 };
 
-export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, onBack, highlightedText = "", findRequest = 0 }: NoteEditorProps) {
+// まだ一度も検索を開いていないときの合図。
+const NO_FIND_REQUEST: FindRequest = { serial: 0, showReplace: false };
+
+export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, onBack, highlightedText = "", findRequest = NO_FIND_REQUEST }: NoteEditorProps) {
   const [title, setTitle] = useState(note.content.title);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [pickingNoteLink, setPickingNoteLink] = useState(false);
@@ -68,7 +71,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
   const [pickingNoteToMerge, setPickingNoteToMerge] = useState(false);
   const [showingHistory, setShowingHistory] = useState(false);
   // 目次。PC では本文の横に出したままにでき（設定に覚える）、スマホではメニューで出す。
-  const { showOutline } = useDevicePreferences();
+  const { showOutline, pageAlignment: defaultPageAlignment } = useDevicePreferences();
   const [outlineAnchor, setOutlineAnchor] = useState<HTMLElement | null>(null);
   const outlineShown = isMobile ? outlineAnchor !== null : showOutline;
   const { openNote, blockToReveal } = useContext(NoteLinkTargetsContext);
@@ -157,13 +160,13 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
 
   // メモの中の検索。開いている間は、検索の欄の言葉に色を付ける。閉じている間は、一覧の検索の言葉に色を付ける。
   const [findBarOpen, setFindBarOpen] = useState(false);
-  const openedFindRequest = useRef(findRequest);
+  const openedFindRequest = useRef(findRequest.serial);
   useEffect(() => {
-    if (findRequest !== openedFindRequest.current) {
-      openedFindRequest.current = findRequest;
+    if (findRequest.serial !== openedFindRequest.current) {
+      openedFindRequest.current = findRequest.serial;
       setFindBarOpen(true);
     }
-  }, [findRequest]);
+  }, [findRequest.serial]);
   useEffect(() => {
     if (!findBarOpen) {
       editor?.commands.setSearchQuery(highlightedText);
@@ -242,10 +245,10 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
           <div className="phone-top-end">{trailing}</div>
         </div>
       )}
-      {findBarOpen && <FindBar editor={editor} focusRequest={findRequest} onClose={() => setFindBarOpen(false)} />}
+      {findBarOpen && <FindBar editor={editor} request={findRequest} onClose={() => setFindBarOpen(false)} />}
       <div className="document-area">
       <div className="document-scroll">
-        <div className="document">
+        <div className={`document align-${note.content.pageAlignment ?? defaultPageAlignment}`}>
           {inTrash && (
             <div className="trash-banner">
               {translate("editor.inTrash")}
@@ -338,7 +341,8 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
             void repository.updateNote(noteId, { isOutline: !isOutline });
           }}
           onZoomIntoItem={editor && isCursorInListItem(editor.state) ? () => zoomIntoItemAtCursor(editor) : undefined}
-          onShowHistory={() => setShowingHistory(true)} onExport={(format) => void exportNote.run({ notes: [note], format })} onClose={() => setMenuAnchor(null)} />
+          onShowHistory={() => setShowingHistory(true)} onExport={(format) => void exportNote.run({ notes: [note], format })}
+          canChoosePageAlignment={!isMobile} onClose={() => setMenuAnchor(null)} />
       )}
       {showingHistory && (
         <NoteHistoryDialog note={note} repository={repository} onClose={() => setShowingHistory(false)}

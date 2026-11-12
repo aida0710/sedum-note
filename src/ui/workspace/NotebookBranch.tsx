@@ -58,7 +58,7 @@ export function NotebookBranch({ node, depth, summaries, repository, navigation,
   );
   return (
     <>
-      <ViewGroup view={{ kind: "notebook", notebookId: notebook.id }} depth={depth} expandedByDefault
+      <ViewGroup view={{ kind: "notebook", notebookId: notebook.id }} depth={depth} expandedByDefault dropsOnWholeGroup
         icon={<NotebookMark notebook={notebook} colors={notebookColors} />}
         label={notebook.content.name} summaries={summaries} navigation={navigation} repository={repository} childBranches={children}
         onContextMenu={setMenuAnchor}

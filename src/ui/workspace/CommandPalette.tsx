@@ -1,46 +1,32 @@
-// コマンドパレット。キーボードから、メモを題で探して開く。「>」で始めると、操作の名前で探して実行する。
+// コマンドパレット（Ctrl+K）。打った言葉で、メモ（題と本文）・ノートブック・タグ・設定の項目・操作をまとめて探し、
+// 種類ごとに並べる。「>」で始めると、操作だけを探す。
 
-import { Search } from "lucide-react";
-import { useState } from "react";
-import type { LiveNote } from "../../core/notes/noteRecords";
-import { translate } from "../i18n/translate";
+import { BookOpen, Command, FileText, Hash, type LucideIcon, Search, Settings } from "lucide-react";
+import { Fragment, useState } from "react";
+import { type MessageKey, translate } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { ModalDialog } from "../shared/ModalDialog";
-
-export type PaletteCommand = { id: string; label: string; shortcut: string; run: () => void };
+import { type PaletteCandidate, type PaletteItem, type PaletteItemKind, searchPalette } from "./paletteItems";
 
 type CommandPaletteProps = {
-  // 開けるメモ（ゴミ箱の外）。
-  notes: LiveNote[];
-  commands: PaletteCommand[];
-  onOpenNote: (noteId: string) => void;
+  candidates: PaletteCandidate[];
   onClose: () => void;
 };
 
-// 入力の先頭に置くと、メモではなく操作を探す印。
-const COMMAND_PREFIX = ">";
-// 一度に並べる件数。これより多いときは、打って絞ってもらう。
-const MAX_LISTED_ITEMS = 30;
+const KIND_META: Record<PaletteItemKind, { heading: MessageKey; icon: LucideIcon }> = {
+  note: { heading: "palette.group.notes", icon: FileText },
+  notebook: { heading: "palette.group.notebooks", icon: BookOpen },
+  tag: { heading: "palette.group.tags", icon: Hash },
+  setting: { heading: "palette.group.settings", icon: Settings },
+  command: { heading: "palette.group.commands", icon: Command },
+};
 
-type PaletteItem = { id: string; label: string; hint: string; run: () => void };
+const ICON_SIZE = 15;
 
-function matchesWords(label: string, query: string): boolean {
-  const haystack = label.toLocaleLowerCase();
-  return query.toLocaleLowerCase().split(/\s+/).every((word) => haystack.includes(word));
-}
-
-export function CommandPalette({ notes, commands, onOpenNote, onClose }: CommandPaletteProps) {
+export function CommandPalette({ candidates, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const searchesCommands = query.startsWith(COMMAND_PREFIX);
-  const words = (searchesCommands ? query.slice(COMMAND_PREFIX.length) : query).trim();
-  const items: PaletteItem[] = searchesCommands
-    ? commands.filter((command) => matchesWords(command.label, words)).map((command) => ({ id: command.id, label: command.label, hint: command.shortcut, run: command.run }))
-    : notes
-      .filter((note) => matchesWords(note.content.title, words))
-      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-      .slice(0, MAX_LISTED_ITEMS)
-      .map((note) => ({ id: note.id, label: note.content.title || translate("sidebar.untitled"), hint: "", run: () => onOpenNote(note.id) }));
+  const items = searchPalette(candidates, query);
   const selected = Math.min(selectedIndex, Math.max(items.length - 1, 0));
   const runItem = (item: PaletteItem | undefined) => {
     if (item) {
@@ -71,13 +57,21 @@ export function CommandPalette({ notes, commands, onOpenNote, onClose }: Command
       </label>
       <div className="note-picker-list" id="command-palette-list" role="listbox">
         {items.length === 0 && <div className="tree-empty">{translate("palette.noResults")}</div>}
-        {items.map((item, index) => (
-          <button key={item.id} id={`palette-item-${item.id}`} type="button" role="option" aria-selected={index === selected}
-            className={`menu-item${index === selected ? " on" : ""}`} onClick={() => runItem(item)}>
-            <span className="nav-label">{item.label}</span>
-            {item.hint && <kbd>{item.hint}</kbd>}
-          </button>
-        ))}
+        {items.map((item, index) => {
+          const { heading, icon: Icon } = KIND_META[item.kind];
+          const startsGroup = index === 0 || items[index - 1]!.kind !== item.kind;
+          return (
+            <Fragment key={item.id}>
+              {startsGroup && <div className="menu-heading" role="presentation">{translate(heading)}</div>}
+              <button id={`palette-item-${item.id}`} type="button" role="option" aria-selected={index === selected}
+                className={`menu-item${index === selected ? " on" : ""}`} onClick={() => runItem(item)}>
+                <Icon size={ICON_SIZE} className="palette-item-icon" />
+                <span className="nav-label">{item.label}</span>
+                {item.hint && (item.kind === "command" ? <kbd>{item.hint}</kbd> : <span className="palette-item-hint">{item.hint}</span>)}
+              </button>
+            </Fragment>
+          );
+        })}
       </div>
     </ModalDialog>
   );

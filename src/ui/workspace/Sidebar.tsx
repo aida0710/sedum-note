@@ -13,6 +13,8 @@ import { InlineNameInput } from "./InlineNameInput";
 import { NotebookBranch } from "./NotebookBranch";
 import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { SearchResults, ViewGroup } from "./SidebarViewGroup";
+import { isNoteDrag } from "./noteDrag";
+import { markNoteDropTarget } from "./noteDragState";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { useDialogs } from "../shared/DialogProvider";
@@ -111,7 +113,10 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
         </label>
       )}
       <button className="new-note" onClick={onCreateNote}><Plus size={16} />{translate("sidebar.newNote")}</button>
-      <div className="sidebar-scroll">
+      {/* 落とせる一覧の外（タグ、見出し、行の間）に来たら、落とし先の光りを消す。一覧の外へ出たときも消す。 */}
+      <div className="sidebar-scroll"
+        onDragOver={(event) => isNoteDrag(event) && markNoteDropTarget(null)}
+        onDragLeave={(event) => !event.currentTarget.contains(event.relatedTarget as Node | null) && markNoteDropTarget(null)}>
         {searching ? (
           <>
             {scopedView && (

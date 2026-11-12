@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { buildNoteGraph, layoutNoteGraph } from "./noteGraph";
+import { noteContentFixture } from "./noteFixtures";
 import type { NoteSummary } from "./noteQueries";
 
 function summary(id: string, linkedNoteIds: string[] = [], overrides: { trashedAt?: string | null; isTemplate?: boolean } = {}): NoteSummary {
@@ -8,10 +9,7 @@ function summary(id: string, linkedNoteIds: string[] = [], overrides: { trashedA
     plainText: "", tags: [], linkedNoteIds,
     note: {
       id, kind: "note", updatedAt: "2026-11-12T00:00:00.000Z", revision: 0, body: new Y.Doc().getXmlFragment("body"),
-      content: {
-        title: id, notebookIds: [], pinned: false, bookmarked: false, trashedAt: overrides.trashedAt ?? null, isTemplate: overrides.isTemplate ?? false, isOutline: false,
-        attachments: [], propertyValues: {}, createdAt: "2026-11-12T00:00:00.000Z",
-      },
+      content: noteContentFixture({ title: id, createdAt: "2026-11-12T00:00:00.000Z", ...overrides }),
     },
   };
 }

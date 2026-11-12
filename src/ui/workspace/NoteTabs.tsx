@@ -1,6 +1,9 @@
 // 案C のエディタの上のタブ。メモと設定をタブで開く。ドラッグで並べ替えられる。
+// ドラッグしている間は、元のタブを薄くし、落とす先のタブの左に印を出す。
 
 import { X } from "lucide-react";
+import { useState } from "react";
+import { showDragPreview } from "../shared/dragPreview";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { GRAPH_TAB, notebookIdOfDatabaseTab, SETTINGS_TAB, type WorkspaceNavigation } from "./useWorkspaceNavigation";
@@ -9,6 +12,13 @@ import { GRAPH_TAB, notebookIdOfDatabaseTab, SETTINGS_TAB, type WorkspaceNavigat
 const TAB_DRAG_TYPE = "application/x-sedum-note-tab";
 
 export function NoteTabs({ navigation, repository }: { navigation: WorkspaceNavigation; repository: NoteRepository }) {
+  // ドラッグしているタブと、いま上にある落とし先のタブ。
+  const [draggedTabId, setDraggedTabId] = useState<string | null>(null);
+  const [dropTargetTabId, setDropTargetTabId] = useState<string | null>(null);
+  const endTabDrag = () => {
+    setDraggedTabId(null);
+    setDropTargetTabId(null);
+  };
   if (navigation.openTabs.length === 0) {
     return null;
   }
@@ -25,10 +35,25 @@ export function NoteTabs({ navigation, repository }: { navigation: WorkspaceNavi
             : repository.note(tabId)?.content.title || translate("sidebar.untitled");
         const isOn = navigation.activeTab === tabId;
         return (
-          <div key={tabId} className={`tab${isOn ? " on" : ""}`} role="tab" aria-selected={isOn}
-            draggable onDragStart={(event) => event.dataTransfer.setData(TAB_DRAG_TYPE, tabId)}
-            onDragOver={(event) => event.dataTransfer.types.includes(TAB_DRAG_TYPE) && event.preventDefault()}
-            onDrop={(event) => navigation.moveTab(event.dataTransfer.getData(TAB_DRAG_TYPE), tabId)}
+          <div key={tabId} className={`tab${isOn ? " on" : ""}${draggedTabId === tabId ? " dragging" : ""}${dropTargetTabId === tabId && draggedTabId !== tabId ? " drop-target" : ""}`}
+            role="tab" aria-selected={isOn}
+            draggable
+            onDragStart={(event) => {
+              event.dataTransfer.setData(TAB_DRAG_TYPE, tabId);
+              showDragPreview(event, label);
+              setDraggedTabId(tabId);
+            }}
+            onDragOver={(event) => {
+              if (event.dataTransfer.types.includes(TAB_DRAG_TYPE)) {
+                event.preventDefault();
+                setDropTargetTabId(tabId);
+              }
+            }}
+            onDragEnd={endTabDrag}
+            onDrop={(event) => {
+              endTabDrag();
+              navigation.moveTab(event.dataTransfer.getData(TAB_DRAG_TYPE), tabId);
+            }}
             onClick={() => navigation.openTab(tabId)}
             onAuxClick={(event) => event.button === 1 && navigation.closeTab(tabId)}>
             <span className="tab-label">{label}</span>

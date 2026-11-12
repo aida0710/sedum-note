@@ -1,6 +1,7 @@
-// 設定: このデバイスの表示（言語、メモの並び順、本文の文字の大きさ、写真を貼るときの大きさ、タイプライターモード）。
+// 設定: このデバイスの表示（言語、メモの並び順、本文の文字の大きさ、本文の配置の既定、写真を貼るときの大きさ、タイプライターモード）。
 
 import { NOTE_SORT_ORDERS, type NoteSortOrder } from "../../core/notes/noteQueries";
+import { PAGE_ALIGNMENTS, type PageAlignment } from "../../core/notes/noteRecords";
 import { REDUCED_IMAGE_MAX_EDGE } from "../editor/reduceImage";
 import { type Language } from "../i18n/languageInUse";
 import { translate } from "../i18n/translate";
@@ -47,6 +48,17 @@ export function DisplaySection() {
         >
           {EDITOR_FONT_SIZES.map((size) => <option key={size} value={size}>{translate(`settings.editorFontSize.${size}`)}</option>)}
         </select>
+      </div>
+      <div className="field">
+        <label htmlFor="display-page-alignment">{translate("settings.pageAlignment")}</label>
+        <select
+          id="display-page-alignment"
+          value={preferences.pageAlignment}
+          onChange={(event) => updateDevicePreferences({ pageAlignment: event.target.value as PageAlignment })}
+        >
+          {PAGE_ALIGNMENTS.map((alignment) => <option key={alignment} value={alignment}>{translate(`pageAlignment.${alignment}`)}</option>)}
+        </select>
+        <span className="hint">{translate("settings.pageAlignmentHint")}</span>
       </div>
       <div className="field">
         <label htmlFor="display-image-attachment">{translate("settings.imageAttachment")}</label>

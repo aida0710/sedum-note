@@ -2,8 +2,10 @@
 
 import { useCallback, useState } from "react";
 import type { NoteView } from "../../core/notes/noteQueries";
+import type { FindRequest } from "../editor/FindBar";
 import type { BlockToReveal } from "../editor/noteLinkTargets";
 import { SETTINGS_PAGES, type SettingsPage } from "../settings/settingsPages";
+import type { SettingRevealRequest } from "../settings/revealSetting";
 
 // 設定はメモと同じくタブで開く。メモの ID（16 進）と重ならない名前にする。
 export const SETTINGS_TAB = "settings";
@@ -38,6 +40,9 @@ export type WorkspaceNavigation = {
   // 設定で開いているページ。null はまだ選んでいない（スマホではページの一覧を出す）。
   settingsPage: SettingsPage | null;
   selectSettingsPage: (page: SettingsPage | null) => void;
+  // 設定のページを開き、名前が label の項目（見出しか入力欄）まで送る（コマンドパレットから）。
+  revealSetting: (page: SettingsPage, label: string) => void;
+  settingRevealRequest: SettingRevealRequest | null;
   closeTab: (tabId: string) => void;
   // タブを、別のタブの位置へ動かす（ドラッグでの並べ替え）。
   moveTab: (tabId: string, toTabId: string) => void;
@@ -50,8 +55,9 @@ export type WorkspaceNavigation = {
   // ショートカットからの合図。押すたびに数が増え、受け取る側が欄を開いてカーソルを置く。
   searchFocusRequest: number;
   requestSearchFocus: () => void;
-  findInNoteRequest: number;
-  requestFindInNote: () => void;
+  findInNoteRequest: FindRequest;
+  // showReplace なら、置換の欄も出す（Ctrl+R）。
+  requestFindInNote: (showReplace?: boolean) => void;
 };
 
 export function viewKey(view: NoteView): string {
@@ -72,8 +78,9 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
   const [expandedOverrides, setExpandedOverrides] = useState<ReadonlyMap<string, boolean>>(new Map());
   const [searchText, setSearchText] = useState("");
   const [searchFocusRequest, setSearchFocusRequest] = useState(0);
-  const [findInNoteRequest, setFindInNoteRequest] = useState(0);
+  const [findInNoteRequest, setFindInNoteRequest] = useState<FindRequest>({ serial: 0, showReplace: false });
   const [settingsPage, setSettingsPage] = useState<SettingsPage | null>(null);
+  const [settingRevealRequest, setSettingRevealRequest] = useState<SettingRevealRequest | null>(null);
 
   const [blockToReveal, setBlockToReveal] = useState<BlockToReveal | null>(null);
 
@@ -136,9 +143,14 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
 
   return {
     view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote, blockToReveal, openTab, openSettings, closeTab, moveTab,
-    settingsPage, selectSettingsPage: setSettingsPage,
+    settingsPage, selectSettingsPage: setSettingsPage, settingRevealRequest,
+    revealSetting: (page, label) => {
+      setSettingRevealRequest((previous) => ({ serial: (previous?.serial ?? 0) + 1, label }));
+      openSettings(page);
+    },
     isExpanded, setExpanded, searchText, setSearchText,
     searchFocusRequest, requestSearchFocus: () => setSearchFocusRequest((count) => count + 1),
-    findInNoteRequest, requestFindInNote: () => setFindInNoteRequest((count) => count + 1),
+    findInNoteRequest,
+    requestFindInNote: (showReplace = false) => setFindInNoteRequest(({ serial }) => ({ serial: serial + 1, showReplace: showReplace === true })),
   };
 }
