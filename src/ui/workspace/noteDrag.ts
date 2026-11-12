@@ -5,30 +5,21 @@
 import type { NoteView } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { showDragPreview } from "../shared/dragPreview";
+import { carriesDraggedNote, type DraggedNote, readDraggedNote, writeDraggedNote } from "../shared/noteDragData";
 import { beginNoteDragState, type DraggedNoteState, endNoteDragState } from "./noteDragState";
 import { viewKey } from "./useWorkspaceNavigation";
-
-// ドラッグのデータの種類。ほかのアプリやファイルのドラッグと区別する。
-const NOTE_DRAG_TYPE = "application/x-sedum-note";
-
-type DraggedNote = {
-  noteId: string;
-  // ドラッグを始めた一覧がノートブックなら、その ID。落とした先へ「移す」のに使う。
-  fromNotebookId: string | null;
-};
 
 type NoteDragInput = { noteId: string; title: string; fromView: NoteView };
 
 export function startNoteDrag(event: React.DragEvent, { noteId, title, fromView }: NoteDragInput): void {
   const dragged: DraggedNote = { noteId, fromNotebookId: fromView.kind === "notebook" ? fromView.notebookId : null };
-  event.dataTransfer.setData(NOTE_DRAG_TYPE, JSON.stringify(dragged));
-  event.dataTransfer.effectAllowed = "move";
+  writeDraggedNote(event.dataTransfer, dragged);
   showDragPreview(event, title);
   beginNoteDragState({ ...dragged, fromViewKey: viewKey(fromView) });
 }
 
 export function isNoteDrag(event: React.DragEvent): boolean {
-  return event.dataTransfer.types.includes(NOTE_DRAG_TYPE);
+  return carriesDraggedNote(event.dataTransfer);
 }
 
 // メモを落とせる一覧か。タグは本文から決まるので、落としても付けられない。
@@ -49,12 +40,12 @@ type NoteDropActions = {
 
 // 落とした先に合わせてメモを変える。
 export async function dropNoteOnView(event: React.DragEvent, view: NoteView, { repository, moveToTrash }: NoteDropActions): Promise<void> {
-  const data = event.dataTransfer.getData(NOTE_DRAG_TYPE);
+  const dragged = readDraggedNote(event.dataTransfer);
   endNoteDragState();
-  if (data === "") {
+  if (dragged === null) {
     return;
   }
-  const { noteId, fromNotebookId } = JSON.parse(data) as DraggedNote;
+  const { noteId, fromNotebookId } = dragged;
   const note = repository.note(noteId);
   if (!note) {
     return;

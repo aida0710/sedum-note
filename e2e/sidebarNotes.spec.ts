@@ -183,3 +183,19 @@ test("タブを右クリックすると、ほか・右のタブを閉じたり�
   await expect(page.getByRole("tab", { name: "三" })).toHaveAttribute("aria-selected", "true");
 });
 
+test("左の列のメモを本文へドラッグすると、落とした所にそのメモへのリンクが入る", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "旅行の持ち物");
+  await createNoteOnDesktop(page, "週の予定");
+  await page.keyboard.type("金曜に確認する");
+
+  const source = noteRow(page, "旅行の持ち物").locator(".tree-note");
+  const paragraph = page.locator(".ProseMirror p", { hasText: "金曜に確認する" });
+  await source.hover();
+  await page.mouse.down();
+  const box = (await paragraph.boundingBox())!;
+  await page.mouse.move(box.x + 140, box.y + box.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator(".ProseMirror .note-link")).toHaveText("旅行の持ち物");
+});
+

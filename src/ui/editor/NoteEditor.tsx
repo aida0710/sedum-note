@@ -30,6 +30,7 @@ import { deleteCapturedPhotos } from "../platform/capturedPhotos";
 import { DocumentScanDialog } from "./DocumentScanDialog";
 import { zoomIntoCursor, zoomTargetAtCursor } from "./zoom";
 import { useRememberedNoteView } from "./rememberedNoteView";
+import { insertDroppedNoteLink } from "./droppedNoteLink";
 import { NoteZoomBar } from "./NoteZoomBar";
 import { convertBodyToOutline } from "./outlineConversion";
 import { revealBlock } from "./blockIds";
@@ -119,7 +120,8 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
     editable: !inTrash,
     editorProps: {
       handlePaste: (_view, event) => attachments.takeFiles(Array.from(event.clipboardData?.files ?? [])) || takeMarkdown(event.clipboardData),
-      handleDrop: (_view, event) => attachments.takeFiles(Array.from((event as DragEvent).dataTransfer?.files ?? [])),
+      // ファイルなら添付し、左の列のメモならリンクを入れる。
+      handleDrop: (view, event) => attachments.takeFiles(Array.from((event as DragEvent).dataTransfer?.files ?? [])) || insertDroppedNoteLink(view, event as DragEvent, noteId),
     },
     // アウトライン表示を切り替えたら、入れる機能が変わるので、エディタを作り直す。
   }, [noteId, isOutline]);
