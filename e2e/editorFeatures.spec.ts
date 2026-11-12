@@ -204,7 +204,7 @@ test("メニューから開いたダイアログも、Escape で閉じられる"
   await expect(page.getByRole("dialog", { name: "履歴" })).toBeHidden();
 });
 
-test("履歴から、書き直す前の状態を別のメモとして復元できる", async ({ page }) => {
+test("履歴から、書き直す前の状態にそのメモを戻せる。戻す前の状態は「復元の前」として履歴に残る", async ({ page }) => {
   await page.clock.install({ time: new Date("2026-11-11T09:00:00+09:00") });
   await startLocalVault(page);
   await newNote(page, "議事録");
@@ -228,12 +228,22 @@ test("履歴から、書き直す前の状態を別のメモとして復元で�
   const history = page.getByRole("dialog", { name: "履歴" });
   await expect(history.getByRole("option")).toHaveCount(1);
   await expect(history.locator(".note-history-preview")).toContainText("書き直す前の文");
-  await history.getByRole("button", { name: "別のメモとして復元" }).click();
+  await history.getByRole("button", { name: "このバージョンに戻す" }).click();
 
-  await expect(page.getByPlaceholder("タイトル")).toHaveValue(/^議事録（.+ の版）$/);
+  // 別のメモは作らず、開いているメモがそのまま戻る。
+  await expect(history).toBeHidden();
+  await expect(page.getByRole("status").filter({ hasText: "このバージョンに戻しました" })).toHaveText("このバージョンに戻しました。戻す前の状態は履歴に残っています");
   await expect(page.locator(".ProseMirror")).toHaveText("書き直す前の文");
-  await page.getByRole("tab", { name: "議事録", exact: true }).click();
-  await expect(page.locator(".ProseMirror")).toHaveText("書き直した文");
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("議事録");
+  await expect(page.getByRole("tab", { name: /議事録/ })).toHaveCount(1);
+  await expect(page.locator(".tree-note", { hasText: "議事録" })).toHaveCount(1);
+
+  await page.getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "履歴" }).click();
+  await expect(history.getByRole("option")).toHaveCount(2);
+  await expect(history.getByRole("option").first()).toContainText("復元の前");
+  await history.getByRole("option").first().click();
+  await expect(history.locator(".note-history-preview")).toContainText("書き直した文");
 });
 
 test("スマホで、リンクから別のメモを開いたあとも、端末の「戻る」1 回で一覧に戻り、アプリの外へ出ない", async ({ browser }) => {

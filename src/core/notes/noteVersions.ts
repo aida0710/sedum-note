@@ -1,5 +1,6 @@
-// メモの履歴。本文を編集し始める前の状態と、ほかのデバイスの変更を取り込む前の状態を残す。
-// 編集と置き換えの前の状態は、同期先にも置く（sync/versionSync.ts）。バックアップには入れない。
+// メモの履歴。本文を編集し始める前の状態、本文を丸ごと書き換える前（置き換えと、履歴の版への復元）の状態、
+// ほかのデバイスの変更を取り込む前の状態を残す。
+// 取り込みの前の状態のほかは、同期先にも置く（sync/versionSync.ts）。バックアップには入れない。
 // 残す数と期間の決まりは versionRetention.ts。
 //
 // 残すのは、手元に保存してあった記録の暗号文そのもの。記録の ID に結び付いているので、
@@ -16,6 +17,9 @@ import { versionsToRemove } from "./versionRetention";
 // 編集の前の状態を残す間隔。打つたびに残すと増えすぎるので、前に残してから（まだ残していなければ、
 // メモを作ってから）これだけ空いたあとの編集で残す。
 export const EDIT_VERSION_INTERVAL_MILLISECONDS = 10 * 60 * 1000;
+
+// 本文を丸ごと書き換える理由。replace は MCP・プラグインの置き換え、restore は履歴の版への復元。
+export type OverwriteReason = Extract<LocalVersionEntry["reason"], "replace" | "restore">;
 
 export type NoteVersion = {
   id: string;
@@ -35,8 +39,8 @@ export type NoteVersionHistoryDependencies = {
 
 export class NoteVersionHistory {
   readonly #dependencies: NoteVersionHistoryDependencies;
-  // メモごとの、次の「編集の前」を残す間隔の起点（ミリ秒）。最後に残した時刻か、まだ残していなければ
-  // メモを作った時刻。まだ調べていないメモは入っていない。
+  // メモごとの、次の「編集の前」を残す間隔の起点（ミリ秒）。最後に「編集の前」か「書き換えの前」を残した時刻か、
+  // まだ残していなければメモを作った時刻。まだ調べていないメモは入っていない。
   readonly #editCaptureBaselines = new Map<string, number>();
 
   constructor(dependencies: NoteVersionHistoryDependencies) {
@@ -75,9 +79,11 @@ export class NoteVersionHistory {
     await this.#removeOutdatedVersions(recordId);
   }
 
-  // 本文を丸ごと置き換える直前に呼ぶ。間隔を空けずに毎回残す（数は「編集の前」と合わせて上限まで）。
-  async captureBeforeReplace(recordId: string, sealedBeforeReplace: Uint8Array): Promise<void> {
-    await this.#put(recordId, "replace", sealedBeforeReplace);
+  // 本文を丸ごと書き換える直前に呼ぶ。間隔を空けずに毎回残す（数は「編集の前」と合わせて上限まで）。
+  // 書き換えたあとの保存でも「編集の前」を残そうとするが、残すのは同じ状態なので、ここを間隔の起点にして重ねない。
+  async captureBeforeOverwrite(recordId: string, sealedBeforeOverwrite: Uint8Array, reason: OverwriteReason): Promise<void> {
+    await this.#put(recordId, reason, sealedBeforeOverwrite);
+    this.#editCaptureBaselines.set(recordId, this.#dependencies.now().getTime());
     await this.#removeOutdatedVersions(recordId);
   }
 
@@ -132,14 +138,15 @@ export class NoteVersionHistory {
     });
   }
 
-  // 手元の履歴から起点を決める。「編集の前」が 1 つも無ければ null（起点は文書を開いて決める）。
+  // 手元の履歴から起点を決める。「編集の前」も「書き換えの前」も 1 つも無ければ null（起点は文書を開いて決める）。
+  // 「取り込みの前」は、このデバイスの編集とは関わりなく残るので、起点にしない。
   async #editCaptureBaseline(recordId: string): Promise<number | null> {
     const known = this.#editCaptureBaselines.get(recordId);
     if (known !== undefined) {
       return known;
     }
     const captureTimes = (await this.#dependencies.localStore.listVersions(recordId))
-      .filter((version) => version.reason === "edit")
+      .filter((version) => version.reason !== "sync")
       .map((version) => new Date(version.capturedAt).getTime());
     if (captureTimes.length === 0) {
       return null;

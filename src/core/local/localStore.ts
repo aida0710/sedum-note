@@ -29,8 +29,8 @@ export type LocalVersionEntry = {
   // ISO 8601。この状態を残した時刻。
   capturedAt: string;
   // edit は編集を始める前の状態、sync はほかのデバイスの変更を取り込む前の状態、
-  // replace は本文を丸ごと置き換える前（MCP からの書き換え）の状態。
-  reason: "edit" | "sync" | "replace";
+  // replace は本文を丸ごと置き換える前（MCP・プラグインの書き換え）の状態、restore は履歴の版へ戻す前の状態。
+  reason: "edit" | "sync" | "replace" | "restore";
   // 記録と同じ形の暗号文（recordCodec.ts）。記録の ID に結び付いている。
   sealed: Uint8Array;
   // 同期先へ送り終えたか（同期先から取ってきたものも true）。sync の版は、そのデバイスの控えなので送らない。

@@ -420,8 +420,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
           onSave={(dueAt) => { setDueTarget(null); setTaskDueAtCursor(editor, dueAt); }} />
       )}
       {showingHistory && (
-        <NoteHistoryDialog note={note} repository={repository} onClose={() => setShowingHistory(false)}
-          onRestored={(restoredNoteId) => { setShowingHistory(false); openNote(restoredNoteId); }} />
+        <NoteHistoryDialog note={note} repository={repository} onClose={() => setShowingHistory(false)} />
       )}
     </>
   );

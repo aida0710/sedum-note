@@ -1,4 +1,4 @@
-// メモの履歴を見て、選んだ版を別のメモとして復元するダイアログ。
+// メモの履歴を見て、選んだ版の中身にそのメモを戻すダイアログ。戻す前の状態は履歴に残るので、戻す前には確かめない。
 
 import { useEffect, useState } from "react";
 import type { LiveNote } from "../../core/notes/noteRecords";
@@ -7,16 +7,17 @@ import type { NoteVersion } from "../../core/notes/noteVersions";
 import { translate } from "../i18n/translate";
 import { formatDateTime } from "../shared/formatTime";
 import { ModalDialog } from "../shared/ModalDialog";
+import { useToast } from "../shared/ToastProvider";
 import { useAsyncAction } from "../shared/useAsyncAction";
 
 type NoteHistoryDialogProps = {
   note: LiveNote;
   repository: NoteRepository;
-  onRestored: (restoredNoteId: string) => void;
   onClose: () => void;
 };
 
-export function NoteHistoryDialog({ note, repository, onRestored, onClose }: NoteHistoryDialogProps) {
+export function NoteHistoryDialog({ note, repository, onClose }: NoteHistoryDialogProps) {
+  const showToast = useToast();
   // 読み込むまでは null。
   const [versions, setVersions] = useState<NoteVersion[] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -42,11 +43,9 @@ export function NoteHistoryDialog({ note, repository, onRestored, onClose }: Not
   const selected = versions?.find((version) => version.id === selectedId);
 
   const restore = useAsyncAction(async (version: NoteVersion) => {
-    const title = translate("history.restoredTitle", {
-      title: version.title || translate("sidebar.untitled"),
-      time: formatDateTime(version.updatedAt),
-    });
-    onRestored((await repository.restoreVersionAsNewNote({ noteId: note.id, versionId: version.id, title })).id);
+    await repository.restoreNoteToVersion({ noteId: note.id, versionId: version.id });
+    onClose();
+    showToast({ message: translate("history.restored") });
   });
 
   return (

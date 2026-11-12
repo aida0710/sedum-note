@@ -114,7 +114,7 @@ test("写真は貼り付けとドロップでも本文に入る", async ({ brows
   await expect(page.locator(".attachment-image .file-name")).toHaveText(["paste.png", "drop.png"]);
 });
 
-test("1 台で残した履歴を、もう 1 台の履歴のダイアログで見られ、そこから復元できる", async ({ browser }) => {
+test("1 台で残した履歴を、もう 1 台の履歴のダイアログで見られ、そこからそのメモを戻せる。戻した中身は、もう 1 台にも届く", async ({ browser }) => {
   const remoteConfig = await newTestRemoteConfig();
   const laptop = await newDevice(browser, DESKTOP_VIEWPORT);
   // 履歴は 10 分おきに残るので、書いた側の時計を進める。
@@ -137,6 +137,12 @@ test("1 台で残した履歴を、もう 1 台の履歴のダイアログで見
   const history = desktop.getByRole("dialog", { name: "履歴" });
   await expect(history.getByRole("option")).toHaveCount(1);
   await expect(history.locator(".note-history-preview")).toContainText("書き直す前の文");
-  await history.getByRole("button", { name: "別のメモとして復元" }).click();
+  await history.getByRole("button", { name: "このバージョンに戻す" }).click();
   await expect(desktop.locator(".ProseMirror")).toHaveText("書き直す前の文");
+  await expect(desktop.locator(".tree-note", { hasText: "議事録" })).toHaveCount(1);
+
+  // 戻した中身は、新しい編集として同期され、書いた側でも開いたままのエディタに出る。
+  await syncNowOnDesktop(desktop, "議事録");
+  await syncNowOnDesktop(laptop, "議事録");
+  await expect(laptop.locator(".ProseMirror")).toHaveText("書き直す前の文");
 });

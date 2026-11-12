@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { newRandomId } from "../crypto/randomId";
 import { IndexedDbLocalStore } from "../local/indexedDbLocalStore";
 import { appendParagraph } from "../notes/bodyFixtures";
+import { bodyPlainText } from "../notes/bodyText";
 import { EDIT_VERSION_INTERVAL_MILLISECONDS } from "../notes/noteVersions";
 import { MAX_VERSIONS_PER_NOTE, VERSION_RETENTION_DAYS } from "../notes/versionRetention";
 import { MemoryObjectStore } from "../remote/memoryObjectStore";
@@ -13,6 +14,7 @@ import { VERSIONS_PREFIX } from "./remoteLayout";
 import { MAX_VERSION_UPLOADS_PER_SYNC, REMOTE_VERSION_SWEEP_INTERVAL_MILLISECONDS } from "./versionSync";
 
 const PASSPHRASE = "correct horse battery";
+const MINUTE = 60_000;
 const DAY = 24 * 60 * 60 * 1000;
 const remoteConfig: RemoteConfig = {
   endpoint: "https://s3.example.com", bucket: "notes", region: "auto", prefix: "", accessKeyId: "k", secretAccessKey: "s",
@@ -62,13 +64,60 @@ describe("履歴の同期", () => {
     await sync(phone);
     expect(await remoteVersionCount(store)).toBe(2);
     expect(await historyTexts(phone, note.id)).toEqual(["1 行目\n2 行目", "1 行目"]);
-    // 取ってきた版から、別のメモとして復元できる。
-    const version = (await phone.repository.noteVersions(note.id)).find((candidate) => candidate.plainText === "1 行目")!;
-    const restored = await phone.repository.restoreVersionAsNewNote({ noteId: note.id, versionId: version.id, title: "復元" });
-    expect(restored.body.toString()).toContain("1 行目");
     // もう一度同期しても、取ってきた版を送り直さない。
     await sync(phone);
     expect(await remoteVersionCount(store)).toBe(2);
+  });
+
+  it("もう 1 台で取ってきた版にメモを戻すと、戻した中身も「復元の前」の版も、書いた側に届く", async () => {
+    const { store, laptop, phone, advance, writeLineAfterInterval } = await twoDevices();
+    const note = await laptop.repository.createNote({ title: "議事録" });
+    appendParagraph(note.body, "1 行目");
+    await laptop.repository.flush();
+    await writeLineAfterInterval(laptop, note.id, "2 行目");
+    await sync(laptop);
+    await sync(phone);
+    await phone.repository.downloadNoteVersions(note.id);
+    const [version] = await phone.repository.noteVersions(note.id);
+
+    advance(MINUTE);
+    await phone.repository.restoreNoteToVersion({ noteId: note.id, versionId: version!.id });
+    await sync(phone);
+    await sync(laptop);
+    expect(await remoteVersionCount(store)).toBe(2);
+    expect(bodyPlainText(laptop.repository.note(note.id)!.body)).toBe("1 行目");
+    await laptop.repository.downloadNoteVersions(note.id);
+    expect((await laptop.repository.noteVersions(note.id)).filter((kept) => kept.reason !== "sync").map((kept) => [kept.reason, kept.plainText])).toEqual([
+      ["restore", "1 行目\n2 行目"],
+      ["edit", "1 行目"],
+    ]);
+  });
+
+  it("2 台が同時に、片方は版に戻し、片方は編集しても、マージした結果が両方で同じになる", async () => {
+    const { laptop, phone, advance, writeLineAfterInterval } = await twoDevices();
+    const note = await laptop.repository.createNote({ title: "議事録" });
+    appendParagraph(note.body, "1 行目");
+    await laptop.repository.flush();
+    await writeLineAfterInterval(laptop, note.id, "2 行目");
+    await sync(laptop);
+    await sync(phone);
+    const [version] = await laptop.repository.noteVersions(note.id);
+
+    advance(MINUTE);
+    await laptop.repository.restoreNoteToVersion({ noteId: note.id, versionId: version!.id });
+    await phone.repository.updateNote(note.id, { pinned: true });
+    appendParagraph(phone.repository.note(note.id)!.body, "スマホで足した行");
+    await phone.repository.flush();
+    await sync(laptop);
+    await sync(phone);
+    await sync(laptop);
+
+    const laptopBody = laptop.repository.note(note.id)!.body;
+    const phoneBody = phone.repository.note(note.id)!.body;
+    expect(phoneBody.toString()).toBe(laptopBody.toString());
+    // 戻した中身も、同時に足した行も残る。
+    expect(bodyPlainText(phoneBody)).toBe("1 行目\nスマホで足した行");
+    expect(laptop.repository.note(note.id)!.content.pinned).toBe(true);
   });
 
   it("同期先には、履歴の本文も、残した理由も平文で置かない", async () => {

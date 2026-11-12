@@ -12,13 +12,14 @@ import { open, seal } from "../crypto/sealedBox";
 import type { LocalRecordEntry, LocalStore } from "../local/localStore";
 import type { WriteQueue } from "../local/serialQueue";
 import { blobBinding } from "../sync/remoteLayout";
+import { copyBodyBlocks, replaceBodyWithCopyOf } from "./bodyCopy";
 import { bodyAttachments } from "./bodyText";
 import { databaseViewFromField } from "./databaseView";
 import { isDueTime } from "./dueTimes";
 import { linkFirstMention } from "./noteMentions";
 import { PROPERTY_DEFINITION_FIELD_PREFIX, PROPERTY_VALUE_FIELD_PREFIX, type PropertyDefinition, propertyDefinitionFromField, type PropertyValue } from "./noteProperties";
 import { type AttachmentReference, type LiveNote, type LiveNotebook, type LiveRecord, type LiveSavedSearch, type NotebookContent, PAGE_ALIGNMENTS, type PageAlignment, type SavedSearchContent } from "./noteRecords";
-import { type NoteVersion, NoteVersionHistory } from "./noteVersions";
+import { type NoteVersion, NoteVersionHistory, type OverwriteReason } from "./noteVersions";
 import type { RecordChangeChannel } from "./recordChangeChannel";
 import { openRecordPayload, type RecordPayload, sealRecordPayload } from "./recordCodec";
 import {
@@ -207,7 +208,7 @@ export class NoteRepository {
   }
 
   // 完全に削除する。ほかのデバイスに伝えるため、削除の印を残す。貼ってあった添付も消す。
-  // 履歴から復元したメモは同じ添付を指すので、ほかのメモがまだ使っている添付は消さない。
+  // 複製やテンプレートから作ったメモは同じ添付を指すので、ほかのメモの今の本文がまだ使っている添付は消さない。
   async removeNotePermanently(id: string): Promise<void> {
     const usedElsewhere = new Set(this.notes().filter((note) => note.id !== id).flatMap((note) => note.content.attachments.map((attachment) => attachment.id)));
     const attachmentIds = bodyAttachments(recordBody(this.#liveDocument(id, "note")))
@@ -228,27 +229,34 @@ export class NoteRepository {
     return this.#versionHistory.list(noteId);
   }
 
-  // 本文を丸ごと置き換える前に呼ぶ。間隔に関わらず、今の状態を履歴に残す（置き換えを取り消せるように）。
+  // 本文を丸ごと置き換える前（MCP・プラグイン）に呼ぶ。間隔に関わらず、今の状態を履歴に残す（置き換えを取り消せるように）。
   async captureVersionBeforeReplace(noteId: string): Promise<void> {
-    await this.flush();
-    const stored = await this.#dependencies.localStore.getRecordEntry(noteId);
-    if (stored && this.#view(noteId)?.kind === "note") {
-      await this.#versionHistory.captureBeforeReplace(noteId, stored.sealed);
-    }
+    await this.#captureVersionBeforeOverwrite(noteId, "replace");
   }
 
-  // 履歴の版を、新しい別のメモとして作る。今のメモは変えない。版が無ければ RecordNotFoundError。
-  async restoreVersionAsNewNote(input: { noteId: string; versionId: string; title: string }): Promise<LiveNote> {
+  // メモを、履歴の版の中身に戻す。別のメモは作らず、このメモを書き換える。戻す前の状態は「復元の前」として履歴に残す。
+  // メモか版が無ければ RecordNotFoundError。
+  //
+  // 版の Yjs の状態を今の文書にマージしても、何も戻らない（版の操作は、今の文書にもう含まれている）。版の本文を写して、
+  // 今の本文への新しい操作として書く。そのため、エディタで開いたままでも、ほかのデバイスの同時の編集とも、ふつうの編集と
+  // 同じくマージされる。
+  async restoreNoteToVersion(input: { noteId: string; versionId: string }): Promise<void> {
+    // メモが無ければ、版を開く前に断る。
+    this.#liveDocument(input.noteId, "note");
     const versionDocument = await this.#versionHistory.openVersionDocument(input.noteId, input.versionId);
     if (versionDocument === null) {
       throw new RecordNotFoundError(input.versionId);
     }
-    const restored = await this.#createNoteWithBodyOf(recordBody(versionDocument), {
-      title: input.title, notebookIds: this.note(input.noteId)?.content.notebookIds ?? [],
-      pageAlignment: this.note(input.noteId)?.content.pageAlignment ?? null,
-    });
-    versionDocument.destroy();
-    return restored;
+    try {
+      await this.#captureVersionBeforeOverwrite(input.noteId, "restore");
+      // 履歴を残す間に、ほかのウィンドウや同期が文書を入れ替えていることがあるので、取り直す。
+      const doc = this.#liveDocument(input.noteId, "note");
+      replaceBodyWithCopyOf(recordBody(doc), recordBody(versionDocument));
+      this.#writeNoteChanges(doc, restoredNoteChanges({ current: doc, version: versionDocument }));
+      await this.flush();
+    } finally {
+      versionDocument.destroy();
+    }
   }
 
   // テンプレートと同じ本文の、新しいメモを作る。テンプレートは変えない。
@@ -288,7 +296,7 @@ export class NoteRepository {
     const heading = new Y.XmlElement("heading");
     heading.setAttribute("level", MERGED_NOTE_HEADING_LEVEL as never);
     heading.insert(0, [new Y.XmlText(source.content.title)]);
-    targetBody.insert(targetBody.length, [heading, ...source.body.toArray().map((node) => node.clone() as Y.XmlElement)]);
+    targetBody.insert(targetBody.length, [heading, ...copyBodyBlocks(source.body)]);
     await this.moveNoteToTrash(sourceId);
   }
 
@@ -297,7 +305,7 @@ export class NoteRepository {
   async #createNoteWithBodyOf(sourceBody: Y.XmlFragment, changes: NoteChanges, variableValues: TemplateVariableValues | null = null): Promise<LiveNote> {
     const id = newRandomId();
     const doc = this.#newDocument(id, "note");
-    recordBody(doc).insert(0, sourceBody.toArray().map((node) => node.clone() as Y.XmlElement));
+    recordBody(doc).insert(0, copyBodyBlocks(sourceBody));
     if (variableValues !== null) {
       replaceTemplateVariablesInBody(recordBody(doc), variableValues);
     }
@@ -493,6 +501,15 @@ export class NoteRepository {
   }
 
   // ── 内部 ──────────────────────────────────────────
+
+  // 本文を丸ごと書き換える前に、今の状態を履歴に残す。まだ保存していない入力を先に保存し、それも含めて残す。
+  async #captureVersionBeforeOverwrite(noteId: string, reason: OverwriteReason): Promise<void> {
+    await this.flush();
+    const stored = await this.#dependencies.localStore.getRecordEntry(noteId);
+    if (stored && this.#view(noteId)?.kind === "note") {
+      await this.#versionHistory.captureBeforeOverwrite(noteId, stored.sealed, reason);
+    }
+  }
 
   #newDocument(id: string, kind: RecordKind): Y.Doc {
     const doc = new Y.Doc();
@@ -739,6 +756,25 @@ export class NoteRepository {
       listener(origin);
     }
   }
+}
+
+// 履歴の版へ戻すときに書く項目。戻すのは、本文の中身を表すもの（タイトルと、アウトライン表示か）だけ。
+// アウトライン表示は本文の形（1 つの箇条書き）を決めるので、本文と揃えて戻す。揃えないと、次に打ったときに
+// アウトライン表示が本文を箇条書きに組み直してしまう。
+// ノートブック・ピン留め・お気に入り・ゴミ箱・期限・テンプレート・本文の配置・プロパティの値は、整理と表示のための項目で、
+// 履歴の画面には出ない。戻すと、利用者が見ていないところで変わるので、今のままにする。
+// 今と同じ値は書かない。書くと、ほかのデバイスが同時に変えたタイトルを、古い値で上書きしてしまう（項目は新しく書いた方を取る）。
+function restoredNoteChanges({ current, version }: { current: Y.Doc; version: Y.Doc }): NoteChanges {
+  const changes: NoteChanges = {};
+  const title = readField<string>(version, "title") ?? "";
+  if (title !== (readField<string>(current, "title") ?? "")) {
+    changes.title = title;
+  }
+  const isOutline = readField<boolean>(version, "isOutline") ?? false;
+  if (isOutline !== (readField<boolean>(current, "isOutline") ?? false)) {
+    changes.isOutline = isOutline;
+  }
+  return changes;
 }
 
 function notebookIdsOf(doc: Y.Doc): string[] {

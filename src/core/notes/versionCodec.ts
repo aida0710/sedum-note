@@ -4,10 +4,15 @@
 // 同期先には見せない。binding に記録と版の ID を入れるので、別の名前のオブジェクトへ写しても開けない。
 
 import { open, seal } from "../crypto/sealedBox";
+import type { LocalVersionEntry } from "../local/localStore";
+
+// sync（ほかのデバイスの変更を取り込む前）の版は、そのデバイスの控えなので同期先には置かない。
+type SyncedVersionReason = Exclude<LocalVersionEntry["reason"], "sync">;
+
+const SYNCED_VERSION_REASONS: ReadonlySet<unknown> = new Set<SyncedVersionReason>(["edit", "replace", "restore"]);
 
 export type VersionPayload = {
-  // sync（ほかのデバイスの変更を取り込む前）の版は、そのデバイスの控えなので同期先には置かない。
-  reason: "edit" | "replace";
+  reason: SyncedVersionReason;
   // ISO 8601。
   capturedAt: string;
   // 記録と同じ形の暗号文（recordCodec.ts）。
@@ -55,8 +60,8 @@ export async function openVersionPayload(masterKey: CryptoKey, identity: Version
   } catch {
     throw new InvalidVersionError();
   }
-  if (headerEnd > plaintext.length || (header.reason !== "edit" && header.reason !== "replace") || typeof header.capturedAt !== "string" || Number.isNaN(Date.parse(header.capturedAt))) {
+  if (headerEnd > plaintext.length || !SYNCED_VERSION_REASONS.has(header.reason) || typeof header.capturedAt !== "string" || Number.isNaN(Date.parse(header.capturedAt))) {
     throw new InvalidVersionError();
   }
-  return { reason: header.reason, capturedAt: header.capturedAt, sealedRecord: plaintext.slice(headerEnd) };
+  return { reason: header.reason as SyncedVersionReason, capturedAt: header.capturedAt, sealedRecord: plaintext.slice(headerEnd) };
 }
