@@ -56,17 +56,17 @@ export function NoteBacklinks({ note, backlinks, unlinkedMentions, repository, o
           </h2>
           {showsMentions && unlinkedMentions.map(({ note: mentioning, excerpt }) => (
             <div key={mentioning.id} className="unlinked-mention">
-              <button type="button" className="menu-item" onClick={() => onOpenNote(mentioning.id)}>
-                <FileText size={BACKLINK_ICON_SIZE} />
-                <span className="unlinked-mention-text">
+              <div className="unlinked-mention-head">
+                <button type="button" className="menu-item" onClick={() => onOpenNote(mentioning.id)}>
+                  <FileText size={BACKLINK_ICON_SIZE} />
                   <span className="nav-label">{titleOf(mentioning)}</span>
-                  <span className="unlinked-mention-excerpt">{excerpt}</span>
-                </span>
-              </button>
-              <button type="button" className="secondary-button" aria-label={translate("editor.linkMentionIn", { title: titleOf(mentioning) })}
-                onClick={() => void linkMention(mentioning.id)}>
-                {translate("editor.linkMention")}
-              </button>
+                </button>
+                <button type="button" className="secondary-button" aria-label={translate("editor.linkMentionIn", { title: titleOf(mentioning) })}
+                  onClick={() => void linkMention(mentioning.id)}>
+                  {translate("editor.linkMention")}
+                </button>
+              </div>
+              <p className="unlinked-mention-excerpt">{excerpt}</p>
             </div>
           ))}
         </>

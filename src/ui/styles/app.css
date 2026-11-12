@@ -191,10 +191,11 @@ button:disabled { cursor: default; opacity: .55; }
 .backlinks h2 { font-size: var(--font-size-small); font-weight: 600; color: var(--muted); margin: 0 0 6px; }
 .backlinks .menu-item + h2 { margin-top: 16px; }
 .unlinked-mentions-toggle { display: inline-flex; align-items: center; gap: 4px; color: inherit; font: inherit; }
-.unlinked-mention { display: flex; align-items: center; gap: 8px; }
-.unlinked-mention .menu-item { flex: 1; min-width: 0; }
-.unlinked-mention-text { display: flex; flex-direction: column; min-width: 0; text-align: left; }
-.unlinked-mention-excerpt { color: var(--muted); font-size: var(--font-size-small); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.unlinked-mention-head { display: flex; align-items: center; gap: 8px; }
+/* 題の行は「リンクにする」のボタンと同じ高さにする。 */
+.unlinked-mention-head .menu-item { flex: 1; min-width: 0; min-height: var(--control-height); padding-block: 0; }
+/* 抜き出しは、題の文字の頭（行の左の余白 10px + アイコン 14px + 間 10px）にそろえる。 */
+.unlinked-mention-excerpt { margin: 0 0 6px 34px; color: var(--muted); font-size: var(--font-size-small); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sidebar-brand-actions { margin-left: auto; display: flex; gap: 2px; }
 .sidebar-brand .sidebar-brand-actions .icon-button { margin-left: 0; }
 
@@ -260,7 +261,7 @@ button:disabled { cursor: default; opacity: .55; }
 /* タブの並びと、右端の「開いているタブの一覧」のボタン。タブが多いときは並びだけを横に送り、ボタンは右端に残す。 */
 .tabs-bar { display: flex; flex: none; background: var(--sidebar); }
 .tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--line); background: var(--sidebar); overflow-x: auto; flex: 1; min-width: 0; scrollbar-width: none; }
-.tabs-end { display: flex; align-items: center; padding: 6px 8px 0; border-bottom: 1px solid var(--line); flex: none; }
+.tabs-end { display: flex; align-items: center; padding: 8px 8px 0; border-bottom: 1px solid var(--line); flex: none; }
 .tab .tab-pin { color: var(--muted); flex: none; }
 .tab { display: flex; align-items: center; gap: 6px; padding: 7px 8px 7px 14px; border-radius: var(--radius-control) var(--radius-control) 0 0; color: var(--muted); font-size: var(--font-size-small); max-width: 220px; flex: none; border: 1px solid transparent; }
 .tab .tab-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -349,7 +350,8 @@ button:disabled { cursor: default; opacity: .55; }
 .ProseMirror ul:not([data-type="taskList"]), .ProseMirror ol { cursor: pointer; }
 .ProseMirror li > * { cursor: text; }
 /* 見出しの右端の、セクションにズームするボタン。ポインターを乗せた見出しにだけ出す（スマホは乗せられないので、薄く出したままにする）。 */
-.ProseMirror .section-zoom { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: 6px; vertical-align: middle; border-radius: var(--radius-row); color: var(--muted); opacity: 0; }
+/* 見出しのズームのボタン。vertical-align: middle では、大きい見出しで文字の中心より下に来るので、行の上端に付けてから行の高さの中心へ下げる。 */
+.ProseMirror .section-zoom { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: 6px; vertical-align: top; margin-top: calc((1lh - 22px) / 2); border-radius: var(--radius-row); color: var(--muted); opacity: 0; }
 .ProseMirror :is(h1, h2, h3, h4, h5, h6):hover > .section-zoom, .ProseMirror .section-zoom:focus-visible { opacity: 1; }
 .ProseMirror .section-zoom:hover { background: var(--selected); color: var(--accent); }
 @media (hover: none) { .ProseMirror .section-zoom { opacity: .45; } }
