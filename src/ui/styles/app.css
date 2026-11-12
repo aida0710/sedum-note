@@ -319,7 +319,7 @@ button:disabled { cursor: default; opacity: .55; }
 
 /* Tiptap の本文 */
 .ProseMirror { outline: 0; font-size: var(--editor-font-size); line-height: 1.8; min-height: 240px; }
-.ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--muted); opacity: .6; float: left; height: 0; pointer-events: none; }
+.ProseMirror p.is-editor-empty:first-child::before, .ProseMirror p.empty-column::before { content: attr(data-placeholder); color: var(--muted); opacity: .6; float: left; height: 0; pointer-events: none; }
 /* 見出しは本文の文字の大きさに比例させる（本文 14.5px のとき 22・17・15px）。 */
 .ProseMirror h1 { font-size: 1.52em; margin: 20px 0 6px; }
 .ProseMirror h2 { font-size: 1.17em; margin: 18px 0 6px; }
@@ -650,5 +650,6 @@ details summary { cursor: pointer; color: var(--accent); }
   .section-zoom, .sidebar, .tabs-bar, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
   .document-meta .unsynced, .update-chip { display: none !important; }
   .search-match, .search-match.active { background: none; color: inherit; }
+  .ProseMirror p.empty-column::before { content: none; }
   .ProseMirror pre, .ProseMirror table, .attachment-image, .attachment-file { break-inside: avoid; }
 }

@@ -161,13 +161,18 @@ test("「/」から図を入れると Mermaid の図が出る。カーソルが�
   await expect(diagram).toContainText("かえた");
 });
 
-test("「/」から段組みを入れると、ブロックを横に並べて書ける", async ({ page }) => {
+test("「/」から段組みを入れると、ブロックを横に並べて書ける。空の段には「ここに書く」が出る", async ({ page }) => {
   await openNewNote(page);
   await page.keyboard.type("/だんぐみ");
   await slashMenu(page).getByRole("option", { name: "2 段組み" }).click();
   const columns = page.locator(".ProseMirror .column");
   await expect(columns).toHaveCount(2);
+  // 空の段には「ここに書く」を薄く出し、書くと消える。
+  const emptyColumns = page.locator(".ProseMirror .column p.empty-column");
+  await expect(emptyColumns).toHaveCount(2);
+  await expect(emptyColumns.first()).toHaveAttribute("data-placeholder", "ここに書く");
   await page.keyboard.type("左の段");
+  await expect(emptyColumns).toHaveCount(1);
   await columns.nth(1).click();
   await page.keyboard.type("右の段");
   await expect(columns).toHaveText(["左の段", "右の段"]);

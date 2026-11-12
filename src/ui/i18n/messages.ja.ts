@@ -204,6 +204,7 @@ export const japaneseMessages = {
 
   "editor.titlePlaceholder": "タイトル",
   "editor.bodyPlaceholder": "本文を書く…",
+  "editor.columnPlaceholder": "ここに書く",
   "editor.updatedAt": "{time} に更新",
   "editor.heading": "見出し",
   "editor.bold": "太字",
