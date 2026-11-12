@@ -14,7 +14,7 @@ test("「/」を打つとブロックの候補が出て、上下のキーと Ent
   await expect(slashMenu(page).getByRole("option")).toHaveText([
     "本文", "見出し 1", "見出し 2", "見出し 3", "見出し 4", "見出し 5", "見出し 6", "箇条書き", "番号付きリスト", "チェックリスト", "引用",
     "コールアウト: 情報", "コールアウト: ヒント", "コールアウト: 注意", "コールアウト: 警告", "コード", "表", "区切り線",
-    "画像を貼る", "ファイルを添付", "今日の日付", "今の日時", "数式", "クエリ（条件に合うメモの一覧）", "メモへのリンク",
+    "画像を貼る", "ファイルを添付", "今日の日付", "今の日時", "数式", "図（Mermaid）", "クエリ（条件に合うメモの一覧）", "メモへのリンク",
   ]);
   await page.keyboard.press("ArrowDown");
   await expect(slashMenu(page).getByRole("option", { name: "見出し 1" })).toHaveAttribute("aria-selected", "true");
@@ -133,4 +133,30 @@ test("「/」から数式を入れて LaTeX を書くと、数式として表示
   await expect(inlineMath.locator(".katex")).toBeVisible();
   await expect(inlineMath.locator(".math-rendered")).toHaveAttribute("title", "\\pi r^2");
   await expect(page.locator(".ProseMirror")).toContainText("面積は");
+});
+
+test("「/」から図を入れると Mermaid の図が出る。カーソルが外にある間は元の文字が隠れ、図を押すと元の文字が出て書き直せる", async ({ page }) => {
+  await openNewNote(page);
+  await page.keyboard.type("/mermaid");
+  await page.keyboard.press("Enter");
+  const diagram = page.locator(".ProseMirror .mermaid-diagram");
+  await expect(diagram.locator("svg")).toBeVisible();
+  await expect(diagram).toContainText("はじめ");
+
+  // 入れた直後はカーソルが中にあるので、元の文字が見えている。外へ出ると隠れる。
+  const source = page.locator(".ProseMirror pre");
+  await expect(source).toBeVisible();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("図の下の文");
+  await expect(source).toBeHidden();
+
+  await diagram.click();
+  await expect(source).toBeVisible();
+  // 図を押すと、カーソルは元の文字の先頭に来る。2 行目の末尾に、矢印を 1 つ足す。
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("End");
+  await page.keyboard.type(" --> C[かえた]");
+  await expect(diagram).toContainText("かえた");
 });

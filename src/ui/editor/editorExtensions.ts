@@ -14,6 +14,7 @@ import { translate } from "../i18n/translate";
 import { AttachmentFile } from "./attachmentFileNode";
 import { AttachmentImage } from "./attachmentImageNode";
 import { BlockMath, InlineMath } from "./mathNodes";
+import { MermaidDiagrams } from "./mermaidDiagrams";
 import { NoteLink } from "./noteLinkNode";
 import { NoteQuery } from "./noteQueryNode";
 import { SearchHighlight } from "./searchHighlightExtension";
@@ -75,6 +76,7 @@ export function createEditorExtensions(body: Y.XmlFragment, slashMenuController:
     SlashCommands.configure({ controller: slashMenuController }),
     TableShortcuts,
     TableRowFilterExtension,
+    MermaidDiagrams,
     DateTimeShortcuts,
     TypewriterScroll.configure({ isEnabled: () => readDevicePreferences().typewriterMode, scrollContainerSelector: ".document-scroll" }),
     SearchHighlight,
