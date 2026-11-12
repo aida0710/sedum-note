@@ -343,6 +343,22 @@ test("テンプレートの @date・@time・@title は、新しいメモを作�
   await expect(page.locator(".ProseMirror p", { hasText: "作成" })).toHaveText("作成 @time、連絡先 foo@date.example");
 });
 
+test("デイリーノートの題の形式を言語の書き方にすると、テンプレートの @date・@datetime もその書き方になる", async ({ page }) => {
+  await page.clock.install({ time: new Date(2026, 10, 13, 9, 5) });
+  await startLocalVault(page);
+  await openSettingsPage(page, "一般");
+  await page.getByLabel("題の形式").selectOption("long");
+  await expect(page.getByText("テンプレートの @date・@time・@datetime も、この形式になります。")).toBeVisible();
+
+  await newNote(page, "@date の日報");
+  await page.keyboard.type("作成 @datetime");
+  await page.getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "テンプレートにする" }).click();
+  await page.getByRole("button", { name: "このテンプレートから新しいメモを作る" }).click();
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("2026年11月13日 の日報");
+  await expect(page.locator(".ProseMirror p", { hasText: "作成" })).toHaveText("作成 2026年11月13日 9:05");
+});
+
 async function pasteText(page: Page, contents: Record<string, string>): Promise<void> {
   await page.locator(".ProseMirror").evaluate((editor, clipboardContents) => {
     const transfer = new DataTransfer();

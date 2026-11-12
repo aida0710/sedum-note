@@ -1,4 +1,4 @@
-// 日時を文字にする。画面に出す日時（画面の言語に合わせる）と、本文や題に文字で書き込む日時。
+// 日時を文字にする。画面に出す日時は、いまの画面の言語に合わせる。本文や題に書き込む日時は、言語を引数で受ける。
 
 import { dueTimeAsDate } from "../../core/notes/dueTimes";
 import { languageInUse } from "../i18n/languageInUse";
