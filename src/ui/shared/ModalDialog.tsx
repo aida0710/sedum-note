@@ -2,6 +2,7 @@
 // 見出し（title）と説明（description）を渡すと、どのダイアログでも同じ形で上に出す。
 
 import { type ReactNode, useEffect, useRef } from "react";
+import { returnFocusTo } from "./focusReturn";
 import { isImeKeyEvent } from "./imeKeyEvent";
 
 type ModalDialogProps = {
@@ -34,7 +35,7 @@ export function ModalDialog({ label, title, description, className = "", onClose
         return;
       }
       if (opener instanceof HTMLElement && opener.isConnected) {
-        opener.focus();
+        returnFocusTo(opener);
       }
     };
   }, []);

@@ -38,6 +38,7 @@ import { useRememberedNoteView } from "./rememberedNoteView";
 import { insertDroppedNoteLink } from "./droppedNoteLink";
 import { NoteZoomBar } from "./NoteZoomBar";
 import { convertBodyToOutline } from "./outlineConversion";
+import { registerFocusRestorer } from "../shared/focusReturn";
 import { revealBlock } from "./blockIds";
 import { NoteOutline } from "./NoteOutline";
 import { NoteLinkTargetsContext } from "./noteLinkTargets";
@@ -159,6 +160,8 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
     }
   }, [editor, noteId, blockToReveal]);
   useRememberedNoteView({ noteId, editor, scrollContainer: documentScroll, skipRestore: blockToReveal?.noteId === noteId, isOutline });
+  // ダイアログを閉じて本文へ戻るときは、エディタのカーソルの位置ごと戻す（view.focus() は今の選択を DOM へ写してから戻す）。
+  useEffect(() => (editor ? registerFocusRestorer(editor.view.dom, () => editor.view.focus()) : undefined), [editor]);
 
   // 期限のダイアログを、何の期限のために開いているか（メモか、カーソルのあるチェックリストの項目か）。
   const [dueTarget, setDueTarget] = useState<"note" | "task" | null>(null);
