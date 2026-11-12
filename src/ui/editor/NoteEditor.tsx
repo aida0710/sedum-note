@@ -32,6 +32,7 @@ import { useNoteAttachments } from "./useNoteAttachments";
 import { SlashMenuController } from "./slashMenuController";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { NoteCharacterCount } from "./NoteCharacterCount";
+import { NoteBacklinks } from "./NoteBacklinks";
 
 type NoteEditorProps = {
   note: LiveNote;
@@ -40,13 +41,15 @@ type NoteEditorProps = {
   isMobile: boolean;
   // スマホでは上のバーに「戻る」を出す。
   onBack?: () => void;
+  // このメモにリンクしているメモ（バックリンク）。
+  backlinks: LiveNote[];
   // 一覧の検索で探している言葉。開いたメモの中の当たりに色を付ける。
   highlightedText?: string;
   // メモの中の検索を開く合図（ショートカット）。押すたびに数が増える。
   findRequest?: number;
 };
 
-export function NoteEditor({ note, notebooks, repository, isMobile, onBack, highlightedText = "", findRequest = 0 }: NoteEditorProps) {
+export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, onBack, highlightedText = "", findRequest = 0 }: NoteEditorProps) {
   const [title, setTitle] = useState(note.content.title);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [pickingNoteLink, setPickingNoteLink] = useState(false);
@@ -240,6 +243,7 @@ export function NoteEditor({ note, notebooks, repository, isMobile, onBack, high
               }
             }} />
           <EditorContent editor={editor} />
+          <NoteBacklinks backlinks={backlinks} onOpenNote={openNote} />
         </div>
       </div>
       {!isMobile && showOutline && <NoteOutline editor={editor} />}

@@ -1,6 +1,6 @@
 // 画面に並べるメモの絞り込みと並べ替え。画面の部品から切り離して試験できるようにする。
 
-import { bodyPlainText, plainTextHashtags } from "./bodyText";
+import { bodyLinkedNoteIds, bodyPlainText, plainTextHashtags } from "./bodyText";
 import type { LiveNote, LiveNotebook } from "./noteRecords";
 
 export type NoteView =
@@ -15,11 +15,21 @@ export type NoteSummary = {
   note: LiveNote;
   plainText: string;
   tags: string[];
+  // 本文の中のリンクが指す、ほかのメモの ID。
+  linkedNoteIds: string[];
 };
 
 export function summarizeNote(note: LiveNote): NoteSummary {
   const plainText = bodyPlainText(note.body);
-  return { note, plainText, tags: plainTextHashtags(plainText) };
+  return { note, plainText, tags: plainTextHashtags(plainText), linkedNoteIds: bodyLinkedNoteIds(note.body) };
+}
+
+// noteId のメモにリンクしているメモ（バックリンク）。ゴミ箱のメモは除く。新しく更新した順。
+export function notesLinkingTo(summaries: NoteSummary[], noteId: string): LiveNote[] {
+  return summaries
+    .filter((summary) => summary.note.id !== noteId && summary.note.content.trashedAt === null && summary.linkedNoteIds.includes(noteId))
+    .map((summary) => summary.note)
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
 }
 
 function belongsToView(summary: NoteSummary, view: NoteView): boolean {

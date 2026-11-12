@@ -66,6 +66,24 @@ export function bodyAttachments(body: Y.XmlFragment): AttachmentReference[] {
   return attachments;
 }
 
+// 本文の中の、ほかのメモへのリンクが指すメモの ID（重なりなし）。
+export function bodyLinkedNoteIds(body: Y.XmlFragment): string[] {
+  const noteIds = new Set<string>();
+  const visit = (node: BodyNode) => {
+    if (node instanceof Y.XmlElement && node.nodeName === NOTE_LINK_NODE) {
+      const noteId = node.getAttribute("noteId");
+      if (typeof noteId === "string") {
+        noteIds.add(noteId);
+      }
+    }
+    if (node instanceof Y.XmlFragment || node instanceof Y.XmlElement) {
+      node.toArray().forEach((child) => visit(child as BodyNode));
+    }
+  };
+  visit(body);
+  return [...noteIds];
+}
+
 // UpNote と同じく、本文の「#言葉」をタグとして扱う。見出しの記号と区別するため、
 // # の直後に空白を置かないものだけを拾う。
 const HASHTAG_PATTERN = /(?:^|[\s　(（])#([\p{L}\p{N}_\-/]+)/gu;

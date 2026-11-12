@@ -15,6 +15,7 @@ import { useBackGestureToClose } from "./useBackGestureToClose";
 import { UpdateChip } from "../update/UpdateChip";
 import { SETTINGS_TAB } from "../workspace/useWorkspaceNavigation";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
+import { notesLinkingTo } from "../../core/notes/noteQueries";
 
 type MobileTab = "notes" | "notebooks" | "bookmarked" | "settings";
 
@@ -35,7 +36,8 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
     return (
       <div className="phone">
         <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, navigation.openNote)}>
-          <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} repository={repository} isMobile onBack={goBack} />
+          <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, openNote.id)}
+            repository={repository} isMobile onBack={goBack} />
         </NoteLinkTargetsContext.Provider>
       </div>
     );

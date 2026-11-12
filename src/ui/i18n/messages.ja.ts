@@ -189,6 +189,8 @@ export const japaneseMessages = {
   "editor.link": "リンク",
   "editor.linkPrompt": "リンク先の URL",
   "editor.noteLink": "メモへのリンク",
+  "editor.backlinks": "このメモへのリンク",
+  "editor.backlinksCount": "このメモへのリンク（{count}件）",
   "editor.noteLinkPickerTitle": "リンクするメモを選ぶ",
   "editor.noteLinkNone": "リンクできるメモがありません",
   "editor.noteLinkMissing": "削除されたメモ",

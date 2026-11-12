@@ -31,6 +31,8 @@ button:disabled { cursor: default; opacity: .55; }
 .focus-mode .sidebar, .focus-mode .tabs, .focus-mode .editor-bar { display: none; }
 .focus-mode-exit { position: fixed; top: 10px; right: 14px; z-index: 6; }
 .typewriter-mode .document { padding-bottom: 50vh; }
+.backlinks { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); }
+.backlinks h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; }
 .sidebar-brand-actions { margin-left: auto; display: flex; gap: 2px; }
 .sidebar-brand .sidebar-brand-actions .icon-button { margin-left: 0; }
 
@@ -354,7 +356,7 @@ details summary { cursor: pointer; color: var(--accent); }
   .workspace, .phone, .main, .document-area { display: block; height: auto; overflow: visible; }
   .document-scroll { overflow: visible; }
   .document { max-width: none; padding: 0; }
-  .sidebar, .tabs, .editor-bar, .find-bar, .outline, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
+  .sidebar, .tabs, .editor-bar, .find-bar, .outline, .backlinks, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
   .document-meta .unsynced, .update-chip { display: none !important; }
   .search-match, .search-match.active { background: none; color: inherit; }
   .ProseMirror pre, .ProseMirror table, .attachment-image, .attachment-file { break-inside: avoid; }

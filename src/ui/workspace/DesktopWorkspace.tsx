@@ -17,6 +17,7 @@ import { createNoteInView } from "./createNoteInView";
 import { useKeyboardShortcuts } from "./keyboardShortcuts";
 import { UpdateChip } from "../update/UpdateChip";
 import { SETTINGS_TAB } from "./useWorkspaceNavigation";
+import { notesLinkingTo } from "../../core/notes/noteQueries";
 
 export function DesktopWorkspace({ session, vault, snapshot, navigation }: WorkspaceProps) {
   const { repository } = vault;
@@ -67,7 +68,8 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
         )}
         {activeNote && (
           <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, navigation.openNote)}>
-            <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} repository={repository} isMobile={false}
+            <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, activeNote.id)}
+              repository={repository} isMobile={false}
               highlightedText={navigation.searchText} findRequest={navigation.findInNoteRequest} />
           </NoteLinkTargetsContext.Provider>
         )}

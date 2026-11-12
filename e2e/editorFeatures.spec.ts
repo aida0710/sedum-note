@@ -84,7 +84,7 @@ test("コードのブロックは、言語を書かなくても色が付く", as
   await expect(page.locator(".ProseMirror pre .hljs-string").first()).toContainText("hello");
 });
 
-test("メモへのリンクは、リンク先の今のタイトルを出し、押すと開く。消したリンク先は押せない", async ({ page }) => {
+test("メモへのリンクは、リンク先の今のタイトルを出し、押すと開く。リンク先にはバックリンクが出る。消したリンク先は押せない", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "リンク先");
   await page.keyboard.type("こちらが本体");
@@ -99,6 +99,13 @@ test("メモへのリンクは、リンク先の今のタイトルを出し、�
 
   await link.click();
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("リンク先");
+  // リンク先のメモには、リンクしているメモ（バックリンク）が並び、押すと開く。
+  const backlinks = page.getByRole("region", { name: "このメモへのリンク" });
+  await expect(backlinks).toContainText("このメモへのリンク（1件）");
+  await backlinks.getByRole("button", { name: "リンク元" }).click();
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("リンク元");
+  await expect(page.getByRole("region", { name: "このメモへのリンク" })).toHaveCount(0);
+  await page.getByRole("tab", { name: "リンク先" }).click();
   await page.getByPlaceholder("タイトル").fill("名前を変えた");
   await page.getByRole("tab", { name: "リンク元" }).click();
   await expect(link).toHaveText("名前を変えた");

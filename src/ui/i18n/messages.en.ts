@@ -191,6 +191,8 @@ export const englishMessages: Record<MessageKey, string> = {
   "editor.link": "Link",
   "editor.linkPrompt": "Link URL",
   "editor.noteLink": "Link to a note",
+  "editor.backlinks": "Links to this note",
+  "editor.backlinksCount": "Links to this note ({count})",
   "editor.noteLinkPickerTitle": "Choose a note to link",
   "editor.noteLinkNone": "No notes to link",
   "editor.noteLinkMissing": "Deleted note",
