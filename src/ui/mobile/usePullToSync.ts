@@ -3,6 +3,7 @@
 //   決めた幅より引いて離すと同期し、終わるまで案内を残す。
 // ポインターのイベントでは、ブラウザが縦のスクロールを始めると指の動きが届かなくなるので、タッチのイベントで受け、
 // 引いている間だけスクロール（とブラウザ自身の引いて再読み込み）を止める。
+// タッチは一覧の外側（listRef）で受ける。同期のあと一覧が上へ戻る途中に引き直すと、指は一覧の上の隙間に触れるため。
 
 import { useEffect, useRef, useState } from "react";
 
@@ -20,6 +21,7 @@ export type PullState = "idle" | "pulling" | "ready" | "syncing";
 type PullGesture = { startX: number; startY: number; pulling: boolean; offset: number };
 
 export function usePullToSync(onSync: (() => Promise<void>) | null) {
+  const listRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
   const [pullState, setPullState] = useState<PullState>("idle");
@@ -28,8 +30,9 @@ export function usePullToSync(onSync: (() => Promise<void>) | null) {
   const enabled = onSync !== null;
 
   useEffect(() => {
+    const list = listRef.current;
     const scroll = scrollRef.current;
-    if (!enabled || !scroll) {
+    if (!enabled || !list || !scroll) {
       return;
     }
     let gesture: PullGesture | null = null;
@@ -92,7 +95,7 @@ export function usePullToSync(onSync: (() => Promise<void>) | null) {
         indicatorRef.current.style.opacity = "1";
       }
       setPullState("syncing");
-      // 同期の失敗は、左下と設定の同期の状態に出る。ここでは案内を閉じるだけにする。
+      // 同期の失敗の知らせは、渡された同期の側（useSyncFromPull.ts）が出す。ここでは案内を閉じるだけにする。
       void sync().catch(() => undefined).finally(() => {
         syncing = false;
         moveList(0, { animated: true });
@@ -101,18 +104,18 @@ export function usePullToSync(onSync: (() => Promise<void>) | null) {
     };
     const onTouchEnd = () => finishPull({ canceled: false });
     const onTouchCancel = () => finishPull({ canceled: true });
-    scroll.addEventListener("touchstart", onTouchStart, { passive: true });
+    list.addEventListener("touchstart", onTouchStart, { passive: true });
     // 引いている間はスクロールを止めるので、passive にしない。
-    scroll.addEventListener("touchmove", onTouchMove, { passive: false });
-    scroll.addEventListener("touchend", onTouchEnd);
-    scroll.addEventListener("touchcancel", onTouchCancel);
+    list.addEventListener("touchmove", onTouchMove, { passive: false });
+    list.addEventListener("touchend", onTouchEnd);
+    list.addEventListener("touchcancel", onTouchCancel);
     return () => {
-      scroll.removeEventListener("touchstart", onTouchStart);
-      scroll.removeEventListener("touchmove", onTouchMove);
-      scroll.removeEventListener("touchend", onTouchEnd);
-      scroll.removeEventListener("touchcancel", onTouchCancel);
+      list.removeEventListener("touchstart", onTouchStart);
+      list.removeEventListener("touchmove", onTouchMove);
+      list.removeEventListener("touchend", onTouchEnd);
+      list.removeEventListener("touchcancel", onTouchCancel);
     };
   }, [enabled]);
 
-  return { scrollRef, indicatorRef, pullState };
+  return { listRef, scrollRef, indicatorRef, pullState };
 }

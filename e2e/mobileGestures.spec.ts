@@ -46,6 +46,35 @@ test("スマホの一覧でメモを右へ払うとピン留めし、左へ払�
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("買い物");
 });
 
+test("指で横に払ってもピン留めでき、縦に動かしたときは払わない", async ({ browser, browserName }) => {
+  test.skip(browserName !== "chromium", "タッチの操作を CDP で送るので、Chromium だけで確かめる");
+  const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT, hasTouch: true })).newPage();
+  await startLocalVault(page);
+  await createNoteOnPhone(page, "買い物");
+  const item = page.locator(".note-item", { hasText: "買い物" });
+  const box = (await item.boundingBox())!;
+  const y = box.y + box.height / 2;
+  const x = box.x + box.width / 2;
+  const cdp = await page.context().newCDPSession(page);
+  // 指を from から to まで動かして離す。
+  const drag = async (from: { x: number; y: number }, to: { x: number; y: number }) => {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [from] });
+    for (let step = 1; step <= 10; step += 1) {
+      const point = { x: from.x + ((to.x - from.x) * step) / 10, y: from.y + ((to.y - from.y) * step) / 10 };
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [point] });
+    }
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  };
+
+  await drag({ x, y }, { x: x + 10, y: y + 120 });
+  await expect(item.locator(".pin")).toHaveCount(0);
+  await expect(page.getByPlaceholder("タイトル")).toHaveCount(0);
+
+  await drag({ x: x - 100, y }, { x: x + 120, y });
+  await expect(item.locator(".pin")).toBeVisible();
+  await expect(page.getByPlaceholder("タイトル")).toHaveCount(0);
+});
+
 test("同期先があれば、スマホの一覧を上から引いて離すと同期する", async ({ browser, browserName }) => {
   test.skip(browserName !== "chromium", "タッチの操作を CDP で送るので、Chromium だけで確かめる");
   const remoteConfig = await newTestRemoteConfig();
@@ -77,4 +106,13 @@ test("同期先があれば、スマホの一覧を上から引いて離すと�
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await expect(arrived).toBeVisible({ timeout: 20_000 });
   await expect(phone.locator(".pull-to-sync")).toHaveAttribute("data-state", "idle");
+
+  // 同期先につながらないときに引くと、失敗したことを知らせる（スマホの一覧には同期の状態の表示が無いので）。
+  await phone.route(`${remoteConfig.endpoint}/**`, (route) => route.abort());
+  await touchAt("touchStart", list.y + 20);
+  for (let step = 1; step <= 10; step += 1) {
+    await touchAt("touchMove", list.y + 20 + step * 18);
+  }
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await expect(phone.getByRole("status").filter({ hasText: "同期に失敗しました" })).toBeVisible({ timeout: 20_000 });
 });

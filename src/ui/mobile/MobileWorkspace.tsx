@@ -12,6 +12,7 @@ import { createNoteInView } from "../workspace/createNoteInView";
 import { MobileLibrary } from "./MobileLibrary";
 import { listTitle, NoteList } from "./MobileNoteList";
 import { useBackGestureToClose } from "./useBackGestureToClose";
+import { useSyncFromPull } from "./useSyncFromPull";
 import { UpdateChip } from "../update/UpdateChip";
 import { SETTINGS_TAB } from "../workspace/useWorkspaceNavigation";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
@@ -31,6 +32,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
   const aiChat = useAiChatSession();
   const [tab, setTab] = useState<MobileTab>("notes");
   const { noteSortOrder } = useDevicePreferences();
+  const syncFromPull = useSyncFromPull(session);
   // 開いているメモは PC の組み方と同じ所（navigation のタブ）に持つ。共有から作ったメモや、
   // メモ同士のリンクが、どちらの組み方でも同じ操作で開ける。
   const openNoteId = navigation.activeTab !== SETTINGS_TAB ? navigation.activeTab : null;
@@ -102,7 +104,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
         <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, { view, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNameOf: notebookNameLookup(snapshot.notebooks) })}
           notebooks={snapshot.notebooks.map((notebook) => ({ id: notebook.id, name: notebook.content.name }))}
           view={view} showChips={tab === "notes"} navigation={navigation} repository={repository} onOpen={navigation.openNote}
-          onPullToSync={session.syncStatus === null ? null : session.syncNow} />
+          onPullToSync={syncFromPull} />
       )}
       {(tab === "notes" || tab === "bookmarked") && (
         <button className="fab" aria-label={translate("sidebar.newNote")} onClick={() => void createNote()}><Plus size={26} /></button>

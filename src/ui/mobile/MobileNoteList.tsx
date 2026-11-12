@@ -44,7 +44,7 @@ type NoteListProps = {
 const PULL_MESSAGES = { idle: "mobile.pullToSync", pulling: "mobile.pullToSync", ready: "mobile.releaseToSync", syncing: "mobile.syncing" } as const satisfies Record<PullState, string>;
 
 export function NoteList({ title, summaries, notebooks, view, showChips, navigation, repository, onOpen, onPullToSync }: NoteListProps) {
-  const { scrollRef, indicatorRef, pullState } = usePullToSync(onPullToSync);
+  const { listRef, scrollRef, indicatorRef, pullState } = usePullToSync(onPullToSync);
   return (
     <>
       <div className="phone-top"><h2>{title}</h2></div>
@@ -61,7 +61,7 @@ export function NoteList({ title, summaries, notebooks, view, showChips, navigat
           ))}
         </div>
       )}
-      <div className="phone-list">
+      <div ref={listRef} className="phone-list">
         {onPullToSync && (
           <div ref={indicatorRef} className="pull-to-sync" data-state={pullState} role="status">
             <RefreshCw size={16} />{pullState === "idle" ? "" : translate(PULL_MESSAGES[pullState])}

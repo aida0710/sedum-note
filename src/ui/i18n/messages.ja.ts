@@ -691,6 +691,7 @@ export const japaneseMessages = {
   "mobile.pullToSync": "引いて同期",
   "mobile.releaseToSync": "離すと同期します",
   "mobile.syncing": "同期しています…",
+  "mobile.pullSyncFailed": "同期に失敗しました。くわしくは「設定」の「同期」で見られます",
 
   "common.cancel": "キャンセル",
   "common.save": "保存",
