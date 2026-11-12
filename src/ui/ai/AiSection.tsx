@@ -45,11 +45,15 @@ export function AiSection() {
   const [verifiedModelCount, setVerifiedModelCount] = useState<number | null>(null);
   // 「使う」の印は、保存が済むのを待たずに切り替えて見せる（保存は手元だけなので、ほぼ失敗しない）。
   const [enabled, setEnabled] = useState(settings?.enabled ?? false);
-  // 保存した設定の読み込みが済んだら、入力欄に入れる。
+  // 保存した設定の読み込みが済んだら、入力欄に入れる。最初の 1 度だけにする（「使う」を保存し終えたときに入れ直すと、
+  // その間に打った API キーが消える）。
+  const loaded = settings !== null;
   useEffect(() => {
-    setDraft(settings && connectionOf(settings));
-    setEnabled(settings?.enabled ?? false);
-  }, [settings]);
+    if (settings) {
+      setDraft(connectionOf(settings));
+      setEnabled(settings.enabled);
+    }
+  }, [loaded]);
   const verify = useAsyncAction(async ({ current, connection }: { current: AiSettings; connection: ConnectionDraft }) => {
     setVerifiedModelCount(null);
     const verified = await verifyConnection(current, connection);

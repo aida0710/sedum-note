@@ -189,6 +189,11 @@ button:disabled { cursor: default; opacity: .55; }
 .ai-send-button:disabled { opacity: 0.4; cursor: default; }
 .ai-model-select { min-width: 0; max-width: 150px; height: var(--control-height-compact); font-size: var(--font-size-small); }
 .ai-connection { display: flex; flex-direction: column; gap: 12px; }
+.ai-saved-chat { display: flex; align-items: center; gap: 4px; }
+.ai-saved-chat-open { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 8px; border-radius: var(--radius-row); text-align: left; }
+.ai-saved-chat-open:hover { background: var(--selected); }
+.ai-saved-chat-title { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-saved-chat-time { font-size: var(--font-size-small); color: var(--muted); }
 .mention-input { position: relative; }
 .mention-input textarea { width: 100%; border: 1px solid var(--line); border-radius: var(--radius-control); padding: 8px 10px; background: var(--panel); color: var(--text); resize: none; font: inherit; line-height: 1.5; }
 .mention-input textarea:focus { outline: 0; border-color: var(--accent); }

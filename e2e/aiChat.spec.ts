@@ -1,5 +1,5 @@
 import { expect, type Page, type Route, test } from "@playwright/test";
-import { createNoteOnDesktop, openSettingsPage, startLocalVault } from "./devices";
+import { createNoteOnDesktop, openSettingsPage, PASSPHRASE, startLocalVault } from "./devices";
 
 // 試験では AI の提供元へつながない。届いた要求を覚えて、ストリーミングの形の決まった答えを返す。
 
@@ -268,4 +268,45 @@ test("答えを受け取っている間は、送るボタンが止めるボタ�
   // 1 文字も届かなかった答えは残さず、止めたことは失敗として出さない。
   await expect(chat(page).locator(".ai-message.assistant")).toHaveCount(0);
   await expect(chat(page).getByRole("alert")).toHaveCount(0);
+});
+
+test("会話は残り、ロックして開き直しても「残した会話」から開いて続きを話せる。消すこともできる", async ({ page }) => {
+  const requests = await mockClaudeApi(page, ["8 月 3 日です。", "朝 9 時の便です。"]);
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "旅行の計画");
+  await page.keyboard.type("出発は 8 月 3 日の朝 9 時。");
+  await enableAi(page);
+  await page.getByLabel("API キー").fill("test-key");
+  await saveAiSettingsAndOpenChat(page, "旅行の計画");
+  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
+  await input.fill("出発はいつ？");
+  await page.keyboard.press("Enter");
+  await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["8 月 3 日です。"]);
+  await chat(page).getByRole("button", { name: "新しい会話" }).click();
+  await expect(chat(page).locator(".ai-message")).toHaveCount(0);
+
+  await page.keyboard.press("Control+l");
+  await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
+  await page.getByRole("button", { name: "解除" }).click();
+  // ロックを解除すると、タブは開いていない。左の列からメモを開く。
+  await page.locator(".tree-note", { hasText: "旅行の計画" }).click();
+  await page.keyboard.press("Control+Alt+a");
+  await chat(page).getByRole("button", { name: "残した会話" }).click();
+  const savedChats = chat(page).getByRole("list", { name: "残した会話" }).getByRole("listitem");
+  await expect(savedChats).toHaveCount(1);
+  await savedChats.first().getByRole("button", { name: /^出発はいつ？/ }).click();
+  await expect(chat(page).locator(".ai-message .ai-message-text")).toHaveText(["出発はいつ？", "8 月 3 日です。"]);
+
+  // 開いた会話の続きを話すと、前のやり取りも送り、同じ会話として残す。
+  await input.fill("何時？");
+  await page.keyboard.press("Enter");
+  await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["8 月 3 日です。", "朝 9 時の便です。"]);
+  expect(requests[1]!.body.messages.map((message) => message.role)).toEqual(["user", "assistant", "user"]);
+  // 添えたメモの本文は、残した会話には入れず、送るときに読む。
+  expect(requests[1]!.body.messages[0]!.content).toContain("出発は 8 月 3 日の朝 9 時。");
+  await chat(page).getByRole("button", { name: "残した会話" }).click();
+  await expect(savedChats).toHaveCount(1);
+  await savedChats.first().getByRole("button", { name: "「出発はいつ？」を消す" }).click();
+  await expect(savedChats).toHaveCount(0);
+  await expect(chat(page).getByText("まだ残した会話がありません。")).toBeVisible();
 });

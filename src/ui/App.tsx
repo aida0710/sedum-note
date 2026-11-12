@@ -128,7 +128,7 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
       <UnsyncedRecordsContext.Provider value={vault.syncEngine ? snapshot.unsyncedIds : NO_UNSYNCED_RECORDS}>
         <AvailableUpdateContext.Provider value={availableUpdate}>
           <AiSettingsContext.Provider value={aiSettings}>
-          <AiChatSessionProvider>
+          <AiChatSessionProvider vault={vault}>
           <PluginAccessContext.Provider value={plugins}>
           <PassphraseConfirmProvider verifyPassphrase={session.verifyPassphrase}>
           {/* MCP の窓口は、最初のウィンドウだけが開く（別のウィンドウが同じポートを取り合わない）。 */}
