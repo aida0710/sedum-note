@@ -27,6 +27,8 @@ export type AiModelOption = {
 export type AiSettings = {
   enabled: boolean;
   provider: AiProvider;
+  // AI が出したメモの直しの案を、承認を待たずに適用する（全部を承認する形）。適用する前の状態は、いつも履歴に残す。
+  autoApplyEdits: boolean;
   claude: { apiKey: string; model: string; models: AiModelOption[] };
   // baseUrl は、/chat/completions の手前まで（例: http://127.0.0.1:11434/v1）。API キーの要らないサーバーでは空にする。
   openAiCompatible: { baseUrl: string; apiKey: string; model: string; models: AiModelOption[] };
@@ -37,6 +39,7 @@ export const DEFAULT_CLAUDE_MODEL = "claude-opus-5-5";
 export const DEFAULT_AI_SETTINGS: AiSettings = {
   enabled: false,
   provider: "claude",
+  autoApplyEdits: false,
   claude: { apiKey: "", model: DEFAULT_CLAUDE_MODEL, models: [] },
   openAiCompatible: { baseUrl: "http://127.0.0.1:11434/v1", apiKey: "", model: "", models: [] },
 };

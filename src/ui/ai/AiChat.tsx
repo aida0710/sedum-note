@@ -1,7 +1,9 @@
 // AI とのチャット。会話を続けられ、発言には文脈として、開いているメモ・選択範囲・「@」で指定したメモを添えられる。
-// 答えは、コピーするか、開いているメモのカーソルの位置か末尾に入れられる。
+// 答えは、コピーするか、開いているメモのカーソルの位置か末尾に入れられる。開いているメモの直しを頼むと、AI は直しの案を
+// 出し（道具の呼び出し）、差分を見て適用するかを選べる。
 
-import { ArrowUp, FileText, History, Square, TextSelect, Trash2, X } from "lucide-react";
+import { ArrowUp, FileText, History, Square, TextSelect, X } from "lucide-react";
+import type { JSONContent } from "@tiptap/core";
 import { useEffect, useRef, useState } from "react";
 import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
@@ -9,16 +11,25 @@ import type { AiSettings } from "../../core/vault/aiSettings";
 import { insertPastedMarkdown } from "../editor/pastedMarkdown";
 import { describeError } from "../i18n/describeError";
 import { translate } from "../i18n/translate";
-import { formatDateTime } from "../shared/formatTime";
+import { UserFacingError } from "../i18n/userFacingError";
 import { appendMarkdownToBody } from "../markdown/appendMarkdown";
-import { ATTACHMENT_HREF_PREFIX, bodyToMarkdown } from "../markdown/markdownDocument";
-import { type ActiveNoteEditor, type SavedChat, useAiChatSession } from "./aiChatSession";
-import { AI_QUICK_REQUESTS, type AiAttachment, type AiChatMessage, type AiConversation, type AiQuickRequest, conversationForApi, type ReadNoteForAi } from "./aiConversation";
+import { bodyToMarkdown } from "../markdown/markdownDocument";
+import { markdownExportContextOf, markdownImportContextOf } from "../markdown/repositoryMarkdownContext";
+import { type ActiveNoteEditor, useAiChatSession } from "./aiChatSession";
+import { AI_QUICK_REQUESTS, type AiAttachment, type AiChatMessage, type AiConversation, type AiNoteEdit, type AiQuickRequest, conversationForApi, type ReadNoteForAi, withEditStatus } from "./aiConversation";
 import { AiModelSelect } from "./AiModelSelect";
 import { useAiSettings } from "./aiSettingsAccess";
 import { streamClaudeCompletion } from "./claudeCompletion";
+import { NoteEditCard } from "./NoteEditCard";
+import { applyProposalToOpenNote, canApplyProposalTo } from "./noteEditActions";
+import { createNoteEditProposal } from "./noteEditProposal";
+import { type AiToolCall, noteEditInputOf } from "./noteEditTool";
 import { NoteMentionInput } from "./NoteMentionInput";
 import { streamOpenAiCompatibleCompletion } from "./openAiCompatibleCompletion";
+import { SavedChatList } from "./SavedChatList";
+
+// 直しの案を出させるメモと、頼んだときの本文（案と比べる元）。
+type EditTarget = { noteId: string; baseDocument: JSONContent };
 
 type AiChatProps = {
   repository: NoteRepository;
@@ -27,7 +38,7 @@ type AiChatProps = {
   onClose: () => void;
 };
 
-function streamCompletion(settings: AiSettings, input: { conversation: AiConversation; onText: (text: string) => void; signal: AbortSignal }): Promise<void> {
+function streamCompletion(settings: AiSettings, input: { conversation: AiConversation; onText: (text: string) => void; signal: AbortSignal }): Promise<AiToolCall | null> {
   if (settings.provider === "claude") {
     const { apiKey, model, models } = settings.claude;
     const maxOutputTokens = models.find((option) => option.id === model)?.maxOutputTokens ?? null;
@@ -62,8 +73,10 @@ function useSelectedText(activeNote: ActiveNoteEditor | null): string {
 }
 
 export function AiChat({ repository, notes, onClose }: AiChatProps) {
-  const { settings } = useAiSettings();
-  const { messages, setMessages, activeNote, savedChats, saveChat, startNewChat, openSavedChat, deleteSavedChat } = useAiChatSession();
+  const { settings, saveSettings } = useAiSettings();
+  const { messages, setMessages, activeNote, savedChats, saveChat, startNewChat, openSavedChat, deleteSavedChat, editProposals, rememberEditProposal } = useAiChatSession();
+  // 適用している直しの案の、道具の呼び出しの ID。
+  const [applyingEditId, setApplyingEditId] = useState<string | null>(null);
   // true なら、会話の代わりに、残した会話の一覧を出す。
   const [showsHistory, setShowsHistory] = useState(false);
   const [input, setInput] = useState("");
@@ -83,12 +96,10 @@ export function AiChat({ repository, notes, onClose }: AiChatProps) {
     conversationEnd.current?.scrollIntoView({ block: "end" });
   }, [messages]);
 
-  const markdownOf = (note: LiveNote) => bodyToMarkdown(note.body, {
-    // AI には、添付の中身は渡さない（添付は ID を指すリンクのまま渡る）。
-    attachmentHref: ({ id }) => ATTACHMENT_HREF_PREFIX + id,
-    noteTitle: (linkedNoteId) => repository.note(linkedNoteId)?.content.title ?? null,
-  });
-  const noteAttachment = (note: LiveNote): AiAttachment => ({ kind: "note", noteId: note.id, title: note.content.title });
+  // AI には、添付の中身は渡さない（添付は ID を指すリンクのまま渡る）。
+  const exportContext = markdownExportContextOf(repository);
+  const markdownOf = (note: LiveNote) => bodyToMarkdown(note.body, exportContext);
+  const noteAttachment = (note: LiveNote, isOpenNote = false): AiAttachment => ({ kind: "note", noteId: note.id, title: note.content.title, isOpenNote });
   const readNote: ReadNoteForAi = (noteId) => {
     const note = repository.note(noteId);
     return note ? { title: note.content.title, markdown: markdownOf(note) } : null;
@@ -96,11 +107,36 @@ export function AiChat({ repository, notes, onClose }: AiChatProps) {
   const openNote = activeNote ? repository.note(activeNote.noteId) : undefined;
   const mentionedNotes = mentionedNoteIds.map((noteId) => repository.note(noteId)).filter((note) => note !== undefined);
 
+  // 答えに入っていた道具の呼び出しから、直しの案を作る。案を作れなければ null（入力が途中で切れた、など）。
+  const editOfToolCall = async (toolCall: AiToolCall, target: EditTarget | null): Promise<AiNoteEdit | null> => {
+    const editInput = noteEditInputOf(toolCall);
+    if (!editInput) {
+      throw new UserFacingError(translate("ai.edit.unreadable"));
+    }
+    if (!target) {
+      // 開いているメモを添えていない回の呼び出しは、比べる元が無いので使えない。
+      return { toolCallId: toolCall.id, noteId: "", summary: editInput.summary, status: "stale" };
+    }
+    const proposal = await createNoteEditProposal({
+      noteId: target.noteId, summary: editInput.summary, markdown: editInput.markdown, baseDocument: target.baseDocument,
+      exportContext, importContext: markdownImportContextOf(repository),
+    });
+    rememberEditProposal(toolCall.id, proposal);
+    if (settings?.autoApplyEdits) {
+      return { toolCallId: toolCall.id, noteId: target.noteId, summary: editInput.summary, status: await applyProposalToOpenNote({ repository, activeNote, proposal }) };
+    }
+    return { toolCallId: toolCall.id, noteId: target.noteId, summary: editInput.summary, status: "proposed" };
+  };
+
   const send = async (text: string, attachments: AiAttachment[], quickRequest?: AiQuickRequest) => {
     if (!settings || running || text.trim() === "") {
       return;
     }
     const history: AiChatMessage[] = [...messages, { role: "user", text: text.trim(), attachments, quickRequest }];
+    // 開いているメモを添え、書き換えられるときだけ、直しの案を出す道具を渡す。比べる元として、今の本文を控える。
+    const target: EditTarget | null = activeNote?.editor.isEditable && attachments.some((attachment) => attachment.kind === "note" && attachment.isOpenNote)
+      ? { noteId: activeNote.noteId, baseDocument: activeNote.editor.getJSON() }
+      : null;
     setMessages(() => [...history, { role: "assistant", text: "" }]);
     setInput("");
     setMentionedNoteIds([]);
@@ -109,9 +145,10 @@ export function AiChat({ repository, notes, onClose }: AiChatProps) {
     const controller = new AbortController();
     request.current = controller;
     let answer = "";
+    let edit: AiNoteEdit | null = null;
     try {
-      await streamCompletion(settings, {
-        conversation: conversationForApi(history, readNote),
+      const toolCall = await streamCompletion(settings, {
+        conversation: conversationForApi(history, readNote, { offersNoteEdit: target !== null }),
         // 届いた文字を、最後の発言（AI の答え）の末尾に足す。
         onText: (received) => {
           answer += received;
@@ -119,26 +156,44 @@ export function AiChat({ repository, notes, onClose }: AiChatProps) {
         },
         signal: controller.signal,
       });
+      edit = toolCall ? await editOfToolCall(toolCall, target) : null;
     } catch (error) {
       if (!controller.signal.aborted) {
         setErrorMessage(describeError(error));
       }
     } finally {
       setRunning(false);
-      // 答えが 1 文字も届かなかったとき（失敗、すぐ止めた）は、空の答えを会話に残さない。
-      setMessages((current) => (current[current.length - 1]?.role === "assistant" && current[current.length - 1]?.text === "" ? current.slice(0, -1) : current));
-      // 答えが届かなかった回も、利用者の発言は残す（あとで同じ依頼を送り直せる）。
-      void saveChat(answer === "" ? history : [...history, { role: "assistant", text: answer }]);
+    }
+    // 答えが何も届かなかったとき（失敗、すぐ止めた）は、空の答えを会話に残さない。利用者の発言は残す（あとで送り直せる）。
+    const answered: AiChatMessage[] = answer === "" && !edit ? history : [...history, { role: "assistant", text: answer, ...(edit ? { edit } : {}) }];
+    setMessages(() => answered);
+    void saveChat(answered);
+  };
+  const decideEdit = async (toolCallId: string, decision: "apply" | "reject") => {
+    const proposal = editProposals.get(toolCallId);
+    if (!proposal) {
+      return;
+    }
+    setApplyingEditId(toolCallId);
+    try {
+      const status = decision === "reject" ? "rejected" : await applyProposalToOpenNote({ repository, activeNote, proposal });
+      const decided = withEditStatus(messages, toolCallId, status);
+      setMessages(() => decided);
+      void saveChat(decided);
+    } catch (error) {
+      setErrorMessage(describeError(error));
+    } finally {
+      setApplyingEditId(null);
     }
   };
   const currentAttachments = (): AiAttachment[] => [
-    ...(includesOpenNote && openNote && !mentionedNoteIds.includes(openNote.id) ? [noteAttachment(openNote)] : []),
-    ...mentionedNotes.map(noteAttachment),
+    ...(includesOpenNote && openNote && !mentionedNoteIds.includes(openNote.id) ? [noteAttachment(openNote, true)] : []),
+    ...mentionedNotes.map((note) => noteAttachment(note)),
     ...(includesSelection && selectedText !== "" && activeNote ? [{ kind: "selection" as const, noteTitle: activeNote.noteTitle, text: selectedText }] : []),
   ];
   const sendQuickRequest = (quickRequest: AiQuickRequest) => {
     if (openNote) {
-      void send(translate(`ai.task.${quickRequest}`), [noteAttachment(openNote)], quickRequest);
+      void send(translate(`ai.task.${quickRequest}`), [noteAttachment(openNote, true)], quickRequest);
     }
   };
   const importContext = { noteExists: (noteId: string) => repository.note(noteId) !== undefined };
@@ -179,7 +234,12 @@ export function AiChat({ repository, notes, onClose }: AiChatProps) {
                 ))}
               </div>
             )}
-            <div className="ai-message-text">{message.text || translate("ai.waiting")}</div>
+            {(message.text !== "" || message.role === "user" || !message.edit) && <div className="ai-message-text">{message.text || translate("ai.waiting")}</div>}
+            {message.role === "assistant" && message.edit && (
+              <NoteEditCard edit={message.edit} proposal={editProposals.get(message.edit.toolCallId) ?? null}
+                canApply={canApplyProposalTo(activeNote, message.edit.noteId)} busy={applyingEditId !== null}
+                onApply={() => void decideEdit(message.edit!.toolCallId, "apply")} onReject={() => void decideEdit(message.edit!.toolCallId, "reject")} />
+            )}
             {message.role === "assistant" && message.text !== "" && !(running && index === messages.length - 1) && (
               <div className="ai-message-actions">
                 <button type="button" className="text-button" onClick={() => void navigator.clipboard.writeText(message.text)}>{translate("ai.copy")}</button>
@@ -224,6 +284,10 @@ export function AiChat({ repository, notes, onClose }: AiChatProps) {
         <NoteMentionInput value={input} onChange={setInput} disabled={running} onSubmit={() => void send(input, currentAttachments())}
           notes={notes.filter((note) => !mentionedNoteIds.includes(note.id))}
           onMention={(note) => setMentionedNoteIds([...mentionedNoteIds, note.id])} />
+        <label className="checkbox-line ai-auto-apply">
+          <input type="checkbox" checked={settings.autoApplyEdits} onChange={(event) => void saveSettings({ ...settings, autoApplyEdits: event.target.checked })} />
+          {translate("ai.edit.autoApply")}
+        </label>
         <div className="ai-composer-actions">
           {openNote && (Object.keys(AI_QUICK_REQUESTS) as AiQuickRequest[]).map((quickRequest) => (
             <button key={quickRequest} type="button" className="secondary-button" disabled={running} onClick={() => sendQuickRequest(quickRequest)}>
@@ -271,30 +335,5 @@ function ChatHeader({ showsModel, canStartNewChat, onStartNewChat, showsHistory,
       )}
       <button type="button" className="icon-button" aria-label={translate("ai.closeChat")} onClick={onClose}><X size={16} /></button>
     </header>
-  );
-}
-
-type SavedChatListProps = { chats: SavedChat[]; disabled: boolean; onOpen: (chatId: string) => void; onDelete: (chatId: string) => void };
-
-// 残した会話の一覧。押すと、その会話を開いて続きを話せる。
-function SavedChatList({ chats, disabled, onOpen, onDelete }: SavedChatListProps) {
-  return (
-    <div className="ai-chat-messages" role="list" aria-label={translate("ai.history")}>
-      {chats.length === 0 && <p className="ai-chat-notice">{translate("ai.historyEmpty")}</p>}
-      {chats.map((chat) => {
-        const title = chat.title || translate("ai.untitledChat");
-        return (
-          <div key={chat.id} role="listitem" className="ai-saved-chat">
-            <button type="button" className="ai-saved-chat-open" disabled={disabled} onClick={() => onOpen(chat.id)}>
-              <span className="ai-saved-chat-title">{title}</span>
-              <span className="ai-saved-chat-time">{formatDateTime(chat.updatedAt)}</span>
-            </button>
-            <button type="button" className="icon-button" disabled={disabled} aria-label={translate("ai.deleteChat", { title })} onClick={() => onDelete(chat.id)}>
-              <Trash2 size={14} />
-            </button>
-          </div>
-        );
-      })}
-    </div>
   );
 }

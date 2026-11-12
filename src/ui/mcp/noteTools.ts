@@ -9,7 +9,8 @@ import { buildNotebookTree, countTags, notebookNameLookup, selectNotes, summariz
 import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteChanges, NoteRepository } from "../../core/notes/noteRepository";
 import { appendMarkdownToBody } from "../markdown/appendMarkdown";
-import { ATTACHMENT_HREF_PREFIX, bodyToMarkdown, type MarkdownImportContext, writeMarkdownToBody } from "../markdown/markdownDocument";
+import { ATTACHMENT_HREF_PREFIX, bodyToMarkdown, writeMarkdownToBody } from "../markdown/markdownDocument";
+import { markdownExportContextOf, markdownImportContextOf } from "../markdown/repositoryMarkdownContext";
 
 // 検索の結果に付ける本文の抜き書きの長さ（文字数）。
 const SNIPPET_LENGTH = 200;
@@ -86,22 +87,8 @@ export function createNoteTools(repository: NoteRepository, options: NoteToolOpt
     return notebook;
   };
 
-  // 添付を ID で指すリンクを、どこかのメモに貼ってある添付へ戻す。知らない ID と、ほかの形のリンクは添付にしない。
-  const importContext: MarkdownImportContext = {
-    noteExists: (noteId) => repository.note(noteId) !== undefined,
-    attachFile: async (href) => {
-      if (!href.startsWith(ATTACHMENT_HREF_PREFIX)) {
-        return null;
-      }
-      const attachmentId = href.slice(ATTACHMENT_HREF_PREFIX.length);
-      const attachment = repository.notes().flatMap((note) => note.content.attachments).find((candidate) => candidate.id === attachmentId);
-      return attachment ? { attachmentId, fileName: attachment.fileName, mimeType: attachment.mimeType, byteLength: attachment.byteLength } : null;
-    },
-  };
-  const markdownOf = (note: LiveNote) => bodyToMarkdown(note.body, {
-    attachmentHref: ({ id }) => `${ATTACHMENT_HREF_PREFIX}${id}`,
-    noteTitle: (noteId) => repository.note(noteId)?.content.title ?? null,
-  });
+  const importContext = markdownImportContextOf(repository);
+  const markdownOf = (note: LiveNote) => bodyToMarkdown(note.body, markdownExportContextOf(repository));
   const describeNote = (note: LiveNote) => ({
     noteId: note.id,
     title: note.content.title,

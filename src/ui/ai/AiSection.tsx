@@ -43,15 +43,12 @@ export function AiSection() {
   const { settings, saveSettings } = useAiSettings();
   const [draft, setDraft] = useState<ConnectionDraft | null>(settings && connectionOf(settings));
   const [verifiedModelCount, setVerifiedModelCount] = useState<number | null>(null);
-  // 「使う」の印は、保存が済むのを待たずに切り替えて見せる（保存は手元だけなので、ほぼ失敗しない）。
-  const [enabled, setEnabled] = useState(settings?.enabled ?? false);
   // 保存した設定の読み込みが済んだら、入力欄に入れる。最初の 1 度だけにする（「使う」を保存し終えたときに入れ直すと、
   // その間に打った API キーが消える）。
   const loaded = settings !== null;
   useEffect(() => {
     if (settings) {
       setDraft(connectionOf(settings));
-      setEnabled(settings.enabled);
     }
   }, [loaded]);
   const verify = useAsyncAction(async ({ current, connection }: { current: AiSettings; connection: ConnectionDraft }) => {
@@ -75,14 +72,11 @@ export function AiSection() {
       <p>{translate("ai.description")}</p>
       <p>{translate("ai.privacyWarning")}</p>
       <label className="checkbox-line">
-        <input type="checkbox" checked={enabled} disabled={toggle.busy} onChange={(event) => {
-          setEnabled(event.target.checked);
-          void toggle.run({ ...settings, enabled: event.target.checked });
-        }} />
+        <input type="checkbox" checked={settings.enabled} onChange={(event) => void toggle.run({ ...settings, enabled: event.target.checked })} />
         {translate("ai.enable")}
       </label>
       {toggle.errorMessage && <div className="form-error" role="alert">{toggle.errorMessage}</div>}
-      {enabled && (
+      {settings.enabled && (
         <>
           <form className="ai-connection" onKeyDown={preventSubmitByImeKey} onSubmit={(event) => { event.preventDefault(); void verify.run({ current: settings, connection: draft }); }}>
             <div className="field">

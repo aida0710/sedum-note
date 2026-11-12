@@ -20,9 +20,19 @@ export function useAiSettingsOfVault(vault: UnlockedVault): AiSettingsAccess {
     void readAiSettings(vault.localStore, vault.masterKey).then((stored) => current && setSettings(stored));
     return () => { current = false; };
   }, [vault]);
+  // 画面には、保存が済むのを待たずに出す（チェックや選択がすぐ切り替わるように）。書けなかったら元に戻す。
   const saveSettings = useCallback(async (next: AiSettings) => {
-    await writeAiSettings(vault.localStore, vault.masterKey, next);
-    setSettings(next);
+    let previous: AiSettings | null = null;
+    setSettings((current) => {
+      previous = current;
+      return next;
+    });
+    try {
+      await writeAiSettings(vault.localStore, vault.masterKey, next);
+    } catch (error) {
+      setSettings(previous);
+      throw error;
+    }
   }, [vault]);
   return { settings, saveSettings };
 }

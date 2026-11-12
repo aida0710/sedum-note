@@ -3,7 +3,7 @@ import { createNoteOnDesktop, openSettingsPage, PASSPHRASE, startLocalVault } fr
 
 // 試験では AI の提供元へつながない。届いた要求を覚えて、ストリーミングの形の決まった答えを返す。
 
-type ChatRequestBody = { model: string; max_tokens?: number; stream: boolean; fallbacks?: unknown; messages: Array<{ role: string; content: string }> };
+type ChatRequestBody = { model: string; max_tokens?: number; stream: boolean; fallbacks?: unknown; tools?: Array<{ name: string }>; messages: Array<{ role: string; content: string }> };
 
 async function enableAi(page: Page): Promise<void> {
   await openSettingsPage(page, "AI");
@@ -53,23 +53,40 @@ async function mockClaudeModels(page: Page, authorizedKey = "test-key"): Promise
 
 const chat = (page: Page) => page.getByRole("region", { name: "AI チャット" });
 
-// Claude の API のストリーミングの形（Server-Sent Events）で、answer を 2 つに分けて返す。
-function claudeStreamBody(answer: string): string {
-  const half = Math.ceil(answer.length / 2);
+// 直しの案（propose_note_edit の呼び出し）を含む答え。
+type EditAnswer = { text: string; edit: { id: string; markdown: string; summary: string } };
+
+// Claude の API のストリーミングの形（Server-Sent Events）で、答えの文を 2 つに分けて返す。
+// 直しの案があれば、そのあとに道具の呼び出しの入力を 2 つに分けて返す。
+function claudeStreamBody(answer: string | EditAnswer): string {
+  const text = typeof answer === "string" ? answer : answer.text;
+  const half = Math.ceil(text.length / 2);
   const events: Array<[string, object]> = [
     ["message_start", { type: "message_start", message: { id: "msg_test", type: "message", role: "assistant", model: "claude-opus-5-5", content: [], stop_reason: null, stop_sequence: null, usage: { input_tokens: 10, output_tokens: 1 } } }],
     ["content_block_start", { type: "content_block_start", index: 0, content_block: { type: "text", text: "" } }],
-    ["content_block_delta", { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: answer.slice(0, half) } }],
-    ["content_block_delta", { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: answer.slice(half) } }],
+    ["content_block_delta", { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: text.slice(0, half) } }],
+    ["content_block_delta", { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: text.slice(half) } }],
     ["content_block_stop", { type: "content_block_stop", index: 0 }],
-    ["message_delta", { type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: 12 } }],
-    ["message_stop", { type: "message_stop" }],
   ];
+  if (typeof answer !== "string") {
+    const input = JSON.stringify({ markdown: answer.edit.markdown, summary: answer.edit.summary });
+    const inputHalf = Math.ceil(input.length / 2);
+    events.push(
+      ["content_block_start", { type: "content_block_start", index: 1, content_block: { type: "tool_use", id: answer.edit.id, name: "propose_note_edit", input: {} } }],
+      ["content_block_delta", { type: "content_block_delta", index: 1, delta: { type: "input_json_delta", partial_json: input.slice(0, inputHalf) } }],
+      ["content_block_delta", { type: "content_block_delta", index: 1, delta: { type: "input_json_delta", partial_json: input.slice(inputHalf) } }],
+      ["content_block_stop", { type: "content_block_stop", index: 1 }],
+    );
+  }
+  events.push(
+    ["message_delta", { type: "message_delta", delta: { stop_reason: typeof answer === "string" ? "end_turn" : "tool_use", stop_sequence: null }, usage: { output_tokens: 12 } }],
+    ["message_stop", { type: "message_stop" }],
+  );
   return events.map(([name, data]) => `event: ${name}\ndata: ${JSON.stringify(data)}\n\n`).join("");
 }
 
 // Claude の API の代わり。届いた要求を覚え、answers を順に返す。
-async function mockClaudeApi(page: Page, answers: string[]): Promise<Array<{ headers: Record<string, string>; body: ChatRequestBody }>> {
+async function mockClaudeApi(page: Page, answers: Array<string | EditAnswer>): Promise<Array<{ headers: Record<string, string>; body: ChatRequestBody }>> {
   const requests: Array<{ headers: Record<string, string>; body: ChatRequestBody }> = [];
   await mockClaudeModels(page);
   await page.route("https://api.anthropic.com/v1/messages**", async (route) => {
@@ -106,7 +123,7 @@ test("Claude の API をつなぎ先にして会話を続けられ、答えを�
   // API キーをどのヘッダーに入れるかは SDK が決める。入れたキーが送られていることだけを確かめる。
   expect(Object.values(requests[0]!.headers).some((value) => value.includes("test-key"))).toBe(true);
   expect(requests[0]!.body).toMatchObject({ model: "claude-opus-5-5", stream: true, fallbacks: "default" });
-  expect(requests[0]!.body.messages[0]!.content).toContain('<note title="買い物">');
+  expect(requests[0]!.body.messages[0]!.content).toContain('<note title="買い物" open="true">');
   expect(requests[0]!.body.messages[0]!.content).toContain("牛乳と卵を買って帰る。");
 
   // 続けて聞くと、前のやり取りも一緒に送る。
@@ -309,4 +326,91 @@ test("会話は残り、ロックして開き直しても「残した会話」�
   await savedChats.first().getByRole("button", { name: "「出発はいつ？」を消す" }).click();
   await expect(savedChats).toHaveCount(0);
   await expect(chat(page).getByText("まだ残した会話がありません。")).toBeVisible();
+});
+
+// 果物のメモ（3 つの段落）を作り、最初の段落に文字色（Markdown に無い書式）を付けて、AI チャットを開く。
+async function openChatOnFruitNote(page: Page): Promise<void> {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "果物");
+  await page.keyboard.type("りんご");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("ばなな");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("みかん");
+  await page.locator(".ProseMirror p").first().click();
+  await page.keyboard.press("Home");
+  await page.keyboard.press("Shift+End");
+  await page.getByRole("button", { name: "文字色" }).click();
+  await page.getByRole("button", { name: "赤" }).click();
+  await expect(page.locator('.ProseMirror [data-text-color="red"]')).toHaveText("りんご");
+  await enableAi(page);
+  await page.getByLabel("API キー").fill("test-key");
+  await saveAiSettingsAndOpenChat(page, "果物");
+}
+
+const FRUIT_EDIT: EditAnswer = { text: "誤字を直しました。", edit: { id: "toolu_fruit", markdown: "りんご\n\nバナナ\n\nみかん\n\nぶどう", summary: "「ばなな」を直し、ぶどうを足す" } };
+
+test("開いているメモの直しを頼むと、差分を見せ、適用すると直したブロックだけが入れ替わる。直していないブロックの文字色は残る", async ({ page }) => {
+  const requests = await mockClaudeApi(page, [FRUIT_EDIT, "どういたしまして。"]);
+  await openChatOnFruitNote(page);
+  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
+  await input.fill("誤字を直して、ぶどうも足して");
+  await page.keyboard.press("Enter");
+
+  const card = chat(page).getByLabel("メモの直しの案");
+  await expect(card).toContainText("「ばなな」を直し、ぶどうを足す");
+  await expect(card.getByLabel("消すブロック")).toHaveText(["ばなな"]);
+  await expect(card.getByLabel("足すブロック")).toHaveText(["バナナ", "ぶどう"]);
+  await expect(card.locator(".ai-edit-unchanged")).toHaveText(["変更のないブロック 1 個", "変更のないブロック 1 個"]);
+  // 案を見ただけでは、メモは変わらない。
+  await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかん"]);
+  expect(requests[0]!.body.tools?.map((tool) => tool.name)).toEqual(["propose_note_edit"]);
+  expect(requests[0]!.body.messages[0]!.content).toContain('<note title="果物" open="true">');
+
+  await card.getByRole("button", { name: "適用する" }).click();
+  await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "バナナ", "みかん", "ぶどう"]);
+  await expect(page.locator('.ProseMirror [data-text-color="red"]')).toHaveText("りんご");
+  await expect(card).toContainText("適用しました。適用する前の状態は、メモの履歴に残っています。");
+
+  // 次の発言では、案を適用したことを AI に伝える。
+  await input.fill("ありがとう");
+  await page.keyboard.press("Enter");
+  await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["誤字を直しました。", "どういたしまして。"]);
+  const followUp = requests[1]!.body.messages as unknown as Array<{ role: string; content: Array<Record<string, unknown>> }>;
+  expect(followUp[1]!.content).toContainEqual({ type: "tool_use", id: "toolu_fruit", name: "propose_note_edit", input: { markdown: "(omitted from the history)", summary: "「ばなな」を直し、ぶどうを足す" } });
+  expect(followUp[2]!.content[0]).toEqual({ type: "tool_result", tool_use_id: "toolu_fruit", content: "The user applied the edit. The open note now contains it." });
+
+  // 適用する前の状態は、メモの履歴に残る。
+  await page.getByRole("button", { name: "その他の操作" }).last().click();
+  await page.getByRole("menuitem", { name: "履歴" }).click();
+  await expect(page.getByRole("dialog", { name: "履歴" }).getByRole("option").first()).toContainText("本文の置き換えの前（AI・MCP・プラグイン）");
+});
+
+test("案を出したあとでメモを書き換えると、その案は使えない。承認を待たずに適用する設定なら、案をすぐ適用する", async ({ page }) => {
+  await mockClaudeApi(page, [FRUIT_EDIT, { ...FRUIT_EDIT, edit: { ...FRUIT_EDIT.edit, id: "toolu_auto" } }]);
+  await openChatOnFruitNote(page);
+  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
+  await input.fill("直して");
+  await page.keyboard.press("Enter");
+  const firstCard = chat(page).getByLabel("メモの直しの案").first();
+  await expect(firstCard.getByRole("button", { name: "適用する" })).toBeVisible();
+
+  await page.locator(".ProseMirror p").last().click();
+  await page.keyboard.press("End");
+  await page.keyboard.type("とレモン");
+  await firstCard.getByRole("button", { name: "適用する" }).click();
+  await expect(firstCard).toContainText("案を出したあとでメモが変わったので、この案は使えません。");
+  await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかんとレモン"]);
+
+  await chat(page).getByRole("checkbox", { name: "直しの案を、承認を待たずに適用する" }).check();
+  await page.locator(".ProseMirror p").last().click();
+  await page.keyboard.press("End");
+  for (let character = 0; character < "とレモン".length; character += 1) {
+    await page.keyboard.press("Backspace");
+  }
+  await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかん"]);
+  await input.fill("もう一度直して");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "バナナ", "みかん", "ぶどう"]);
+  await expect(chat(page).getByLabel("メモの直しの案").last()).toContainText("適用しました。");
 });

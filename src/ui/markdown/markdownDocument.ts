@@ -93,7 +93,11 @@ export type BodyExportContext = {
 
 // 本文を、書き出し用の文書にする。添付にはリンク先（exportPath）、メモへのリンクにはリンク先のタイトル（exportTitle）を付ける。
 export function bodyToExportDocument(body: Y.XmlFragment, context: BodyExportContext): JSONContent {
-  const document = yXmlFragmentToProsemirrorJSON(body) as JSONContent;
+  return documentToExportDocument(yXmlFragmentToProsemirrorJSON(body) as JSONContent, context);
+}
+
+// エディタの文書（ProseMirror の JSON）を、書き出し用の文書にする（bodyToExportDocument と同じ）。
+function documentToExportDocument(document: JSONContent, context: BodyExportContext): JSONContent {
   return mapNodes(document, (node) => {
     if (node.type === ATTACHMENT_IMAGE_NODE || node.type === ATTACHMENT_FILE_NODE) {
       const href = context.attachmentHref({ id: String(node.attrs?.attachmentId), fileName: String(node.attrs?.fileName ?? "") });
@@ -109,8 +113,19 @@ export function bodyToExportDocument(body: Y.XmlFragment, context: BodyExportCon
 }
 
 export function bodyToMarkdown(body: Y.XmlFragment, context: BodyExportContext): string {
+  return exportDocumentToMarkdown(bodyToExportDocument(body, context));
+}
+
+// エディタの文書の一番上のブロックを、1 つずつ Markdown にする。2 つの文書をブロックごとに比べるのに使う
+// （AI の直しの差分）。脚注の番号は、ブロックごとに 1 から振る。
+export function documentBlocksToMarkdown(document: JSONContent, context: BodyExportContext): string[] {
+  const exported = documentToExportDocument(document, context);
+  return (exported.content ?? []).map((block) => exportDocumentToMarkdown({ type: "doc", content: [block] }));
+}
+
+function exportDocumentToMarkdown(exported: JSONContent): string {
   // 脚注は、印に出てくる順の番号を付け、文を末尾に並べる。
-  const { document, texts: footnoteTexts } = withFootnoteNumbers(bodyToExportDocument(body, context));
+  const { document, texts: footnoteTexts } = withFootnoteNumbers(exported);
   // Markdown の表は結合を表せないので、結合を解いてから書き出す。
   const markdown = markdownManager().serialize(withBlockIdMarks(mapNodes(document, (node) => [node.type === "table" ? withoutMergedCells(node) : node])));
   const footnoteLines = footnoteTexts.map((text, index) => `[^${index + 1}]: ${text}`);
