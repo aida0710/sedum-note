@@ -79,3 +79,27 @@ test("同期は片方のタブだけが行い、もう片方のタブで書い�
   await page.close();
   await expect(secondTab.locator(".sync-line")).not.toHaveText("別のウィンドウが同期しています");
 });
+
+test("1 つのウィンドウでロックすると、別のウィンドウもロックされる", async ({ page, context }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "日記");
+  await page.keyboard.type("今日のこと");
+  await page.getByRole("button", { name: "その他の操作" }).last().click();
+  const opened = context.waitForEvent("page");
+  await page.getByRole("menuitem", { name: "別のウィンドウで開く" }).click();
+  const noteWindow = await opened;
+  await unlock(noteWindow);
+  await expect(noteWindow.locator(".ProseMirror")).toHaveText("今日のこと");
+  // 別のウィンドウで打ったばかりの文字も、ロックの前に保存される。
+  await placeCursorAtBodyEnd(noteWindow);
+  await noteWindow.keyboard.type("、続き");
+
+  await page.keyboard.press("Control+l");
+  await expect(page.getByRole("heading", { name: "ロックを解除" })).toBeVisible();
+  await expect(noteWindow.getByRole("heading", { name: "ロックを解除" })).toBeVisible();
+  await expect(noteWindow.getByText("今日のこと")).toHaveCount(0);
+
+  await unlock(page);
+  await page.locator(".tree-note", { hasText: "日記" }).first().click();
+  await expect(page.locator(".ProseMirror")).toHaveText("今日のこと、続き");
+});

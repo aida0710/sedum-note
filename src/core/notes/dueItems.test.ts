@@ -46,10 +46,22 @@ describe("期限付きのチェックリストの項目", () => {
     appendTaskItem(body, "期限の無い項目");
     appendTaskItem(body, "📅 2026-11-16 提出する", true);
     appendParagraph(body, "ただの段落 📅 2026-11-17");
-    expect(bodyDueTasks(body)).toEqual([
+    expect(bodyDueTasks(body)).toMatchObject([
       { taskIndex: 0, text: "牛乳を買う", dueAt: "2026-11-15T18:30", done: false },
       { taskIndex: 2, text: "提出する", dueAt: "2026-11-16T09:00", done: true },
     ]);
+  });
+
+  it("項目を見分ける名前は、上に項目を足しても、文字を書き換えても変わらず、文字を含まない", () => {
+    const { body } = note("買い物");
+    appendTaskItem(body, "牛乳を買う 📅 2026-11-15 18:30");
+    const [before] = bodyDueTasks(body);
+    const added = new Y.XmlElement("paragraph");
+    added.insert(0, [new Y.XmlText("上に足した行")]);
+    body.insert(0, [added]);
+    const [after] = bodyDueTasks(body);
+    expect(after!.itemKey).toBe(before!.itemKey);
+    expect(before!.itemKey).not.toContain("牛乳");
   });
 
   it("一覧から完了にできる。本文が変わって別の項目になっていたら、何もしない", () => {

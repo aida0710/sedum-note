@@ -28,7 +28,32 @@ export function createRecordChangeChannel(vaultId: string): RecordChangeChannel 
       channel.addEventListener("message", receive);
       return () => channel.removeEventListener("message", receive);
     },
+    close: () => channel.close(),
   };
+}
+
+// このアプリを開いているウィンドウ全部に伝える合図。lock は「ロックした」、wiped は「このデバイスのデータを消した」。
+// データを消すのは、ロックしたままのウィンドウからもできるので、vault ごとには分けない。
+export type WindowSignal = "lock" | "wiped";
+
+const WINDOW_SIGNAL_CHANNEL_NAME = "sedum-note:windows";
+
+// ほかのウィンドウへ合図を送る。自分には届かない。
+export function sendWindowSignal(signal: WindowSignal): void {
+  const channel = new BroadcastChannel(WINDOW_SIGNAL_CHANNEL_NAME);
+  channel.postMessage(signal);
+  channel.close();
+}
+
+// ほかのウィンドウからの合図を受け取る。返した関数で、受け取りをやめる。
+export function onWindowSignal(listener: (signal: WindowSignal) => void): () => void {
+  const channel = new BroadcastChannel(WINDOW_SIGNAL_CHANNEL_NAME);
+  channel.addEventListener("message", (event: MessageEvent<unknown>) => {
+    if (event.data === "lock" || event.data === "wiped") {
+      listener(event.data);
+    }
+  });
+  return () => channel.close();
 }
 
 // 同じ vault を開いているウィンドウのうち、1 つだけが同期を受け持つ。受け持ちになったら start を呼び、

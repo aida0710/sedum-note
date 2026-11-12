@@ -7,6 +7,8 @@ export interface RecordChangeChannel {
   announce(recordId: string): void;
   // ほかのウィンドウが書いた記録の ID を受け取る。自分が知らせたものは届かない。
   subscribe(listener: (recordId: string) => void): () => void;
+  // 通り道を閉じる。以後は、知らせを送りも受けもしない。
+  close(): void;
 }
 
 // 試験用。同じ hub から作った通り道どうしが、互いの知らせを受け取る。
@@ -28,6 +30,10 @@ export class MemoryRecordChangeHub {
       subscribe: (listener) => {
         listeners.add(listener);
         return () => listeners.delete(listener);
+      },
+      close: () => {
+        listeners.clear();
+        this.#listenersByChannel.delete(channel);
       },
     };
   }

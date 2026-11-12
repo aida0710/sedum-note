@@ -8,6 +8,8 @@ import { findDueMark } from "./dueTimes";
 const TASK_ITEM_NODE = "taskItem";
 
 export type DueTask = {
+  // 項目を見分ける名前（Yjs がその項目に付けた ID）。項目を動かしても、文字を書き換えても変わらず、中身を含まない。
+  itemKey: string;
   // 本文の中で、上から何番目のチェックリストの項目か（期限の無い項目も数える）。
   taskIndex: number;
   // 項目の 1 行目の文字から、期限の印を除いたもの。
@@ -45,7 +47,9 @@ function dueTaskOf(taskItem: Y.XmlElement, taskIndex: number): DueTask | null {
     return null;
   }
   const text = `${line.slice(0, mark.start)}${line.slice(mark.end)}`.replace(/\s+/g, " ").trim();
-  return { taskIndex, text, dueAt: mark.dueAt, done: taskItem.getAttribute("checked") as unknown === true };
+  const yjsId = taskItem._item?.id;
+  const itemKey = yjsId ? `${yjsId.client.toString(36)}-${yjsId.clock.toString(36)}` : String(taskIndex);
+  return { itemKey, taskIndex, text, dueAt: mark.dueAt, done: taskItem.getAttribute("checked") as unknown === true };
 }
 
 export function bodyDueTasks(body: Y.XmlFragment): DueTask[] {

@@ -357,10 +357,17 @@ export class NoteRepository {
     return sealed === null ? null : open(this.#dependencies.masterKey, sealed, blobBinding(id));
   }
 
+  // ロックするときや、同期先をつなぎ直して別の repository に入れ替えるときに呼ぶ。ほかのウィンドウの書き込みを、
+  // 受け取らなくする（ロックしたあとの画面が、ほかのウィンドウの編集を復号し続けないように）。
+  release(): void {
+    this.#dependencies.recordChangeChannel?.close();
+  }
+
   // このデバイスのデータを消す前に呼ぶ。保存を待っている入力を捨て、書いている途中のものが
   // 終わるのを待つ。以後の入力は保存しない（消したデータを書き戻さないため）。
   async close(): Promise<void> {
     this.#closed = true;
+    this.release();
     this.#cancelPersistTimer();
     this.#unsavedIds.clear();
     await this.#dependencies.writeQueue.run(async () => undefined);

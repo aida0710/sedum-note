@@ -23,7 +23,7 @@ import {
   wipeDeviceData,
 } from "../../core/vault/vaultSession";
 import { resetDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
-import { holdSyncDuty } from "../platform/crossWindowStorage";
+import { holdSyncDuty, onWindowSignal, sendWindowSignal } from "../platform/crossWindowStorage";
 import { createAppEnvironment } from "./appEnvironment";
 import { clearDueReminderRecords } from "./dueReminderRecords";
 
@@ -129,6 +129,25 @@ export function useVaultSession(): VaultSession {
     autoSyncRef.current?.setAutomatic(syncsAutomatically);
   }, [syncsAutomatically]);
 
+  // この vault を手放すとき（ロック、同期先のつなぎ直し）に、ほかのウィンドウの書き込みを受け取るのをやめる。
+  useEffect(() => () => vault?.repository.release(), [vault]);
+
+  // ほかのウィンドウでロックしたら、このウィンドウもロックする。ほかのウィンドウがデータを消したら、最初の画面から始め直す
+  // （ロックしたままのウィンドウも）。
+  useEffect(() => onWindowSignal((signal) => {
+    if (signal === "wiped") {
+      window.location.reload();
+      return;
+    }
+    if (vault) {
+      // このウィンドウでまだ保存していない入力を書いてから、ロックする。
+      void vault.repository.flush().then(() => {
+        setGeneratedSyncKey(null);
+        setState({ phase: "locked" });
+      });
+    }
+  }), [vault]);
+
   const enter = useCallback((unlocked: UnlockedVault) => setState({ phase: "unlocked", vault: unlocked }), []);
   const enterWithSyncKey = useCallback((entry: VaultEntry) => {
     setGeneratedSyncKey(entry.generatedSyncKey);
@@ -150,6 +169,8 @@ export function useVaultSession(): VaultSession {
     lock: async () => {
       // ロックのあとに解除すると、メモを手元の保存から読み直す。まだ書いていない入力は、ここで書かないと失う。
       await vault?.repository.flush();
+      // 同じメモを開いている、ほかのウィンドウ（別のウィンドウ、ほかのタブ）もロックする。
+      sendWindowSignal("lock");
       setGeneratedSyncKey(null);
       setState({ phase: "locked" });
     },
@@ -186,6 +207,7 @@ export function useVaultSession(): VaultSession {
     wipeDeviceData: async () => {
       autoSyncRef.current?.stop();
       await wipeDeviceData(environment.localStore, vault);
+      sendWindowSignal("wiped");
       resetDevicePreferences();
       await clearDueReminderRecords();
       // メモリに残った鍵と開いた文書ごと捨てて、最初の画面から始め直す。

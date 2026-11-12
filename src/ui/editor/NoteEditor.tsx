@@ -169,6 +169,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   const { concealedNoteIds } = useNoteLockState();
   const isRevealed = (candidate: LiveNote) => !concealedNoteIds.has(candidate.id);
   const print = useAsyncAction(printPage);
+  const openInNewWindow = useAsyncAction(() => openNoteInNewWindow(noteId, note.content.title || translate("sidebar.untitled")));
   // ほかのデバイスがタイトルを変えたら、打っている最中でなければ表示を差し替える。
   useEffect(() => {
     if (document.activeElement !== titleInput.current) {
@@ -254,7 +255,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
     .map((template) => ({ id: template.id, title: template.content.title }));
   slashMenuController.actions = { pickImage, pickFile, pickNoteLink, pickBlockLink, pickBlockEmbed, scanDocument: () => scanInput.current?.click(), pickTaskDue: () => setDueTarget("task"), templates, insertTemplate };
 
-  const actionError = attachments.errorMessage ?? audioRecorder.errorMessage ?? pasteMarkdown.errorMessage ?? exportNote.errorMessage ?? print.errorMessage;
+  const actionError = attachments.errorMessage ?? audioRecorder.errorMessage ?? pasteMarkdown.errorMessage ?? exportNote.errorMessage ?? print.errorMessage ?? openInNewWindow.errorMessage;
   if (!editor) {
     return null;
   }
@@ -376,7 +377,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
             void repository.updateNote(noteId, { isOutline: !isOutline });
           }}
           zoomTarget={editor ? zoomTargetAtCursor(editor.state) : null} onZoomIn={() => editor && zoomIntoCursor(editor)}
-          onOpenInNewWindow={!isMobile && canOpenNoteWindows() ? () => void openNoteInNewWindow(noteId, note.content.title || translate("sidebar.untitled")) : undefined}
+          onOpenInNewWindow={!isMobile && canOpenNoteWindows() ? () => void openInNewWindow.run(undefined) : undefined}
           onSetNoteDue={() => setDueTarget("note")}
           onSetTaskDue={editor && isCursorInTaskItem(editor.state) ? () => setDueTarget("task") : undefined}
           onShowHistory={() => setShowingHistory(true)} onExport={(format) => void exportNote.run({ notes: [note], format })}

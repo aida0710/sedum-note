@@ -5,7 +5,7 @@ import type { DueTask } from "./dueTasks";
 import type { NoteSummary } from "./noteQueries";
 
 export type DueItem = {
-  // 同じ期限を 2 回知らせないための名前（メモの ID、期限、項目なら本文の中の順番）。期限を変えると、別のものとして知らせ直す。
+  // 同じ期限を 2 回知らせないための名前（メモの ID、期限、項目ならその項目の ID）。期限を変えると、別のものとして知らせ直す。
   // 知らせた名前は、暗号化しない場所に覚えておくので、項目の文字やメモの題を入れない。
   key: string;
   noteId: string;
@@ -32,7 +32,7 @@ export function dueItemsOf(summaries: NoteSummary[]): DueItem[] {
       items.push({ key: `${note.id}|${dueAt}`, noteId: note.id, noteTitle: title, dueAt, done: false, task: null });
     }
     for (const task of dueTasks) {
-      items.push({ key: `${note.id}|${task.dueAt}|${task.taskIndex}`, noteId: note.id, noteTitle: title, dueAt: task.dueAt, done: task.done, task });
+      items.push({ key: `${note.id}|${task.dueAt}|${task.itemKey}`, noteId: note.id, noteTitle: title, dueAt: task.dueAt, done: task.done, task });
     }
   }
   return items.sort((left, right) => left.dueAt.localeCompare(right.dueAt));

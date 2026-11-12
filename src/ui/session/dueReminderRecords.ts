@@ -1,5 +1,5 @@
 // 期限の通知について、このデバイスに残したもの（もう知らせた期限の名前と、Android で OS に予約した通知）。
-// 知らせた期限の名前（DueItem.key）は、メモの ID・期限・順番だけでできていて、メモの中身を含まない。
+// 知らせた期限の名前（DueItem.key）は、メモの ID・期限・項目の ID だけでできていて、メモの中身を含まない。
 
 import { canScheduleNotifications, replaceScheduledNotifications } from "../platform/systemNotifications";
 

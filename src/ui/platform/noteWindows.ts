@@ -30,7 +30,12 @@ export async function openNoteInNewWindow(noteId: string, title: string): Promis
   }
   const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
   // dragDropEnabled を切るのは、最初のウィンドウと同じ理由（本文へのドラッグを、ページの中で受けるため）。
-  new WebviewWindow(`${NOTE_WINDOW_LABEL_PREFIX}${newRandomId()}`, { url: `index.html${query}`, title, ...NOTE_WINDOW_SIZE, dragDropEnabled: false });
+  const noteWindow = new WebviewWindow(`${NOTE_WINDOW_LABEL_PREFIX}${newRandomId()}`, { url: `index.html${query}`, title, ...NOTE_WINDOW_SIZE, dragDropEnabled: false });
+  // ウィンドウを作れたか・作れなかったかは、出来事として届く。作れなかったら、呼び出し側へ失敗として返す。
+  await new Promise<void>((resolve, reject) => {
+    void noteWindow.once("tauri://created", () => resolve());
+    void noteWindow.once("tauri://error", (event) => reject(new Error(`the window could not be opened: ${String(event.payload)}`)));
+  });
 }
 
 // ウィンドウを、ほかのウィンドウより前に出したままにできるか（PC のアプリだけ）。

@@ -23,7 +23,8 @@ export function useSyncFromPull(session: VaultSession): (() => Promise<void>) | 
     }
   }, [syncStatus, showToast]);
 
-  if (syncStatus === null) {
+  // 同期を設定していないか、ほかのウィンドウが同期を受け持っているときは、引いても同期を始められない。
+  if (syncStatus === null || syncStatus.state === "delegated") {
     return null;
   }
   return async () => {
