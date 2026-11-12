@@ -23,6 +23,10 @@ import {
   wipeDeviceData,
 } from "./vaultSession";
 import { connectSyncedRemote, createLocalVault, createSyncedVault, joinSyncedVault, TEST_KDF_COST, TEST_SYNC_KEY } from "./vaultTestDevices";
+import { BODY_SCHEMA_VERSION } from "../notes/bodySchema";
+
+// 試験の中の「新しいアプリ」が持つ版。今のアプリの版より 1 つ先。
+const NEWER_BODY_SCHEMA_VERSION = BODY_SCHEMA_VERSION + 1;
 
 const remoteConfig: RemoteConfig = { endpoint: "https://s3.example.com", bucket: "notes", region: "auto", prefix: "", accessKeyId: "k", secretAccessKey: "s" };
 
@@ -32,7 +36,7 @@ function environment(store: MemoryObjectStore, sameDevice?: VaultSessionEnvironm
 }
 
 describe("本文の形の版", () => {
-  const newerApp = (store: MemoryObjectStore): VaultSessionEnvironment => ({ ...environment(store), bodySchemaVersion: 2 });
+  const newerApp = (store: MemoryObjectStore): VaultSessionEnvironment => ({ ...environment(store), bodySchemaVersion: NEWER_BODY_SCHEMA_VERSION });
 
   it("新しいアプリが同期すると、古いアプリは同期を止めて更新を求める。手元のメモは開けるまま", async () => {
     const store = new MemoryObjectStore();
@@ -52,7 +56,7 @@ describe("本文の形の版", () => {
   it("新しいアプリで作ったバックアップや手元のデータは、古いアプリでは開かない", async () => {
     const store = new MemoryObjectStore();
     const shared = environment(store);
-    await createLocalVault({ ...shared, bodySchemaVersion: 2 }, "correct horse battery");
+    await createLocalVault({ ...shared, bodySchemaVersion: NEWER_BODY_SCHEMA_VERSION }, "correct horse battery");
     await expect(unlockLocalVault(shared, "correct horse battery")).rejects.toBeInstanceOf(AppUpdateRequiredError);
   });
 

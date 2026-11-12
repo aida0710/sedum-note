@@ -247,8 +247,7 @@ test("Markdown の文字を貼り付けると、見出し・リスト・表・�
   await expect(body.locator('li[data-checked="true"] p')).toHaveText("卵");
   expect(await tableShape(page)).toEqual([["品目", "数"], ["紙", "2"]]);
   await expect(body.locator("pre code")).toHaveText("const x = 1;");
-  // 本文の見出しは 3 段までなので、それより深い見出しは 3 段目になる。
-  await expect(body.locator("h3")).toHaveText("小さい見出し");
+  await expect(body.locator("h4")).toHaveText("小さい見出し");
   await expect(body).not.toContainText("# 題名");
 });
 

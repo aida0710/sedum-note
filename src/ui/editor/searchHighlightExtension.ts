@@ -3,7 +3,8 @@
 
 import { Extension } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { type EditorState, Plugin, PluginKey, type Transaction } from "@tiptap/pm/state";
+import { yUndoPluginKey } from "@tiptap/y-tiptap";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 
 export type SearchMatch = { from: number; to: number };
@@ -28,6 +29,10 @@ declare module "@tiptap/core" {
       setSearchQuery: (query: string) => ReturnType;
       // direction が 1 なら次、-1 なら前の当たりへ移る（端まで行ったら反対の端へ）。
       moveToSearchMatch: (direction: 1 | -1) => ReturnType;
+      // いま選んでいる当たりを、replacement に置き換える。
+      replaceActiveSearchMatch: (replacement: string) => ReturnType;
+      // 当たりを全部、replacement に置き換える。1 回の取り消しで全部戻る。
+      replaceAllSearchMatches: (replacement: string) => ReturnType;
     };
   }
 }
@@ -62,6 +67,16 @@ export function findSearchMatches(doc: ProseMirrorNode, query: string): SearchMa
   return matches.sort((left, right) => left.from - right.from);
 }
 
+// 空の言葉に置き換えるときは、当たりを消す（insertText は空の文字を入れられない）。
+function replaceMatch(transaction: Transaction, match: SearchMatch, replacement: string): Transaction {
+  return replacement === "" ? transaction.delete(match.from, match.to) : transaction.insertText(replacement, match.from, match.to);
+}
+
+// 置換を、直前の入力とは別の取り消しの単位にする（続けて行った変更は、既定では 1 回の取り消しにまとまる）。
+function startNewUndoStep(state: EditorState): void {
+  (yUndoPluginKey.getState(state) as { undoManager?: { stopCapturing: () => void } } | undefined)?.undoManager?.stopCapturing();
+}
+
 function buildState(doc: ProseMirrorNode, query: string, activeIndex: number): SearchHighlightState {
   const matches = findSearchMatches(doc, query);
   const active = matches.length === 0 ? -1 : Math.min(Math.max(activeIndex, 0), matches.length - 1);
@@ -89,6 +104,30 @@ export const SearchHighlight = Extension.create({
         if (match) {
           // 描き直しのあとで、選んだ当たりを見える所へ送る。
           requestAnimationFrame(() => (view.domAtPos(match.from).node as Element | Text).parentElement?.scrollIntoView({ block: "center" }));
+        }
+        return true;
+      },
+      replaceActiveSearchMatch: (replacement) => ({ state, tr, dispatch }) => {
+        const current = searchHighlightKey.getState(state);
+        const match = current?.matches[current.activeIndex];
+        if (!match) {
+          return false;
+        }
+        if (dispatch) {
+          startNewUndoStep(state);
+          dispatch(replaceMatch(tr, match, replacement));
+        }
+        return true;
+      },
+      replaceAllSearchMatches: (replacement) => ({ state, tr, dispatch }) => {
+        const matches = searchHighlightKey.getState(state)?.matches ?? [];
+        if (matches.length === 0) {
+          return false;
+        }
+        // 後ろから置き換える（前から置き換えると、後ろの当たりの位置がずれる）。
+        if (dispatch) {
+          startNewUndoStep(state);
+          dispatch([...matches].reverse().reduce((transaction, match) => replaceMatch(transaction, match, replacement), tr));
         }
         return true;
       },

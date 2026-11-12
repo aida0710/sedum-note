@@ -66,3 +66,42 @@ test("ショートカットで、新しいメモ・タブの切り替え・タ�
   await page.keyboard.press("Control+Alt+n");
   await expect(page.getByRole("tab")).toHaveCount(2);
 });
+
+test("メモの中の言葉を、1 つずつ、または全部まとめて置換できる。全部の置換は 1 回の取り消しで戻る", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "置換の試し", "りんご と みかん。りんご の木。りんご の実。");
+  await page.keyboard.press("Control+f");
+  await page.getByPlaceholder("このメモの中を検索").fill("りんご");
+  await page.getByRole("button", { name: "置換", exact: true }).first().click();
+  await page.getByPlaceholder("置換後の言葉").fill("もも");
+
+  const body = page.locator(".ProseMirror");
+  await page.getByRole("button", { name: "置換", exact: true }).last().click();
+  await expect(body).toHaveText("もも と みかん。りんご の木。りんご の実。");
+  await page.getByRole("button", { name: "すべて置換" }).click();
+  await expect(body).toHaveText("もも と みかん。もも の木。もも の実。");
+
+  await body.click();
+  await page.keyboard.press("Control+z");
+  await expect(body).toHaveText("もも と みかん。りんご の木。りんご の実。");
+});
+
+test("本文の文字数が出て、選んでいる間は選んだ範囲の文字数も出る", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "文字数の試し", "あいう えお");
+  await expect(page.locator(".character-count")).toHaveText("5 文字");
+  await page.keyboard.press("Shift+ArrowLeft");
+  await page.keyboard.press("Shift+ArrowLeft");
+  await expect(page.locator(".character-count")).toHaveText("選択 2 / 5 文字");
+});
+
+test("「/」のメニューとショートカットで、今日の日付を本文に入れられる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "日付の試し", "");
+  const today = await page.evaluate(() => new Intl.DateTimeFormat("ja", { dateStyle: "long" }).format(new Date()));
+  await page.keyboard.type("/きょう");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".ProseMirror")).toHaveText(today);
+  await page.keyboard.press("Control+Alt+d");
+  await expect(page.locator(".ProseMirror")).toHaveText(today + today);
+});

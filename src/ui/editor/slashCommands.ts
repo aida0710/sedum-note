@@ -2,9 +2,11 @@
 
 import type { Editor } from "@tiptap/react";
 import {
-  Code, FileSymlink, Heading1, Heading2, Heading3, ImagePlus, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Minus, Paperclip, Pilcrow, Table, TextQuote,
+  CalendarClock, CalendarDays, Code, FileSymlink, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, ImagePlus, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Minus, Paperclip, Pilcrow, Table, TextQuote,
 } from "lucide-react";
 import { translate } from "../i18n/translate";
+import { HEADING_LEVELS, type HeadingLevel } from "./headingLevels";
+import { insertCurrentDateTime } from "./insertDateTime";
 
 // エディタの外の画面を開く操作（ファイルの選択、リンクするメモの選択）。NoteEditor が用意する。
 export type SlashCommandActions = {
@@ -30,9 +32,9 @@ export type SlashCommand = {
 // 挿入する表の大きさ（見出しの行を含む）。ツールバーの表のメニューと同じ。
 export const NEW_TABLE_SIZE = { rows: 3, cols: 3, withHeaderRow: true } as const;
 
-const HEADING_ICONS = { 1: Heading1, 2: Heading2, 3: Heading3 } as const;
+const HEADING_ICONS = { 1: Heading1, 2: Heading2, 3: Heading3, 4: Heading4, 5: Heading5, 6: Heading6 } as const;
 
-const heading = (level: 1 | 2 | 3): SlashCommand => ({
+const heading = (level: HeadingLevel): SlashCommand => ({
   id: `heading${level}`,
   icon: HEADING_ICONS[level],
   name: () => translate(`editor.heading${level}`),
@@ -42,9 +44,7 @@ const heading = (level: 1 | 2 | 3): SlashCommand => ({
 
 export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "paragraph", icon: Pilcrow, name: () => translate("editor.paragraph"), keywords: ["text", "paragraph", "honbun", "ほんぶん", "てきすと"], run: (editor) => editor.chain().focus().setParagraph().run() },
-  heading(1),
-  heading(2),
-  heading(3),
+  ...HEADING_LEVELS.map(heading),
   { id: "bulletList", icon: List, name: () => translate("editor.bulletList"), keywords: ["bullet", "list", "ul", "kajou", "かじょうがき", "りすと"], run: (editor) => editor.chain().focus().toggleBulletList().run() },
   { id: "orderedList", icon: ListOrdered, name: () => translate("editor.orderedList"), keywords: ["number", "ordered", "ol", "bangou", "ばんごう"], run: (editor) => editor.chain().focus().toggleOrderedList().run() },
   { id: "taskList", icon: ListChecks, name: () => translate("editor.taskList"), keywords: ["todo", "task", "check", "ちぇっく", "やること"], run: (editor) => editor.chain().focus().toggleTaskList().run() },
@@ -54,6 +54,8 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "divider", icon: Minus, name: () => translate("editor.divider"), keywords: ["divider", "hr", "line", "kugiri", "くぎり", "せん"], run: (editor) => editor.chain().focus().setHorizontalRule().run() },
   { id: "image", icon: ImagePlus, name: () => translate("editor.image"), keywords: ["image", "photo", "picture", "gazou", "がぞう", "しゃしん"], run: (_editor, actions) => actions.pickImage() },
   { id: "file", icon: Paperclip, name: () => translate("editor.file"), keywords: ["file", "attach", "tenpu", "てんぷ", "ふぁいる"], run: (_editor, actions) => actions.pickFile() },
+  { id: "date", icon: CalendarDays, name: () => translate("editor.insertDate"), keywords: ["date", "today", "hizuke", "ひづけ", "きょう"], run: (editor) => insertCurrentDateTime(editor, "date") },
+  { id: "dateTime", icon: CalendarClock, name: () => translate("editor.insertDateTime"), keywords: ["time", "now", "datetime", "nichiji", "にちじ", "じこく", "いま"], run: (editor) => insertCurrentDateTime(editor, "dateTime") },
   { id: "noteLink", icon: FileSymlink, name: () => translate("editor.noteLink"), keywords: ["link", "note", "memo", "りんく", "めも"], run: (_editor, actions) => actions.pickNoteLink() },
 ];
 

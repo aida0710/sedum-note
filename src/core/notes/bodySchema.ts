@@ -4,7 +4,8 @@
 // それを防ぐため、vault.json にこの版を持たせる。自分より新しい版の vault は開かず、同期もしない。
 // 自分の方が新しければ、vault.json の版を引き上げる（以後、古いアプリは更新するまで止まる）。
 
-export const BODY_SCHEMA_VERSION = 1;
+// 2: 見出しを 6 段までにした。
+export const BODY_SCHEMA_VERSION = 2;
 
 export class AppUpdateRequiredError extends Error {
   constructor() {

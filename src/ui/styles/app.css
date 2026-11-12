@@ -97,7 +97,8 @@ button:disabled { cursor: default; opacity: .55; }
 .icon-button.active { background: var(--selected); color: var(--accent); }
 .document { padding: 28px 56px 80px; max-width: 760px; width: 100%; margin: 0 auto; }
 .document-meta { color: var(--muted); font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; min-height: 22px; }
-.document-meta .updated { margin-left: auto; }
+.document-meta .character-count { margin-left: auto; }
+.document-meta .updated { margin-left: 12px; }
 .chip { background: var(--tag); border-radius: 999px; padding: 2px 9px; font-size: 11.5px; color: var(--text); display: inline-flex; align-items: center; gap: 5px; }
 .unsynced-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 6px; vertical-align: middle; flex: none; }
 .chip.unsynced { background: var(--accent-soft); color: var(--accent); }
@@ -114,6 +115,9 @@ button:disabled { cursor: default; opacity: .55; }
 .ProseMirror h1 { font-size: 1.52em; margin: 20px 0 6px; }
 .ProseMirror h2 { font-size: 1.17em; margin: 18px 0 6px; }
 .ProseMirror h3 { font-size: 1.03em; margin: 14px 0 4px; }
+.ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { font-size: 1em; margin: 12px 0 4px; }
+.ProseMirror h5 { color: var(--muted); }
+.ProseMirror h6 { color: var(--muted); font-weight: 600; }
 .ProseMirror ul, .ProseMirror ol { padding-left: 22px; }
 .ProseMirror ul[data-type="taskList"] { list-style: none; padding-left: 0; }
 .ProseMirror ul[data-type="taskList"] li { display: flex; gap: 8px; align-items: flex-start; }
@@ -158,7 +162,11 @@ button:disabled { cursor: default; opacity: .55; }
 .choice.on { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent); }
 .search-match { background: color-mix(in srgb, var(--bookmark) 35%, transparent); border-radius: 2px; }
 .search-match.active { background: var(--bookmark); color: #16181c; }
-.find-bar { display: flex; align-items: center; gap: 4px; padding: 6px 14px; border-bottom: 1px solid var(--line); flex: none; }
+.find-bar { display: flex; flex-direction: column; gap: 4px; padding: 6px 14px; border-bottom: 1px solid var(--line); flex: none; }
+.find-row { display: flex; align-items: center; gap: 4px; }
+.find-row .text-button { height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); flex: none; }
+.find-row .text-button:disabled { color: var(--muted); }
+.find-row .icon-button.on { background: var(--selected); color: var(--text); }
 .find-bar input { flex: 1; min-width: 0; max-width: 320px; height: 30px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; background: var(--panel); color: var(--text); }
 .find-count { color: var(--muted); font-size: 12px; min-width: 48px; text-align: center; }
 .search-scope { text-align: left; color: var(--accent); font-size: 12px; padding: 4px 8px; line-height: 1.5; }

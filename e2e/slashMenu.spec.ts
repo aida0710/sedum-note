@@ -12,7 +12,8 @@ test("「/」を打つとブロックの候補が出て、上下のキーと Ent
   await openNewNote(page);
   await page.keyboard.type("/");
   await expect(slashMenu(page).getByRole("option")).toHaveText([
-    "本文", "見出し 1", "見出し 2", "見出し 3", "箇条書き", "番号付きリスト", "チェックリスト", "引用", "コード", "表", "区切り線", "画像を貼る", "ファイルを添付", "メモへのリンク",
+    "本文", "見出し 1", "見出し 2", "見出し 3", "見出し 4", "見出し 5", "見出し 6", "箇条書き", "番号付きリスト", "チェックリスト", "引用", "コード", "表", "区切り線",
+    "画像を貼る", "ファイルを添付", "今日の日付", "今の日時", "メモへのリンク",
   ]);
   await page.keyboard.press("ArrowDown");
   await expect(slashMenu(page).getByRole("option", { name: "見出し 1" })).toHaveAttribute("aria-selected", "true");

@@ -12,7 +12,7 @@ import type * as Y from "yjs";
 import { ATTACHMENT_FILE_NODE, ATTACHMENT_IMAGE_NODE, NOTE_LINK_NODE } from "../../core/notes/bodyText";
 import { isRandomId } from "../../core/crypto/randomId";
 import { documentSchema } from "../editor/documentSchema";
-import { documentExtensions, HEADING_LEVELS } from "../editor/editorExtensions";
+import { documentExtensions } from "../editor/editorExtensions";
 import { decodeMarkdownPath } from "./markdownFileNames";
 import { withoutMergedCells } from "./unmergedTable";
 
@@ -94,15 +94,7 @@ export type MarkdownImportContext = {
 // Markdown を、本文に入れられるブロックの並びにする。
 export async function markdownToBodyBlocks(markdown: string, context: MarkdownImportContext): Promise<JSONContent[]> {
   const parsed = await replaceImportedNodes(markdownManager().parse(markdown), context);
-  return mapNodes(parsed, (node) => [withSupportedHeadingLevel(node)]).content ?? [];
-}
-
-const DEEPEST_HEADING_LEVEL = Math.max(...HEADING_LEVELS);
-
-// 本文に無い深さの見出し（####以降）は、そのままだと一番大きい見出しになってしまうので、一番深い段にする。
-function withSupportedHeadingLevel(node: JSONContent): JSONContent {
-  const isTooDeep = node.type === "heading" && Number(node.attrs?.level) > DEEPEST_HEADING_LEVEL;
-  return isTooDeep ? { ...node, attrs: { ...node.attrs, level: DEEPEST_HEADING_LEVEL } } : node;
+  return parsed.content ?? [];
 }
 
 // Markdown を本文に入れる。本文は空にしてから入れる。

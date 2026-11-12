@@ -31,6 +31,7 @@ import { SlashMenu } from "./SlashMenu";
 import { useNoteAttachments } from "./useNoteAttachments";
 import { SlashMenuController } from "./slashMenuController";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
+import { NoteCharacterCount } from "./NoteCharacterCount";
 
 type NoteEditorProps = {
   note: LiveNote;
@@ -219,6 +220,7 @@ export function NoteEditor({ note, notebooks, repository, isMobile, onBack, high
             ))}
             {tags.map((tag) => <span key={tag} className="chip">#{tag}</span>)}
             {unsyncedIds.has(noteId) && <span className="chip unsynced">{translate("editor.unsynced")}</span>}
+            <NoteCharacterCount editor={editor} />
             <span className="updated">{translate("editor.updatedAt", { time: formatDateTime(note.updatedAt) })}</span>
           </div>
           {/* 作ったばかりの空のメモは、すぐ打てるようにタイトルにカーソルを置く。 */}

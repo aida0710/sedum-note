@@ -16,6 +16,8 @@ import { AttachmentImage } from "./attachmentImageNode";
 import { NoteLink } from "./noteLinkNode";
 import { SearchHighlight } from "./searchHighlightExtension";
 import { SlashCommands } from "./slashCommandExtension";
+import { HEADING_LEVELS } from "./headingLevels";
+import { DateTimeShortcuts } from "./insertDateTime";
 import { TableShortcuts } from "./tableShortcuts";
 import type { SlashMenuController } from "./slashMenuController";
 
@@ -24,9 +26,6 @@ const codeHighlighter = createLowlight(common);
 
 // 幅を決めていない列と、ドラッグで縮められる列の、一番狭い幅（px）。1〜2 文字が入る幅にする。
 const TABLE_CELL_MIN_WIDTH = 72;
-
-// 本文に入れられる見出しの段。Markdown から取り込むときは、これより深い見出しを一番深い段にする。
-export const HEADING_LEVELS = [1, 2, 3] as const;
 
 // 文書の形（ノードと書式）を決める機能。エディタのほか、Markdown との変換（ui/markdown）でも使う。
 export function documentExtensions() {
@@ -44,7 +43,6 @@ export function documentExtensions() {
     CodeBlockLowlight.configure({ lowlight: codeHighlighter }),
     // 列の境目をドラッグして幅を変えられる。スマホの幅では表が画面をはみ出すので、包んだ要素（tableWrapper）の中で横に送る。
     TableKit.configure({ table: { resizable: true, renderWrapper: true, cellMinWidth: TABLE_CELL_MIN_WIDTH } }),
-    TableShortcuts,
     AttachmentImage,
     AttachmentFile,
     NoteLink,
@@ -55,6 +53,8 @@ export function createEditorExtensions(body: Y.XmlFragment, slashMenuController:
   return [
     ...documentExtensions(),
     SlashCommands.configure({ controller: slashMenuController }),
+    TableShortcuts,
+    DateTimeShortcuts,
     SearchHighlight,
     Collaboration.configure({ fragment: body }),
     Placeholder.configure({ placeholder: translate("editor.bodyPlaceholder") }),
