@@ -13,6 +13,7 @@ import { NotebookAppearanceDialog } from "./NotebookAppearanceDialog";
 import { ViewGroup } from "./SidebarViewGroup";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
 import { NotebookPropertiesDialog } from "./NotebookPropertiesDialog";
+import { databaseTabId } from "./useWorkspaceNavigation";
 
 export type NotebookBranchProps = {
   notebookColors: NotebookColors;
@@ -71,6 +72,7 @@ export function NotebookBranch({ node, depth, summaries, repository, navigation,
           onRename={() => setRenaming(true)}
           onChooseAppearance={() => setChoosingAppearance(true)}
           onEditProperties={() => setEditingProperties(true)}
+          onOpenDatabase={() => navigation.openTab(databaseTabId(notebook.id))}
           onAddChild={() => {
             setAddingChild(true);
             navigation.selectView({ kind: "notebook", notebookId: notebook.id });

@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
-import { SETTINGS_TAB, type WorkspaceNavigation } from "./useWorkspaceNavigation";
+import { notebookIdOfDatabaseTab, SETTINGS_TAB, type WorkspaceNavigation } from "./useWorkspaceNavigation";
 
 // タブのドラッグのデータの種類。メモのドラッグ（左の列）と区別する。
 const TAB_DRAG_TYPE = "application/x-sedum-note-tab";
@@ -15,9 +15,12 @@ export function NoteTabs({ navigation, repository }: { navigation: WorkspaceNavi
   return (
     <div className="tabs" role="tablist">
       {navigation.openTabs.map((tabId) => {
+        const databaseNotebookId = notebookIdOfDatabaseTab(tabId);
         const label = tabId === SETTINGS_TAB
           ? translate("settings.title")
-          : repository.note(tabId)?.content.title || translate("sidebar.untitled");
+          : databaseNotebookId !== null
+            ? repository.notebooks().find((notebook) => notebook.id === databaseNotebookId)?.content.name ?? ""
+            : repository.note(tabId)?.content.title || translate("sidebar.untitled");
         const isOn = navigation.activeTab === tabId;
         return (
           <div key={tabId} className={`tab${isOn ? " on" : ""}`} role="tab" aria-selected={isOn}

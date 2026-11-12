@@ -4,6 +4,7 @@ import { appendParagraph } from "./bodyFixtures";
 import { bodyPlainText, plainTextHashtags } from "./bodyText";
 import type { LiveNote, LiveNotebook } from "./noteRecords";
 import { buildNotebookTree, countTags, selectNotes, summarizeNote } from "./noteQueries";
+import { DEFAULT_DATABASE_VIEW } from "./databaseView";
 
 function bodyWith(...paragraphs: string[]): Y.XmlFragment {
   const body = new Y.Doc().getXmlFragment("body");
@@ -101,7 +102,7 @@ describe("selectNotes の並び順", () => {
 describe("buildNotebookTree", () => {
   it("親を指すノートブックを子として入れ、親が消えたものは最上位に出す", () => {
     const notebook = (id: string, name: string, parentId: string | null): LiveNotebook => ({
-      id, kind: "notebook", updatedAt: "", revision: 0, content: { name, parentId, colorName: null, iconName: null, properties: [], createdAt: "" },
+      id, kind: "notebook", updatedAt: "", revision: 0, content: { name, parentId, colorName: null, iconName: null, properties: [], databaseView: DEFAULT_DATABASE_VIEW, createdAt: "" },
     });
     const tree = buildNotebookTree([notebook("w", "仕事", null), notebook("m", "議事録", "w"), notebook("o", "旅行", "gone")]);
     expect(tree.map((node) => [node.notebook.content.name, node.children.map((child) => child.notebook.content.name)])).toEqual([

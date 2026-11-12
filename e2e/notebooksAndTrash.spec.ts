@@ -90,3 +90,46 @@ test("ノートブックにプロパティを決めると、その中のメモ�
   await expect(page.getByLabel("状態")).toHaveValue("読了");
   await expect(page.getByLabel("ページ数")).toHaveValue("512");
 });
+
+test("データベース表示で、ノートブックのメモをプロパティの列つきの表とボードで見られ、値を変えられる", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "読書");
+  const notebookRow = page.locator(".nav-row", { has: page.locator(".nav", { hasText: "読書" }) });
+  await notebookRow.getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "プロパティ" }).click();
+  const dialog = page.getByRole("dialog", { name: "プロパティ" });
+  await dialog.getByRole("button", { name: "プロパティを追加" }).click();
+  await dialog.getByRole("textbox", { name: "名前" }).fill("状態");
+  await dialog.getByRole("combobox", { name: "種類" }).selectOption("select");
+  await dialog.getByRole("textbox", { name: "選択肢" }).fill("未読、読了");
+  await dialog.getByRole("textbox", { name: "選択肢" }).blur();
+  await dialog.getByRole("button", { name: "閉じる" }).click();
+
+  await page.locator(".nav", { hasText: "読書" }).click();
+  await createNoteOnDesktop(page, "坊っちゃん");
+  await createNoteOnDesktop(page, "こころ");
+  await page.getByLabel("状態").selectOption("読了");
+
+  await page.locator(".nav", { hasText: "読書" }).first().click({ button: "right" });
+  await page.getByRole("menuitem", { name: "データベース表示" }).click();
+  const database = page.locator(".database-view");
+  await expect(database.locator("tbody tr")).toHaveCount(2);
+  const rowOf = (title: string) => database.locator("tbody tr", { hasText: title });
+  await expect(rowOf("こころ").getByRole("combobox", { name: "状態" })).toHaveValue("読了");
+  await rowOf("坊っちゃん").getByRole("combobox", { name: "状態" }).selectOption("未読");
+
+  // 見出しを押すと、その列で並べ替える。
+  await database.getByRole("button", { name: "タイトル" }).click();
+  await expect(database.locator("tbody tr .database-title")).toHaveText(["こころ", "坊っちゃん"]);
+
+  await database.getByRole("radio", { name: "ボード" }).click();
+  await expect(database.getByRole("region", { name: "未読" }).locator(".database-card")).toHaveText(["坊っちゃん"]);
+  await expect(database.getByRole("region", { name: "読了" }).locator(".database-card")).toHaveText(["こころ"]);
+  // 見え方はノートブックに保存されるので、タブを開き直しても残る。
+  await page.getByRole("tab", { name: "読書" }).getByRole("button", { name: "タブを閉じる" }).click();
+  await page.locator(".nav", { hasText: "読書" }).first().click({ button: "right" });
+  await page.getByRole("menuitem", { name: "データベース表示" }).click();
+  await expect(database.getByRole("radio", { name: "ボード" })).toBeChecked();
+  await database.getByRole("region", { name: "読了" }).locator(".database-card").click();
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("こころ");
+});

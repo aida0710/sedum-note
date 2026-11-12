@@ -18,12 +18,14 @@ import { CommandPalette } from "./CommandPalette";
 import { KEYBOARD_SHORTCUTS, type ShortcutId, useKeyboardShortcuts } from "./keyboardShortcuts";
 import { shortcutText } from "../shared/shortcutKeys";
 import { UpdateChip } from "../update/UpdateChip";
-import { SETTINGS_TAB } from "./useWorkspaceNavigation";
+import { NotebookDatabaseView } from "./NotebookDatabaseView";
+import { notebookIdOfDatabaseTab, SETTINGS_TAB } from "./useWorkspaceNavigation";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
 
 export function DesktopWorkspace({ session, vault, snapshot, navigation }: WorkspaceProps) {
   const { repository } = vault;
   const activeNote = navigation.activeTab && navigation.activeTab !== SETTINGS_TAB ? repository.note(navigation.activeTab) : undefined;
+  const databaseNotebook = snapshot.notebooks.find((notebook) => notebook.id === notebookIdOfDatabaseTab(navigation.activeTab));
   const createNote = async () => navigation.openNote((await createNoteInView(repository, navigation.view)).id);
   const openDailyNote = async () => {
     const { dailyNoteTitleFormat, dailyNoteNotebookId } = readDevicePreferences();
@@ -85,7 +87,11 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
               highlightedText={navigation.searchText} findRequest={navigation.findInNoteRequest} />
           </NoteLinkTargetsContext.Provider>
         )}
-        {!activeNote && navigation.activeTab !== SETTINGS_TAB && <div className="empty-state">{translate("editor.empty")}</div>}
+        {databaseNotebook && (
+          <NotebookDatabaseView notebook={databaseNotebook} repository={repository} onOpenNote={navigation.openNote}
+            notes={snapshot.notes.filter((note) => note.content.notebookIds.includes(databaseNotebook.id) && note.content.trashedAt === null && !note.content.isTemplate)} />
+        )}
+        {!activeNote && !databaseNotebook && navigation.activeTab !== SETTINGS_TAB && <div className="empty-state">{translate("editor.empty")}</div>}
       </main>
     </div>
   );

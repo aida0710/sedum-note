@@ -13,6 +13,7 @@ import type { LocalRecordEntry, LocalStore } from "../local/localStore";
 import type { SerialQueue } from "../local/serialQueue";
 import { blobBinding } from "../sync/remoteLayout";
 import { bodyAttachments } from "./bodyText";
+import { databaseViewFromField } from "./databaseView";
 import { PROPERTY_DEFINITION_FIELD_PREFIX, PROPERTY_VALUE_FIELD_PREFIX, type PropertyDefinition, propertyDefinitionFromField, type PropertyValue } from "./noteProperties";
 import type { AttachmentReference, LiveNote, LiveNotebook, LiveRecord, LiveSavedSearch, NotebookContent, SavedSearchContent } from "./noteRecords";
 import { type NoteVersion, NoteVersionHistory } from "./noteVersions";
@@ -649,6 +650,7 @@ function buildView(id: string, holder: LiveHolder): LiveRecord | null {
         colorName: readField<string | null>(doc, "colorName") ?? null,
         iconName: readField<string | null>(doc, "iconName") ?? null,
         properties: propertyDefinitionsOf(doc),
+        databaseView: databaseViewFromField(readField<unknown>(doc, "databaseView")),
         createdAt,
       },
     };

@@ -6,12 +6,26 @@ import type { NoteView } from "../../core/notes/noteQueries";
 // 設定はメモと同じくタブで開く。メモの ID（16 進）と重ならない名前にする。
 export const SETTINGS_TAB = "settings";
 
+// ノートブックのデータベース表示もタブで開く。タブの ID は、この先頭にノートブックの ID を続ける。
+const DATABASE_TAB_PREFIX = "database:";
+
+export function databaseTabId(notebookId: string): string {
+  return DATABASE_TAB_PREFIX + notebookId;
+}
+
+// タブがデータベース表示なら、そのノートブックの ID。違えば null。
+export function notebookIdOfDatabaseTab(tabId: string | null): string | null {
+  return tabId?.startsWith(DATABASE_TAB_PREFIX) ? tabId.slice(DATABASE_TAB_PREFIX.length) : null;
+}
+
 export type WorkspaceNavigation = {
   view: NoteView;
   selectView: (view: NoteView) => void;
   openTabs: string[];
   activeTab: string | null;
   openNote: (noteId: string) => void;
+  // メモ以外のタブ（データベース表示）を開く。
+  openTab: (tabId: string) => void;
   openSettings: () => void;
   closeTab: (tabId: string) => void;
   // タブを、別のタブの位置へ動かす（ドラッグでの並べ替え）。
@@ -91,7 +105,7 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
   }, [setExpanded]);
 
   return {
-    view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote: openTab, openSettings: () => openTab(SETTINGS_TAB), closeTab, moveTab,
+    view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote: openTab, openTab, openSettings: () => openTab(SETTINGS_TAB), closeTab, moveTab,
     isExpanded, setExpanded, searchText, setSearchText,
     searchFocusRequest, requestSearchFocus: () => setSearchFocusRequest((count) => count + 1),
     findInNoteRequest, requestFindInNote: () => setFindInNoteRequest((count) => count + 1),

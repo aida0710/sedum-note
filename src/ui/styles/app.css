@@ -42,6 +42,24 @@ button:disabled { cursor: default; opacity: .55; }
 .property-definition { display: flex; gap: 6px; align-items: center; }
 .property-definition input, .property-definition select { height: 30px; border: 1px solid var(--line); border-radius: 6px; padding: 0 8px; background: var(--panel); color: var(--text); min-width: 0; flex: 1; }
 .property-definition select { flex: none; }
+.database-view { padding: 24px 32px 60px; }
+.database-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.database-header h1 { font-size: 20px; margin: 0; flex: 1; min-width: 0; }
+.database-header .choice { display: inline-flex; align-items: center; white-space: nowrap; }
+.database-table-scroll { overflow-x: auto; }
+.database-table { border-collapse: collapse; min-width: 100%; font-size: 13px; }
+.database-table th, .database-table td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; white-space: nowrap; }
+.database-table th { background: var(--tag); font-weight: 600; }
+.database-table th button { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: var(--text); }
+.database-table input:not([type="checkbox"]), .database-table select { height: 26px; border: 1px solid transparent; border-radius: 4px; padding: 0 6px; background: none; color: var(--text); min-width: 90px; }
+.database-table input:not([type="checkbox"]):hover, .database-table select:hover, .database-table input:focus, .database-table select:focus { border-color: var(--line); }
+.database-title { color: var(--accent); max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+.database-updated { color: var(--muted); }
+.database-group { max-width: 260px; margin-bottom: 12px; }
+.database-board { display: flex; gap: 12px; align-items: flex-start; overflow-x: auto; }
+.database-column { flex: 0 0 220px; background: var(--tag); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 6px; min-height: 80px; }
+.database-column h2 { font-size: 12px; font-weight: 600; margin: 2px 4px 4px; display: flex; justify-content: space-between; color: var(--muted); }
+.database-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; text-align: left; font-size: 13px; color: var(--text); }
 .backlinks { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); }
 .backlinks h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; }
 .sidebar-brand-actions { margin-left: auto; display: flex; gap: 2px; }

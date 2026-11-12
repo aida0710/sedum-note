@@ -5,6 +5,7 @@
 
 import type * as Y from "yjs";
 import type { PropertyDefinition, PropertyValue } from "./noteProperties";
+import type { DatabaseView } from "./databaseView";
 
 export type AttachmentReference = {
   // S3 の blobs/<id> に置いた暗号文の ID。
@@ -43,6 +44,8 @@ export type NotebookContent = {
   iconName: string | null;
   // このノートブックのメモに付けられるプロパティの定義。並び順（order）の順。
   properties: PropertyDefinition[];
+  // データベース表示の並べ方と見え方。
+  databaseView: DatabaseView;
   createdAt: string;
 };
 
