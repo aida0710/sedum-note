@@ -21,6 +21,7 @@ import { SearchHighlight } from "./searchHighlightExtension";
 import { SlashCommands } from "./slashCommandExtension";
 import { Callout } from "./calloutNode";
 import { Column, Columns } from "./columnsNode";
+import { Drawing, DrawingStrokeNode } from "./drawingNode";
 import { Embed } from "./embedNode";
 import { Folding } from "./folding";
 import { FootnoteReference } from "./footnoteNode";
@@ -80,6 +81,8 @@ export function documentExtensions({ keepsTrailingParagraph = true }: { keepsTra
     Column,
     FootnoteReference,
     Embed,
+    Drawing,
+    DrawingStrokeNode,
     AttachmentImage,
     AttachmentFile,
     NoteLink,

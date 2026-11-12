@@ -96,7 +96,8 @@ button:disabled { cursor: default; opacity: .55; }
 .mermaid-diagram svg { max-width: 100%; height: auto; }
 .mermaid-diagram.failed { color: var(--danger); text-align: left; white-space: pre-wrap; }
 .attachment-file.with-preview { flex-wrap: wrap; }
-.attachment-file .icon-button.on { background: var(--selected); color: var(--text); }
+/* 押したままの状態を表すボタン（添付のプレビュー、手書きの道具）。 */
+.attachment-file .icon-button.on, .drawing-tools .icon-button.on { background: var(--selected); color: var(--text); }
 .pdf-preview { flex: 0 0 100%; margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; }
 .pdf-preview-bar { display: flex; align-items: center; justify-content: center; gap: 4px; color: var(--muted); font-size: var(--font-size-small); }
 .pdf-page-number { min-width: 64px; text-align: center; }
@@ -129,6 +130,12 @@ button:disabled { cursor: default; opacity: .55; }
 .block-embed .ProseMirror { padding: 0; min-height: 0; }
 /* エディタが末尾に足す空の段落（リストなどのあとに打てるようにするもの）は、読むだけの埋め込みでは出さない。 */
 .block-embed .ProseMirror > p:last-child:has(> br.ProseMirror-trailingBreak:only-child) { display: none; }
+/* 手書き・図形。線は文字の色（か選んだ色）で出るので、ライトでもダークでも見える。 */
+.drawing { margin: 10px 0; }
+.drawing-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 4px; }
+.drawing-canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--panel); cursor: crosshair; touch-action: none; }
+.drawing-canvas.erasing { cursor: pointer; }
+.drawing-stroke { fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .embed { margin: 10px 0; }
 .embed-card { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: var(--radius-control); padding: 8px 12px; }
 .embed-url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: var(--font-size-small); }

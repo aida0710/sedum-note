@@ -2,7 +2,7 @@
 
 import type { Editor } from "@tiptap/react";
 import {
-  CalendarClock, CalendarDays, Code, Columns2, FileSymlink, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, ImagePlus, Info, Lightbulb, Link2, ListFilter, MonitorPlay, OctagonAlert, Sigma, SquareDashedBottom, Superscript, TriangleAlert, Workflow, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Minus, Paperclip, Pilcrow, Table, TextQuote,
+  CalendarClock, CalendarDays, Code, Columns2, FileSymlink, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, ImagePlus, Info, Lightbulb, Link2, ListFilter, MonitorPlay, OctagonAlert, PenTool, Sigma, SquareDashedBottom, Superscript, TriangleAlert, Workflow, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Minus, Paperclip, Pilcrow, Table, TextQuote,
 } from "lucide-react";
 import { translate } from "../i18n/translate";
 import { HEADING_LEVELS, type HeadingLevel } from "./headingLevels";
@@ -12,6 +12,7 @@ import { NOTE_QUERY_NODE } from "./noteQueryNode";
 import { BLOCK_MATH_NODE } from "./mathNodes";
 import { MERMAID_LANGUAGE } from "./mermaidDiagrams";
 import { COLUMN_COUNTS } from "./columnsNode";
+import { DRAWING_NODE } from "./drawingNode";
 import { EMBED_NODE } from "./embedNode";
 
 // エディタの外の画面を開く操作（ファイルの選択、リンクするメモの選択）。NoteEditor が用意する。
@@ -84,6 +85,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     id: "diagram", icon: Workflow, name: () => translate("editor.diagram"), keywords: ["diagram", "mermaid", "chart", "zu", "ず", "ふろー"],
     run: (editor) => editor.chain().focus().insertContent({ type: "codeBlock", attrs: { language: MERMAID_LANGUAGE }, content: [{ type: "text", text: NEW_DIAGRAM_SOURCE }] }).run(),
   },
+  { id: "drawing", icon: PenTool, name: () => translate("editor.drawing"), keywords: ["draw", "drawing", "sketch", "shape", "tegaki", "てがき", "ずけい", "え"], run: (editor) => editor.chain().focus().insertContent({ type: DRAWING_NODE }).run() },
   { id: "noteQuery", icon: ListFilter, name: () => translate("editor.noteQuery"), keywords: ["query", "list", "kueri", "くえり", "いちらん"], run: (editor) => editor.chain().focus().insertContent({ type: NOTE_QUERY_NODE }).run() },
   { id: "noteLink", icon: FileSymlink, name: () => translate("editor.noteLink"), keywords: ["link", "note", "memo", "りんく", "めも"], run: (_editor, actions) => actions.pickNoteLink() },
   { id: "blockLink", icon: Link2, name: () => translate("editor.blockLink"), keywords: ["link", "block", "burokku", "ぶろっく", "りんく"], run: (_editor, actions) => actions.pickBlockLink() },

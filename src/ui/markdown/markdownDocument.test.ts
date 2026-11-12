@@ -54,6 +54,15 @@ describe("Markdown の取り込み", () => {
     expect(bodyToMarkdown(body, exportContext)).toContain('"tag":"旅行"');
   });
 
+  it("手書きのブロックは、言語が sedum-drawing のコードの囲みと往復する。形の合わない線は捨てる", async () => {
+    const markdown = '```sedum-drawing\n{"strokes":[{"shape":"pen","points":"10,20 30,40 50,45","color":null},{"shape":"rectangle","points":"100,100 200,180","color":"red"}]}\n```';
+    const body = await bodyFromMarkdown(markdown, importContext({}));
+    expect(body.toArray().map((node) => (node as Y.XmlElement).nodeName)).toEqual(["drawing"]);
+    expect(bodyToMarkdown(body, exportContext).trim()).toBe(markdown);
+    const broken = await bodyFromMarkdown('```sedum-drawing\n{"strokes":[{"shape":"star","points":"1,2 3,4"},{"shape":"line","points":"1,2"}]}\n```', importContext({}));
+    expect((broken.toArray()[0] as Y.XmlElement).length).toBe(0);
+  });
+
   it("コールアウトは、先頭に種類を書いた引用（> [!warning]）と往復する。知らない種類は引用のまま残す", async () => {
     const body = await bodyFromMarkdown("> [!warning]\n> 火を止める\n\n> [!unknown]\n> そのまま\n", importContext({}));
     const document = yXmlFragmentToProsemirrorJSON(body) as { content: Array<{ type: string; attrs?: { kind?: string } }> };

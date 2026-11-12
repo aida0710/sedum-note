@@ -20,6 +20,7 @@ import { documentExtensions } from "../editor/editorExtensions";
 import { decodeMarkdownPath } from "./markdownFileNames";
 import { withoutMergedCells } from "./unmergedTable";
 import { calloutFromBlockquote } from "../editor/calloutNode";
+import { drawingFromCodeBlock } from "../editor/drawingNode";
 import { noteQueryFromCodeBlock } from "../editor/noteQueryNode";
 import { ImportedFootnoteDefinition, withFootnoteNumbers, withImportedFootnoteTexts } from "../editor/footnoteNode";
 
@@ -132,7 +133,8 @@ export type ImportedBlockIds = "keep" | "drop";
 export async function markdownToBodyBlocks(markdown: string, context: MarkdownImportContext, blockIds: ImportedBlockIds): Promise<JSONContent[]> {
   const imported = await replaceImportedNodes(withImportedFootnoteTexts(markdownManager().parse(markdown)), context);
   const parsed = withImportedBlockIds(imported, blockIds === "keep");
-  return mapNodes(parsed, (node) => [node.type === "blockquote" ? calloutFromBlockquote(node) : node.type === "codeBlock" ? noteQueryFromCodeBlock(node) : node]).content ?? [];
+  // コードの囲みのうち、言語がこのアプリのもの（クエリ、手書き）は、そのブロックにする。当たらなければコードのまま返る。
+  return mapNodes(parsed, (node) => [node.type === "blockquote" ? calloutFromBlockquote(node) : node.type === "codeBlock" ? drawingFromCodeBlock(noteQueryFromCodeBlock(node)) : node]).content ?? [];
 }
 
 // Markdown を本文に入れる。本文は空にしてから入れる。
