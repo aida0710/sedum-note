@@ -25,6 +25,9 @@ import { parseMultistatus, type WebDavEntry } from "./webDavMultistatus";
 const LIST_DEPTH = "1";
 const LIST_REQUEST_BODY = '<?xml version="1.0" encoding="utf-8"?><propfind xmlns="DAV:"><prop><resourcetype/><getetag/></prop></propfind>';
 
+// 置き場所のフォルダが無いときに、PUT に返る状態コード（サーバーごとに違う）。
+const MISSING_FOLDER_STATUSES = new Set([409, 403, 404]);
+
 function basicAuthorization(username: string, password: string): string {
   const bytes = new TextEncoder().encode(`${username}:${password}`);
   return `Basic ${btoa(String.fromCharCode(...bytes))}`;
@@ -75,8 +78,8 @@ export class WebDavObjectStore implements ObjectStore {
 
   async put(key: string, body: Uint8Array, condition: WriteCondition): Promise<{ etag: string }> {
     let response = await this.#putOnce(key, body, condition);
-    // 置き場所のフォルダがまだ無いと、サーバーは 409（Apache は 403）で断る。フォルダを作って、もう一度だけ書く。
-    if ((response.status === 409 || response.status === 403) && await this.#createFoldersFor(key)) {
+    // 置き場所のフォルダがまだ無いと、サーバーは 409（Apache は 403、Nextcloud は 404）で断る。フォルダを作って、もう一度だけ書く。
+    if (MISSING_FOLDER_STATUSES.has(response.status) && await this.#createFoldersFor(key)) {
       response = await this.#putOnce(key, body, condition);
     }
     if (response.status === 412) {

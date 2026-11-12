@@ -49,6 +49,12 @@ describe("WebDavObjectStore", () => {
     expect((await store.get("vault.json"))?.body).toEqual(bytes(1));
   });
 
+  it.each([409, 403, 404])("置き場所のフォルダが無いときの応答が %i のサーバーでも、フォルダを作って書ける", async (missingFolderStatus) => {
+    const { store } = storeOn({ missingFolderStatus });
+    await store.put("records/abc", bytes(1), { ifAbsent: true });
+    expect((await store.get("records/abc"))?.body).toEqual(bytes(1));
+  });
+
   it("新しいキーへの書き込みは 1 回だけ通り、古い ETag での上書きは断られる", async () => {
     const { store } = storeOn();
     const first = await store.put("records/x", bytes(1), { ifAbsent: true });

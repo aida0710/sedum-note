@@ -8,6 +8,8 @@ export type MemoryWebDavServerOptions = {
   returnsEtagOnPut?: boolean;
   // 条件付きの書き込みを無視して上書きするサーバーの真似。
   ignoresWriteConditions?: boolean;
+  // 置き場所のフォルダが無いときに、PUT に返す状態コード（仕様は 409。Apache は 403、Nextcloud は 404）。
+  missingFolderStatus?: number;
 };
 
 type StoredFile = { body: Uint8Array; etag: string };
@@ -23,7 +25,11 @@ export class MemoryWebDavServer {
   beforeNextGet: (() => void) | null = null;
 
   constructor(options: MemoryWebDavServerOptions = {}) {
-    this.#options = { returnsEtagOnPut: options.returnsEtagOnPut ?? true, ignoresWriteConditions: options.ignoresWriteConditions ?? false };
+    this.#options = {
+      returnsEtagOnPut: options.returnsEtagOnPut ?? true,
+      ignoresWriteConditions: options.ignoresWriteConditions ?? false,
+      missingFolderStatus: options.missingFolderStatus ?? 409,
+    };
   }
 
   // フォルダを作る（サーバーの側で、先に作っておいたフォルダ）。
@@ -101,7 +107,7 @@ export class MemoryWebDavServer {
 
   async #write(path: string, request: Request): Promise<Response> {
     if (!this.#parentExists(path)) {
-      return new Response(null, { status: 409 });
+      return new Response(null, { status: this.#options.missingFolderStatus });
     }
     const existing = this.#files.get(path);
     const ifMatch = request.headers.get("If-Match");

@@ -96,7 +96,7 @@ S3 互換のストレージなら、サービスを問わず同期先にでき�
 
 バケットの名前は、エンドポイントに含めず、別の欄に入れます。実際に同期まで確かめたのは、Cloudflare R2 と SeaweedFS です。
 
-WebDAV のサーバーも同期先にできます（同期先の種類で「WebDAV」を選び、メモを置くフォルダの URL と、ユーザー名・パスワードを入れます）。条件は S3 と同じで、条件付き書き込みを守ることです。守らないサーバーは、つなぐときの確認で断ります。書き込みの応答に ETag を返さないサーバーでは、書いた直後に読み戻して確かめます。実際に同期まで確かめたのは、Apache（mod_dav）です。Nextcloud などは、まだ確かめていません。Web 版から WebDAV につなぐには、サーバーの側で、Web 版の origin からの要求（PROPFIND・MKCOL・PUT・DELETE と、`If-Match`・`If-None-Match`・`Depth`・`Authorization` のヘッダー）を許し、`ETag` を見せる CORS の設定が要ります。
+WebDAV のサーバーも同期先にできます（同期先の種類で「WebDAV」を選び、メモを置くフォルダの URL と、ユーザー名・パスワードを入れます）。条件は S3 と同じで、条件付き書き込みを守ることです。守らないサーバーは、つなぐときの確認で断ります。書き込みの応答に ETag を返さないサーバーでは、書いた直後に読み戻して確かめます。実際に同期まで確かめたのは、Apache（mod_dav）と Nextcloud です。Web 版から WebDAV につなぐには、サーバーの側で、Web 版の origin からの要求（PROPFIND・MKCOL・PUT・DELETE と、`If-Match`・`If-None-Match`・`Depth`・`Authorization` のヘッダー）を許し、`ETag` を見せる CORS の設定が要ります。
 
 アプリ（Windows・macOS・Linux・Android）は、バケットとアクセスキーを作るだけでつながります。
 
