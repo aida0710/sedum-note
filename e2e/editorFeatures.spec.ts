@@ -176,6 +176,24 @@ test("タブを切り替えて戻ると、本文のスクロール位置とカ�
   await expect(page.locator(".ProseMirror p", { hasText: "（ここ）" })).toHaveText("40 行目（ここ）");
 });
 
+test("メモへのリンクにポインターを乗せると、リンク先の題と本文の頭が出て、離すと消える", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "旅行の持ち物");
+  await page.keyboard.type("パスポートと充電器を入れる");
+  await newNote(page, "週の予定");
+  await page.keyboard.type("/めも");
+  await page.keyboard.press("Enter");
+  await page.getByRole("dialog", { name: "リンクするメモを選ぶ" }).getByRole("button", { name: "旅行の持ち物" }).click();
+
+  const link = page.locator(".ProseMirror .note-link button");
+  await link.hover();
+  const preview = page.getByRole("tooltip");
+  await expect(preview).toContainText("旅行の持ち物");
+  await expect(preview).toContainText("パスポートと充電器を入れる");
+  await page.mouse.move(5, 400);
+  await expect(preview).toHaveCount(0);
+});
+
 test("メニューから開いたダイアログも、Escape で閉じられる", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "履歴を見るメモ");

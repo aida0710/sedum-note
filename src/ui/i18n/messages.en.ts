@@ -273,6 +273,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "editor.noteLinkPickerTitle": "Choose a note to link",
   "editor.noteLinkNone": "No notes to link",
   "editor.noteLinkMissing": "Deleted note",
+  "editor.noteLinkPreviewEmpty": "(No body)",
   "editor.noteLinkTrashed": "{title} (in trash)",
   "editor.table": "Table",
   "editor.table.insert": "Insert table",

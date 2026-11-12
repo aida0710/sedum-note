@@ -271,6 +271,7 @@ export const japaneseMessages = {
   "editor.noteLinkPickerTitle": "リンクするメモを選ぶ",
   "editor.noteLinkNone": "リンクできるメモがありません",
   "editor.noteLinkMissing": "削除されたメモ",
+  "editor.noteLinkPreviewEmpty": "（本文はありません）",
   "editor.noteLinkTrashed": "{title}（ゴミ箱）",
   "editor.table": "表",
   "editor.table.insert": "表を挿入",

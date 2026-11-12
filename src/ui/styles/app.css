@@ -392,6 +392,11 @@ button:disabled { cursor: default; opacity: .55; }
 .note-link button { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); background: var(--accent-soft); border-radius: var(--radius-row); padding: 0 6px; vertical-align: baseline; max-width: 100%; }
 .note-link.trashed button, .note-link.missing button { color: var(--muted); background: var(--tag); }
 .note-link.ProseMirror-selectednode button { outline: 2px solid var(--accent); }
+/* メモへのリンクの見本（editor/NoteLinkPreview.tsx）。メニューと同じ面の形にする。 */
+.note-link-preview { position: fixed; z-index: 25; width: min(320px, calc(100vw - 16px)); background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: 0 8px 24px var(--shadow); padding: 10px 12px; pointer-events: none; display: flex; flex-direction: column; gap: 6px; }
+.note-link-preview-title { font-weight: 700; font-size: var(--font-size-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-link-preview-text { font-size: var(--font-size-small); line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
+.note-link-preview-empty { color: var(--muted); font-size: var(--font-size-small); }
 /* リンクから来たブロックを、いったん色で目立たせる。 */
 .ProseMirror .revealed-block { animation: revealed-block-fade 2.4s ease-out; border-radius: var(--radius-inline); }
 @keyframes revealed-block-fade { from { background: var(--accent-soft); } to { background: transparent; } }
