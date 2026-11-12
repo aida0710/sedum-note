@@ -26,7 +26,7 @@ describe("コマンドパレットの絞り込み", () => {
   it("名前に当たったメモを、本文にだけ当たったメモより先に出し、本文の当たりには抜き出しを添える", () => {
     const [byTitle, byBody] = searchPalette(candidates, "旅行").filter((item) => item.kind === "note");
     expect(byTitle!.hint).toBe("");
-    expect(byBody!.hint).toBe("次の旅行の予算を決めた…");
+    expect(byBody!.hint).toBe("次の旅行の予算を決めた");
   });
 
   it("設定の項目は、ページの名前でも当たる", () => {

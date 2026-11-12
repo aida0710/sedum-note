@@ -1,5 +1,7 @@
 // コマンドパレットで探せるもの（メモ・ノートブック・タグ・設定の項目・操作）と、打った言葉での絞り込み。
 
+import { excerptAt } from "../../core/notes/textExcerpt";
+
 // create は、打った言葉を題にして新しいメモを作る項目（候補からではなく、パレットが最後に足す）。
 export type PaletteItemKind = "note" | "notebook" | "tag" | "setting" | "command" | "create";
 
@@ -28,9 +30,6 @@ export const COMMAND_PREFIX = ">";
 const MAX_ITEMS_PER_KIND: Record<PaletteItemKind, number> = { note: 20, notebook: 8, tag: 8, setting: 10, command: 20, create: 1 };
 // 何も打っていないときに並べる、最近のメモの件数。
 const MAX_RECENT_NOTES = 30;
-// 本文だけに当たったメモに添える、本文の抜き出しの長さ（当たった言葉の前と後ろ）。
-const EXCERPT_BEFORE = 8;
-const EXCERPT_AFTER = 24;
 
 function wordsOf(query: string): string[] {
   return query.toLocaleLowerCase().split(/\s+/).filter((word) => word !== "");
@@ -44,12 +43,7 @@ function containsAll(text: string, words: string[]): boolean {
 // 本文の中の、最初の言葉が当たった所の前後を 1 行にして出す。
 function excerptAround(text: string, word: string): string {
   const index = text.toLocaleLowerCase().indexOf(word);
-  if (index === -1) {
-    return "";
-  }
-  const start = Math.max(0, index - EXCERPT_BEFORE);
-  const excerpt = text.slice(start, index + word.length + EXCERPT_AFTER).replace(/\s+/g, " ").trim();
-  return `${start > 0 ? "…" : ""}${excerpt}…`;
+  return index === -1 ? "" : excerptAt(text, { index, length: word.length });
 }
 
 function byNewest(left: PaletteCandidate, right: PaletteCandidate): number {

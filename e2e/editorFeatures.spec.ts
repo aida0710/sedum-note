@@ -610,3 +610,24 @@ test("グラフ表示は、メモを点、メモ同士のリンクを線にし�
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("リンク先");
   await expect(page.getByRole("tab", { name: "グラフ表示" })).toHaveCount(1);
 });
+
+test("題を文字のまま書いたメモは「リンクしていない言及」に並び、「リンクにする」でその文字がリンクになる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "週の予定");
+  await page.keyboard.type("金曜に旅行の持ち物を見直す");
+  await newNote(page, "旅行の持ち物");
+
+  const backlinks = page.getByRole("region", { name: "このメモへのリンク" });
+  const toggle = backlinks.getByRole("button", { name: "リンクしていない言及（1件）" });
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await toggle.click();
+  await expect(backlinks).toContainText("金曜に旅行の持ち物を見直す");
+  await backlinks.getByRole("button", { name: "「週の予定」の中の言及をリンクにする" }).click();
+  // リンクになると、言及の欄から消え、バックリンクに並ぶ。
+  await expect(backlinks).toContainText("このメモへのリンク（1件）");
+  await expect(backlinks.getByRole("button", { name: /リンクしていない言及/ })).toHaveCount(0);
+
+  await backlinks.getByRole("button", { name: "週の予定" }).click();
+  await expect(page.locator(".ProseMirror p")).toContainText("金曜に旅行の持ち物を見直す");
+  await expect(page.locator(".ProseMirror .note-link")).toHaveText("旅行の持ち物");
+});

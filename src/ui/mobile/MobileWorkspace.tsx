@@ -15,6 +15,7 @@ import { useBackGestureToClose } from "./useBackGestureToClose";
 import { UpdateChip } from "../update/UpdateChip";
 import { SETTINGS_TAB } from "../workspace/useWorkspaceNavigation";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
+import { findUnlinkedMentions } from "../../core/notes/noteMentions";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
 import { NoteQuerySourceContext } from "../editor/noteQuerySource";
 import { AiChat } from "../ai/AiChat";
@@ -58,6 +59,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
         <NoteLinkTargetsContext.Provider value={createNoteLinkTargets({ repository, navigation, concealedNoteIds })}>
           <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
               <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, openNote.id)}
+                unlinkedMentions={findUnlinkedMentions(snapshot.summaries, openNote)}
             repository={repository} isMobile onBack={goBack} />
             </NoteQuerySourceContext.Provider>
         </NoteLinkTargetsContext.Provider>

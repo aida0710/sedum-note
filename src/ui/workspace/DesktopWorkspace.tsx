@@ -21,6 +21,7 @@ import { UpdateChip } from "../update/UpdateChip";
 import { NotebookDatabaseView } from "./NotebookDatabaseView";
 import { NoteGraphView } from "./NoteGraphView";
 import { GRAPH_TAB, notebookIdOfDatabaseTab, SETTINGS_TAB } from "./useWorkspaceNavigation";
+import { findUnlinkedMentions } from "../../core/notes/noteMentions";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
 import { parseNoteSearchQuery } from "../../core/notes/noteSearchQuery";
 import { NoteQuerySourceContext } from "../editor/noteQuerySource";
@@ -125,6 +126,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
           <NoteLinkTargetsContext.Provider value={createNoteLinkTargets({ repository, navigation, concealedNoteIds })}>
             <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
               <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, activeNote.id)}
+                unlinkedMentions={findUnlinkedMentions(snapshot.summaries, activeNote)}
               repository={repository} isMobile={false}
               highlightedText={parseNoteSearchQuery(navigation.searchText).words.join(" ")} findRequest={navigation.findInNoteRequest} />
             </NoteQuerySourceContext.Provider>

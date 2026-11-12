@@ -6,6 +6,7 @@ import { yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
 import { ChevronLeft, ListTree, MoreHorizontal, Star } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { bodyPlainText, BLOCK_EMBED_NODE, NOTE_LINK_NODE, plainTextHashtags } from "../../core/notes/bodyText";
+import type { UnlinkedMention } from "../../core/notes/noteMentions";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { useNoteLockState } from "../session/noteLockState";
@@ -56,8 +57,9 @@ type NoteEditorProps = {
   isMobile: boolean;
   // スマホでは上のバーに「戻る」を出す。
   onBack?: () => void;
-  // このメモにリンクしているメモ（バックリンク）。
+  // このメモにリンクしているメモ（バックリンク）と、題を文字のまま書いているメモ（リンクしていない言及）。
   backlinks: LiveNote[];
+  unlinkedMentions: UnlinkedMention[];
   // 一覧の検索で探している言葉。開いたメモの中の当たりに色を付ける。
   highlightedText?: string;
   // メモの中の検索を開く合図（ショートカット）。押すたびに serial が増える。
@@ -67,7 +69,7 @@ type NoteEditorProps = {
 // まだ一度も検索を開いていないときの合図。
 const NO_FIND_REQUEST: FindRequest = { serial: 0, showReplace: false };
 
-export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, onBack, highlightedText = "", findRequest = NO_FIND_REQUEST }: NoteEditorProps) {
+export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repository, isMobile, onBack, highlightedText = "", findRequest = NO_FIND_REQUEST }: NoteEditorProps) {
   const [title, setTitle] = useState(note.content.title);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [pickingNoteLink, setPickingNoteLink] = useState(false);
@@ -316,7 +318,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
           <NoteZoomBar editor={editor} />
           <EditorContent editor={editor} />
           <NoteFootnotes editor={editor} />
-          <NoteBacklinks backlinks={backlinks} onOpenNote={openNote} />
+          <NoteBacklinks note={note} backlinks={backlinks} unlinkedMentions={unlinkedMentions} repository={repository} onOpenNote={openNote} />
         </div>
       </div>
       {!isMobile && showOutline && <NoteOutline editor={editor} />}

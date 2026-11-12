@@ -189,6 +189,12 @@ button:disabled { cursor: default; opacity: .55; }
 .ai-chat-dialog .ai-chat { flex: 1; border-left: 0; border-radius: inherit; }
 .backlinks { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); }
 .backlinks h2 { font-size: var(--font-size-small); font-weight: 600; color: var(--muted); margin: 0 0 6px; }
+.backlinks .menu-item + h2 { margin-top: 16px; }
+.unlinked-mentions-toggle { display: inline-flex; align-items: center; gap: 4px; color: inherit; font: inherit; }
+.unlinked-mention { display: flex; align-items: center; gap: 8px; }
+.unlinked-mention .menu-item { flex: 1; min-width: 0; }
+.unlinked-mention-text { display: flex; flex-direction: column; min-width: 0; text-align: left; }
+.unlinked-mention-excerpt { color: var(--muted); font-size: var(--font-size-small); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sidebar-brand-actions { margin-left: auto; display: flex; gap: 2px; }
 .sidebar-brand .sidebar-brand-actions .icon-button { margin-left: 0; }
 
