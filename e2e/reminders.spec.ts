@@ -134,7 +134,10 @@ test("期限の通知を入れると、期限が来たときに 1 回だけ通�
   await page.keyboard.press("Enter");
   await page.keyboard.type("卵を買う 📅 2026-11-12");
   await page.clock.runFor(5_000);
-  await page.keyboard.type(" 10:05");
+  await page.keyboard.type(" 10:05 #夕方");
+  // 試験の時計は、進めた分のタイマーを一気に流す。その前に、打った時刻が画面まで届いたこと（本文のタグが上に出る）を待つ。
+  await page.clock.runFor(1_000);
+  await expect(page.locator(".document-meta .chip", { hasText: "#夕方" })).toBeVisible();
   await page.clock.runFor(4 * 60_000);
   // 設定を入れたときに、確かめの通知が 1 つ出る。
   const confirmation = { title: "期限の通知を入れました", body: "期限が来たら、このように知らせます。" };
@@ -142,7 +145,7 @@ test("期限の通知を入れると、期限が来たときに 1 回だけ通�
   await page.clock.runFor(2 * 60_000);
   const groceries = [
     { title: "牛乳を買う", body: "期限: 11月12日 10:05（買い物）" },
-    { title: "卵を買う", body: "期限: 11月12日 10:05（買い物）" },
+    { title: "卵を買う #夕方", body: "期限: 11月12日 10:05（買い物）" },
   ];
   expect(await shownNotifications(page)).toEqual([confirmation, ...groceries]);
   await page.clock.runFor(10 * 60_000);
