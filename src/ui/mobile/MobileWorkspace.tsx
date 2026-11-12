@@ -20,6 +20,8 @@ import { NoteQuerySourceContext } from "../editor/noteQuerySource";
 import { AiChat } from "../ai/AiChat";
 import { useAiChatSession } from "../ai/aiChatSession";
 import { ModalDialog } from "../shared/ModalDialog";
+import { LockedNoteGate } from "../editor/LockedNoteGate";
+import { useNoteLockState } from "../session/noteLockState";
 
 type MobileTab = "notes" | "notebooks" | "bookmarked" | "settings";
 
@@ -41,10 +43,19 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
   const settingsPageOpen = openNote === undefined && tab === "settings" && navigation.settingsPage !== null;
   const closeSettingsPage = useBackGestureToClose(settingsPageOpen, () => navigation.selectSettingsPage(null));
 
+  const { concealedNoteIds } = useNoteLockState();
+  if (openNote && concealedNoteIds.has(openNote.id)) {
+    return (
+      <div className="phone">
+        <LockedNoteGate key={openNote.id} title={openNote.content.title} verifyPassphrase={session.verifyPassphrase}
+          onRevealed={() => navigation.revealLockedNote(openNote.id)} onBack={goBack} />
+      </div>
+    );
+  }
   if (openNote) {
     return (
       <div className="phone">
-        <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, navigation)}>
+        <NoteLinkTargetsContext.Provider value={createNoteLinkTargets({ repository, navigation, concealedNoteIds })}>
           <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
               <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, openNote.id)}
             repository={repository} isMobile onBack={goBack} />
@@ -52,7 +63,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
         </NoteLinkTargetsContext.Provider>
         {aiChat.open && (
           <ModalDialog label={translate("ai.chat")} className="ai-chat-dialog" onClose={() => aiChat.setOpen(false)}>
-            <AiChat repository={repository} notes={snapshot.notes.filter((note) => note.content.trashedAt === null)} onClose={() => aiChat.setOpen(false)} />
+            <AiChat repository={repository} notes={snapshot.notes.filter((note) => note.content.trashedAt === null && !concealedNoteIds.has(note.id))} onClose={() => aiChat.setOpen(false)} />
           </ModalDialog>
         )}
       </div>

@@ -23,6 +23,8 @@ function noteLinkLabel(target: NoteLinkTarget): string {
   switch (target.block.state) {
     case "none":
       return title;
+    case "concealed":
+      return translate("lock.blockLinkConcealed", { title });
     case "missing":
       return translate("editor.blockLinkMissing", { title });
     case "found": {

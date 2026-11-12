@@ -56,6 +56,7 @@ export type NoteChanges = Partial<{
   trashedAt: string | null;
   isTemplate: boolean;
   isOutline: boolean;
+  isLocked: boolean;
   pageAlignment: PageAlignment | null;
 }>;
 
@@ -205,18 +206,20 @@ export class NoteRepository {
     const restored = await this.#createNoteWithBodyOf(recordBody(versionDocument), {
       title: input.title, notebookIds: this.note(input.noteId)?.content.notebookIds ?? [],
       pageAlignment: this.note(input.noteId)?.content.pageAlignment ?? null,
+      isLocked: this.note(input.noteId)?.content.isLocked ?? false,
     });
     versionDocument.destroy();
     return restored;
   }
 
   // テンプレートと同じ本文の、新しいメモを作る。テンプレートは変えない。
+  // 本文を写して作るメモ（テンプレートから、複製、履歴から）は、元のロックも引き継ぐ（写しから中身を読めないように）。
   async createNoteFromTemplate(templateId: string, changes: NoteChanges = {}): Promise<LiveNote> {
     const template = this.note(templateId);
     if (!template) {
       throw new RecordNotFoundError(templateId);
     }
-    return this.#createNoteWithBodyOf(template.body, { title: template.content.title, pageAlignment: template.content.pageAlignment, ...changes });
+    return this.#createNoteWithBodyOf(template.body, { title: template.content.title, pageAlignment: template.content.pageAlignment, isLocked: template.content.isLocked, ...changes });
   }
 
   // メモを複製する。本文とノートブックを引き継ぎ、添付は同じものを指す。
@@ -225,7 +228,7 @@ export class NoteRepository {
     if (!source) {
       throw new RecordNotFoundError(noteId);
     }
-    return this.#createNoteWithBodyOf(source.body, { title, notebookIds: source.content.notebookIds, isTemplate: false, pageAlignment: source.content.pageAlignment });
+    return this.#createNoteWithBodyOf(source.body, { title, notebookIds: source.content.notebookIds, isTemplate: false, pageAlignment: source.content.pageAlignment, isLocked: source.content.isLocked });
   }
 
   // ほかのメモを、このメモに結合する。相手のタイトルを見出しにして本文を末尾に足し、相手はゴミ箱に入れる。
@@ -652,6 +655,7 @@ function buildView(id: string, holder: LiveHolder): LiveRecord | null {
         parentId: readField<string | null>(doc, "parentId") ?? null,
         colorName: readField<string | null>(doc, "colorName") ?? null,
         iconName: readField<string | null>(doc, "iconName") ?? null,
+        isLocked: readField<boolean>(doc, "isLocked") ?? false,
         properties: propertyDefinitionsOf(doc),
         databaseView: databaseViewFromField(readField<unknown>(doc, "databaseView")),
         createdAt,
@@ -687,6 +691,7 @@ function buildView(id: string, holder: LiveHolder): LiveRecord | null {
       trashedAt: readField<string | null>(doc, "trashedAt") ?? null,
       isTemplate: readField<boolean>(doc, "isTemplate") ?? false,
       isOutline: readField<boolean>(doc, "isOutline") ?? false,
+      isLocked: readField<boolean>(doc, "isLocked") ?? false,
       pageAlignment: pageAlignmentOf(doc),
       attachments: bodyAttachments(body),
       propertyValues: propertyValuesOf(doc),

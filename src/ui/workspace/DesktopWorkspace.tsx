@@ -28,11 +28,15 @@ import { McpSectionSlot } from "../settings/mcpSectionSlot";
 import { SETTINGS_SEARCH_ENTRIES } from "../settings/settingsSearchEntries";
 import { workspacePaletteCandidates } from "./workspacePaletteCandidates";
 import { useAiChatSession } from "../ai/aiChatSession";
+import { LockedNoteGate } from "../editor/LockedNoteGate";
+import { useNoteLockState } from "../session/noteLockState";
 
 export function DesktopWorkspace({ session, vault, snapshot, navigation }: WorkspaceProps) {
   const { repository } = vault;
   const showsGraph = navigation.activeTab === GRAPH_TAB;
   const activeNote = navigation.activeTab && navigation.activeTab !== SETTINGS_TAB && !showsGraph ? repository.note(navigation.activeTab) : undefined;
+  const { concealedNoteIds } = useNoteLockState();
+  const activeNoteIsConcealed = activeNote !== undefined && concealedNoteIds.has(activeNote.id);
   const databaseNotebook = snapshot.notebooks.find((notebook) => notebook.id === notebookIdOfDatabaseTab(navigation.activeTab));
   const createNote = async () => navigation.openNote((await createNoteInView(repository, navigation.view)).id);
   const openDailyNote = async () => {
@@ -69,6 +73,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
     dailyNote: () => void openDailyNote(),
     focusMode: () => setFocusMode((on) => !on),
     typewriterMode: () => updateDevicePreferences({ typewriterMode: !readDevicePreferences().typewriterMode }),
+    lock: () => void session.lock(),
   };
   useKeyboardShortcuts(shortcutHandlers);
   // コマンドパレットに並べる操作。ショートカットの一覧と同じもの（パレットを開く操作は除く）。
@@ -108,8 +113,12 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
           <SettingsPanel session={session} vault={vault} unreadableCount={snapshot.unreadableCount} isMobile={false}
             page={navigation.settingsPage} onSelectPage={navigation.selectSettingsPage} revealRequest={navigation.settingRevealRequest} />
         )}
-        {activeNote && (
-          <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, navigation)}>
+        {activeNote && activeNoteIsConcealed && (
+          <LockedNoteGate key={activeNote.id} title={activeNote.content.title} verifyPassphrase={session.verifyPassphrase}
+            onRevealed={() => navigation.revealLockedNote(activeNote.id)} />
+        )}
+        {activeNote && !activeNoteIsConcealed && (
+          <NoteLinkTargetsContext.Provider value={createNoteLinkTargets({ repository, navigation, concealedNoteIds })}>
             <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
               <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, activeNote.id)}
               repository={repository} isMobile={false}
@@ -125,7 +134,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
         {!activeNote && !databaseNotebook && !showsGraph && navigation.activeTab !== SETTINGS_TAB && <div className="empty-state">{translate("editor.empty")}</div>}
       </main>
       {aiChat.open && (
-        <AiChat repository={repository} notes={snapshot.notes.filter((note) => note.content.trashedAt === null)} onClose={() => aiChat.setOpen(false)} />
+        <AiChat repository={repository} notes={snapshot.notes.filter((note) => note.content.trashedAt === null && !concealedNoteIds.has(note.id))} onClose={() => aiChat.setOpen(false)} />
       )}
     </div>
   );

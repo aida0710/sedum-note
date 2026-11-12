@@ -8,6 +8,7 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { bodyPlainText, BLOCK_EMBED_NODE, NOTE_LINK_NODE, plainTextHashtags } from "../../core/notes/bodyText";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
+import { useNoteLockState } from "../session/noteLockState";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { useNoteFileExport } from "../markdown/useNoteFileExport";
@@ -151,6 +152,9 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
   const exportNote = useNoteFileExport(repository);
   // リンク先や結合の相手に選べるメモ（ゴミ箱の外で、いま開いているメモ以外）。
   const otherNotes = () => repository.notes().filter((candidate) => candidate.id !== noteId && candidate.content.trashedAt === null);
+  // 本文を読む相手（結合、ブロックの指定、テンプレート）には、ロックで中身を隠しているメモを選べない。
+  const { concealedNoteIds } = useNoteLockState();
+  const isRevealed = (candidate: LiveNote) => !concealedNoteIds.has(candidate.id);
   const print = useAsyncAction(printPage);
   // ほかのデバイスがタイトルを変えたら、打っている最中でなければ表示を差し替える。
   useEffect(() => {
@@ -233,7 +237,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
     }
   };
   const templates = repository.notes()
-    .filter((candidate) => candidate.content.isTemplate && candidate.content.trashedAt === null && candidate.id !== noteId)
+    .filter((candidate) => candidate.content.isTemplate && candidate.content.trashedAt === null && candidate.id !== noteId && isRevealed(candidate))
     .map((template) => ({ id: template.id, title: template.content.title }));
   slashMenuController.actions = { pickImage, pickFile, pickNoteLink, pickBlockLink, pickBlockEmbed, scanDocument: () => scanInput.current?.click(), templates, insertTemplate };
 
@@ -333,11 +337,11 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
           onPick={(pickedNoteId) => insertNoteLink(pickedNoteId)} onCancel={() => setPickingNoteLink(false)} />
       )}
       {pickingBlockFor !== null && (
-        <BlockPicker notes={repository.notes().filter((candidate) => candidate.content.trashedAt === null)}
+        <BlockPicker notes={repository.notes().filter((candidate) => candidate.content.trashedAt === null && isRevealed(candidate))}
           onPick={insertPickedBlock} onCancel={() => setPickingBlockFor(null)} />
       )}
       {pickingNoteToMerge && (
-        <NotePicker title={translate("editor.mergeNotePickerTitle")} description={translate("editor.mergeNotePickerDescription")} candidates={otherNotes()}
+        <NotePicker title={translate("editor.mergeNotePickerTitle")} description={translate("editor.mergeNotePickerDescription")} candidates={otherNotes().filter(isRevealed)}
           onPick={(pickedNoteId) => { setPickingNoteToMerge(false); void repository.mergeNoteInto(noteId, pickedNoteId); }}
           onCancel={() => setPickingNoteToMerge(false)} />
       )}

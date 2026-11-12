@@ -19,6 +19,7 @@ import {
   type UnlockedVault,
   unlockLocalVault,
   type VaultEntry,
+  verifyPassphrase,
   wipeDeviceData,
 } from "../../core/vault/vaultSession";
 import { resetDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
@@ -36,7 +37,10 @@ export type VaultSession = {
   // 同期先を選んだときは、その状態（checkSyncTarget の結果）に合わせて、新しく作るか既存のメモに参加する。
   startVault: (input: { passphrase: string; syncTarget: SyncTargetChoice | null }) => Promise<void>;
   unlock: (passphrase: string) => Promise<void>;
-  lock: () => void;
+  // 保存を待っている入力を手元に書いてから、パスフレーズを入れるまで開けない状態にする。
+  lock: () => Promise<void>;
+  // 入れた文字が、このデバイスのパスフレーズかを確かめる。違えば失敗する。
+  verifyPassphrase: (passphrase: string) => Promise<void>;
   // 同期先の今の状態を確かめる（画面の「接続を確認」）。何も保存しない。
   checkSyncTarget: (remoteConfig: RemoteConfig) => Promise<SyncTargetCheck>;
   // 確かめた同期先を保存して、同期を始める。空の同期先に置くときは、このデバイスのパスフレーズが要る。
@@ -135,10 +139,13 @@ export function useVaultSession(): VaultSession {
         : await createNewVault(environment, { passphrase, syncTarget }));
     },
     unlock: async (passphrase) => enter(await unlockLocalVault(environment, passphrase)),
-    lock: () => {
+    lock: async () => {
+      // ロックのあとに解除すると、メモを手元の保存から読み直す。まだ書いていない入力は、ここで書かないと失う。
+      await vault?.repository.flush();
       setGeneratedSyncKey(null);
       setState({ phase: "locked" });
     },
+    verifyPassphrase: (passphrase) => verifyPassphrase(environment, passphrase),
     checkSyncTarget: (remoteConfig) => checkSyncTarget(environment.createObjectStore, remoteConfig),
     connectSyncTarget: async (input) => {
       if (vault) {

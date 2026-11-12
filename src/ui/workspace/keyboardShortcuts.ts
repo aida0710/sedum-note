@@ -1,5 +1,5 @@
 // PC の画面のキーボードショートカット。ブラウザが自分で使うキー（Ctrl+N、Ctrl+T、Ctrl+W、Ctrl+Tab）は
-// Web 版に届かないので、Alt を足した組み合わせにしている。Ctrl+K・Ctrl+F・Ctrl+R はブラウザの動きを止められるので、そのまま使う。
+// Web 版に届かないので、Alt を足した組み合わせにしている。Ctrl+K・Ctrl+F・Ctrl+R・Ctrl+L はブラウザの動きを止められるので、そのまま使う。
 // Mac では Ctrl の代わりに Command。
 
 import { useEffect, useRef } from "react";
@@ -7,7 +7,7 @@ import type { MessageKey } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { isApplePlatform, type ShortcutKeys } from "../shared/shortcutKeys";
 
-export type ShortcutId = "commandPalette" | "newNote" | "dailyNote" | "searchNotes" | "findInNote" | "replaceInNote" | "nextTab" | "previousTab" | "closeTab" | "openSettings" | "graph" | "aiChat" | "focusMode" | "typewriterMode";
+export type ShortcutId = "commandPalette" | "newNote" | "dailyNote" | "searchNotes" | "findInNote" | "replaceInNote" | "nextTab" | "previousTab" | "closeTab" | "openSettings" | "graph" | "aiChat" | "focusMode" | "typewriterMode" | "lock";
 
 export const KEYBOARD_SHORTCUTS: Array<{ id: ShortcutId; label: MessageKey; keys: ShortcutKeys }> = [
   { id: "commandPalette", label: "shortcut.commandPalette", keys: { key: "k" } },
@@ -24,6 +24,7 @@ export const KEYBOARD_SHORTCUTS: Array<{ id: ShortcutId; label: MessageKey; keys
   { id: "aiChat", label: "ai.chat", keys: { key: "a", alt: true } },
   { id: "focusMode", label: "shortcut.focusMode", keys: { key: "f", alt: true } },
   { id: "typewriterMode", label: "shortcut.typewriterMode", keys: { key: "f", alt: true, shift: true } },
+  { id: "lock", label: "settings.lock", keys: { key: "l" } },
 ];
 
 function matches(event: KeyboardEvent, keys: ShortcutKeys): boolean {

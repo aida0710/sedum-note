@@ -182,6 +182,12 @@ export async function joinExistingVault(
   return { unlocked: await assembleUnlockedVault(environment, masterKey, remoteConfig), generatedSyncKey: null };
 }
 
+// 入れた文字が、このデバイスのパスフレーズかを確かめる（ロックしたメモを開く前の確認）。違えば WrongPassphraseError。
+// 開いた鍵は使わずに捨てる。
+export async function verifyPassphrase(environment: VaultSessionEnvironment, passphrase: string): Promise<void> {
+  await unlockVault(await readLocalVaultDocument(environment.localStore), passphrase);
+}
+
 export async function unlockLocalVault(environment: VaultSessionEnvironment, passphrase: string): Promise<UnlockedVault> {
   const document = await readLocalVaultDocument(environment.localStore);
   const masterKey = await unlockVault(document, passphrase);

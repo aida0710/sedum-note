@@ -5,6 +5,8 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { importMarkdownNotes, readImportSources } from "../markdown/markdownImport";
 import { useNoteFileExport } from "../markdown/useNoteFileExport";
+import { useNoteLockState } from "../session/noteLockState";
+import { useConfirmPassphrase } from "../session/PassphraseConfirmProvider";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import type { NoteFileFormat } from "../markdown/noteFileExport";
 
@@ -16,7 +18,16 @@ export function MarkdownSection({ repository }: { repository: NoteRepository }) 
     setImportedCount((await importMarkdownNotes(repository, await readImportSources(files))).noteCount);
   });
   const exportNotes = useNoteFileExport(repository);
-  const exportAllNotes = (format: NoteFileFormat) => void exportNotes.run({ notes: repository.notes().filter((note) => note.content.trashedAt === null), format });
+  const { lockedNoteIds } = useNoteLockState();
+  const confirmPassphrase = useConfirmPassphrase();
+  const exportAllNotes = async (format: NoteFileFormat) => {
+    const notes = repository.notes().filter((note) => note.content.trashedAt === null);
+    // ロックしたメモの中身もファイルに出るので、先にパスフレーズを確かめる。
+    if (notes.some((note) => lockedNoteIds.has(note.id)) && !(await confirmPassphrase(translate("lock.confirmToExport")))) {
+      return;
+    }
+    await exportNotes.run({ notes, format });
+  };
   const errorMessage = importFiles.errorMessage ?? exportNotes.errorMessage;
   return (
     <section className="settings-section">

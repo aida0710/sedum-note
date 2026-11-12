@@ -17,6 +17,8 @@ import { AttachmentReaderContext } from "./editor/attachmentReader";
 import { MobileWorkspace } from "./mobile/MobileWorkspace";
 import { UnsyncedRecordsContext, useRepositorySnapshot } from "./session/useRepositorySnapshot";
 import { useTrashRetention } from "./session/useTrashRetention";
+import { NoteLockStateContext, useSnapshotWithLocks } from "./session/noteLockState";
+import { PassphraseConfirmProvider } from "./session/PassphraseConfirmProvider";
 import { useVaultSession, type VaultSession } from "./session/useVaultSession";
 import { MOBILE_LAYOUT_QUERY, useMediaQuery } from "./shared/useMediaQuery";
 import { DesktopWorkspace } from "./workspace/DesktopWorkspace";
@@ -60,7 +62,7 @@ function ScreenForPhase({ session }: { session: VaultSession }) {
 const NO_UNSYNCED_RECORDS: ReadonlySet<string> = new Set();
 
 function UnlockedApp({ session, vault }: { session: VaultSession; vault: UnlockedVault }) {
-  const snapshot = useRepositorySnapshot(vault.repository);
+  const repositorySnapshot = useRepositorySnapshot(vault.repository);
   const { customCss, customCssEnabled } = useDevicePreferences();
   // カスタム CSS は、ロックを解除している間だけ当てる（ロックしたら外す）。
   useEffect(() => {
@@ -68,6 +70,7 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
     return () => applyCustomCss("");
   }, [customCss, customCssEnabled]);
   const navigation = useWorkspaceNavigation();
+  const { snapshot, lockState } = useSnapshotWithLocks(repositorySnapshot, navigation.revealedNoteIds);
   const isMobile = useMediaQuery(MOBILE_LAYOUT_QUERY);
   useLaunchRequests(vault.repository, navigation.openNote);
   const availableUpdate = useAvailableUpdate();
@@ -86,9 +89,13 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
         <AvailableUpdateContext.Provider value={availableUpdate}>
           <AiSettingsContext.Provider value={aiSettings}>
           <AiChatSessionProvider>
+          <NoteLockStateContext.Provider value={lockState}>
+          <PassphraseConfirmProvider verifyPassphrase={session.verifyPassphrase}>
           {McpGatewayProvider
             ? <Suspense fallback={null}><McpGatewayProvider vault={vault}>{workspace}</McpGatewayProvider></Suspense>
             : workspace}
+          </PassphraseConfirmProvider>
+          </NoteLockStateContext.Provider>
           </AiChatSessionProvider>
           </AiSettingsContext.Provider>
         </AvailableUpdateContext.Provider>

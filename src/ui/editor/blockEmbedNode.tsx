@@ -87,6 +87,9 @@ function unavailableMessage(target: NoteLinkTarget, state: { tooDeep: boolean; b
   if (target.state === "trashed") {
     return translate("editor.noteLinkTrashed", { title });
   }
+  if (target.block.state === "concealed") {
+    return translate("lock.embedConcealed");
+  }
   if (state.tooDeep) {
     return translate("editor.blockEmbedTooDeep");
   }

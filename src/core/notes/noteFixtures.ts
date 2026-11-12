@@ -4,7 +4,7 @@ import type { NoteContent } from "./noteRecords";
 
 export function noteContentFixture(overrides: Partial<NoteContent> & Pick<NoteContent, "createdAt">): NoteContent {
   return {
-    title: "", notebookIds: [], pinned: false, bookmarked: false, trashedAt: null, isTemplate: false, isOutline: false, pageAlignment: null,
+    title: "", notebookIds: [], pinned: false, bookmarked: false, trashedAt: null, isTemplate: false, isOutline: false, isLocked: false, pageAlignment: null,
     attachments: [], propertyValues: {}, ...overrides,
   };
 }

@@ -44,6 +44,9 @@ export type WorkspaceNavigation = {
   revealSetting: (page: SettingsPage, label: string) => void;
   settingRevealRequest: SettingRevealRequest | null;
   closeTab: (tabId: string) => void;
+  // ロックしたメモのうち、パスフレーズを確かめて中身を出しているもの。タブを閉じると、また確認が要る。
+  revealedNoteIds: ReadonlySet<string>;
+  revealLockedNote: (noteId: string) => void;
   // タブを、別のタブの位置へ動かす（ドラッグでの並べ替え）。
   moveTab: (tabId: string, toTabId: string) => void;
   // 左の列の行が開いているか。expandedByDefault は、利用者がまだ開け閉めしていないときの状態
@@ -83,6 +86,8 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
   const [settingRevealRequest, setSettingRevealRequest] = useState<SettingRevealRequest | null>(null);
 
   const [blockToReveal, setBlockToReveal] = useState<BlockToReveal | null>(null);
+  const [revealedNoteIds, setRevealedNoteIds] = useState<ReadonlySet<string>>(new Set());
+  const revealLockedNote = useCallback((noteId: string) => setRevealedNoteIds((current) => new Set(current).add(noteId)), []);
 
   const openTab = useCallback((tabId: string) => {
     setTabs(({ openTabs }) => ({ openTabs: openTabs.includes(tabId) ? openTabs : [...openTabs, tabId], activeTab: tabId }));
@@ -103,6 +108,7 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
       const nextActive = activeTab === tabId ? remaining[Math.min(index, remaining.length - 1)] ?? null : activeTab;
       return { openTabs: remaining, activeTab: nextActive };
     });
+    setRevealedNoteIds((current) => new Set([...current].filter((noteId) => noteId !== tabId)));
     setBlockToReveal(null);
   }, []);
 
@@ -142,7 +148,7 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
   }, [setExpanded]);
 
   return {
-    view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote, blockToReveal, openTab, openSettings, closeTab, moveTab,
+    view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote, blockToReveal, openTab, openSettings, closeTab, moveTab, revealedNoteIds, revealLockedNote,
     settingsPage, selectSettingsPage: setSettingsPage, settingRevealRequest,
     revealSetting: (page, label) => {
       setSettingRevealRequest((previous) => ({ serial: (previous?.serial ?? 0) + 1, label }));

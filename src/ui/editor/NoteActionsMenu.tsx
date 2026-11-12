@@ -1,6 +1,6 @@
-// メモの「…」メニュー: ピン留め、ノートブックの付け外し、本文の配置（PC だけ）、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、AI チャット、履歴、ファイルへの書き出し、印刷、ゴミ箱。
+// メモの「…」メニュー: ピン留め、ノートブックの付け外し、本文の配置（PC だけ）、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、AI チャット、履歴、ファイルへの書き出し、印刷、ロック、ゴミ箱。
 
-import { Check, Copy, FileDown, History, ListTree, Merge, LayoutTemplate, Pin, PinOff, Printer, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
+import { Check, Copy, FileDown, History, ListTree, Merge, LayoutTemplate, LockKeyhole, LockKeyholeOpen, Pin, PinOff, Printer, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { type MessageKey, translate } from "../i18n/translate";
@@ -99,6 +99,10 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
           <ZoomIn size={15} />{translate("editor.zoomIntoItem")}
         </button>
       )}
+      {/* 開いているメモは、もうパスフレーズを確かめてある。ロックを外すのに、もう一度は聞かない。 */}
+      <button className="menu-item" role="menuitem" onClick={runAndClose(() => repository.updateNote(note.id, { isLocked: !content.isLocked }))}>
+        {content.isLocked ? <LockKeyholeOpen size={15} /> : <LockKeyhole size={15} />}{translate(content.isLocked ? "lock.unlockNote" : "lock.lockNote")}
+      </button>
       <button className="menu-item" role="menuitem" onClick={() => { onClose(); onOpenAiAssistant(); }}>
         <Sparkles size={15} />{translate("ai.assistant")}
       </button>
