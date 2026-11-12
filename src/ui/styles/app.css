@@ -308,6 +308,20 @@ button:disabled { cursor: default; opacity: .55; }
 .document-meta .character-count { margin-left: auto; }
 .document-meta .updated { margin-left: 12px; }
 .chip { background: var(--tag); border-radius: 999px; padding: 2px 9px; font-size: var(--font-size-small); color: var(--text); display: inline-flex; align-items: center; gap: 5px; }
+/* プラグイン。設定の一覧と、入れる前の確認。 */
+.field-row { display: flex; gap: 8px; }
+.field-row input { flex: 1; }
+.plugin-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.plugin-list li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.plugin-summary { flex: 1; min-width: 220px; }
+.plugin-summary p { margin: 2px 0 0; overflow-wrap: anywhere; }
+.plugin-review { width: min(620px, 100%); }
+.plugin-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 0; }
+.plugin-facts dt { color: var(--muted); font-size: var(--font-size-small); }
+.plugin-facts dd { margin: 0; overflow-wrap: anywhere; }
+.plugin-facts ul { margin: 0; padding-left: 18px; }
+.plugin-facts code { font-size: var(--font-size-small); }
+
 /* スペース。左の列の切り替えと、設定の一覧。 */
 .space-switcher { width: 100%; min-height: 30px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 10px; border: 1px solid var(--line); border-radius: var(--radius-control); color: var(--text); font-size: var(--font-size-small); text-align: left; }
 .space-switcher:hover { background: var(--selected); }

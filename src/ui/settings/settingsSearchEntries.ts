@@ -25,6 +25,7 @@ export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
   { label: "settings.reminders", page: "general" },
   { label: "reminders.notify", page: "general" },
   { label: "settings.spaces", page: "general" },
+  { label: "settings.plugins", page: "plugins" },
   { label: "settings.trash", page: "general" },
   { label: "trash.autoDelete", page: "general" },
   { label: "settings.theme", page: "appearance" },

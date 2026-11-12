@@ -14,6 +14,10 @@ import { DueDateDialog } from "../shared/DueDateDialog";
 import { formatDueTime } from "../shared/formatTime";
 import { canOpenNoteWindows, openNoteInNewWindow } from "../platform/noteWindows";
 import { useCurrentSpaceId } from "../session/currentSpace";
+import { useToast } from "../shared/ToastProvider";
+import { usePlugins } from "../plugins/pluginAccess";
+import { describePluginRunError } from "../plugins/describePluginRunError";
+import { runPluginCommand } from "../plugins/runPluginCommand";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { useNoteFileExport } from "../markdown/useNoteFileExport";
@@ -170,6 +174,21 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   const otherNotes = () => repository.notes().filter((candidate) => candidate.id !== noteId && candidate.content.trashedAt === null);
   const print = useAsyncAction(printPage);
   const spaceId = useCurrentSpaceId();
+  // 有効なプラグインのコマンド。実行できなかったら、理由を知らせる。プラグインが返した知らせも、ここで出す。
+  const { plugins } = usePlugins();
+  const showToast = useToast();
+  const pluginCommands = (plugins ?? []).filter((plugin) => plugin.enabled).flatMap((plugin) => plugin.manifest.commands.map((command) => ({
+    key: `${plugin.manifest.id}:${command.id}`,
+    title: command.title,
+    run: () => {
+      if (editor) {
+        void runPluginCommand({ plugin, commandId: command.id, note, editor, repository }).then(
+          (message) => message !== null && showToast({ message }),
+          (error: unknown) => showToast({ message: translate("plugin.runFailed", { name: plugin.manifest.name, reason: describePluginRunError(error) }) }),
+        );
+      }
+    },
+  })));
   const openInNewWindow = useAsyncAction(() => openNoteInNewWindow({
     noteId, spaceId, title: note.content.title || translate("sidebar.untitled"),
   }));
@@ -381,6 +400,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
           }}
           zoomTarget={editor ? zoomTargetAtCursor(editor.state) : null} onZoomIn={() => editor && zoomIntoCursor(editor)}
           onOpenInNewWindow={!isMobile && canOpenNoteWindows() ? () => void openInNewWindow.run(undefined) : undefined}
+          pluginCommands={pluginCommands}
           onSetNoteDue={() => setDueTarget("note")}
           onSetTaskDue={editor && isCursorInTaskItem(editor.state) ? () => setDueTarget("task") : undefined}
           onShowHistory={() => setShowingHistory(true)} onExport={(format) => void exportNote.run({ notes: [note], format })}

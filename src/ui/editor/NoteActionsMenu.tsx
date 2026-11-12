@@ -1,6 +1,6 @@
-// メモの「…」メニュー: ピン留め、ノートブックの付け外し、本文の配置（PC だけ）、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、期限、別のウィンドウで開く、最前面に固定、AI チャット、履歴、ファイルへの書き出し、印刷、ロック、ゴミ箱。
+// メモの「…」メニュー: ピン留め、ノートブックの付け外し、本文の配置（PC だけ）、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、期限、別のウィンドウで開く、最前面に固定、プラグインのコマンド、AI チャット、履歴、ファイルへの書き出し、印刷、ロック、ゴミ箱。
 
-import { AlarmClock, AppWindow, ArrowUpToLine, Check, Copy, FileDown, History, ListTree, Merge, LayoutTemplate, Pin, PinOff, Printer, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
+import { AlarmClock, AppWindow, ArrowUpToLine, Check, Copy, FileDown, History, ListTree, Merge, LayoutTemplate, Pin, PinOff, Printer, Puzzle, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { type MessageKey, translate } from "../i18n/translate";
@@ -38,6 +38,8 @@ type NoteActionsMenuProps = {
   onSetNoteDue: () => void;
   // カーソルのあるチェックリストの項目の期限を選ぶ画面を開く。カーソルが項目の中に無ければ undefined。
   onSetTaskDue: (() => void) | undefined;
+  // 有効なプラグインのコマンド。押すと、このメモに対して実行する。
+  pluginCommands: Array<{ key: string; title: string; run: () => void }>;
   // メモを別のウィンドウで開く。開けない画面（スマホ）では undefined。
   onOpenInNewWindow: (() => void) | undefined;
   onShowHistory: () => void;
@@ -47,7 +49,7 @@ type NoteActionsMenuProps = {
   onClose: () => void;
 };
 
-export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, zoomTarget, onZoomIn, onSetNoteDue, onSetTaskDue, onOpenInNewWindow, onShowHistory, onExport, canChoosePageAlignment, onClose }: NoteActionsMenuProps) {
+export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, zoomTarget, onZoomIn, onSetNoteDue, onSetTaskDue, pluginCommands, onOpenInNewWindow, onShowHistory, onExport, canChoosePageAlignment, onClose }: NoteActionsMenuProps) {
   const { content } = note;
   const moveToTrash = useTrashWithUndo(repository);
   const { windowIsOnTop, toggleWindowOnTop } = useWindowOnTop();
@@ -119,6 +121,18 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
         <button className="menu-item" role="menuitem" onClick={() => { onClose(); onSetTaskDue(); }}>
           <AlarmClock size={15} />{translate("due.setForTask")}
         </button>
+      )}
+      {pluginCommands.length > 0 && content.trashedAt === null && (
+        <>
+          <div className="menu-separator" />
+          <div className="menu-heading">{translate("plugin.menuHeading")}</div>
+          {pluginCommands.map((command) => (
+            <button key={command.key} className="menu-item" role="menuitem" onClick={() => { onClose(); command.run(); }}>
+              <Puzzle size={15} />{command.title}
+            </button>
+          ))}
+          <div className="menu-separator" />
+        </>
       )}
       {onOpenInNewWindow && (
         <button className="menu-item" role="menuitem" onClick={() => { onClose(); onOpenInNewWindow(); }}>

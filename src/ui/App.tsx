@@ -33,6 +33,7 @@ import type { UnlockedVault } from "../core/vault/vaultSession";
 import { applyCustomCss } from "./theme/customCss";
 import { AiSettingsContext, useAiSettingsOfVault } from "./ai/aiSettingsAccess";
 import { AiChatSessionProvider } from "./ai/aiChatSession";
+import { PluginAccessContext, usePluginsOfVault } from "./plugins/pluginAccess";
 
 // MCP は PC 版（デスクトップのアプリ）にだけ同梱する。__INCLUDES_MCP__ はビルドのときに決まる定数なので、
 // Web 版と Android のアプリのビルドでは、この読み込みごと取り除かれ、MCP のコードはファイルに入らない。
@@ -114,6 +115,7 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   const availableUpdate = useAvailableUpdate();
   useTrashRetention(vault, session.syncStatus);
   const aiSettings = useAiSettingsOfVault(vault);
+  const plugins = usePluginsOfVault(vault);
   const props = { session, vault, snapshot, navigation, isNoteWindow };
   const workspace = (
     <>
@@ -127,12 +129,14 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
         <AvailableUpdateContext.Provider value={availableUpdate}>
           <AiSettingsContext.Provider value={aiSettings}>
           <AiChatSessionProvider>
+          <PluginAccessContext.Provider value={plugins}>
           <PassphraseConfirmProvider verifyPassphrase={session.verifyPassphrase}>
           {/* MCP の窓口は、最初のウィンドウだけが開く（別のウィンドウが同じポートを取り合わない）。 */}
           {McpGatewayProvider && !isNoteWindow
             ? <Suspense fallback={null}><McpGatewayProvider vault={vault}>{workspace}</McpGatewayProvider></Suspense>
             : workspace}
           </PassphraseConfirmProvider>
+          </PluginAccessContext.Provider>
           </AiChatSessionProvider>
           </AiSettingsContext.Provider>
         </AvailableUpdateContext.Provider>

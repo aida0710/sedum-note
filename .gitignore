@@ -8,3 +8,6 @@ playwright-report/
 .yomiyasu/
 .cache/
 src-tauri/target-linux/
+
+# 見本のプラグインを組み立てたときの出力（配る .wasm は、プラグインのフォルダに置いてコミットする）
+plugins/*/target/

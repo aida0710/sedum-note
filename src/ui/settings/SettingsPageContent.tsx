@@ -3,6 +3,7 @@
 import { useContext } from "react";
 import type { UnlockedVault } from "../../core/vault/vaultSession";
 import { AiSection } from "../ai/AiSection";
+import { PluginsSection } from "../plugins/PluginsSection";
 import type { VaultSession } from "../session/useVaultSession";
 import { BackupSection } from "./BackupSection";
 import { CustomCssSection } from "./CustomCssSection";
@@ -47,6 +48,8 @@ export function SettingsPageContent({ page, session, vault }: SettingsPageConten
       return <ShortcutsSection />;
     case "ai":
       return <>{mcpSection}<AiSection /></>;
+    case "plugins":
+      return <PluginsSection />;
     case "update":
       return <UpdateSection repository={repository} />;
   }

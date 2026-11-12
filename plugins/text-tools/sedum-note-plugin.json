@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1,
+  "id": "text-tools",
+  "name": "Text tools",
+  "version": "1.0.0",
+  "description": "Sorts the selected lines, removes duplicate lines, and counts the characters of the note.",
+  "author": "Sedum Note",
+  "module": "text-tools.wasm",
+  "reads": ["note.selection", "note.body"],
+  "writes": ["note.selection", "message"],
+  "commands": [
+    { "id": "sort-lines", "title": "Sort the selected lines", "description": "Sorts the lines of the selection in ascending order." },
+    { "id": "remove-duplicate-lines", "title": "Remove duplicate lines", "description": "Keeps the first of each repeated line in the selection." },
+    { "id": "count-characters", "title": "Count characters", "description": "Shows how many characters and lines the note has." }
+  ]
+}
