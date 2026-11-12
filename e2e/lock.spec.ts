@@ -19,6 +19,19 @@ test("Ctrl+L でアプリをロックできる。直前に打った文字も、�
   await expect(page.locator(".ProseMirror")).toHaveText("牛乳を買う");
 });
 
+test("ロックの直前に出ていた「元に戻す」の知らせは、ロックの画面に残さない", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "捨てるメモ");
+  await page.getByRole("button", { name: "その他の操作" }).last().click();
+  await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+  const toast = page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" });
+  await expect(toast).toBeVisible();
+  await page.keyboard.press("Control+l");
+  await expect(page.getByRole("heading", { name: "ロックを解除" })).toBeVisible();
+  // 残すと、ロックの画面から「元に戻す」で、ロックしたメモを書き換えられてしまう。知らせは 6 秒で消えるので、それより前に見る。
+  await expect(toast).toHaveCount(0, { timeout: 1_000 });
+});
+
 const gate = (page: Page) => page.getByRole("region", { name: "ロックしたメモ" });
 
 async function lockOpenNote(page: Page): Promise<void> {

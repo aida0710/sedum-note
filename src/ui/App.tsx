@@ -42,7 +42,9 @@ export function App() {
   }, [language]);
   const theme = useThemeInUse();
   useEffect(() => applyAppearance({ theme, editorFontSize, sidebarWidth }), [theme, editorFontSize, sidebarWidth]);
-  return <DialogProvider><ToastProvider><ScreenForPhase session={session} /></ToastProvider></DialogProvider>;
+  // 知らせは、画面の段階（ロック中・解除中など）が変わったら捨てる。ロックの直前に出た「元に戻す」をロックの画面に残すと、
+  // ロックで手放したメモの入れ物（復号した本文とマスターキー）を使って書き込めてしまう。
+  return <DialogProvider><ToastProvider key={session.state.phase}><ScreenForPhase session={session} /></ToastProvider></DialogProvider>;
 }
 
 function ScreenForPhase({ session }: { session: VaultSession }) {
