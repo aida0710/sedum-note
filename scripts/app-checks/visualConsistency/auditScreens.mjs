@@ -53,6 +53,14 @@ const RICH_NOTE_MARKDOWN = [
   "[^1]: 脚注の文。",
 ].join("\n");
 
+// 添付の見本。画像は 1 画素の PNG を引き伸ばしたもの、PDF は 1 ページだけの最小のもの。
+const SAMPLE_IMAGE = { name: "photo.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkqPpfDwAE/wH+7ZJr2gAAAABJRU5ErkJggg==", "base64") };
+const SAMPLE_TEXT_FILE = { name: "memo.txt", mimeType: "text/plain", buffer: Buffer.from("添付のテキスト") };
+const SAMPLE_PDF = {
+  name: "document.pdf", mimeType: "application/pdf",
+  buffer: Buffer.from("%PDF-1.4\n1 0 obj <</Type/Catalog/Pages 2 0 R>> endobj\n2 0 obj <</Type/Pages/Kids[3 0 R]/Count 1>> endobj\n3 0 obj <</Type/Page/Parent 2 0 R/MediaBox[0 0 200 100]>> endobj\ntrailer <</Root 1 0 R>>\n%%EOF\n"),
+};
+
 const SETTINGS_SCROLL_STEPS = 12;
 const NOTE_SCROLL_STEPS = 6;
 
@@ -167,6 +175,10 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
   return [
     { name: "setup", open: async (page) => { await page.goto(baseUrl); await page.getByLabel("パスフレーズ", { exact: true }).waitFor(); } },
     {
+      name: "setup-generated-passphrase",
+      open: async (page) => { await page.getByRole("button", { name: "強いパスフレーズを生成" }).click(); },
+    },
+    {
       name: "setup-with-sync",
       open: async (page) => { await page.getByLabel("ほかのデバイスと同期する").check(); },
       close: async (page) => { await page.getByLabel("ほかのデバイスと同期する").uncheck(); },
@@ -203,6 +215,26 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
         await captureWhileScrolling(page, captureScreen, { name: "rich-note", scrollContainer: ".document-scroll", maxSteps: NOTE_SCROLL_STEPS });
       },
     },
+    {
+      name: "attachments",
+      capturesItself: true,
+      open: async (page, { captureScreen }) => {
+        await placeCursorAtEnd(page);
+        await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles(SAMPLE_IMAGE);
+        await placeCursorAtEnd(page);
+        await page.locator('input[type="file"]:not([accept])').setInputFiles([SAMPLE_TEXT_FILE, SAMPLE_PDF]);
+        await page.locator(".attachment-file").last().waitFor();
+        await page.getByRole("button", { name: `${SAMPLE_PDF.name} をプレビュー` }).click();
+        await page.waitForTimeout(1500);
+        await page.locator(".attachment-file").last().scrollIntoViewIfNeeded();
+        await captureScreen("attachments");
+      },
+    },
+    {
+      name: "outline",
+      open: async (page) => { await page.locator(".editor-bar").getByRole("button", { name: "目次" }).click(); },
+      close: async (page) => { await page.locator(".editor-bar").getByRole("button", { name: "目次" }).click(); },
+    },
     { name: "slash-menu", open: (page) => openSlashMenu(page), close: closeSlashMenu },
     {
       name: "highlight-menu",
@@ -217,6 +249,15 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       open: async (page) => {
         await page.locator(".ProseMirror td").first().click();
         await page.locator(".editor-bar").getByRole("button", { name: "表" }).click();
+      },
+    },
+    {
+      name: "prompt-dialog",
+      open: async (page) => {
+        await page.locator(".ProseMirror td").first().click();
+        await page.locator(".editor-bar").getByRole("button", { name: "表" }).click();
+        await page.getByRole("menuitem", { name: "この列で行をフィルター" }).click();
+        await page.getByRole("dialog").waitFor();
       },
     },
     {
@@ -247,6 +288,14 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       open: (page) => openSidebarNoteMenu(page, "読みたい本"),
     },
     { name: "notebook-menu", open: (page) => openNotebookMenu(page, "仕事") },
+    {
+      name: "confirm-dialog",
+      open: async (page) => {
+        await openNotebookMenu(page, "料理");
+        await page.getByRole("menuitem", { name: "ノートブックを削除" }).click();
+        await page.getByRole("dialog").waitFor();
+      },
+    },
     {
       name: "notebook-appearance",
       open: async (page) => { await openNotebookMenu(page, "仕事"); await page.getByRole("menuitem", { name: "色とアイコン" }).click(); },
@@ -310,12 +359,49 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
     },
     { name: "trash", open: async (page) => { await page.locator(".sidebar .nav", { hasText: "ゴミ箱" }).first().click(); } },
     {
+      name: "trash-banner",
+      open: async (page) => {
+        await openSidebarNoteMenu(page, "引っ越しのやること");
+        await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+        // ゴミ箱の行は、押すたびに開け閉めする。前の画面で開いていれば、押すと閉じるので、メモが出るまで押す。
+        const trashRow = page.locator(".sidebar .nav", { hasText: "ゴミ箱" }).first();
+        const trashedNote = page.locator(".tree-note", { hasText: "引っ越しのやること" }).first();
+        await trashRow.click();
+        if (!(await trashedNote.isVisible())) {
+          await trashRow.click();
+        }
+        await trashedNote.click();
+        await page.locator(".trash-banner").waitFor();
+      },
+      close: async (page) => { await page.getByRole("button", { name: "ゴミ箱から戻す" }).click(); },
+    },
+    {
+      name: "backlinks",
+      open: async (page) => {
+        // 見た目の確認のメモから、沖縄旅行の持ち物へリンクを張り、リンク先の下にバックリンクを出す。
+        await openRichNote(page);
+        await insertBySlash(page, "link");
+        await page.getByRole("dialog").getByRole("button", { name: "沖縄旅行の持ち物" }).click();
+        await page.getByRole("button", { name: "沖縄旅行の持ち物" }).first().click();
+        await page.locator(".backlinks").scrollIntoViewIfNeeded();
+      },
+    },
+    {
       name: "settings",
       capturesItself: true,
       open: async (page, { captureScreen }) => {
         await openSettingsOnDesktop(page);
         await captureEverySettingsPage(page, captureScreen, "settings");
       },
+    },
+    {
+      name: "settings-ai-enabled",
+      open: async (page) => {
+        await openSettingsOnDesktop(page, "AI");
+        await page.getByRole("checkbox", { name: "アプリ内の AI を使う" }).check();
+        await page.getByLabel("つなぎ先").selectOption({ index: 1 });
+      },
+      close: async (page) => { await page.getByRole("checkbox", { name: "アプリ内の AI を使う" }).uncheck(); },
     },
     {
       name: "custom-theme-editor",
@@ -344,6 +430,8 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
         await chooseTheme(page, "ダーク");
         await openRichNote(page);
         await captureScreen("dark-rich-note");
+        await page.locator(".mermaid-diagram").first().scrollIntoViewIfNeeded();
+        await captureScreen("dark-diagram");
         await openSlashMenu(page);
         await captureScreen("dark-slash-menu");
         await closeSlashMenu(page);
