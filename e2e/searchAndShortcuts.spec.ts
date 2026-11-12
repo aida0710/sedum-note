@@ -203,7 +203,7 @@ test("コマンドパレット（Ctrl+K）で、メモを題で探して開け�
   await page.keyboard.press("Control+k");
   const palette = page.getByRole("dialog", { name: "コマンドパレット" });
   await palette.getByRole("combobox").fill("会議");
-  await expect(palette.getByRole("option")).toHaveText(["会議の記録"]);
+  await expect(palette.getByRole("option")).toHaveText(["会議の記録", "「会議」という題で新しいメモを作る"]);
   await page.keyboard.press("Enter");
   await expect(palette).toHaveCount(0);
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("会議の記録");
@@ -213,6 +213,17 @@ test("コマンドパレット（Ctrl+K）で、メモを題で探して開け�
   await expect(palette.getByRole("option")).toContainText(["フォーカスモード"]);
   await page.keyboard.press("Enter");
   await expect(page.locator(".sidebar")).toBeHidden();
+});
+
+test("コマンドパレットで打った言葉を題にして、新しいメモを作れる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "会議の記録", "");
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("dialog", { name: "コマンドパレット" });
+  await palette.getByRole("combobox").fill("来週の買い物");
+  await palette.getByRole("option", { name: "「来週の買い物」という題で新しいメモを作る" }).click();
+  await expect(page.getByRole("tab", { name: "来週の買い物" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("来週の買い物");
 });
 
 test("コマンドパレットは、メモの本文・ノートブック・設定の項目もまとめて探す。設定の項目を選ぶと、そのページのその項目へ移る", async ({ page }) => {

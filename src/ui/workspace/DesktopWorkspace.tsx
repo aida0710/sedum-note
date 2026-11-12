@@ -103,7 +103,9 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
           </>
         )} />
       {paletteOpen && (
-        <CommandPalette onClose={() => setPaletteOpen(false)} candidates={workspacePaletteCandidates({
+        <CommandPalette onClose={() => setPaletteOpen(false)}
+          onCreateNote={(title) => void createNoteInView(repository, navigation.view, title).then((note) => navigation.openNote(note.id))}
+          candidates={workspacePaletteCandidates({
           summaries: snapshot.summaries, notebooks: snapshot.notebooks, commands: paletteCommands, navigation,
           settingsEntries: SETTINGS_SEARCH_ENTRIES.filter((entry) => includesMcp || !entry.desktopAppOnly),
         })} />

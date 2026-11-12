@@ -1,15 +1,17 @@
 // コマンドパレット（Ctrl+K）。打った言葉で、メモ（題と本文）・ノートブック・タグ・設定の項目・操作をまとめて探し、
 // 種類ごとに並べる。「>」で始めると、操作だけを探す。
 
-import { BookOpen, Command, FileText, Hash, type LucideIcon, Search, Settings } from "lucide-react";
+import { BookOpen, Command, FilePlus, FileText, Hash, type LucideIcon, Search, Settings } from "lucide-react";
 import { Fragment, useState } from "react";
 import { type MessageKey, translate } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { ModalDialog } from "../shared/ModalDialog";
-import { type PaletteCandidate, type PaletteItem, type PaletteItemKind, searchPalette } from "./paletteItems";
+import { COMMAND_PREFIX, type PaletteCandidate, type PaletteItem, type PaletteItemKind, searchPalette } from "./paletteItems";
 
 type CommandPaletteProps = {
   candidates: PaletteCandidate[];
+  // 打った言葉を題にして、新しいメモを作る。
+  onCreateNote: (title: string) => void;
   onClose: () => void;
 };
 
@@ -19,14 +21,21 @@ const KIND_META: Record<PaletteItemKind, { heading: MessageKey; icon: LucideIcon
   tag: { heading: "palette.group.tags", icon: Hash },
   setting: { heading: "palette.group.settings", icon: Settings },
   command: { heading: "palette.group.commands", icon: Command },
+  create: { heading: "palette.group.create", icon: FilePlus },
 };
 
 const ICON_SIZE = 15;
 
-export function CommandPalette({ candidates, onClose }: CommandPaletteProps) {
+export function CommandPalette({ candidates, onCreateNote, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const items = searchPalette(candidates, query);
+  const newNoteTitle = query.trim();
+  // 言葉を打ったら、最後に「その題で新しいメモを作る」を出す。操作を探しているときと、同じ題のメモがもうあるときは出さない。
+  const sameTitleExists = candidates.some((candidate) => candidate.kind === "note" && candidate.label === newNoteTitle);
+  const createItem: PaletteItem | null = newNoteTitle === "" || query.startsWith(COMMAND_PREFIX) || sameTitleExists ? null : {
+    id: "create-note", kind: "create", label: translate("palette.createNote", { title: newNoteTitle }), hint: "", run: () => onCreateNote(newNoteTitle),
+  };
+  const items = [...searchPalette(candidates, query), ...(createItem ? [createItem] : [])];
   const selected = Math.min(selectedIndex, Math.max(items.length - 1, 0));
   const runItem = (item: PaletteItem | undefined) => {
     if (item) {

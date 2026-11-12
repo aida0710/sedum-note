@@ -595,6 +595,8 @@ export const englishMessages: Record<MessageKey, string> = {
   "palette.group.tags": "Tags",
   "palette.group.settings": "Settings",
   "palette.group.commands": "Commands",
+  "palette.group.create": "New note",
+  "palette.createNote": "Create a note titled “{title}”",
   "palette.noResults": "No matches",
   "graph.title": "Graph view",
   "graph.summary": "{notes} notes, {links} links",

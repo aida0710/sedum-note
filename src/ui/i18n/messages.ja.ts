@@ -594,6 +594,8 @@ export const japaneseMessages = {
   "palette.group.tags": "タグ",
   "palette.group.settings": "設定",
   "palette.group.commands": "操作",
+  "palette.group.create": "新しいメモ",
+  "palette.createNote": "「{title}」という題で新しいメモを作る",
   "palette.noResults": "当たるものがありません",
   "graph.title": "グラフ表示",
   "graph.summary": "メモ {notes} 件、リンク {links} 本",
