@@ -246,6 +246,19 @@ test("コマンドパレット（Ctrl+K）で、メモを題で探して開け�
   await expect(page.locator(".sidebar")).toBeHidden();
 });
 
+test("コマンドパレットを開いてすぐ打った文字は入力欄に入り、閉じると本文の続きに書ける", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "会議の記録", "本文");
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("dialog", { name: "コマンドパレット" });
+  await palette.waitFor();
+  await page.keyboard.type("の");
+  await expect(palette.getByRole("combobox")).toHaveValue("の");
+  await page.keyboard.press("Escape");
+  await page.keyboard.type("の続き");
+  await expect(page.locator(".ProseMirror")).toHaveText("本文の続き");
+});
+
 test("コマンドパレットで打った言葉を題にして、新しいメモを作れる", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "会議の記録", "");
