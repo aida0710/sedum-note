@@ -167,3 +167,38 @@ test("メモを HTML とテキストで書き出せる。HTML は書式と添付
   expect(text.fileName).toBe("書き出しのメモ.txt");
   expect(text.text).toBe("書き出しのメモ\n\n持ち物\n日焼け止め\n");
 });
+
+// 2 ページの、最小の PDF。相互参照の表は付けていない（読む側が作り直す）。
+function twoPagePdf(): Buffer {
+  const objects = [
+    "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+    "2 0 obj\n<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>\nendobj",
+    "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] >>\nendobj",
+    "4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] >>\nendobj",
+  ];
+  return Buffer.from(`%PDF-1.4\n${objects.join("\n")}\ntrailer\n<< /Root 1 0 R /Size 5 >>\n%%EOF\n`, "latin1");
+}
+
+test("添付した PDF は、メモの中でプレビューを開いて、ページを送り、拡大できる", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByPlaceholder("タイトル").fill("資料");
+  await page.getByPlaceholder("タイトル").press("Enter");
+  await page.locator('input[type="file"]:not([accept])').setInputFiles({ name: "資料.pdf", mimeType: "application/pdf", buffer: twoPagePdf() });
+  await expect(page.locator(".attachment-file")).toContainText("資料.pdf");
+
+  await page.getByRole("button", { name: "資料.pdf をプレビュー" }).click();
+  const preview = page.locator(".pdf-preview");
+  await expect(preview.locator(".pdf-page-number")).toHaveText("1 / 2");
+  const canvasWidth = () => preview.locator("canvas").evaluate((canvas) => canvas.getBoundingClientRect().width);
+  await expect.poll(canvasWidth).toBeGreaterThan(100);
+  const fittedWidth = await canvasWidth();
+
+  await preview.getByRole("button", { name: "次のページ" }).click();
+  await expect(preview.locator(".pdf-page-number")).toHaveText("2 / 2");
+  await expect(preview.getByRole("button", { name: "次のページ" })).toBeDisabled();
+  await preview.getByRole("button", { name: "拡大" }).click();
+  await expect.poll(canvasWidth).toBeGreaterThan(fittedWidth * 1.3);
+
+  await page.getByRole("button", { name: "資料.pdf をプレビュー" }).click();
+  await expect(preview).toHaveCount(0);
+});
