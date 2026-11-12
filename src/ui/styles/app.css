@@ -216,6 +216,8 @@ button:disabled { cursor: default; opacity: .55; }
 .nav .nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav .disclosure { width: 12px; color: var(--muted); flex: none; display: grid; place-items: center; }
 .nav-row { position: relative; display: flex; align-items: center; }
+/* 左の列の行のフォーカスの枠は、行の内側に描く（外に描くと、左右は一覧のスクロールの枠で切れ、上下は隣の行に隠れる）。 */
+.sidebar-scroll :is(.nav, .tree-note):focus-visible { outline-offset: -2px; }
 .nav-row .row-actions { position: absolute; right: 4px; display: none; }
 .nav-row:hover .row-actions, .nav-row:focus-within .row-actions { display: flex; }
 .nav-row:hover .count, .nav-row:focus-within .count { visibility: hidden; }
