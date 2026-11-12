@@ -96,17 +96,12 @@ test("「/」からコールアウトを作れ、中に文字を書ける。別�
 });
 
 test("クエリのブロックは、条件に合うメモの一覧を出し、条件を変えると一覧が変わる。押すとそのメモが開く", async ({ page }) => {
-  await openNewNote(page);
-  await page.getByPlaceholder("タイトル").fill("旅行の持ち物");
-  await page.locator(".ProseMirror").click();
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "旅行の持ち物");
   await page.keyboard.type("パスポート #旅行");
-  await page.keyboard.press("Control+Alt+n");
-  await page.getByPlaceholder("タイトル").fill("買い物");
-  await page.locator(".ProseMirror").click();
+  await createNoteOnDesktop(page, "買い物");
   await page.keyboard.type("牛乳");
-  await page.keyboard.press("Control+Alt+n");
-  await page.getByPlaceholder("タイトル").fill("まとめ");
-  await page.locator(".ProseMirror").click();
+  await createNoteOnDesktop(page, "まとめ");
   await page.keyboard.type("/くえり");
   await page.keyboard.press("Enter");
 

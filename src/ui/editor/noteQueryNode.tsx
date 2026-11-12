@@ -81,7 +81,8 @@ export const NoteQuery = Node.create({
     return ["div", mergeAttributes({ "data-note-query": JSON.stringify(noteQueryConditionFrom(node.attrs)) })];
   },
   addNodeView() {
-    return ReactNodeViewRenderer(NoteQueryView);
+    // ブロックの中の入力欄や選択肢の操作を、エディタに渡さない（渡すと、WebKit では打った文字が本文に入る）。
+    return ReactNodeViewRenderer(NoteQueryView, { stopEvent: () => true });
   },
   renderMarkdown: (node) => `\`\`\`${QUERY_CODE_LANGUAGE}\n${JSON.stringify(noteQueryConditionFrom(node.attrs))}\n\`\`\``,
 });
