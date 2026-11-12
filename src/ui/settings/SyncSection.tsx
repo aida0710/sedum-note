@@ -1,5 +1,6 @@
 // 設定の「同期」の欄。同期先の設定（接続を確認してから保存）、自動の同期の入り切り、今すぐ同期、状態の表示。
 
+import { isWebDavConfig, type RemoteConfig } from "../../core/remote/remoteConfig";
 import { useState } from "react";
 import type { SyncStatus } from "../../core/sync/autoSync";
 import type { SyncTargetCheck } from "../../core/vault/syncTarget";
@@ -31,7 +32,7 @@ export function SyncSection({ session, vault }: SyncSectionProps) {
         {remoteConfig && !changingTarget ? (
           <>
             <div className="sync-target-summary">
-              <span>{translate("settings.syncTarget", { bucket: remoteConfig.bucket, folder: remoteConfig.prefix === "" ? translate("syncTarget.bucketRoot") : remoteConfig.prefix })}</span>
+              <span>{describeSyncTarget(remoteConfig)}</span>
               <button type="button" className="secondary-button" onClick={() => setChangingTarget(true)}>{translate("settings.syncChangeTarget")}</button>
             </div>
             <SyncSetupExport session={session} />
@@ -112,6 +113,13 @@ function SyncSetupExport({ session }: { session: VaultSession }) {
       {setup !== null && <SyncSetupExportDialog setup={setup} onClose={() => setSetup(null)} />}
     </div>
   );
+}
+
+function describeSyncTarget(remoteConfig: RemoteConfig): string {
+  if (isWebDavConfig(remoteConfig)) {
+    return translate("settings.syncTargetWebDav", { url: remoteConfig.url });
+  }
+  return translate("settings.syncTarget", { bucket: remoteConfig.bucket, folder: remoteConfig.prefix === "" ? translate("syncTarget.bucketRoot") : remoteConfig.prefix });
 }
 
 // 自動の同期の入り切りと、今の状態、「今すぐ同期」。

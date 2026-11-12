@@ -2,7 +2,8 @@ import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { newRandomId } from "../src/core/crypto/randomId";
 import { IndexedDbLocalStore } from "../src/core/local/indexedDbLocalStore";
-import { PreconditionFailedError } from "../src/core/remote/objectStore";
+import { createObjectStore } from "../src/core/remote/createObjectStore";
+import { PreconditionFailedError, sendWithFetch } from "../src/core/remote/objectStore";
 import { S3ObjectStore } from "../src/core/remote/s3ObjectStore";
 import type { RemoteConfig } from "../src/core/remote/remoteConfig";
 import { findVaultFolders } from "../src/core/vault/syncTarget";
@@ -18,7 +19,7 @@ const PASSPHRASE = "correct horse battery";
 function environment(): VaultSessionEnvironment {
   return {
     localStore: new IndexedDbLocalStore(`integration-${newRandomId()}`),
-    createObjectStore: (config: RemoteConfig) => new S3ObjectStore(config),
+    createObjectStore: (config: RemoteConfig) => createObjectStore(config, sendWithFetch),
   };
 }
 

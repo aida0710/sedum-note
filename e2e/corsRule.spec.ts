@@ -1,13 +1,13 @@
 import { expect, type Page, test } from "@playwright/test";
 import { type CorsRule, newTestRemoteConfigWithCors } from "../integration/testStorage";
-import type { RemoteConfig } from "../src/core/remote/remoteConfig";
+import type { S3RemoteConfig } from "../src/core/remote/remoteConfig";
 import { corsRuleJson } from "../src/ui/settings/corsRule";
 import { fillSyncTarget, startSyncedVault } from "./devices";
 import { PAGE_ORIGIN } from "./devServer";
 
 
 // 同期先を入れて「接続を確認」を押す。CORS で断られると、ここで分かる。
-async function checkSyncTarget(page: Page, config: RemoteConfig): Promise<void> {
+async function checkSyncTarget(page: Page, config: S3RemoteConfig): Promise<void> {
   await page.goto("/");
   await fillSyncTarget(page, config);
   await page.getByRole("button", { name: "接続を確認" }).click();

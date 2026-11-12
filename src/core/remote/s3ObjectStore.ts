@@ -13,15 +13,12 @@ import {
   type ObjectSummary,
   normalizeEtag,
   PreconditionFailedError,
+  sendWithFetch,
+  type StorageRequestSender,
   type StoredObject,
   type WriteCondition,
 } from "./objectStore";
-import { normalizeEndpoint, normalizePrefix, type RemoteConfig } from "./remoteConfig";
-
-// 署名の済んだ要求を送って、応答を返す。届かなければ失敗を投げる。
-export type StorageRequestSender = (request: Request) => Promise<Response>;
-
-const sendWithFetch: StorageRequestSender = (request) => fetch(request);
+import { normalizeEndpoint, normalizePrefix, type S3RemoteConfig } from "./remoteConfig";
 
 // ListObjectsV2 の 1 ページの最大件数（S3 の上限）。
 const LIST_PAGE_SIZE = 1000;
@@ -32,7 +29,7 @@ export class S3ObjectStore implements ObjectStore {
   readonly #keyPrefix: string;
   readonly #sendRequest: StorageRequestSender;
 
-  constructor(config: RemoteConfig, sendRequest: StorageRequestSender = sendWithFetch) {
+  constructor(config: S3RemoteConfig, sendRequest: StorageRequestSender = sendWithFetch) {
     this.#sendRequest = sendRequest;
     this.#client = new AwsClient({
       accessKeyId: config.accessKeyId,

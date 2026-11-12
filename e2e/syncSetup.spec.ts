@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import { type CorsRule, newTestRemoteConfig, newTestRemoteConfigWithCors } from "../integration/testStorage";
-import type { RemoteConfig } from "../src/core/remote/remoteConfig";
+import type { S3RemoteConfig } from "../src/core/remote/remoteConfig";
 import { S3ObjectStore } from "../src/core/remote/s3ObjectStore";
 import { writeRemoteVault } from "../src/core/vault/remoteVault";
 import { createVault } from "../src/core/vault/vaultDocument";
@@ -13,7 +13,7 @@ import { PAGE_ORIGIN } from "./devServer";
 const SECOND_DEVICE_PASSPHRASE = "another device passphrase";
 const GENERATED_KEY_PATTERN = /^([0-9A-Z]{4}-){5}[0-9A-Z]{4}$/;
 
-async function openSetupWithSync(page: Page, remoteConfig: RemoteConfig, passphrase: string): Promise<void> {
+async function openSetupWithSync(page: Page, remoteConfig: S3RemoteConfig, passphrase: string): Promise<void> {
   await page.goto("/");
   await page.getByLabel("パスフレーズ", { exact: true }).fill(passphrase);
   await page.getByLabel("パスフレーズ（確認）").fill(passphrase);

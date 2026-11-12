@@ -42,6 +42,8 @@ jobs:
       - run: npm test
       - name: Start the S3-compatible test server
         run: integration/s3-up.sh
+      - name: Start the WebDAV test server
+        run: integration/webdav-up.sh
       - run: npm run test:integration
       - run: npm run build
       # MCP は PC 版にだけ同梱する。Web 版のビルドに MCP のコードが入っていないことを確かめる。

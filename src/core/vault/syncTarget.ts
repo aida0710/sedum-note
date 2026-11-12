@@ -2,7 +2,7 @@
 // 既存のメモに参加する）を選ぶ。sshc の同期の設定と同じ考え方で、確かめたあとに同期先が変わっていたら保存しない。
 
 import { type ObjectStore, ObjectStoreError } from "../remote/objectStore";
-import { normalizePrefix, type RemoteConfig } from "../remote/remoteConfig";
+import { normalizePrefix, type RemoteConfig, isWebDavConfig } from "../remote/remoteConfig";
 import { RECORDS_PREFIX, VAULT_OBJECT_KEY } from "../sync/remoteLayout";
 import { readRemoteVault } from "./remoteVault";
 import { InvalidVaultDocumentError, keyWrappingOf, parseVaultDocument } from "./vaultDocument";
@@ -99,7 +99,8 @@ export type SyncTargetCheck = {
 // フォルダを入力していなくて、既存のメモが 1 か所だけなら、そこを同期先にする（フォルダを覚えていなくても参加できる）。
 export async function checkSyncTarget(createObjectStore: (config: RemoteConfig) => ObjectStore, remoteConfig: RemoteConfig): Promise<SyncTargetCheck> {
   const inspected = await inspectSyncTarget(createObjectStore(remoteConfig));
-  if (inspected.state !== "empty") {
+  // WebDAV は、フォルダの URL そのものが置き場所なので、ほかの場所は探さない。
+  if (inspected.state !== "empty" || isWebDavConfig(remoteConfig)) {
     return { remoteConfig, inspected, otherVaultFolders: [], foundFolderAutomatically: false };
   }
   const typedFolder = normalizePrefix(remoteConfig.prefix);

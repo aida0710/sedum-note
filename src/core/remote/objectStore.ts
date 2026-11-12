@@ -5,6 +5,12 @@
 
 export type ObjectSummary = { key: string; etag: string };
 
+// 同期先への要求を送って、応答を返す。届かなければ失敗を投げる。Web 版はブラウザの fetch、アプリはアプリの側から送る
+// （ui/platform/storageRequestSender.ts）。
+export type StorageRequestSender = (request: Request) => Promise<Response>;
+
+export const sendWithFetch: StorageRequestSender = (request) => fetch(request);
+
 export type StoredObject = { body: Uint8Array; etag: string };
 
 export type WriteCondition = { ifMatch: string } | { ifAbsent: true };

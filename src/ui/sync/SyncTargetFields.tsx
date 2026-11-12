@@ -1,6 +1,7 @@
 // 同期先の入力欄、「接続を確認」のボタン、確かめた結果の知らせ、暗号化キーの入力。
 // 最初の画面と、設定の同期の欄で使う。
 
+import { isWebDavConfig } from "../../core/remote/remoteConfig";
 import type { SyncTargetCheck } from "../../core/vault/syncTarget";
 import { translate } from "../i18n/translate";
 import { CorsGuide } from "../shared/CorsGuide";
@@ -52,7 +53,7 @@ function SyncTargetResult({ form, checked, relation }: { form: SyncTargetForm; c
     return (
       <div className="sync-target-result" role="status">
         <p className="form-notice">
-          {checked.foundFolderAutomatically
+          {checked.foundFolderAutomatically && !isWebDavConfig(checked.remoteConfig)
             ? translate("syncTarget.existingInFoundFolder", { folder: checked.remoteConfig.prefix })
             : translate("syncTarget.existing")}
         </p>

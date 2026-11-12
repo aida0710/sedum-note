@@ -3,7 +3,7 @@
 // （既存のメモがあれば暗号化キーを入れる。空なら暗号化キーを生成するか、自分で入力する）。
 
 import { useState } from "react";
-import type { RemoteConfig } from "../../core/remote/remoteConfig";
+import { isWebDavConfig, type RemoteConfig } from "../../core/remote/remoteConfig";
 import type { SyncTargetCheck } from "../../core/vault/syncTarget";
 import type { SyncTargetChoice } from "../../core/vault/vaultSession";
 import { translate } from "../i18n/translate";
@@ -42,7 +42,8 @@ export function useSyncTargetForm(session: VaultSession, initialRemoteConfig: Re
   const check = useAsyncAction(async ({ folder, replacement }: { folder?: string; replacement?: RemoteConfig }) => {
     setChecked(null);
     const entered = replacement ?? remoteConfig;
-    const input = checkRemoteConfigInput(folder === undefined ? entered : { ...entered, prefix: folder });
+    // フォルダの候補が出るのは、S3 互換ストレージのバケットの中だけ。
+    const input = checkRemoteConfigInput(folder === undefined || isWebDavConfig(entered) ? entered : { ...entered, prefix: folder });
     if ("problem" in input) {
       setInputProblem(input.problem);
       return;

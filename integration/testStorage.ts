@@ -5,7 +5,7 @@
 
 import { AwsClient } from "aws4fetch";
 import { newRandomId } from "../src/core/crypto/randomId";
-import type { RemoteConfig } from "../src/core/remote/remoteConfig";
+import type { S3RemoteConfig } from "../src/core/remote/remoteConfig";
 
 export const TEST_ENDPOINT = "http://127.0.0.1:18333";
 const TEST_CREDENTIALS = { accessKeyId: "SEDUMNOTETESTKEY", secretAccessKey: "sedumnotetestsecret" };
@@ -28,7 +28,7 @@ async function ensureBucket(bucket: string): Promise<void> {
 // S3_TEST_ENDPOINT・S3_TEST_BUCKET・S3_TEST_ACCESS_KEY_ID・S3_TEST_SECRET_ACCESS_KEY を渡すと、SeaweedFS の代わりにそこへつなぐ
 // （リージョンは S3_TEST_REGION、無ければ Cloudflare R2 向けの auto）。試験は run-<乱数> のフォルダに書くので、終わったら消す
 // （integration/README.md）。
-function externalRemoteConfig(): Omit<RemoteConfig, "prefix"> | null {
+function externalRemoteConfig(): Omit<S3RemoteConfig, "prefix"> | null {
   const { S3_TEST_ENDPOINT, S3_TEST_BUCKET, S3_TEST_ACCESS_KEY_ID, S3_TEST_SECRET_ACCESS_KEY, S3_TEST_REGION } = process.env;
   if (!S3_TEST_ENDPOINT || !S3_TEST_BUCKET || !S3_TEST_ACCESS_KEY_ID || !S3_TEST_SECRET_ACCESS_KEY) {
     return null;
@@ -38,7 +38,7 @@ function externalRemoteConfig(): Omit<RemoteConfig, "prefix"> | null {
 
 export const TEST_RUN_PREFIX = "run-";
 
-export async function newTestRemoteConfig(): Promise<RemoteConfig> {
+export async function newTestRemoteConfig(): Promise<S3RemoteConfig> {
   const prefix = `${TEST_RUN_PREFIX}${newRandomId()}`;
   const external = externalRemoteConfig();
   if (external) {
@@ -58,7 +58,7 @@ export type CorsRule = {
 };
 
 // CORS の規則を入れたバケットを使う。規則ごとにバケットを分ける（バケットの数は試験の種類の数だけ）。
-export async function newTestRemoteConfigWithCors(bucket: string, rules: CorsRule[]): Promise<RemoteConfig> {
+export async function newTestRemoteConfigWithCors(bucket: string, rules: CorsRule[]): Promise<S3RemoteConfig> {
   await ensureBucket(bucket);
   const element = (name: string, values: string[]) => values.map((value) => `<${name}>${value}</${name}>`).join("");
   const body = `<CORSConfiguration>${rules.map((rule) => `<CORSRule>${element("AllowedOrigin", rule.AllowedOrigins)}${element("AllowedMethod", rule.AllowedMethods)}${element("AllowedHeader", rule.AllowedHeaders)}${element("ExposeHeader", rule.ExposeHeaders)}<MaxAgeSeconds>${rule.MaxAgeSeconds}</MaxAgeSeconds></CORSRule>`).join("")}</CORSConfiguration>`;

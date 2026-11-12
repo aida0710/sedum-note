@@ -1,7 +1,7 @@
 // 画面の試験で使う「デバイス」（別々の保存を持つブラウザのページ）の用意。
 
 import { type Browser, expect, type Page } from "@playwright/test";
-import type { RemoteConfig } from "../src/core/remote/remoteConfig";
+import type { S3RemoteConfig } from "../src/core/remote/remoteConfig";
 
 export const PASSPHRASE = "correct horse battery";
 export const DESKTOP_VIEWPORT = { width: 1280, height: 820 };
@@ -19,13 +19,13 @@ export async function startLocalVault(page: Page): Promise<void> {
 export const SYNC_KEY = "shared-key-for-e2e";
 
 // 最初の画面で「ほかのデバイスと同期する」を選び、同期先を入れる。
-export async function fillSyncTarget(page: Page, remoteConfig: RemoteConfig): Promise<void> {
+export async function fillSyncTarget(page: Page, remoteConfig: S3RemoteConfig): Promise<void> {
   await page.getByLabel("ほかのデバイスと同期する").check();
   await fillRemoteConfigFields(page, remoteConfig);
 }
 
 // 同期先の入力欄（最初の画面と、設定の同期の欄で同じ）を埋める。
-export async function fillRemoteConfigFields(page: Page, remoteConfig: RemoteConfig): Promise<void> {
+export async function fillRemoteConfigFields(page: Page, remoteConfig: S3RemoteConfig): Promise<void> {
   await page.getByLabel("エンドポイント").fill(remoteConfig.endpoint);
   await page.getByLabel("バケット").fill(remoteConfig.bucket);
   await page.getByLabel("リージョン").fill(remoteConfig.region);
@@ -35,7 +35,7 @@ export async function fillRemoteConfigFields(page: Page, remoteConfig: RemoteCon
 }
 
 type SyncedVaultInput = {
-  remoteConfig: RemoteConfig;
+  remoteConfig: S3RemoteConfig;
   // true なら、ほかのデバイスが作ったメモに参加する。
   join: boolean;
 };

@@ -1,6 +1,6 @@
 # Sedum Note
 
-S3 互換のストレージで同期する、エンドツーエンド暗号化（E2EE）のメモ帳です。Windows・macOS・Linux・Android のアプリ（Tauri）と、ブラウザで動く [Web 版](https://aida0710.github.io/sedum-note/)があります。アプリは [CI](https://github.com/aida0710/sedum-note/actions/workflows/ci.yml) の成果物から入れられます。
+S3 互換のストレージか WebDAV のサーバーで同期する、エンドツーエンド暗号化（E2EE）のメモ帳です。Windows・macOS・Linux・Android のアプリ（Tauri）と、ブラウザで動く [Web 版](https://aida0710.github.io/sedum-note/)があります。アプリは [CI](https://github.com/aida0710/sedum-note/actions/workflows/ci.yml) の成果物から入れられます。
 
 - メモ・ノートブック・写真は、このデバイスで暗号化してからストレージへ送ります。ストレージに置かれるのは暗号文とランダムな ID だけで、タイトルやノートブックの名前も見えません。
 - オフラインでも書けます。つながったら、編集の 2 秒後と 60 秒おきに同期します。自動の同期はデバイスごとに切れ、切っても「今すぐ同期」は使えます。
@@ -96,6 +96,8 @@ S3 互換のストレージなら、サービスを問わず同期先にでき�
 
 バケットの名前は、エンドポイントに含めず、別の欄に入れます。実際に同期まで確かめたのは、Cloudflare R2 と SeaweedFS です。
 
+WebDAV のサーバーも同期先にできます（同期先の種類で「WebDAV」を選び、メモを置くフォルダの URL と、ユーザー名・パスワードを入れます）。条件は S3 と同じで、条件付き書き込みを守ることです。守らないサーバーは、つなぐときの確認で断ります。書き込みの応答に ETag を返さないサーバーでは、書いた直後に読み戻して確かめます。実際に同期まで確かめたのは、Apache（mod_dav）です。Nextcloud などは、まだ確かめていません。Web 版から WebDAV につなぐには、サーバーの側で、Web 版の origin からの要求（PROPFIND・MKCOL・PUT・DELETE と、`If-Match`・`If-None-Match`・`Depth`・`Authorization` のヘッダー）を許し、`ETag` を見せる CORS の設定が要ります。
+
 アプリ（Windows・macOS・Linux・Android）は、バケットとアクセスキーを作るだけでつながります。
 
 同期先を入れて「接続を確認」を押すと、そこに何があるかで次に入れるものが決まります。
@@ -153,6 +155,7 @@ npm ci
 npm run dev            # ブラウザで画面を開く
 npm test               # 単体試験
 integration/s3-up.sh   # 試験用の S3 互換サーバー（SeaweedFS、127.0.0.1:18333）
+integration/webdav-up.sh  # 試験用の WebDAV サーバー（Apache、127.0.0.1:18480）
 npm run test:integration
 npm run e2e            # ブラウザでの画面の試験（2 台の同期を含む）
 npx tauri dev          # デスクトップのアプリ

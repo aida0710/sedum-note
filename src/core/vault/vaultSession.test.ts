@@ -5,7 +5,7 @@ import { IndexedDbLocalStore } from "../local/indexedDbLocalStore";
 import { AppUpdateRequiredError } from "../notes/bodySchema";
 import { MemoryObjectStore } from "../remote/memoryObjectStore";
 import { type ObjectStore, ObjectStoreError } from "../remote/objectStore";
-import type { RemoteConfig } from "../remote/remoteConfig";
+import type { RemoteConfig, S3RemoteConfig } from "../remote/remoteConfig";
 import { OutdatedSyncTargetError, readRemoteVault, writeRemoteVault } from "./remoteVault";
 import { checkSyncTarget, findVaultFolders, inspectSyncTarget, SyncTargetChangedError, SyncTargetIncompleteError } from "./syncTarget";
 import { keyWrappingOf, type VaultDocument, WrongPassphraseError, WrongSyncKeyError } from "./vaultDocument";
@@ -28,7 +28,9 @@ import { BODY_SCHEMA_VERSION } from "../notes/bodySchema";
 // 試験の中の「新しいアプリ」が持つ版。今のアプリの版より 1 つ先。
 const NEWER_BODY_SCHEMA_VERSION = BODY_SCHEMA_VERSION + 1;
 
-const remoteConfig: RemoteConfig = { endpoint: "https://s3.example.com", bucket: "notes", region: "auto", prefix: "", accessKeyId: "k", secretAccessKey: "s" };
+const remoteConfig: S3RemoteConfig = { endpoint: "https://s3.example.com", bucket: "notes", region: "auto", prefix: "", accessKeyId: "k", secretAccessKey: "s" };
+// この試験の同期先は、どれも S3 互換ストレージの設定。
+const s3 = (config: RemoteConfig) => config as S3RemoteConfig;
 
 // sameDevice を渡すと、そのデバイスの手元の保存を使う（同じデバイスを、別の版のアプリで開く試験用）。
 function environment(store: MemoryObjectStore, sameDevice?: VaultSessionEnvironment): VaultSessionEnvironment {
@@ -248,7 +250,7 @@ describe("v0.2 までの同期先（パスフレーズで包んだ vault.json）
     const deviceEnvironment: VaultSessionEnvironment = {
       localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`),
       kdfCost: TEST_KDF_COST,
-      createObjectStore: (config) => (config.bucket === "new-notes" ? newStore : oldStore),
+      createObjectStore: (config) => (s3(config).bucket === "new-notes" ? newStore : oldStore),
     };
     // 新しい形の同期先で使っていたデバイスの同期先が、v0.2 までの形に置き換わった状態を作る。
     const device = await createSyncedVault(deviceEnvironment, { passphrase: "correct horse battery", remoteConfig });
@@ -282,7 +284,7 @@ describe("v0.2 までの同期先（パスフレーズで包んだ vault.json）
     const deviceIn = (): VaultSessionEnvironment => ({
       localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`),
       kdfCost: TEST_KDF_COST,
-      createObjectStore: (config) => (config.bucket === "new-notes" ? newStore : oldStore),
+      createObjectStore: (config) => (s3(config).bucket === "new-notes" ? newStore : oldStore),
     });
     const laptopEnvironment = deviceIn();
     const laptop = await createSyncedVault(laptopEnvironment, { passphrase: "correct horse battery", remoteConfig });
@@ -375,7 +377,7 @@ describe("同期先の確認", () => {
 
   it("フォルダを入れずに確かめると、1 か所だけ見つかった既存のメモを同期先にする。2 か所以上なら候補として返す", async () => {
     const bucket = new MemoryObjectStore();
-    const inBucket = (config: RemoteConfig) => storeUnder(bucket, config.prefix);
+    const inBucket = (config: RemoteConfig) => storeUnder(bucket, s3(config).prefix);
     await createSyncedVault({ localStore: new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: inBucket, kdfCost: TEST_KDF_COST }, { passphrase: "correct horse battery", remoteConfig: { ...remoteConfig, prefix: "notes" } });
     const single = await checkSyncTarget(inBucket, { ...remoteConfig, prefix: "" });
     expect(single).toMatchObject({ foundFolderAutomatically: true, remoteConfig: { prefix: "notes" }, inspected: { state: "existing" } });
@@ -391,11 +393,11 @@ describe("同期先の確認", () => {
   it("アクセスキーがバケットの直下を見られなくても、入力したフォルダは確かめられ、そこに作れる", async () => {
     const bucket = new MemoryObjectStore();
     const scopedToFolder = (config: RemoteConfig) => {
-      if (config.prefix === "") {
+      if (s3(config).prefix === "") {
         const refuse = () => Promise.reject(new ObjectStoreError("forbidden", "the key cannot list the bucket root"));
         return { list: refuse, hasObjectsUnder: refuse, listFolders: refuse, get: refuse, put: refuse, delete: refuse };
       }
-      return storeUnder(bucket, config.prefix);
+      return storeUnder(bucket, s3(config).prefix);
     };
     const checked = await checkSyncTarget(scopedToFolder, { ...remoteConfig, prefix: "mine" });
     expect(checked).toMatchObject({ inspected: { state: "empty" }, otherVaultFolders: [], foundFolderAutomatically: false });
