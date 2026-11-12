@@ -12,7 +12,8 @@ test("「/」を打つとブロックの候補が出て、上下のキーと Ent
   await openNewNote(page);
   await page.keyboard.type("/");
   await expect(slashMenu(page).getByRole("option")).toHaveText([
-    "本文", "見出し 1", "見出し 2", "見出し 3", "見出し 4", "見出し 5", "見出し 6", "箇条書き", "番号付きリスト", "チェックリスト", "引用", "コード", "表", "区切り線",
+    "本文", "見出し 1", "見出し 2", "見出し 3", "見出し 4", "見出し 5", "見出し 6", "箇条書き", "番号付きリスト", "チェックリスト", "引用",
+    "コールアウト: 情報", "コールアウト: ヒント", "コールアウト: 注意", "コールアウト: 警告", "コード", "表", "区切り線",
     "画像を貼る", "ファイルを添付", "今日の日付", "今の日時", "メモへのリンク",
   ]);
   await page.keyboard.press("ArrowDown");
@@ -77,4 +78,19 @@ test("候補から「メモへのリンク」を選ぶと、リンクするメ�
   await page.keyboard.type("/りんく");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("dialog", { name: "リンクするメモを選ぶ" })).toBeVisible();
+});
+
+test("「/」からコールアウトを作れ、中に文字を書ける。別の種類を選ぶと色が変わる", async ({ page }) => {
+  await openNewNote(page);
+  await page.keyboard.type("/こーるあうと");
+  await slashMenu(page).getByRole("option", { name: "コールアウト: 注意" }).click();
+  await page.keyboard.type("火を止める");
+  const callout = page.locator(".ProseMirror .callout");
+  await expect(callout).toHaveText("火を止める");
+  await expect(callout).toHaveAttribute("data-callout", "warning");
+
+  await page.keyboard.type(" /こーるあうと");
+  await slashMenu(page).getByRole("option", { name: "コールアウト: 警告" }).click();
+  await expect(callout).toHaveCount(1);
+  await expect(callout).toHaveAttribute("data-callout", "danger");
 });

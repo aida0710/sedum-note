@@ -144,6 +144,11 @@ button:disabled { cursor: default; opacity: .55; }
 .ProseMirror ul[data-type="taskList"] li > label input { width: 15px; height: 15px; accent-color: var(--accent); }
 .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div { color: var(--muted); text-decoration: line-through; }
 .ProseMirror ul[data-type="taskList"] li > div { flex: 1; }
+.ProseMirror .callout { border-left: 3px solid var(--callout-color); background: color-mix(in srgb, var(--callout-color) 12%, transparent); border-radius: 6px; padding: 6px 12px; margin: 10px 0; }
+.ProseMirror .callout[data-callout="note"] { --callout-color: #2f6fde; }
+.ProseMirror .callout[data-callout="tip"] { --callout-color: #2da44e; }
+.ProseMirror .callout[data-callout="warning"] { --callout-color: #d4a017; }
+.ProseMirror .callout[data-callout="danger"] { --callout-color: #d1242f; }
 .ProseMirror blockquote { border-left: 3px solid var(--line); padding-left: 12px; color: var(--muted); }
 .ProseMirror code { background: var(--tag); border-radius: 4px; padding: 1px 5px; font-size: .9em; }
 .ProseMirror pre { background: var(--tag); border-radius: 8px; padding: 10px 14px; overflow-x: auto; }

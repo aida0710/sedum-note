@@ -15,6 +15,7 @@ import { documentSchema } from "../editor/documentSchema";
 import { documentExtensions } from "../editor/editorExtensions";
 import { decodeMarkdownPath } from "./markdownFileNames";
 import { withoutMergedCells } from "./unmergedTable";
+import { calloutFromBlockquote } from "../editor/calloutNode";
 
 const NOTE_LINK_HREF_PREFIX = "sedum-note://note/";
 // Markdown の画像を読んだ直後の仮のノード。添付にするかリンクにするかを決めて、本文に入る前に置き換える。
@@ -97,7 +98,7 @@ export type MarkdownImportContext = {
 // Markdown を、本文に入れられるブロックの並びにする。
 export async function markdownToBodyBlocks(markdown: string, context: MarkdownImportContext): Promise<JSONContent[]> {
   const parsed = await replaceImportedNodes(markdownManager().parse(markdown), context);
-  return parsed.content ?? [];
+  return mapNodes(parsed, (node) => [node.type === "blockquote" ? calloutFromBlockquote(node) : node]).content ?? [];
 }
 
 // Markdown を本文に入れる。本文は空にしてから入れる。

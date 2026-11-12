@@ -2,11 +2,12 @@
 
 import type { Editor } from "@tiptap/react";
 import {
-  CalendarClock, CalendarDays, Code, FileSymlink, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, ImagePlus, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Minus, Paperclip, Pilcrow, Table, TextQuote,
+  CalendarClock, CalendarDays, Code, FileSymlink, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, ImagePlus, Info, Lightbulb, OctagonAlert, TriangleAlert, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Minus, Paperclip, Pilcrow, Table, TextQuote,
 } from "lucide-react";
 import { translate } from "../i18n/translate";
 import { HEADING_LEVELS, type HeadingLevel } from "./headingLevels";
 import { insertCurrentDateTime } from "./insertDateTime";
+import { CALLOUT_KINDS } from "./calloutNode";
 
 // エディタの外の画面を開く操作（ファイルの選択、リンクするメモの選択）。NoteEditor が用意する。
 export type SlashCommandActions = {
@@ -32,6 +33,8 @@ export type SlashCommand = {
 // 挿入する表の大きさ（見出しの行を含む）。ツールバーの表のメニューと同じ。
 export const NEW_TABLE_SIZE = { rows: 3, cols: 3, withHeaderRow: true } as const;
 
+const CALLOUT_ICONS = { note: Info, tip: Lightbulb, warning: TriangleAlert, danger: OctagonAlert } as const;
+
 const HEADING_ICONS = { 1: Heading1, 2: Heading2, 3: Heading3, 4: Heading4, 5: Heading5, 6: Heading6 } as const;
 
 const heading = (level: HeadingLevel): SlashCommand => ({
@@ -49,6 +52,10 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "orderedList", icon: ListOrdered, name: () => translate("editor.orderedList"), keywords: ["number", "ordered", "ol", "bangou", "ばんごう"], run: (editor) => editor.chain().focus().toggleOrderedList().run() },
   { id: "taskList", icon: ListChecks, name: () => translate("editor.taskList"), keywords: ["todo", "task", "check", "ちぇっく", "やること"], run: (editor) => editor.chain().focus().toggleTaskList().run() },
   { id: "blockquote", icon: TextQuote, name: () => translate("editor.blockquote"), keywords: ["quote", "inyou", "いんよう"], run: (editor) => editor.chain().focus().setBlockquote().run() },
+  ...CALLOUT_KINDS.map((kind): SlashCommand => ({
+    id: `callout:${kind}`, icon: CALLOUT_ICONS[kind], name: () => translate(`editor.callout.${kind}`), keywords: ["callout", kind, "kakomi", "かこみ", "こーるあうと"],
+    run: (editor) => editor.chain().focus().setCallout(kind).run(),
+  })),
   { id: "codeBlock", icon: Code, name: () => translate("editor.code"), keywords: ["code", "こーど"], run: (editor) => editor.chain().focus().setCodeBlock().run() },
   { id: "table", icon: Table, name: () => translate("editor.table"), keywords: ["table", "hyou", "ひょう"], run: (editor) => editor.chain().focus().insertTable(NEW_TABLE_SIZE).run() },
   { id: "divider", icon: Minus, name: () => translate("editor.divider"), keywords: ["divider", "hr", "line", "kugiri", "くぎり", "せん"], run: (editor) => editor.chain().focus().setHorizontalRule().run() },

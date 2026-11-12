@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { prosemirrorJSONToYXmlFragment } from "@tiptap/y-tiptap";
+import { prosemirrorJSONToYXmlFragment, yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
 import * as Y from "yjs";
 import { bodyAttachments, bodyPlainText } from "../../core/notes/bodyText";
 import { documentSchema } from "../editor/documentSchema";
@@ -28,6 +28,16 @@ async function bodyFromMarkdown(markdown: string, context: MarkdownImportContext
 }
 
 describe("Markdown の取り込み", () => {
+  it("コールアウトは、先頭に種類を書いた引用（> [!warning]）と往復する。知らない種類は引用のまま残す", async () => {
+    const body = await bodyFromMarkdown("> [!warning]\n> 火を止める\n\n> [!unknown]\n> そのまま\n", importContext({}));
+    const document = yXmlFragmentToProsemirrorJSON(body) as { content: Array<{ type: string; attrs?: { kind?: string } }> };
+    expect(document.content.map((block) => [block.type, block.attrs?.kind])).toEqual([["callout", "warning"], ["blockquote", undefined]]);
+    expect(bodyToMarkdown(body, exportContext)).toContain("> [!warning]\n>\n> 火を止める");
+    const again = await bodyFromMarkdown(bodyToMarkdown(body, exportContext), importContext({}));
+    expect(bodyPlainText(again)).toContain("火を止める");
+    expect((yXmlFragmentToProsemirrorJSON(again) as { content: Array<{ type: string }> }).content[0]?.type).toBe("callout");
+  });
+
   it("ハイライトは ==文字== と往復し、文字色は Markdown では落ちて文字だけが残る", async () => {
     const body = await bodyFromMarkdown("ここが ==大事== です\n", importContext({}));
     expect(bodyToMarkdown(body, exportContext)).toBe("ここが ==大事== です");
