@@ -717,7 +717,7 @@ export const japaneseMessages = {
   "ai.error.refused": "AI が、この内容には答えられないと判断しました。",
   "ai.error.truncated": "答えが長すぎて、途中で切れました。",
   "ai.error.authentication": "API キーが受け付けられませんでした。「設定」の「AI」のページの API キーを確かめてください。",
-  "ai.error.modelNotFound": "モデル「{model}」が見つかりませんでした。「設定」の「AI」のページのモデルの名前を確かめてください。",
+  "ai.error.modelNotFound": "モデル「{model}」が見つかりませんでした。「設定」の「AI」のページで「保存して確かめる」を押し、一覧からモデルを選び直してください。",
   "ai.error.rateLimited": "利用の上限に達しました。少し待ってからやり直してください。",
   "ai.error.connection": "つなぎ先につながりませんでした。URL と、ネットワークを確かめてください。",
   "ai.error.api": "つなぎ先がエラーを返しました（{status}）: {reason}",

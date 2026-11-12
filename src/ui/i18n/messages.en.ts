@@ -718,7 +718,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "ai.error.refused": "The AI declined to answer this content.",
   "ai.error.truncated": "The answer was too long and was cut off.",
   "ai.error.authentication": "The API key was not accepted. Check the API key on the AI page of Settings.",
-  "ai.error.modelNotFound": "The model “{model}” was not found. Check the model name on the AI page of Settings.",
+  "ai.error.modelNotFound": "The model “{model}” was not found. On the AI page in Settings, press “Save and check” and pick a model from the list again.",
   "ai.error.rateLimited": "The usage limit was reached. Wait a little and try again.",
   "ai.error.connection": "Could not connect to the provider. Check the URL and the network.",
   "ai.error.api": "The provider returned an error ({status}): {reason}",

@@ -43,3 +43,67 @@ export function diffBlocks(oldBlocks: readonly string[], newBlocks: readonly str
   }
   return hunks;
 }
+
+// 元のブロックの並びと、新しいブロックの並びを、元のブロックの単位で突き合わせる。
+// 元のブロックは、Markdown に戻して読み直すと形が変わることがある（段組みは段ごとのブロックに分かれる、など）。
+// そこで、元のブロック i を読み直した形（roundTrips[i]。0 個以上のブロック）で新しい並びと比べ、読み直した形が
+// 全部そのまま新しい並びに続いて現れたブロックは、変わっていないものとして残す（元のブロックを、書式ごと残せる）。
+// 読み直した形が 0 個のブロック（Markdown に出せないもの）は、新しい並びに現れようがないので、いつも残す。
+// 返す所は、元のブロックの番号と、新しい並びの番号で表す。
+export function alignBlocks(roundTrips: readonly (readonly string[])[], newBlocks: readonly string[]): BlockHunk[] {
+  const flattened = roundTrips.flatMap((group, owner) => group.map((markdown) => ({ markdown, owner })));
+  const flatHunks = diffBlocks(flattened.map((entry) => entry.markdown), newBlocks);
+  // 読み直した形のそれぞれが、新しい並びのどれと同じだったか（変わった所に入ったものは null）。
+  const matchedNewIndex: (number | null)[] = new Array<number | null>(flattened.length).fill(null);
+  let flatIndex = 0;
+  let newIndex = 0;
+  for (const hunk of [...flatHunks, { oldStart: flattened.length, oldEnd: flattened.length, newStart: newBlocks.length, newEnd: newBlocks.length }]) {
+    for (; flatIndex < hunk.oldStart; flatIndex += 1, newIndex += 1) {
+      matchedNewIndex[flatIndex] = newIndex;
+    }
+    flatIndex = hunk.oldEnd;
+    newIndex = hunk.newEnd;
+  }
+  // 元のブロックごとに、残すなら新しい並びのどこからどこまでに当たるか。残さないなら null。
+  const keptRanges: Array<{ start: number; end: number } | "empty" | null> = roundTrips.map(() => null);
+  let position = 0;
+  roundTrips.forEach((group, owner) => {
+    const matched = matchedNewIndex.slice(position, position + group.length);
+    position += group.length;
+    if (group.length === 0) {
+      keptRanges[owner] = "empty";
+      return;
+    }
+    const start = matched[0];
+    const isContiguous = start !== null && start !== undefined && matched.every((index, offset) => index === start + offset);
+    keptRanges[owner] = isContiguous ? { start, end: start + group.length } : null;
+  });
+  const hunks: BlockHunk[] = [];
+  let newCursor = 0;
+  let owner = 0;
+  while (owner < roundTrips.length) {
+    const kept = keptRanges[owner] ?? null;
+    if (kept !== null) {
+      if (kept !== "empty") {
+        if (kept.start > newCursor) {
+          hunks.push({ oldStart: owner, oldEnd: owner, newStart: newCursor, newEnd: kept.start });
+        }
+        newCursor = kept.end;
+      }
+      owner += 1;
+      continue;
+    }
+    const start = owner;
+    while (owner < roundTrips.length && keptRanges[owner] === null) {
+      owner += 1;
+    }
+    const next = keptRanges.slice(owner).find((range): range is { start: number; end: number } => range !== null && range !== "empty");
+    const replacementEnd = next ? next.start : newBlocks.length;
+    hunks.push({ oldStart: start, oldEnd: owner, newStart: newCursor, newEnd: replacementEnd });
+    newCursor = replacementEnd;
+  }
+  if (newCursor < newBlocks.length) {
+    hunks.push({ oldStart: roundTrips.length, oldEnd: roundTrips.length, newStart: newCursor, newEnd: newBlocks.length });
+  }
+  return hunks;
+}

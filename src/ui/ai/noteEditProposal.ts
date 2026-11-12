@@ -4,7 +4,7 @@
 
 import type { Editor, JSONContent } from "@tiptap/core";
 import { documentBlocksToMarkdown, type BodyExportContext, type MarkdownImportContext, markdownToBodyBlocks } from "../markdown/markdownDocument";
-import { type BlockHunk, diffBlocks } from "./blockDiff";
+import { alignBlocks, type BlockHunk } from "./blockDiff";
 
 // 案を作ったあとで本文が変わっていて、案のとおりには入れ替えられない。
 export class StaleNoteEditError extends Error {
@@ -41,7 +41,13 @@ export async function createNoteEditProposal(input: ProposalInput): Promise<Note
   // 行の末尾のブロックの ID の印は、そのブロックに付け直す（リンクや埋め込みが、直したブロックを指し続ける）。
   const newBlocks = await markdownToBodyBlocks(input.markdown, input.importContext, "keep");
   const newBlockMarkdowns = documentBlocksToMarkdown({ type: "doc", content: newBlocks }, input.exportContext);
-  return { noteId: input.noteId, summary: input.summary, baseBlocks, newBlocks, newBlockMarkdowns, hunks: diffBlocks(baseBlocks, newBlockMarkdowns) };
+  // 元のブロックを、AI と同じ道筋（Markdown にして読み直す）で通した形と比べる。AI がそのまま返したブロックは、
+  // 読み直すと形の変わるもの（段組みなど）でも、元のブロックのまま残せる。
+  // 空の段落は、1 つだけで読み直すと消えるが、本文の全体の中では空の段落として読まれる（AI の返す本文も同じ）。
+  const roundTrips = await Promise.all(baseBlocks.map(async (block) => (block === "" ? [""] : documentBlocksToMarkdown(
+    { type: "doc", content: await markdownToBodyBlocks(block, input.importContext, "keep") }, input.exportContext,
+  ))));
+  return { noteId: input.noteId, summary: input.summary, baseBlocks, newBlocks, newBlockMarkdowns, hunks: alignBlocks(roundTrips, newBlockMarkdowns) };
 }
 
 // 案を作ったあとで、エディタの本文が変わっていないかを確かめる。変わっていれば StaleNoteEditError。

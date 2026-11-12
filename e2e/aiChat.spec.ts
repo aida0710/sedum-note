@@ -414,3 +414,95 @@ test("案を出したあとでメモを書き換えると、その案は使え�
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "バナナ", "みかん", "ぶどう"]);
   await expect(chat(page).getByLabel("メモの直しの案").last()).toContainText("適用しました。");
 });
+
+test("AI が本文をそのまま返したブロックは、Markdown に出しにくいもの（段組み・コールアウト・数式・手書き・文字色）も入れ替えない", async ({ page }) => {
+  await mockClaudeModels(page);
+  // 渡された開いているメモの本文を、そのまま返し、末尾に 1 段落だけ足す。
+  await page.route("https://api.anthropic.com/v1/messages**", async (route) => {
+    if (await allowPreflight(route)) {
+      return;
+    }
+    const body = route.request().postDataJSON() as ChatRequestBody;
+    const sent = JSON.stringify(body.messages[body.messages.length - 1]!.content);
+    const noteMarkdown = (JSON.parse(`"${/<note title=\\"[^"\\]*\\" open=\\"true\\">\\n([\s\S]*?)\\n<\/note>/.exec(sent)![1]!}"`) as string);
+    await route.fulfill({ contentType: "text/event-stream", headers: { "access-control-allow-origin": "*" },
+      body: claudeStreamBody({ text: "足しました。", edit: { id: "toolu_echo", markdown: `${noteMarkdown}\n\nぶどう`, summary: "ぶどうを足す" } }) });
+  });
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "いろいろなブロック");
+  // Markdown に無い書式（文字色）は、画面の操作で付ける（手書きの枠にも同じ名前の色のボタンがあるので、先に付ける）。
+  await page.keyboard.type("りんご");
+  // 本文はまだ「りんご」だけなので、全部を選ぶ（Shift+End は、重いときに選択が間に合わないことがある）。
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.getByRole("button", { name: "文字色" }).click();
+  await page.getByRole("button", { name: "赤" }).click();
+  await expect(page.locator('.ProseMirror [data-text-color="red"]')).toHaveText("りんご");
+  await page.locator(".ProseMirror > p").first().click();
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  // Markdown で書けるブロックは、貼り付けて作る。
+  await page.locator(".ProseMirror").evaluate((editor, markdown) => {
+    const transfer = new DataTransfer();
+    transfer.setData("text/plain", markdown);
+    editor.dispatchEvent(new ClipboardEvent("paste", { clipboardData: transfer, bubbles: true, cancelable: true }));
+  }, "> [!warning]\n> 火を止める\n\n$$\nE = mc^2\n$$\n\n```sedum-drawing\n{\"strokes\":[]}\n```\n\nおわり");
+  await expect(page.locator(".ProseMirror .callout")).toHaveText("火を止める");
+  // Markdown で書けないブロック（段組み）は、「/」から入れる。
+  await page.locator(".ProseMirror > p", { hasText: "おわり" }).click();
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("/だんぐみ");
+  await page.getByRole("listbox", { name: "ブロックの種類" }).getByRole("option", { name: "2 段組み" }).click();
+  await page.keyboard.type("左の段");
+  await page.locator(".ProseMirror .column").nth(1).click();
+  await page.keyboard.type("右の段");
+  await expect(page.locator(".ProseMirror .column")).toHaveText(["左の段", "右の段"]);
+  const blockKinds = page.locator(".ProseMirror > *");
+  const kindsBefore = await blockKinds.evaluateAll((blocks) => blocks.map((block) => block.className || block.tagName));
+
+  await enableAi(page);
+  await page.getByLabel("API キー").fill("test-key");
+  await saveAiSettingsAndOpenChat(page, "いろいろなブロック");
+  await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("最後にぶどうを足して");
+  await page.keyboard.press("Enter");
+  const card = chat(page).getByLabel("メモの直しの案");
+  await expect(card.getByLabel("足すブロック")).toHaveText(["ぶどう"]);
+  await expect(card.getByLabel("消すブロック")).toHaveCount(0);
+
+  await card.getByRole("button", { name: "適用する" }).click();
+  await expect(card).toContainText("適用しました。");
+  await expect(page.locator(".ProseMirror > *").last()).toHaveText("ぶどう");
+  const kindsAfter = await blockKinds.evaluateAll((blocks) => blocks.map((block) => block.className || block.tagName));
+  expect(kindsAfter.slice(0, kindsBefore.length)).toEqual(kindsBefore);
+  await expect(page.locator('.ProseMirror [data-text-color="red"]')).toHaveText("りんご");
+  await expect(page.locator(".ProseMirror .column")).toHaveText(["左の段", "右の段"]);
+  await expect(page.locator(".ProseMirror .callout")).toHaveText("火を止める");
+  await expect(page.locator(".ProseMirror .math-block .math-rendered")).toHaveAttribute("title", "E = mc^2");
+});
+
+test("OpenAI 互換のサーバーが道具（function calling）を断ったら、道具を外して頼み直し、ふつうに答えてもらう", async ({ page }) => {
+  const requests: ChatRequestBody[] = [];
+  await page.route("http://127.0.0.1:11434/v1/models", async (route) => {
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ object: "list", data: [{ id: "local-model" }] }) });
+  });
+  await page.route("http://127.0.0.1:11434/v1/chat/completions", async (route) => {
+    const body = route.request().postDataJSON() as ChatRequestBody;
+    requests.push(body);
+    if (body.tools) {
+      await route.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: "tools are not supported" }) });
+      return;
+    }
+    await route.fulfill({ contentType: "text/event-stream", body: `data: ${JSON.stringify({ choices: [{ delta: { content: "直しの案は出せませんが、こう書けます。" } }] })}\n\ndata: [DONE]\n\n` });
+  });
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "旅行の計画");
+  await page.keyboard.type("出発は 8 月 3 日。");
+  await enableAi(page);
+  await page.getByLabel("つなぎ先").selectOption("openAiCompatible");
+  await saveAiSettingsAndOpenChat(page, "旅行の計画");
+  await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("このメモを直して");
+  await page.keyboard.press("Enter");
+  await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["直しの案は出せませんが、こう書けます。"]);
+  expect(requests.map((body) => body.tools?.length ?? 0)).toEqual([1, 0]);
+  await expect(chat(page).getByRole("alert")).toHaveCount(0);
+});
