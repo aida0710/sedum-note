@@ -28,7 +28,7 @@ import { NotePicker } from "./NotePicker";
 import { BlockPicker } from "./BlockPicker";
 import { deleteCapturedPhotos } from "../platform/capturedPhotos";
 import { DocumentScanDialog } from "./DocumentScanDialog";
-import { isCursorInListItem, zoomIntoItemAtCursor } from "./listZoom";
+import { zoomIntoCursor, zoomTargetAtCursor } from "./zoom";
 import { NoteZoomBar } from "./NoteZoomBar";
 import { convertBodyToOutline } from "./outlineConversion";
 import { revealBlock } from "./blockIds";
@@ -357,7 +357,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
             convertsBodyToOutline.current = !isOutline;
             void repository.updateNote(noteId, { isOutline: !isOutline });
           }}
-          onZoomIntoItem={editor && isCursorInListItem(editor.state) ? () => zoomIntoItemAtCursor(editor) : undefined}
+          zoomTarget={editor ? zoomTargetAtCursor(editor.state) : null} onZoomIn={() => editor && zoomIntoCursor(editor)}
           onShowHistory={() => setShowingHistory(true)} onExport={(format) => void exportNote.run({ notes: [note], format })}
           canChoosePageAlignment={!isMobile} onClose={() => setMenuAnchor(null)} />
       )}

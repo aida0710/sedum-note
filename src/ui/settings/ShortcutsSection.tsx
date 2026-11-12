@@ -1,7 +1,7 @@
 // 設定: キーボードショートカットの一覧（PC の画面だけ）。
 
 import { DATE_TIME_SHORTCUTS } from "../editor/insertDateTime";
-import { LIST_ZOOM_SHORTCUTS } from "../editor/listZoom";
+import { ZOOM_SHORTCUTS } from "../editor/zoom";
 import { TABLE_SHORTCUTS } from "../editor/tableShortcuts";
 import { type MessageKey, translate } from "../i18n/translate";
 import { type ShortcutKeys, shortcutText } from "../shared/shortcutKeys";
@@ -26,7 +26,7 @@ export function ShortcutsSection() {
       <h2>{translate("settings.shortcuts")}</h2>
       <ShortcutList shortcuts={KEYBOARD_SHORTCUTS} />
       <h3>{translate("settings.shortcuts.inBody")}</h3>
-      <ShortcutList shortcuts={[...DATE_TIME_SHORTCUTS, ...LIST_ZOOM_SHORTCUTS]} />
+      <ShortcutList shortcuts={[...DATE_TIME_SHORTCUTS, ...ZOOM_SHORTCUTS]} />
       <h3>{translate("settings.shortcuts.inTable")}</h3>
       <ShortcutList shortcuts={TABLE_SHORTCUTS} />
     </section>

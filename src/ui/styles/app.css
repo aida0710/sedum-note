@@ -330,9 +330,17 @@ button:disabled { cursor: default; opacity: .55; }
 .ProseMirror li.zoom-path > .fold-toggle, .ProseMirror li.zoom-path > label, .ProseMirror li.zoomed-item > .fold-toggle { display: none; }
 /* ズームしている項目の行は、その画面の題として大きく出す（折りたたみの印が前に入るので、最初の段落を種類で選ぶ）。 */
 .ProseMirror li.zoomed-item > p:first-of-type, .ProseMirror li.zoomed-item > div > p:first-of-type { font-size: 1.3em; font-weight: 700; }
-.zoom-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin: 0 0 8px; color: var(--muted); font-size: 12.5px; }
+.zoom-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin: 0 0 8px; color: var(--muted); font-size: var(--font-size-small); }
 .zoom-bar-entry { display: inline-flex; align-items: center; gap: 2px; min-width: 0; }
-.zoom-bar .text-button { color: var(--accent); padding: 2px 4px; border-radius: 4px; }
+.zoom-bar .text-button { color: var(--accent); padding: 2px 4px; border-radius: var(--radius-row); }
+/* 箇条書きの行頭の印（・や番号）を押すと、その項目にズームする（editor/zoom.ts）。印のある左の余白だけ指の形にし、文字の上は文字の形のままにする。 */
+.ProseMirror ul:not([data-type="taskList"]), .ProseMirror ol { cursor: pointer; }
+.ProseMirror li > * { cursor: text; }
+/* 見出しの右端の、セクションにズームするボタン。ポインターを乗せた見出しにだけ出す（スマホは乗せられないので、薄く出したままにする）。 */
+.ProseMirror .section-zoom { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: 6px; vertical-align: middle; border-radius: var(--radius-row); color: var(--muted); opacity: 0; }
+.ProseMirror :is(h1, h2, h3, h4, h5, h6):hover > .section-zoom, .ProseMirror .section-zoom:focus-visible { opacity: 1; }
+.ProseMirror .section-zoom:hover { background: var(--selected); color: var(--accent); }
+@media (hover: none) { .ProseMirror .section-zoom { opacity: .45; } }
 .zoom-bar .text-button:hover { background: var(--selected); }
 .ProseMirror li.collapsed-item > ul, .ProseMirror li.collapsed-item > ol, .ProseMirror li.collapsed-item > div > ul, .ProseMirror li.collapsed-item > div > ol { display: none; }
 .ProseMirror .folded-block { display: none; }
@@ -622,7 +630,7 @@ details summary { cursor: pointer; color: var(--accent); }
   .workspace, .phone, .main, .document-area { display: block; height: auto; overflow: visible; }
   .document-scroll { overflow: visible; }
   .document { max-width: none; padding: 0; }
-  .sidebar, .tabs, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
+  .section-zoom, .sidebar, .tabs, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
   .document-meta .unsynced, .update-chip { display: none !important; }
   .search-match, .search-match.active { background: none; color: inherit; }
   .ProseMirror pre, .ProseMirror table, .attachment-image, .attachment-file { break-inside: avoid; }
