@@ -7,7 +7,6 @@ import {
 } from "../../core/notes/databaseView";
 import type { PropertyDefinition } from "../../core/notes/noteProperties";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
-import { useNoteLockState } from "../session/noteLockState";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { type MessageKey, translate } from "../i18n/translate";
 import { formatDateTime } from "../shared/formatTime";
@@ -27,11 +26,7 @@ const LAYOUT_LABELS: Record<DatabaseLayout, MessageKey> = { table: "database.lay
 const CARD_DRAG_TYPE = "application/x-sedum-note-database-card";
 const ICON_SIZE = 14;
 
-export function NotebookDatabaseView({ notebook, notes: notesOfNotebook, repository, onOpenNote }: NotebookDatabaseViewProps) {
-  // ロックで中身を隠しているメモは、プロパティの値を見せないよう、ここには並べない（件数だけを知らせる）。
-  const { concealedNoteIds } = useNoteLockState();
-  const notes = notesOfNotebook.filter((note) => !concealedNoteIds.has(note.id));
-  const concealedCount = notesOfNotebook.length - notes.length;
+export function NotebookDatabaseView({ notebook, notes, repository, onOpenNote }: NotebookDatabaseViewProps) {
   const { properties, databaseView: view } = notebook.content;
   const changeView = (changes: Partial<DatabaseView>) => void repository.updateNotebook(notebook.id, { databaseView: { ...view, ...changes } });
   const sorted = sortNotesForDatabase(notes, view);
@@ -53,8 +48,7 @@ export function NotebookDatabaseView({ notebook, notes: notesOfNotebook, reposit
             })}
           </div>
         </div>
-        {concealedCount > 0 && <p className="hint">{translate("lock.concealedInDatabase", { count: concealedCount })}</p>}
-        {notes.length === 0 && concealedCount === 0 && <div className="tree-empty">{translate("sidebar.noNotes")}</div>}
+        {notes.length === 0 && <div className="tree-empty">{translate("sidebar.noNotes")}</div>}
         {notes.length > 0 && view.layout === "table" && (
           <DatabaseTable notes={sorted} properties={properties} view={view} repository={repository} titleOf={titleOf} onOpenNote={onOpenNote} onSort={changeView} />
         )}

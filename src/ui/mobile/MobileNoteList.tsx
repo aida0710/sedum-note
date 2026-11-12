@@ -1,13 +1,12 @@
 // スマホのメモの一覧（検索・ノートブックの切り替え・要約とサムネイル）。
 // メモを左へ払うとゴミ箱に入れ、右へ払うとピン留めを付け外しする。同期先があれば、上から引いて離すと同期する。
 
-import { LockKeyhole, Pin, PinOff, RefreshCw, Search, Trash2 } from "lucide-react";
+import { Pin, PinOff, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useContext } from "react";
 import type { NoteSummary, NoteView } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { useAttachmentUrl } from "../editor/attachmentReader";
 import { translate } from "../i18n/translate";
-import { useNoteLockState } from "../session/noteLockState";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { formatShortDate } from "../shared/formatTime";
 import { useTrashWithUndo } from "../workspace/useTrashWithUndo";
@@ -82,7 +81,6 @@ function NoteListItem({ summary, notebooks, repository, onOpen }: NoteListItemPr
   const { note, plainText } = summary;
   const { pinned, isTemplate, trashedAt } = note.content;
   const unsyncedIds = useContext(UnsyncedRecordsContext);
-  const { lockedNoteIds } = useNoteLockState();
   const moveToTrash = useTrashWithUndo(repository);
   // ゴミ箱の中のメモは払えない。テンプレートはピン留めしない（テンプレートの一覧はピン留めで並べない）。
   const swipe = useSwipeActions(trashedAt !== null ? {} : {
@@ -99,7 +97,7 @@ function NoteListItem({ summary, notebooks, repository, onOpen }: NoteListItemPr
       </span>
       <span className="swipe-action swipe-action-left" aria-hidden="true"><Trash2 size={16} />{translate("editor.moveToTrash")}</span>
       <button ref={swipe.itemRef} className="note-item" {...swipe.handlers} onClick={() => onOpen(note.id)}>
-        <h3>{unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}{pinned && <Pin size={13} className="pin" />}{lockedNoteIds.has(note.id) && <LockKeyhole size={13} className="lock-mark" aria-label={translate("lock.locked")} />}{note.content.title || translate("sidebar.untitled")}</h3>
+        <h3>{unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}{pinned && <Pin size={13} className="pin" />}{note.content.title || translate("sidebar.untitled")}</h3>
         {firstImage && thumbnail.state === "ready" && <img className="thumb" src={thumbnail.url} alt="" />}
         <p>{plainText}</p>
         <span className="meta">{[formatShortDate(note.updatedAt), ...notebookNames].join(" · ")}</span>

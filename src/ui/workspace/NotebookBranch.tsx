@@ -1,7 +1,7 @@
 // 左の列のノートブックの 1 行。子のノートブックと中のメモを入れ子で並べ、名前の変更・
 // 色とアイコン・子の追加・削除を「…」から行う。
 
-import { MoreHorizontal, LockKeyhole } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 import type { NotebookTreeNode, NoteSummary } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
@@ -59,7 +59,7 @@ export function NotebookBranch({ node, depth, summaries, repository, navigation,
   return (
     <>
       <ViewGroup view={{ kind: "notebook", notebookId: notebook.id }} depth={depth} expandedByDefault dropsOnWholeGroup
-        icon={<><NotebookMark notebook={notebook} colors={notebookColors} />{notebook.content.isLocked && <LockKeyhole size={12} className="lock-mark" aria-label={translate("lock.locked")} />}</>}
+        icon={<NotebookMark notebook={notebook} colors={notebookColors} />}
         label={notebook.content.name} summaries={summaries} navigation={navigation} repository={repository} childBranches={children}
         onContextMenu={setMenuAnchor}
         actions={

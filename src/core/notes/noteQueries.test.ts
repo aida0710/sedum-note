@@ -103,7 +103,7 @@ describe("selectNotes の並び順", () => {
 describe("buildNotebookTree", () => {
   it("親を指すノートブックを子として入れ、親が消えたものは最上位に出す", () => {
     const notebook = (id: string, name: string, parentId: string | null): LiveNotebook => ({
-      id, kind: "notebook", updatedAt: "", revision: 0, content: { name, parentId, colorName: null, isLocked: false, iconName: null, properties: [], databaseView: DEFAULT_DATABASE_VIEW, createdAt: "" },
+      id, kind: "notebook", updatedAt: "", revision: 0, content: { name, parentId, colorName: null, iconName: null, properties: [], databaseView: DEFAULT_DATABASE_VIEW, createdAt: "" },
     });
     const tree = buildNotebookTree([notebook("w", "仕事", null), notebook("m", "議事録", "w"), notebook("o", "旅行", "gone")]);
     expect(tree.map((node) => [node.notebook.content.name, node.children.map((child) => child.notebook.content.name)])).toEqual([

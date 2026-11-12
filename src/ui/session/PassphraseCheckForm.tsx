@@ -1,4 +1,4 @@
-// パスフレーズを入れて確かめるフォーム。ロックしたメモを開くときと、ロックを外すような操作の前に出す。
+// パスフレーズを入れて確かめるフォーム。取り返しのつかない操作の前の確認（PassphraseConfirmProvider.tsx）に出す。
 
 import { useId, useState } from "react";
 import { translate } from "../i18n/translate";
@@ -16,7 +16,6 @@ type PassphraseCheckFormProps = {
 export function PassphraseCheckForm({ verifyPassphrase, submitLabel, onVerified, onCancel }: PassphraseCheckFormProps) {
   const [passphrase, setPassphrase] = useState("");
   const check = useAsyncAction(verifyPassphrase);
-  // ロックしたメモの画面の上に、確認のダイアログが重なることがある。欄の ID を、フォームごとに別にする。
   const inputId = useId();
   const submit = async () => {
     if (await check.run(passphrase)) {

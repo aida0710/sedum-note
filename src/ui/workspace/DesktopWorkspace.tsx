@@ -31,16 +31,12 @@ import { McpSectionSlot } from "../settings/mcpSectionSlot";
 import { SETTINGS_SEARCH_ENTRIES } from "../settings/settingsSearchEntries";
 import { workspacePaletteCandidates } from "./workspacePaletteCandidates";
 import { useAiChatSession } from "../ai/aiChatSession";
-import { LockedNoteGate } from "../editor/LockedNoteGate";
-import { useNoteLockState } from "../session/noteLockState";
 
 export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteWindow }: WorkspaceProps) {
   const { repository } = vault;
   const showsGraph = navigation.activeTab === GRAPH_TAB;
   const showsReminders = navigation.activeTab === REMINDERS_TAB;
   const activeNote = navigation.activeTab && navigation.activeTab !== SETTINGS_TAB && !showsGraph && !showsReminders ? repository.note(navigation.activeTab) : undefined;
-  const { concealedNoteIds } = useNoteLockState();
-  const activeNoteIsConcealed = activeNote !== undefined && concealedNoteIds.has(activeNote.id);
   const databaseNotebook = snapshot.notebooks.find((notebook) => notebook.id === notebookIdOfDatabaseTab(navigation.activeTab));
   const createNote = async () => navigation.openNote((await createNoteInView(repository, navigation.view)).id);
   const openDailyNote = async () => {
@@ -121,12 +117,8 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
           <SettingsPanel session={session} vault={vault} unreadableCount={snapshot.unreadableCount} isMobile={false}
             page={navigation.settingsPage} onSelectPage={navigation.selectSettingsPage} revealRequest={navigation.settingRevealRequest} />
         )}
-        {activeNote && activeNoteIsConcealed && (
-          <LockedNoteGate key={activeNote.id} title={activeNote.content.title} verifyPassphrase={session.verifyPassphrase}
-            onRevealed={() => navigation.revealLockedNote(activeNote.id)} />
-        )}
-        {activeNote && !activeNoteIsConcealed && (
-          <NoteLinkTargetsContext.Provider value={createNoteLinkTargets({ repository, navigation, concealedNoteIds })}>
+        {activeNote && (
+          <NoteLinkTargetsContext.Provider value={createNoteLinkTargets({ repository, navigation })}>
             <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
               <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, activeNote.id)}
                 unlinkedMentions={findUnlinkedMentions(snapshot.summaries, activeNote)}
@@ -144,7 +136,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
         {!activeNote && !databaseNotebook && !showsGraph && !showsReminders && navigation.activeTab !== SETTINGS_TAB && <div className="empty-state">{translate("editor.empty")}</div>}
       </main>
       {aiChat.open && (
-        <AiChat repository={repository} notes={snapshot.notes.filter((note) => note.content.trashedAt === null && !concealedNoteIds.has(note.id))} onClose={() => aiChat.setOpen(false)} />
+        <AiChat repository={repository} notes={snapshot.notes.filter((note) => note.content.trashedAt === null)} onClose={() => aiChat.setOpen(false)} />
       )}
     </div>
   );

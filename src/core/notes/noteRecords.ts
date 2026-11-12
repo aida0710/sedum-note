@@ -34,8 +34,6 @@ export type NoteContent = {
   // アウトライン表示のメモ（本文が 1 つの箇条書きで、すべての行が項目）。本文の形はふつうのメモの箇条書きと同じなので、
   // アウトライン表示を知らない版のアプリでは、箇条書きだけのふつうのメモとして見える。
   isOutline: boolean;
-  // ロックしたメモ（core/notes/noteLock.ts）。ロックを知らない版のアプリでは、ふつうのメモとして見える。
-  isLocked: boolean;
   // メモの期限（dueTimes.ts の形）。null なら期限なし。期限が来たら知らせる。
   dueAt: string | null;
   // 本文の列の置き場所。null なら、このデバイスの表示の設定（既定の置き場所）に従う。
@@ -56,8 +54,6 @@ export type NotebookContent = {
   // 画面は、知らない名前（新しい版のアプリが足したもの）を null と同じに扱う。
   colorName: string | null;
   iconName: string | null;
-  // ロックしたノートブック。中のメモと、下の階層のノートブックの中のメモがロックされる。
-  isLocked: boolean;
   // このノートブックのメモに付けられるプロパティの定義。並び順（order）の順。
   properties: PropertyDefinition[];
   // データベース表示の並べ方と見え方。

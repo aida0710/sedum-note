@@ -4,7 +4,6 @@
 // 読んだ Markdown のリンクをそのまま書き戻せば、同じ添付が本文に戻る。
 // 本文を丸ごと置き換える前には、履歴に今の状態を残す（メモの「…」の履歴から戻せる）。
 
-import { concealSummary, lockedNoteIds } from "../../core/notes/noteLock";
 import { McpToolError, type McpTool } from "../../core/mcp/mcpServer";
 import { buildNotebookTree, countTags, notebookNameLookup, selectNotes, summarizeNote, type NoteView } from "../../core/notes/noteQueries";
 import type { LiveNote } from "../../core/notes/noteRecords";
@@ -63,15 +62,10 @@ function optionalStringList(toolArguments: ToolArguments, name: string): string[
 }
 
 export function createNoteTools(repository: NoteRepository, options: NoteToolOptions): McpTool[] {
-  // ロックしたメモは、MCP からは題しか見えず、読み書きもできない（MCP の相手には、パスフレーズを聞けない）。
-  const lockedIds = () => lockedNoteIds(repository.notes(), repository.notebooks());
   const noteOf = (toolArguments: ToolArguments): LiveNote => {
     const note = repository.note(requiredString(toolArguments, "noteId"));
     if (!note) {
       throw new McpToolError("there is no note with that id");
-    }
-    if (lockedIds().has(note.id)) {
-      throw new McpToolError("this note is locked in the app; unlock it there to read or change it");
     }
     return note;
   };
@@ -124,7 +118,7 @@ export function createNoteTools(repository: NoteRepository, options: NoteToolOpt
     {
       name: "search_notes",
       title: "Search notes",
-      description: "Lists notes, newest first. Filters by words in the title or body, by notebook, by tag, or lists the trash. Returns ids, titles and a short excerpt; use get_note for the full text. Notes marked locked show only their title and cannot be read or changed here.",
+      description: "Lists notes, newest first. Filters by words in the title or body, by notebook, by tag, or lists the trash. Returns ids, titles and a short excerpt; use get_note for the full text.",
       readOnly: true,
       destructive: false,
       inputSchema: objectSchema({
@@ -142,15 +136,13 @@ export function createNoteTools(repository: NoteRepository, options: NoteToolOpt
           : tag !== undefined ? { kind: "tag", tag }
           : { kind: "all" };
         const limit = Math.min(MAX_SEARCH_LIMIT, Math.max(1, Number(toolArguments.limit ?? DEFAULT_SEARCH_LIMIT) || DEFAULT_SEARCH_LIMIT));
-        const locked = lockedIds();
-        const summaries = repository.notes().map(summarizeNote).map((summary) => (locked.has(summary.note.id) ? concealSummary(summary) : summary));
-        const found = selectNotes(summaries, {
+        const found = selectNotes(repository.notes().map(summarizeNote), {
           view, searchText: optionalString(toolArguments, "query") ?? "", notebookNameOf: notebookNameLookup(repository.notebooks()),
         });
         return {
           totalCount: found.length,
           notes: found.slice(0, limit).map((summary) => ({
-            ...describeNote(summary.note), locked: locked.has(summary.note.id), tags: summary.tags, excerpt: summary.plainText.slice(0, SNIPPET_LENGTH),
+            ...describeNote(summary.note), tags: summary.tags, excerpt: summary.plainText.slice(0, SNIPPET_LENGTH),
           })),
         };
       },
@@ -346,10 +338,7 @@ export function createNoteTools(repository: NoteRepository, options: NoteToolOpt
       readOnly: true,
       destructive: false,
       inputSchema: objectSchema({}),
-      run: async () => {
-        const locked = lockedIds();
-        return { tags: countTags(repository.notes().filter((note) => !locked.has(note.id)).map(summarizeNote)) };
-      },
+      run: async () => ({ tags: countTags(repository.notes().map(summarizeNote)) }),
     },
   ];
   if (options.allowPermanentDelete) {

@@ -24,7 +24,6 @@ import { canStayResident } from "./platform/runtime";
 import { noteIdOfThisWindow, setWindowTitle, spaceIdOfThisWindow } from "./platform/noteWindows";
 import { CurrentSpaceIdContext } from "./session/currentSpace";
 import { useSpaceRegistry } from "./session/spaceRegistry";
-import { NoteLockStateContext, useSnapshotWithLocks } from "./session/noteLockState";
 import { PassphraseConfirmProvider } from "./session/PassphraseConfirmProvider";
 import { useVaultSession, type VaultSession } from "./session/useVaultSession";
 import { MOBILE_LAYOUT_QUERY, useMediaQuery } from "./shared/useMediaQuery";
@@ -91,7 +90,7 @@ function ScreenForPhase({ session, spaceId }: { session: VaultSession; spaceId: 
 const NO_UNSYNCED_RECORDS: ReadonlySet<string> = new Set();
 
 function UnlockedApp({ session, vault }: { session: VaultSession; vault: UnlockedVault }) {
-  const repositorySnapshot = useRepositorySnapshot(vault.repository);
+  const snapshot = useRepositorySnapshot(vault.repository);
   const { customCss, customCssEnabled } = useDevicePreferences();
   // カスタム CSS は、ロックを解除している間だけ当てる（ロックしたら外す）。
   useEffect(() => {
@@ -102,8 +101,7 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   const [windowNoteId] = useState(noteIdOfThisWindow);
   const isNoteWindow = windowNoteId !== null;
   const navigation = useWorkspaceNavigation(windowNoteId);
-  const { snapshot, lockState } = useSnapshotWithLocks(repositorySnapshot, navigation.revealedNoteIds);
-  useDueReminders({ enabled: !isNoteWindow, summaries: repositorySnapshot.summaries, lockedNoteIds: lockState.lockedNoteIds });
+  useDueReminders({ enabled: !isNoteWindow, summaries: snapshot.summaries });
   // 別のウィンドウの名前は、開いているメモの題にする。
   const windowNoteTitle = windowNoteId === null ? null : vault.repository.note(navigation.activeTab ?? windowNoteId)?.content.title ?? null;
   useEffect(() => {
@@ -129,14 +127,12 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
         <AvailableUpdateContext.Provider value={availableUpdate}>
           <AiSettingsContext.Provider value={aiSettings}>
           <AiChatSessionProvider>
-          <NoteLockStateContext.Provider value={lockState}>
           <PassphraseConfirmProvider verifyPassphrase={session.verifyPassphrase}>
           {/* MCP の窓口は、最初のウィンドウだけが開く（別のウィンドウが同じポートを取り合わない）。 */}
           {McpGatewayProvider && !isNoteWindow
             ? <Suspense fallback={null}><McpGatewayProvider vault={vault}>{workspace}</McpGatewayProvider></Suspense>
             : workspace}
           </PassphraseConfirmProvider>
-          </NoteLockStateContext.Provider>
           </AiChatSessionProvider>
           </AiSettingsContext.Provider>
         </AvailableUpdateContext.Provider>

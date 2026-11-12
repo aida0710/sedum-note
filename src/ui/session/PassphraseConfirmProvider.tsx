@@ -1,5 +1,4 @@
-// ロックを外す・ロックしたものを消す・ロックしたメモを書き出す、のように、ロックを素通りできる操作の前に、
-// パスフレーズを確かめるダイアログ。確かめられたら true、やめたら false を返す。
+// スペースを消すような、取り返しのつかない操作の前に、パスフレーズを確かめるダイアログ。確かめられたら true、やめたら false を返す。
 
 import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
 import { translate } from "../i18n/translate";

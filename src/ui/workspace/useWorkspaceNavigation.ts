@@ -47,9 +47,6 @@ export type WorkspaceNavigation = {
   revealSetting: (page: SettingsPage, label: string) => void;
   settingRevealRequest: SettingRevealRequest | null;
   closeTab: (tabId: string) => void;
-  // ロックしたメモのうち、パスフレーズを確かめて中身を出しているもの。タブを閉じると、また確認が要る。
-  revealedNoteIds: ReadonlySet<string>;
-  revealLockedNote: (noteId: string) => void;
   // タブの右クリックのメニュー。ピン留めしたタブは、ほか・右を閉じるときに閉じない。
   closeOtherTabs: (tabId: string) => void;
   closeTabsToRight: (tabId: string) => void;
@@ -97,8 +94,6 @@ export function useWorkspaceNavigation(initialNoteId: string | null = null): Wor
   const [settingRevealRequest, setSettingRevealRequest] = useState<SettingRevealRequest | null>(null);
 
   const [blockToReveal, setBlockToReveal] = useState<BlockToReveal | null>(null);
-  const [revealedNoteIds, setRevealedNoteIds] = useState<ReadonlySet<string>>(new Set());
-  const revealLockedNote = useCallback((noteId: string) => setRevealedNoteIds((current) => new Set(current).add(noteId)), []);
 
   const openTab = useCallback((tabId: string) => {
     setTabs((current) => openTabIn(current, tabId));
@@ -111,10 +106,9 @@ export function useWorkspaceNavigation(initialNoteId: string | null = null): Wor
     setBlockToReveal(typeof blockId === "string" ? { noteId, blockId } : null);
   }, [openTab]);
 
-  // 開いているタブを閉じたら、その右（無ければ左）のタブを開く（tabState.ts）。閉じたロックのメモは、また確認が要る。
+  // 開いているタブを閉じたら、その右（無ければ左）のタブを開く（tabState.ts）。
   const closeTabs = useCallback((tabIds: string[]) => {
     setTabs((current) => closeTabsIn(current, tabIds));
-    setRevealedNoteIds((current) => new Set([...current].filter((noteId) => !tabIds.includes(noteId))));
     setBlockToReveal(null);
   }, []);
   const closeTab = useCallback((tabId: string) => closeTabs([tabId]), [closeTabs]);
@@ -146,7 +140,7 @@ export function useWorkspaceNavigation(initialNoteId: string | null = null): Wor
   }, [setExpanded]);
 
   return {
-    view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote, blockToReveal, openTab, openSettings, closeTab, moveTab, revealedNoteIds, revealLockedNote,
+    view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote, blockToReveal, openTab, openSettings, closeTab, moveTab,
     closeOtherTabs: (tabId) => closeTabs(otherTabsThan(tabs, tabId)),
     closeTabsToRight: (tabId) => closeTabs(tabsRightOf(tabs, tabId)),
     pinnedTabs: tabs.pinnedTabs,

@@ -114,7 +114,7 @@ async function turnOnDueNotifications(page: Page, noteTitle: string): Promise<vo
   await page.getByRole("tab", { name: noteTitle }).click();
 }
 
-test("期限の通知を入れると、期限が来たときに 1 回だけ通知が出る。ロックしたメモは、題だけで知らせる", async ({ page }) => {
+test("期限の通知を入れると、期限が来たときに 1 回だけ通知が出る", async ({ page }) => {
   await recordNotifications(page, "granted");
   await page.clock.install({ time: NOW });
   await startLocalVault(page);
@@ -124,8 +124,6 @@ test("期限の通知を入れると、期限が来たときに 1 回だけ通�
   await page.getByRole("button", { name: "その他の操作" }).last().click();
   await page.getByRole("menuitem", { name: "メモの期限を設定" }).click();
   await saveDue(page, "メモの期限", "2026-11-12T10:10");
-  await page.getByRole("button", { name: "その他の操作" }).last().click();
-  await page.getByRole("menuitem", { name: "メモをロック" }).click();
   await turnOnDueNotifications(page, "買い物");
 
   // 期限の印を打っている途中（時刻をまだ打っていない日付は、朝 9 時の期限として読める）では、通知を出さない。
@@ -151,7 +149,7 @@ test("期限の通知を入れると、期限が来たときに 1 回だけ通�
   await page.clock.runFor(10 * 60_000);
   // 知らせた期限の覚えは暗号化しない場所に置くので、項目の文字やメモの題を入れない。
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toMatch(/牛乳|卵|買い物/);
-  expect(await shownNotifications(page)).toEqual([confirmation, ...groceries, { title: "ロックしたメモの期限です", body: "期限: 11月12日 10:10（日記）" }]);
+  expect(await shownNotifications(page)).toEqual([confirmation, ...groceries, { title: "日記", body: "期限: 11月12日 10:10（日記）" }]);
 });
 
 test("通知が許可されなければ、期限の通知は入らず、その旨を出す", async ({ page }) => {

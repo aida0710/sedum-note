@@ -29,8 +29,6 @@ function noteLinkLabel(target: NoteLinkTarget): string {
   switch (target.block.state) {
     case "none":
       return title;
-    case "concealed":
-      return translate("lock.blockLinkConcealed", { title });
     case "missing":
       return translate("editor.blockLinkMissing", { title });
     case "found": {
@@ -58,7 +56,6 @@ function NoteLinkView({ node }: ReactNodeViewProps) {
     setPreviewAnchor(null);
   };
   // 見本の本文。ブロックへのリンクならそのブロックの文字、メモへのリンクなら本文の頭。
-  // リンク先があるのに本文を読めないのは、ロックで隠しているとき。中身の代わりに、その旨を出す。
   const previewText = () => {
     if (target.state === "missing") {
       return "";
@@ -67,7 +64,7 @@ function NoteLinkView({ node }: ReactNodeViewProps) {
       return target.block.text;
     }
     const body = targets.noteBody(noteId);
-    return body ? bodyPlainText(body) : translate("lock.embedConcealed");
+    return body ? bodyPlainText(body) : "";
   };
   return (
     <NodeViewWrapper as="span" className={`note-link ${blockIsMissing ? "missing" : target.state}`}>

@@ -1,14 +1,13 @@
 // 左の列のメモの 1 行。押すと開く。「…」か右クリックでメニュー（名前の変更・お気に入り・ピン留め・ゴミ箱）を出し、
 // ドラッグして別の一覧へ落とせる。Ctrl（Mac では Command）か Shift を押しながら押すと、開かずに選ぶ（noteSelection.ts）。
 
-import { LockKeyhole, MoreHorizontal, Pencil, Pin, PinOff, RotateCcw, Star, StarOff, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Pin, PinOff, RotateCcw, Star, StarOff, Trash2 } from "lucide-react";
 import { useContext, useState } from "react";
 import type { NoteView } from "../../core/notes/noteQueries";
 import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
-import { useNoteLockState } from "../session/noteLockState";
 import { useDialogs } from "../shared/DialogProvider";
 import { PopupMenu } from "../shared/PopupMenu";
 import { isApplePlatform } from "../shared/shortcutKeys";
@@ -35,9 +34,6 @@ type SidebarNoteRowProps = {
 export function SidebarNoteRow({ note, view, listedNoteIds, paddingLeft, navigation, repository }: SidebarNoteRowProps) {
   const unsyncedIds = useContext(UnsyncedRecordsContext);
   const dialogs = useDialogs();
-  const { lockedNoteIds, concealedNoteIds } = useNoteLockState();
-  // 中身を隠しているメモは、ドラッグで動かせない（ロックしたノートブックの外へ出すと、確認なしで開けてしまう）。
-  const isConcealed = concealedNoteIds.has(note.id);
   const moveToTrash = useTrashWithUndo(repository);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [renaming, setRenaming] = useState(false);
@@ -89,7 +85,7 @@ export function SidebarNoteRow({ note, view, listedNoteIds, paddingLeft, navigat
   return (
     <div className={`nav-row${isDragged ? " dragging" : ""}`} onContextMenu={(event) => { event.preventDefault(); setMenuAnchor(event.currentTarget); }}>
       <button className={rowClassName} style={{ paddingLeft }} aria-pressed={selection.noteIds.length > 0 ? isSelected : undefined}
-        draggable={!isConcealed} onDragStart={(event) => startNoteDrag(event, { noteId: note.id, title, fromView: view, concealedNoteIds })}
+        draggable onDragStart={(event) => startNoteDrag(event, { noteId: note.id, title, fromView: view })}
         onClick={selectOrOpen} onDoubleClick={() => setRenaming(true)} onKeyDown={(event) => {
           focusViewRowOfNote(event, viewKey(view));
           if (event.key === "Escape") {
@@ -97,7 +93,6 @@ export function SidebarNoteRow({ note, view, listedNoteIds, paddingLeft, navigat
           }
         }}>
         {unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}
-        {lockedNoteIds.has(note.id) && <LockKeyhole size={12} className="lock-mark" aria-label={translate("lock.locked")} />}
         {title}
       </button>
       <span className="row-actions">
