@@ -121,7 +121,7 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
           <Printer size={15} />{translate("editor.print")}
         </button>
       )}
-      <button className="menu-item danger" role="menuitem" onClick={runAndClose(() => moveToTrash(note.id))}>
+      <button className="menu-item danger" role="menuitem" onClick={runAndClose(() => moveToTrash([note.id]))}>
         <Trash2 size={15} />{translate("editor.moveToTrash")}
       </button>
     </PopupMenu>

@@ -1,5 +1,5 @@
 // 左の列のメモの 1 行。押すと開く。「…」か右クリックでメニュー（名前の変更・お気に入り・ピン留め・ゴミ箱）を出し、
-// ドラッグして別の一覧へ落とせる。
+// ドラッグして別の一覧へ落とせる。Ctrl（Mac では Command）か Shift を押しながら押すと、開かずに選ぶ（noteSelection.ts）。
 
 import { LockKeyhole, MoreHorizontal, Pencil, Pin, PinOff, RotateCcw, Star, StarOff, Trash2 } from "lucide-react";
 import { useContext, useState } from "react";
@@ -11,9 +11,12 @@ import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { useNoteLockState } from "../session/noteLockState";
 import { useDialogs } from "../shared/DialogProvider";
 import { PopupMenu } from "../shared/PopupMenu";
+import { isApplePlatform } from "../shared/shortcutKeys";
 import { InlineNameInput } from "./InlineNameInput";
 import { startNoteDrag } from "./noteDrag";
 import { useNoteDragState } from "./noteDragState";
+import { resetNoteSelection, selectNoteRange, toggleNoteSelection, useNoteSelection } from "./noteSelection";
+import { SelectedNotesMenu } from "./SelectedNotesMenu";
 import { useTrashWithUndo } from "./useTrashWithUndo";
 import { viewKey, type WorkspaceNavigation } from "./useWorkspaceNavigation";
 
@@ -21,12 +24,14 @@ type SidebarNoteRowProps = {
   note: LiveNote;
   // この行が並んでいる一覧。ドラッグで「どこから移すか」を決めるのに使う。
   view: NoteView;
+  // この一覧に並んでいるメモの ID（上から順）。Shift で範囲を選ぶのに使う。
+  listedNoteIds: string[];
   paddingLeft: number;
   navigation: WorkspaceNavigation;
   repository: NoteRepository;
 };
 
-export function SidebarNoteRow({ note, view, paddingLeft, navigation, repository }: SidebarNoteRowProps) {
+export function SidebarNoteRow({ note, view, listedNoteIds, paddingLeft, navigation, repository }: SidebarNoteRowProps) {
   const unsyncedIds = useContext(UnsyncedRecordsContext);
   const dialogs = useDialogs();
   const { lockedNoteIds, concealedNoteIds } = useNoteLockState();
@@ -40,7 +45,9 @@ export function SidebarNoteRow({ note, view, paddingLeft, navigation, repository
   const title = content.title || translate("sidebar.untitled");
   // この行からドラッグしている間は、元の行を薄くする（持ち上げたことが分かるように）。
   const dragState = useNoteDragState();
-  const isDragged = dragState?.noteId === note.id && dragState.fromViewKey === viewKey(view);
+  const isDragged = (dragState?.noteIds.includes(note.id) ?? false) && dragState?.fromViewKey === viewKey(view);
+  const selection = useNoteSelection();
+  const isSelected = selection.noteIds.includes(note.id);
 
   if (renaming) {
     return (
@@ -64,11 +71,25 @@ export function SidebarNoteRow({ note, view, paddingLeft, navigation, repository
       await repository.removeNotePermanently(note.id);
     }
   };
+  const selectOrOpen = (event: React.MouseEvent) => {
+    const selectionContext = { orderedIds: listedNoteIds, openNoteId: navigation.activeTab };
+    if (isApplePlatform() ? event.metaKey : event.ctrlKey) {
+      toggleNoteSelection(note.id, selectionContext);
+    } else if (event.shiftKey) {
+      selectNoteRange(note.id, selectionContext);
+    } else {
+      resetNoteSelection(note.id);
+      navigation.openNote(note.id);
+    }
+  };
+  // 選んだメモの 1 つを右クリックしたら、選んだメモをまとめて扱うメニューを出す。
+  const opensSelectionMenu = isSelected && selection.noteIds.length > 1;
+  const rowClassName = ["tree-note", navigation.activeTab === note.id && "active", isSelected && "selected"].filter(Boolean).join(" ");
   return (
     <div className={`nav-row${isDragged ? " dragging" : ""}`} onContextMenu={(event) => { event.preventDefault(); setMenuAnchor(event.currentTarget); }}>
-      <button className={`tree-note${navigation.activeTab === note.id ? " active" : ""}`} style={{ paddingLeft }}
+      <button className={rowClassName} style={{ paddingLeft }} aria-pressed={selection.noteIds.length > 0 ? isSelected : undefined}
         draggable={!isConcealed} onDragStart={(event) => startNoteDrag(event, { noteId: note.id, title, fromView: view })}
-        onClick={() => navigation.openNote(note.id)} onDoubleClick={() => setRenaming(true)}>
+        onClick={selectOrOpen} onDoubleClick={() => setRenaming(true)}>
         {unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}
         {lockedNoteIds.has(note.id) && <LockKeyhole size={12} className="lock-mark" aria-label={translate("lock.locked")} />}
         {title}
@@ -79,7 +100,10 @@ export function SidebarNoteRow({ note, view, paddingLeft, navigation, repository
           <MoreHorizontal size={14} />
         </button>
       </span>
-      {menuAnchor && (
+      {menuAnchor && opensSelectionMenu && (
+        <SelectedNotesMenu anchor={menuAnchor} noteIds={selection.noteIds} inTrash={inTrash} repository={repository} onClose={() => setMenuAnchor(null)} />
+      )}
+      {menuAnchor && !opensSelectionMenu && (
         <PopupMenu anchor={menuAnchor} onClose={() => setMenuAnchor(null)}>
           <button className="menu-item" role="menuitem" onClick={choose(() => setRenaming(true))}><Pencil size={15} />{translate("notebook.rename")}</button>
           {!inTrash && (
@@ -91,7 +115,7 @@ export function SidebarNoteRow({ note, view, paddingLeft, navigation, repository
                 {content.pinned ? <PinOff size={15} /> : <Pin size={15} />}{translate(content.pinned ? "editor.unpin" : "editor.pin")}
               </button>
               <div className="menu-separator" />
-              <button className="menu-item danger" role="menuitem" onClick={choose(() => moveToTrash(note.id))}><Trash2 size={15} />{translate("editor.moveToTrash")}</button>
+              <button className="menu-item danger" role="menuitem" onClick={choose(() => moveToTrash([note.id]))}><Trash2 size={15} />{translate("editor.moveToTrash")}</button>
             </>
           )}
           {inTrash && (

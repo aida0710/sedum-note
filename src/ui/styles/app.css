@@ -222,6 +222,8 @@ button:disabled { cursor: default; opacity: .55; }
 .tree-note { padding: 5px 8px; color: var(--muted); border-radius: var(--radius-row); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; width: 100%; min-height: 27px; }
 .tree-note:hover { background: var(--selected); color: var(--text); }
 .tree-note.active { background: var(--accent-soft); color: var(--text); font-weight: 600; }
+/* Ctrl か Shift で選んだメモ。開いているメモ（.active）と見分けられるよう、左に色の線を付ける。 */
+.tree-note.selected { background: var(--accent-soft); color: var(--text); box-shadow: inset 3px 0 0 var(--accent); }
 .nav-row.drop-target > .nav { background: var(--accent-soft); outline: 1px dashed var(--accent); outline-offset: -1px; }
 /* ノートブックの行と中のメモをまとめた範囲。メモを落とせる範囲で、ドラッグ中に上に来ると、範囲全体を光らせる。
    中の行の並びと間隔は、.sidebar-scroll の直下に並べていたときと同じにする。 */

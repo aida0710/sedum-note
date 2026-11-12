@@ -108,8 +108,9 @@ export function NoteRows({ notes, view, navigation, repository, depth }: NoteRow
   if (notes.length === 0) {
     return <div className="tree-empty" style={{ paddingLeft }}>{translate("sidebar.noNotes")}</div>;
   }
+  const listedNoteIds = notes.map(({ note }) => note.id);
   return notes.map(({ note }) => (
-    <SidebarNoteRow key={note.id} note={note} view={view} paddingLeft={paddingLeft} navigation={navigation} repository={repository} />
+    <SidebarNoteRow key={note.id} note={note} view={view} listedNoteIds={listedNoteIds} paddingLeft={paddingLeft} navigation={navigation} repository={repository} />
   ));
 }
 
