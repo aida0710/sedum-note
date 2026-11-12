@@ -9,6 +9,7 @@ import { useDevicePreferences } from "../preferences/devicePreferences";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { acceptsNoteDrop, canDropDraggedNote, dropNoteOnView, isNoteDrag } from "./noteDrag";
 import { markNoteDropTarget, useNoteDragState } from "./noteDragState";
+import { expandOrCollapseViewRow } from "./sidebarKeyboard";
 import { SidebarNoteRow } from "./SidebarNoteRow";
 import { useTrashWithUndo } from "./useTrashWithUndo";
 import { viewKey, type WorkspaceNavigation } from "./useWorkspaceNavigation";
@@ -73,7 +74,8 @@ export function ViewGroup({ view, icon, label, summaries, navigation, repository
   const row = (
     <div className={`nav-row${isDropTarget && !dropsOnWholeGroup ? " drop-target" : ""}`} {...(dropsOnWholeGroup ? {} : dropHandlers)}
       onContextMenu={onContextMenu && ((event) => { event.preventDefault(); onContextMenu(event.currentTarget); })}>
-      <button className={`nav${isActive ? " active" : ""}`} style={indent} aria-expanded={expanded}
+      <button className={`nav${isActive ? " active" : ""}`} style={indent} aria-expanded={expanded} data-view-key={key}
+        onKeyDown={(event) => expandOrCollapseViewRow(event, { expanded, setExpanded: (next) => navigation.setExpanded(key, next) })}
         onClick={() => {
           if (isActive) {
             navigation.setExpanded(key, !expanded);
@@ -108,8 +110,9 @@ export function NoteRows({ notes, view, navigation, repository, depth }: NoteRow
   if (notes.length === 0) {
     return <div className="tree-empty" style={{ paddingLeft }}>{translate("sidebar.noNotes")}</div>;
   }
+  const listedNoteIds = notes.map(({ note }) => note.id);
   return notes.map(({ note }) => (
-    <SidebarNoteRow key={note.id} note={note} view={view} paddingLeft={paddingLeft} navigation={navigation} repository={repository} />
+    <SidebarNoteRow key={note.id} note={note} view={view} listedNoteIds={listedNoteIds} paddingLeft={paddingLeft} navigation={navigation} repository={repository} />
   ));
 }
 

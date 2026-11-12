@@ -3,7 +3,7 @@
 
 import { AlarmClock, Bookmark, CalendarDays, FileText, Hash, LayoutTemplate, Maximize2, Plus, Search, Star, Trash2, Waypoints, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { buildNotebookTree, countTags, type NoteView, selectNotes } from "../../core/notes/noteQueries";
+import { buildNotebookTree, countTags, notebookNameLookup, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
@@ -15,6 +15,7 @@ import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { SearchResults, ViewGroup } from "./SidebarViewGroup";
 import { isNoteDrag } from "./noteDrag";
 import { markNoteDropTarget } from "./noteDragState";
+import { moveFocusBetweenRows } from "./sidebarKeyboard";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { useDialogs } from "../shared/DialogProvider";
@@ -111,14 +112,14 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
       {searchOpen && (
         <label className="sidebar-search">
           <Search size={14} />
-          <input ref={searchInput} autoFocus value={navigation.searchText} placeholder={translate("sidebar.searchPlaceholder")}
+          <input ref={searchInput} autoFocus value={navigation.searchText} placeholder={translate("sidebar.searchPlaceholder")} title={translate("sidebar.searchSyntax")}
             onChange={(event) => navigation.setSearchText(event.target.value)}
             onKeyDown={(event) => event.key === "Escape" && !isImeKeyEvent(event.nativeEvent) && closeSearch()} />
         </label>
       )}
       <button className="new-note" onClick={onCreateNote}><Plus size={16} />{translate("sidebar.newNote")}</button>
       {/* 落とせる一覧の外（タグ、見出し、行の間）に来たら、落とし先の光りを消す。一覧の外へ出たときも消す。 */}
-      <div className="sidebar-scroll"
+      <div className="sidebar-scroll" onKeyDown={moveFocusBetweenRows}
         onDragOver={(event) => isNoteDrag(event) && markNoteDropTarget(null)}
         onDragLeave={(event) => !event.currentTarget.contains(event.relatedTarget as Node | null) && markNoteDropTarget(null)}>
         {searching ? (
@@ -129,7 +130,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
               </button>
             )}
             <button className="search-scope" onClick={() => void saveSearch()}><Bookmark size={13} />{translate("sidebar.saveSearch")}</button>
-            <SearchResults summaries={selectNotes(summaries, { view: searchView, searchText: navigation.searchText, sortOrder: noteSortOrder })}
+            <SearchResults summaries={selectNotes(summaries, { view: searchView, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNameOf: notebookNameLookup(snapshot.notebooks) })}
               view={searchView} navigation={navigation} repository={repository} />
           </>
         ) : (

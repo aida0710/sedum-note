@@ -22,7 +22,9 @@ import { NotebookDatabaseView } from "./NotebookDatabaseView";
 import { NoteGraphView } from "./NoteGraphView";
 import { RemindersView } from "./RemindersView";
 import { GRAPH_TAB, notebookIdOfDatabaseTab, REMINDERS_TAB, SETTINGS_TAB } from "./useWorkspaceNavigation";
+import { findUnlinkedMentions } from "../../core/notes/noteMentions";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
+import { parseNoteSearchQuery } from "../../core/notes/noteSearchQuery";
 import { NoteQuerySourceContext } from "../editor/noteQuerySource";
 import { AiChat } from "../ai/AiChat";
 import { McpSectionSlot } from "../settings/mcpSectionSlot";
@@ -69,6 +71,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
     nextTab: () => openNeighborTab(1),
     previousTab: () => openNeighborTab(-1),
     closeTab: () => navigation.activeTab && navigation.closeTab(navigation.activeTab),
+    reopenClosedTab: () => void navigation.reopenClosedTab(),
     openSettings: () => navigation.openSettings(),
     graph: () => navigation.openTab(GRAPH_TAB),
     reminders: () => navigation.openTab(REMINDERS_TAB),
@@ -105,7 +108,9 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
           </>
         )} />
       {paletteOpen && (
-        <CommandPalette onClose={() => setPaletteOpen(false)} candidates={workspacePaletteCandidates({
+        <CommandPalette onClose={() => setPaletteOpen(false)}
+          onCreateNote={(title) => void createNoteInView(repository, navigation.view, title).then((note) => navigation.openNote(note.id))}
+          candidates={workspacePaletteCandidates({
           summaries: snapshot.summaries, notebooks: snapshot.notebooks, commands: paletteCommands, navigation,
           settingsEntries: SETTINGS_SEARCH_ENTRIES.filter((entry) => includesMcp || !entry.desktopAppOnly),
         })} />
@@ -124,8 +129,9 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
           <NoteLinkTargetsContext.Provider value={createNoteLinkTargets({ repository, navigation, concealedNoteIds })}>
             <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
               <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, activeNote.id)}
+                unlinkedMentions={findUnlinkedMentions(snapshot.summaries, activeNote)}
               repository={repository} isMobile={false}
-              highlightedText={navigation.searchText} findRequest={navigation.findInNoteRequest} />
+              highlightedText={parseNoteSearchQuery(navigation.searchText).words.join(" ")} findRequest={navigation.findInNoteRequest} />
             </NoteQuerySourceContext.Provider>
           </NoteLinkTargetsContext.Provider>
         )}

@@ -5,6 +5,7 @@ import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { type MessageKey, translate } from "../i18n/translate";
 import type { NoteFileFormat } from "../markdown/noteFileExport";
+import type { ZoomTarget } from "./zoom";
 import { isPrintAvailable } from "../platform/printPage";
 import { PopupMenu } from "../shared/PopupMenu";
 import { useTrashWithUndo } from "../workspace/useTrashWithUndo";
@@ -28,8 +29,9 @@ type NoteActionsMenuProps = {
   onOpenAiAssistant: () => void;
   // アウトライン表示と、ふつうの表示を切り替える。
   onToggleOutline: () => void;
-  // カーソルのある箇条書きの項目にズームする。カーソルが項目の中に無ければ undefined。
-  onZoomIntoItem: (() => void) | undefined;
+  // カーソルのある箇条書きの項目か見出しのセクションにズームする。どちらの中にも無ければ zoomTarget は null。
+  zoomTarget: ZoomTarget | null;
+  onZoomIn: () => void;
   // メモの期限を選ぶ画面を開く。
   onSetNoteDue: () => void;
   // カーソルのあるチェックリストの項目の期限を選ぶ画面を開く。カーソルが項目の中に無ければ undefined。
@@ -41,7 +43,7 @@ type NoteActionsMenuProps = {
   onClose: () => void;
 };
 
-export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, onZoomIntoItem, onSetNoteDue, onSetTaskDue, onShowHistory, onExport, canChoosePageAlignment, onClose }: NoteActionsMenuProps) {
+export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, zoomTarget, onZoomIn, onSetNoteDue, onSetTaskDue, onShowHistory, onExport, canChoosePageAlignment, onClose }: NoteActionsMenuProps) {
   const { content } = note;
   const moveToTrash = useTrashWithUndo(repository);
   const toggleNotebook = (notebookId: string) => {
@@ -98,9 +100,9 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
           <ListTree size={15} />{translate(content.isOutline ? "editor.stopBeingOutline" : "editor.makeOutline")}
         </button>
       )}
-      {onZoomIntoItem && (
-        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onZoomIntoItem(); }}>
-          <ZoomIn size={15} />{translate("editor.zoomIntoItem")}
+      {zoomTarget && (
+        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onZoomIn(); }}>
+          <ZoomIn size={15} />{translate(zoomTarget === "section" ? "editor.zoomIntoSection" : "editor.zoomIntoItem")}
         </button>
       )}
       {content.trashedAt === null && (
@@ -133,7 +135,7 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
           <Printer size={15} />{translate("editor.print")}
         </button>
       )}
-      <button className="menu-item danger" role="menuitem" onClick={runAndClose(() => moveToTrash(note.id))}>
+      <button className="menu-item danger" role="menuitem" onClick={runAndClose(() => moveToTrash([note.id]))}>
         <Trash2 size={15} />{translate("editor.moveToTrash")}
       </button>
     </PopupMenu>

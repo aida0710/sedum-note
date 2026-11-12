@@ -116,10 +116,14 @@ async function openRichNote(page) {
   await page.locator(".ProseMirror").waitFor();
 }
 
-// エディタの最後の段落の末尾にカーソルを置く。
+// エディタの最後の段落の末尾にカーソルを置く。ブラウザの Ctrl+End は、本文の後ろのほうに添付や埋め込み（文字を打てない要素）が
+// 並ぶと、行き先がぶれる（図のコードの先頭に入ることがあった）。Tiptap がエディタの要素に付けるエディタ（.editor）で末尾へ移す。
+// Tiptap の focus は、フォーカスを次の描画まで待つ。続けて打つ文字が本文に入るよう、その場でもフォーカスを移す。
 async function placeCursorAtEnd(page) {
-  await page.locator(".ProseMirror").evaluate((editor) => editor.focus());
-  await page.keyboard.press("Control+End");
+  await page.locator(".ProseMirror").evaluate((element) => {
+    element.editor.commands.focus("end");
+    element.editor.view.focus();
+  });
 }
 
 async function openSlashMenu(page, filter = "") {
@@ -229,6 +233,26 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
         await page.locator(".attachment-file").last().scrollIntoViewIfNeeded();
         await captureScreen("attachments");
       },
+    },
+    {
+      // 見出しの右のボタンで、見出しのセクションにズームする。上の道筋の「メモ全体」で戻す。
+      name: "zoom-section",
+      open: async (page) => {
+        const heading = page.locator(".ProseMirror h3", { hasText: "見出し 3 の行" });
+        await heading.scrollIntoViewIfNeeded();
+        await heading.hover();
+        await heading.getByRole("button", { name: "このセクションにズーム" }).click();
+        await page.locator(".zoom-bar").waitFor();
+      },
+      close: async (page) => { await page.locator(".zoom-bar").getByRole("button").first().click(); },
+    },
+    {
+      name: "tab-context-menu",
+      open: async (page) => { await page.getByRole("tab").first().click({ button: "right" }); await page.getByRole("menu").waitFor(); },
+    },
+    {
+      name: "tab-list",
+      open: async (page) => { await page.locator(".tabs-bar").getByRole("button", { name: "開いているタブの一覧" }).click(); await page.getByRole("menu").waitFor(); },
     },
     {
       name: "outline",
@@ -376,6 +400,11 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       open: async (page) => { await page.keyboard.press("Control+K"); await page.getByRole("dialog").waitFor(); await page.keyboard.type("の"); },
     },
     {
+      // 同じ題のメモが無い言葉を打つと、その言葉を題にして新しいメモを作る項目が出る。
+      name: "command-palette-create",
+      open: async (page) => { await page.keyboard.press("Control+K"); await page.getByRole("dialog").waitFor(); await page.keyboard.type("来週の買い出し"); },
+    },
+    {
       name: "command-palette-commands",
       open: async (page) => { await page.keyboard.press("Control+K"); await page.getByRole("dialog").waitFor(); await page.keyboard.type(">"); },
     },
@@ -430,6 +459,56 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
         await page.getByRole("dialog").getByRole("button", { name: "沖縄旅行の持ち物" }).click();
         await page.getByRole("button", { name: "沖縄旅行の持ち物" }).first().click();
         await page.locator(".backlinks").scrollIntoViewIfNeeded();
+      },
+    },
+    {
+      // 見た目の確認のメモの、沖縄旅行の持ち物へのリンクにポインターを乗せる。
+      name: "note-link-preview",
+      open: async (page) => {
+        await openRichNote(page);
+        const link = page.locator(".ProseMirror .note-link").last();
+        await link.scrollIntoViewIfNeeded();
+        await link.hover();
+        await page.getByRole("tooltip").waitFor();
+      },
+      close: async (page) => { await page.mouse.move(4, 400); },
+    },
+    {
+      // 沖縄旅行の持ち物の題を文字のまま書いたメモを作り、リンク先の「リンクしていない言及」を開く。
+      name: "unlinked-mentions",
+      open: async (page) => {
+        const tabsBefore = await page.getByRole("tab").count();
+        await page.getByRole("button", { name: "新しいメモ" }).click();
+        await page.waitForFunction((count) => document.querySelectorAll('[role="tab"]').length > count, tabsBefore);
+        await page.getByPlaceholder("タイトル").fill("週末の準備");
+        await page.getByPlaceholder("タイトル").press("Enter");
+        await page.keyboard.type("金曜までに沖縄旅行の持ち物をそろえる");
+        await page.getByRole("tab", { name: "沖縄旅行の持ち物" }).click();
+        await page.getByRole("button", { name: /リンクしていない言及/ }).click();
+        await page.locator(".unlinked-mention").first().scrollIntoViewIfNeeded();
+      },
+    },
+    {
+      // 左の列で、Ctrl を押しながら 2 件を選び、選んだメモを右クリックする。
+      name: "sidebar-multi-select",
+      open: async (page) => {
+        const rows = page.locator(".sidebar .tree-note:not(.active)");
+        await rows.nth(0).click({ modifiers: ["Control"] });
+        await rows.nth(1).click({ modifiers: ["Control"] });
+        await page.locator(".sidebar .tree-note.selected").first().click({ button: "right" });
+        await page.getByRole("menu").waitFor();
+      },
+      close: async (page) => {
+        await page.keyboard.press("Escape");
+        await page.locator(".sidebar .tree-note.selected").first().press("Escape");
+      },
+    },
+    {
+      // 左の列の行をキーボードで移ったときの、フォーカスの見え方。
+      name: "sidebar-keyboard-focus",
+      open: async (page) => {
+        await page.locator(".sidebar .tree-note.active").first().focus();
+        await page.keyboard.press("ArrowDown");
       },
     },
     {
@@ -540,6 +619,22 @@ export function ENGLISH_SCREENS({ passphrase }) {
   ];
 }
 
+// スマホの一覧の最初のメモを押さえて、横へ distance だけ動かしたまま止める（撮ったあと releaseSwipe で戻して離す）。
+let swipeStart = null;
+async function holdSwipeOnFirstNote(page, distance) {
+  const box = await page.locator(".note-item").first().boundingBox();
+  swipeStart = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  await page.mouse.move(swipeStart.x, swipeStart.y);
+  await page.mouse.down();
+  await page.mouse.move(swipeStart.x + distance, swipeStart.y, { steps: 12 });
+}
+
+// 動かした行を元の所へ戻してから離す（払った扱いにしない）。
+async function releaseSwipe(page) {
+  await page.mouse.move(swipeStart.x, swipeStart.y, { steps: 12 });
+  await page.mouse.up();
+}
+
 export function PHONE_SCREENS({ baseUrl, passphrase }) {
   const selectPhoneTab = (page, name) => page.locator(".tabbar").getByRole("button", { name }).click();
   return [
@@ -560,6 +655,9 @@ export function PHONE_SCREENS({ baseUrl, passphrase }) {
         }
       },
     },
+    // メモを払っている途中（指を離す前）。左へはゴミ箱、右へはピン留めの色と文字が下から出る。
+    { name: "phone-swipe-trash", open: (page) => holdSwipeOnFirstNote(page, -140), close: releaseSwipe },
+    { name: "phone-swipe-pin", open: (page) => holdSwipeOnFirstNote(page, 140), close: releaseSwipe },
     { name: "phone-notebooks", open: (page) => selectPhoneTab(page, "ノートブック") },
     {
       name: "phone-editor",

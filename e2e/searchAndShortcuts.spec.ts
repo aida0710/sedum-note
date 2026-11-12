@@ -42,6 +42,24 @@ test("一覧の検索で開いたメモは、探した言葉に色が付く。�
   await expect(page.locator(".ProseMirror .search-match")).toHaveText("持ち物");
 });
 
+test("メモ全体の検索は、#タグ と notebook:名前 で絞り込める。本文の色付けは、絞り込みの書き方を除いた言葉にだけ付く", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "ノートブックを追加" }).click();
+  await page.getByPlaceholder("ノートブックの名前").fill("仕事");
+  await page.getByPlaceholder("ノートブックの名前").press("Enter");
+  await newNote(page, "家の予算", "予算の見直し #todo");
+  await page.getByRole("button", { name: /^仕事/ }).click();
+  await newNote(page, "会議の予算", "予算を決める #todo");
+  await newNote(page, "会議の記録", "予算の話は来週");
+  await page.locator(".nav", { hasText: "すべてのメモ" }).click();
+
+  await page.keyboard.press("Control+Shift+f");
+  await page.getByPlaceholder("メモを検索").fill("予算 #todo notebook:仕事");
+  await expect(page.getByText("検索結果（1件）")).toBeVisible();
+  await page.locator(".sidebar .tree-note", { hasText: "会議の予算" }).click();
+  await expect(page.locator(".ProseMirror .search-match")).toHaveText(["予算"]);
+});
+
 test("ショートカットで、新しいメモ・タブの切り替え・タブを閉じる・設定ができる。ダイアログが開いている間は効かない", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "1 つ目", "");
@@ -104,6 +122,19 @@ test("Ctrl+R で、置換の欄を開いた検索が出る。ブラウザの再�
   // 置換の欄は、左端のボタンで閉じて、また開ける。
   await page.getByRole("button", { name: "置換の欄を出す" }).click();
   await expect(page.getByPlaceholder("置換後の言葉")).toBeHidden();
+});
+
+test("大文字と小文字の区別と、単語単位をボタンで切り替えて探せる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "切り替えの試し", "Cat と cat と catalog");
+  await page.keyboard.press("Control+f");
+  await page.getByPlaceholder("このメモの中を検索").fill("cat");
+  const count = page.locator(".find-bar").getByRole("status");
+  await expect(count).toHaveText("1 / 3");
+  await page.getByRole("button", { name: "大文字と小文字を区別する" }).click();
+  await expect(count).toHaveText("1 / 2");
+  await page.getByRole("button", { name: "単語単位で探す" }).click();
+  await expect(count).toHaveText("1 / 1");
 });
 
 test("正規表現で探して、$1 を使って置換できる。読めない式は知らせる", async ({ page }) => {
@@ -203,7 +234,7 @@ test("コマンドパレット（Ctrl+K）で、メモを題で探して開け�
   await page.keyboard.press("Control+k");
   const palette = page.getByRole("dialog", { name: "コマンドパレット" });
   await palette.getByRole("combobox").fill("会議");
-  await expect(palette.getByRole("option")).toHaveText(["会議の記録"]);
+  await expect(palette.getByRole("option")).toHaveText(["会議の記録", "「会議」という題で新しいメモを作る"]);
   await page.keyboard.press("Enter");
   await expect(palette).toHaveCount(0);
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("会議の記録");
@@ -213,6 +244,30 @@ test("コマンドパレット（Ctrl+K）で、メモを題で探して開け�
   await expect(palette.getByRole("option")).toContainText(["フォーカスモード"]);
   await page.keyboard.press("Enter");
   await expect(page.locator(".sidebar")).toBeHidden();
+});
+
+test("コマンドパレットを開いてすぐ打った文字は入力欄に入り、閉じると本文の続きに書ける", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "会議の記録", "本文");
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("dialog", { name: "コマンドパレット" });
+  await palette.waitFor();
+  await page.keyboard.type("の");
+  await expect(palette.getByRole("combobox")).toHaveValue("の");
+  await page.keyboard.press("Escape");
+  await page.keyboard.type("の続き");
+  await expect(page.locator(".ProseMirror")).toHaveText("本文の続き");
+});
+
+test("コマンドパレットで打った言葉を題にして、新しいメモを作れる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "会議の記録", "");
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("dialog", { name: "コマンドパレット" });
+  await palette.getByRole("combobox").fill("来週の買い物");
+  await palette.getByRole("option", { name: "「来週の買い物」という題で新しいメモを作る" }).click();
+  await expect(page.getByRole("tab", { name: "来週の買い物" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("来週の買い物");
 });
 
 test("コマンドパレットは、メモの本文・ノートブック・設定の項目もまとめて探す。設定の項目を選ぶと、そのページのその項目へ移る", async ({ page }) => {

@@ -2,7 +2,10 @@
 // Markdown には段組みが無いので、Markdown で書き出すと、左の段から順に上から並ぶ。
 
 import { type JSONContent, Node } from "@tiptap/core";
-import { TextSelection } from "@tiptap/pm/state";
+import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
+import { Plugin, TextSelection } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import { translate } from "../i18n/translate";
 
 export const COLUMNS_NODE = "columns";
 export const COLUMN_NODE = "column";
@@ -67,4 +70,28 @@ export const Column = Node.create({
     return ["div", { "data-column": "", class: "column" }, 0];
   },
   renderMarkdown: (node, helpers) => helpers.renderChildren(node.content ?? [], "\n\n"),
+  addProseMirrorPlugins() {
+    return [new Plugin({ props: { decorations: (state) => emptyColumnPlaceholders(state.doc) } })];
+  },
 });
+
+// 空の段（空の段落が 1 つだけの段）に「ここに書く」を薄く出す。段組みを入れた直後に、どの段に書けるかが分かるように。
+// 本文全体の案内（Placeholder）はカーソルのある段落にしか出ないので、段ごとに自分で出す。
+function emptyColumnPlaceholders(doc: ProseMirrorNode): DecorationSet {
+  const placeholders: Decoration[] = [];
+  doc.descendants((node, position) => {
+    if (node.type.name !== COLUMN_NODE) {
+      // 段落の中（文字）までは見に行かない。
+      return !node.isTextblock;
+    }
+    const onlyChild = node.firstChild;
+    if (node.childCount === 1 && onlyChild?.type.name === "paragraph" && onlyChild.content.size === 0) {
+      const paragraphStart = position + 1;
+      placeholders.push(Decoration.node(paragraphStart, paragraphStart + onlyChild.nodeSize, {
+        class: "empty-column", "data-placeholder": translate("editor.columnPlaceholder"),
+      }));
+    }
+    return true;
+  });
+  return DecorationSet.create(doc, placeholders);
+}

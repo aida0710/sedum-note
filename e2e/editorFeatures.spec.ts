@@ -157,6 +157,43 @@ test("本文の配置は、メモの「…」でメモごとに選べ、既定�
   await expect(documentColumn).toHaveClass(/align-left/);
 });
 
+test("タブを切り替えて戻ると、本文のスクロール位置とカーソルの位置が元に戻る", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "長いメモ");
+  for (let line = 1; line <= 60; line += 1) {
+    await page.keyboard.type(`${line} 行目`);
+    await page.keyboard.press("Enter");
+  }
+  await page.locator(".ProseMirror p", { hasText: /^40 行目$/ }).click();
+  await page.keyboard.press("End");
+  const scroll = page.locator(".document-scroll");
+  await scroll.evaluate((element) => { element.scrollTop = 600; });
+  await newNote(page, "別のメモ");
+
+  await page.getByRole("tab", { name: "長いメモ" }).click();
+  await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(550);
+  await page.keyboard.type("（ここ）");
+  await expect(page.locator(".ProseMirror p", { hasText: "（ここ）" })).toHaveText("40 行目（ここ）");
+});
+
+test("メモへのリンクにポインターを乗せると、リンク先の題と本文の頭が出て、離すと消える", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "旅行の持ち物");
+  await page.keyboard.type("パスポートと充電器を入れる");
+  await newNote(page, "週の予定");
+  await page.keyboard.type("/めも");
+  await page.keyboard.press("Enter");
+  await page.getByRole("dialog", { name: "リンクするメモを選ぶ" }).getByRole("button", { name: "旅行の持ち物" }).click();
+
+  const link = page.locator(".ProseMirror .note-link button");
+  await link.hover();
+  const preview = page.getByRole("tooltip");
+  await expect(preview).toContainText("旅行の持ち物");
+  await expect(preview).toContainText("パスポートと充電器を入れる");
+  await page.mouse.move(5, 400);
+  await expect(preview).toHaveCount(0);
+});
+
 test("メニューから開いたダイアログも、Escape で閉じられる", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "履歴を見るメモ");
@@ -572,4 +609,48 @@ test("グラフ表示は、メモを点、メモ同士のリンクを線にし�
   await graph.getByRole("button", { name: "リンク先" }).click();
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("リンク先");
   await expect(page.getByRole("tab", { name: "グラフ表示" })).toHaveCount(1);
+});
+
+test("題を文字のまま書いたメモは「リンクしていない言及」に並び、「リンクにする」でその文字がリンクになる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "週の予定");
+  await page.keyboard.type("金曜に旅行の持ち物を見直す");
+  await newNote(page, "旅行の持ち物");
+
+  const backlinks = page.getByRole("region", { name: "このメモへのリンク" });
+  const toggle = backlinks.getByRole("button", { name: "リンクしていない言及（1件）" });
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await toggle.click();
+  await expect(backlinks).toContainText("金曜に旅行の持ち物を見直す");
+  await backlinks.getByRole("button", { name: "「週の予定」の中の言及をリンクにする" }).click();
+  // リンクになると、言及の欄から消え、バックリンクに並ぶ。
+  await expect(backlinks).toContainText("このメモへのリンク（1件）");
+  await expect(backlinks.getByRole("button", { name: /リンクしていない言及/ })).toHaveCount(0);
+
+  await backlinks.getByRole("button", { name: "週の予定" }).click();
+  await expect(page.locator(".ProseMirror p")).toContainText("金曜に旅行の持ち物を見直す");
+  await expect(page.locator(".ProseMirror .note-link")).toHaveText("旅行の持ち物");
+});
+
+test("段落が題だけの言及もリンクにでき、リンクの前と後ろに続けて書ける", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "週の予定");
+  await page.keyboard.type("旅行の持ち物");
+  await newNote(page, "旅行の持ち物");
+
+  const backlinks = page.getByRole("region", { name: "このメモへのリンク" });
+  await backlinks.getByRole("button", { name: "リンクしていない言及（1件）" }).click();
+  await backlinks.getByRole("button", { name: "「週の予定」の中の言及をリンクにする" }).click();
+  await expect(backlinks).toContainText("このメモへのリンク（1件）");
+
+  await backlinks.getByRole("button", { name: "週の予定" }).click();
+  const paragraph = page.locator(".ProseMirror p").first();
+  await expect(paragraph.locator(".note-link")).toHaveText("旅行の持ち物");
+  // 段落の右の空いた所を押して、リンクの後ろにカーソルを置く。
+  const box = (await paragraph.boundingBox())!;
+  await page.mouse.click(box.x + box.width - 10, box.y + box.height / 2);
+  await page.keyboard.type("と傘");
+  await page.keyboard.press("Home");
+  await page.keyboard.type("持つ物: ");
+  await expect(paragraph).toHaveText("持つ物: 旅行の持ち物と傘");
 });

@@ -1,0 +1,52 @@
+// 左の列で複数のメモを選んでいるときに、選んだメモの 1 つを右クリックすると出るメニュー。
+// 選んだメモをまとめてゴミ箱に入れる（ゴミ箱の中では元に戻す）か、選択を外す。
+
+import { RotateCcw, Trash2, X } from "lucide-react";
+import type { NoteRepository } from "../../core/notes/noteRepository";
+import { translate } from "../i18n/translate";
+import { PopupMenu } from "../shared/PopupMenu";
+import { resetNoteSelection } from "./noteSelection";
+import { useTrashWithUndo } from "./useTrashWithUndo";
+
+type SelectedNotesMenuProps = {
+  anchor: HTMLElement;
+  noteIds: string[];
+  // 右クリックした行がゴミ箱の中か。ゴミ箱の中なら、まとめて元に戻す。
+  inTrash: boolean;
+  repository: NoteRepository;
+  onClose: () => void;
+};
+
+export function SelectedNotesMenu({ anchor, noteIds, inTrash, repository, onClose }: SelectedNotesMenuProps) {
+  const moveToTrash = useTrashWithUndo(repository);
+  // 選んだあとで消えたメモや、もうゴミ箱にある・無いメモは除く。
+  const targetIds = noteIds.filter((noteId) => {
+    const note = repository.note(noteId);
+    return note !== undefined && (note.content.trashedAt !== null) === inTrash;
+  });
+  const choose = (action: () => Promise<void> | void) => () => {
+    onClose();
+    resetNoteSelection();
+    void action();
+  };
+  const restoreAll = async () => {
+    for (const noteId of targetIds) {
+      await repository.restoreNoteFromTrash(noteId);
+    }
+  };
+  return (
+    <PopupMenu anchor={anchor} onClose={onClose}>
+      {inTrash ? (
+        <button className="menu-item" role="menuitem" onClick={choose(restoreAll)}>
+          <RotateCcw size={15} />{translate("sidebar.restoreSelected", { count: targetIds.length })}
+        </button>
+      ) : (
+        <button className="menu-item danger" role="menuitem" onClick={choose(() => moveToTrash(targetIds))}>
+          <Trash2 size={15} />{translate("sidebar.trashSelected", { count: targetIds.length })}
+        </button>
+      )}
+      <div className="menu-separator" />
+      <button className="menu-item" role="menuitem" onClick={choose(() => undefined)}><X size={15} />{translate("sidebar.clearSelection")}</button>
+    </PopupMenu>
+  );
+}

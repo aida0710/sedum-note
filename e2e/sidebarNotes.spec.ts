@@ -149,3 +149,124 @@ test("メモを複製すると、同じ本文のコピーが開く。ほかの�
   await expect(page.locator(".ProseMirror h2")).toHaveText("材料");
   await expect(noteRow(page, "材料")).toHaveCount(0);
 });
+
+test("タブを右クリックすると、ほか・右のタブを閉じたり、ピン留めしたりできる。閉じたタブは開き直せ、右端のボタンから一覧で選べる", async ({ page }) => {
+  await startLocalVault(page);
+  for (const title of ["一", "二", "三", "四"]) {
+    await createNoteOnDesktop(page, title);
+  }
+  const tabs = page.getByRole("tab");
+  await expect(tabs).toHaveText(["一", "二", "三", "四"]);
+
+  // 「三」をピン留めすると左に動き、× が消える。
+  await page.getByRole("tab", { name: "三" }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "タブをピン留め" }).click();
+  await expect(tabs).toHaveText(["三", "一", "二", "四"]);
+  await expect(page.getByRole("tab", { name: "三" }).getByRole("button", { name: "タブを閉じる" })).toHaveCount(0);
+
+  // 「一」の右を閉じても、ピン留めした「三」は残る。
+  await page.getByRole("tab", { name: "一" }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "右のタブを閉じる" }).click();
+  await expect(tabs).toHaveText(["三", "一"]);
+
+  // 閉じたタブは、最後に閉じたものから開き直せる。
+  await page.keyboard.press("Control+Alt+Shift+t");
+  await expect(tabs).toHaveText(["三", "一", "四"]);
+
+  await page.getByRole("tab", { name: "四" }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "ほかのタブを閉じる" }).click();
+  await expect(tabs).toHaveText(["三", "四"]);
+
+  // 右端のボタンから、開いているタブを選べる。
+  await page.getByRole("button", { name: "開いているタブの一覧" }).click();
+  await page.getByRole("menuitem", { name: "三" }).click();
+  await expect(page.getByRole("tab", { name: "三" })).toHaveAttribute("aria-selected", "true");
+});
+
+test("左の列のメモを本文へドラッグすると、落とした所にそのメモへのリンクが入る", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "旅行の持ち物");
+  await createNoteOnDesktop(page, "週の予定");
+  await page.keyboard.type("金曜に確認する");
+
+  const source = noteRow(page, "旅行の持ち物").locator(".tree-note");
+  const paragraph = page.locator(".ProseMirror p", { hasText: "金曜に確認する" });
+  await source.hover();
+  await page.mouse.down();
+  const box = (await paragraph.boundingBox())!;
+  await page.mouse.move(box.x + 140, box.y + box.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator(".ProseMirror .note-link")).toHaveText("旅行の持ち物");
+});
+
+
+test("Ctrl と Shift で左の列のメモを複数選び、まとめてノートブックへ移したり、ゴミ箱に入れたりできる", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "旅行");
+  await viewRow(page, "すべてのメモ").locator(".nav").click();
+  for (const title of ["りんご", "みかん", "ぶどう", "もも"]) {
+    await createNoteOnDesktop(page, title);
+  }
+  const titles = await page.locator(".tree-note").allTextContents();
+  const row = (index: number) => noteRow(page, titles[index]!).locator(".tree-note");
+
+  // 普通に押したメモから、Shift で押したメモまでを選ぶ。Ctrl で押すと 1 件ずつ外せ、どちらでもメモは開かない。
+  await row(0).click();
+  await row(2).click({ modifiers: ["Shift"] });
+  await expect(page.locator(".tree-note.selected")).toHaveCount(3);
+  await row(1).click({ modifiers: ["ControlOrMeta"] });
+  await expect(page.locator(".tree-note.selected")).toHaveText([titles[0]!, titles[2]!]);
+  await expect(page.locator(".tree-note.active")).toHaveText(titles[0]!);
+
+  // 選んだメモの 1 つをドラッグすると、選んだメモがまとめて移り、選択は外れる。
+  await row(2).dragTo(viewRow(page, "旅行"));
+  await expect(viewRow(page, "旅行").locator(".count")).toHaveText("2");
+  await expect(page.locator(".tree-note.selected")).toHaveCount(0);
+
+  // 開いているメモに Ctrl で足して、右クリックのメニューからまとめてゴミ箱に入れる。
+  await row(3).click();
+  await row(1).click({ modifiers: ["ControlOrMeta"] });
+  await row(1).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "選んだ 2 件をゴミ箱に入れる" }).click();
+  const trashCount = viewRow(page, "ゴミ箱").locator(".count");
+  await expect(trashCount).toHaveText("2");
+  const toast = page.getByRole("status").filter({ hasText: "2 件のメモをゴミ箱に入れました" });
+  await toast.getByRole("button", { name: "元に戻す" }).click();
+  await expect(trashCount).toHaveText("0");
+});
+
+test("左の列は、↑↓ で行を移り、→← で一覧を開け閉めし、Enter でメモを開ける", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "旅行");
+  await viewRow(page, "旅行").locator(".nav").click();
+  await createNoteOnDesktop(page, "持ち物");
+  await createNoteOnDesktop(page, "宿");
+  const travel = viewRow(page, "旅行").locator(".nav");
+  await travel.click();
+  await expect(travel).toHaveAttribute("aria-expanded", "false");
+
+  await travel.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(travel).toHaveAttribute("aria-expanded", "true");
+  // 開いた一覧で → を押すと、中の最初のメモへ移る。↓ で次のメモへ移り、Enter で開く。
+  await page.keyboard.press("ArrowRight");
+  const firstNote = page.locator(".tree-note").first();
+  await expect(page.locator(".tree-note:focus")).toHaveCount(1);
+  const firstTitle = await page.locator(".tree-note:focus").textContent();
+  await page.keyboard.press("ArrowDown");
+  const secondTitle = await page.locator(".tree-note:focus").textContent();
+  expect(new Set([firstTitle, secondTitle])).toEqual(new Set(["持ち物", "宿"]));
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("tab", { name: secondTitle!, selected: true })).toBeVisible();
+
+  // メモの行で ← を押すと一覧の行へ戻り、もう一度 ← で閉じる。↑ で前の行へ移る。
+  await noteRow(page, secondTitle!).locator(".tree-note").focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(travel).toBeFocused();
+  await page.keyboard.press("ArrowLeft");
+  await expect(travel).toHaveAttribute("aria-expanded", "false");
+  await expect(firstNote).toBeHidden();
+  await page.keyboard.press("ArrowUp");
+  await expect(travel).not.toBeFocused();
+  await expect(page.locator(".sidebar-scroll button.nav:focus")).toHaveCount(1);
+});

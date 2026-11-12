@@ -6,6 +6,7 @@ import type { FindRequest } from "../editor/FindBar";
 import type { BlockToReveal } from "../editor/noteLinkTargets";
 import { SETTINGS_PAGES, type SettingsPage } from "../settings/settingsPages";
 import type { SettingRevealRequest } from "../settings/revealSetting";
+import { closeTabsIn, moveTabIn, NO_TABS, openTabIn, otherTabsThan, reopenClosedTabIn, type TabsState, tabsRightOf, togglePinnedTabIn } from "./tabState";
 
 // 設定はメモと同じくタブで開く。メモの ID（16 進）と重ならない名前にする。
 export const SETTINGS_TAB = "settings";
@@ -49,6 +50,13 @@ export type WorkspaceNavigation = {
   // ロックしたメモのうち、パスフレーズを確かめて中身を出しているもの。タブを閉じると、また確認が要る。
   revealedNoteIds: ReadonlySet<string>;
   revealLockedNote: (noteId: string) => void;
+  // タブの右クリックのメニュー。ピン留めしたタブは、ほか・右を閉じるときに閉じない。
+  closeOtherTabs: (tabId: string) => void;
+  closeTabsToRight: (tabId: string) => void;
+  pinnedTabs: string[];
+  togglePinnedTab: (tabId: string) => void;
+  // いちばん最近に閉じたタブを開き直す。閉じたタブが無ければ false。
+  reopenClosedTab: () => boolean;
   // タブを、別のタブの位置へ動かす（ドラッグでの並べ替え）。
   moveTab: (tabId: string, toTabId: string) => void;
   // 左の列の行が開いているか。expandedByDefault は、利用者がまだ開け閉めしていないときの状態
@@ -78,7 +86,7 @@ export function viewKey(view: NoteView): string {
 
 export function useWorkspaceNavigation(): WorkspaceNavigation {
   const [view, setView] = useState<NoteView>({ kind: "all" });
-  const [tabs, setTabs] = useState<{ openTabs: string[]; activeTab: string | null }>({ openTabs: [], activeTab: null });
+  const [tabs, setTabs] = useState<TabsState>(NO_TABS);
   // 利用者が開け閉めした行だけを持つ。持っていない行は既定の状態。
   const [expandedOverrides, setExpandedOverrides] = useState<ReadonlyMap<string, boolean>>(new Map());
   const [searchText, setSearchText] = useState("");
@@ -92,7 +100,7 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
   const revealLockedNote = useCallback((noteId: string) => setRevealedNoteIds((current) => new Set(current).add(noteId)), []);
 
   const openTab = useCallback((tabId: string) => {
-    setTabs(({ openTabs }) => ({ openTabs: openTabs.includes(tabId) ? openTabs : [...openTabs, tabId], activeTab: tabId }));
+    setTabs((current) => openTabIn(current, tabId));
     setBlockToReveal(null);
   }, []);
 
@@ -102,29 +110,16 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
     setBlockToReveal(typeof blockId === "string" ? { noteId, blockId } : null);
   }, [openTab]);
 
-  // 開いているタブを閉じたら、その右（無ければ左）のタブを開く。
-  const closeTab = useCallback((tabId: string) => {
-    setTabs(({ openTabs, activeTab }) => {
-      const index = openTabs.indexOf(tabId);
-      const remaining = openTabs.filter((id) => id !== tabId);
-      const nextActive = activeTab === tabId ? remaining[Math.min(index, remaining.length - 1)] ?? null : activeTab;
-      return { openTabs: remaining, activeTab: nextActive };
-    });
-    setRevealedNoteIds((current) => new Set([...current].filter((noteId) => noteId !== tabId)));
+  // 開いているタブを閉じたら、その右（無ければ左）のタブを開く（tabState.ts）。閉じたロックのメモは、また確認が要る。
+  const closeTabs = useCallback((tabIds: string[]) => {
+    setTabs((current) => closeTabsIn(current, tabIds));
+    setRevealedNoteIds((current) => new Set([...current].filter((noteId) => !tabIds.includes(noteId))));
     setBlockToReveal(null);
   }, []);
+  const closeTab = useCallback((tabId: string) => closeTabs([tabId]), [closeTabs]);
 
   const moveTab = useCallback((tabId: string, toTabId: string) => {
-    setTabs(({ openTabs, activeTab }) => {
-      const from = openTabs.indexOf(tabId);
-      const to = openTabs.indexOf(toTabId);
-      if (from === -1 || to === -1 || from === to) {
-        return { openTabs, activeTab };
-      }
-      const reordered = openTabs.filter((id) => id !== tabId);
-      reordered.splice(to, 0, tabId);
-      return { openTabs: reordered, activeTab };
-    });
+    setTabs((current) => moveTabIn(current, tabId, toTabId));
   }, []);
 
   const setExpanded = useCallback((key: string, expanded: boolean) => {
@@ -151,6 +146,17 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
 
   return {
     view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote, blockToReveal, openTab, openSettings, closeTab, moveTab, revealedNoteIds, revealLockedNote,
+    closeOtherTabs: (tabId) => closeTabs(otherTabsThan(tabs, tabId)),
+    closeTabsToRight: (tabId) => closeTabs(tabsRightOf(tabs, tabId)),
+    pinnedTabs: tabs.pinnedTabs,
+    togglePinnedTab: (tabId) => setTabs((current) => togglePinnedTabIn(current, tabId)),
+    reopenClosedTab: () => {
+      if (tabs.closedTabs.length === 0) {
+        return false;
+      }
+      setTabs(reopenClosedTabIn);
+      return true;
+    },
     settingsPage, selectSettingsPage: setSettingsPage, settingRevealRequest,
     revealSetting: (page, label) => {
       setSettingRevealRequest((previous) => ({ serial: (previous?.serial ?? 0) + 1, label }));

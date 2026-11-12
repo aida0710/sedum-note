@@ -56,10 +56,11 @@ export async function startSyncedVault(page: Page, { remoteConfig, join }: Synce
   await page.getByRole("button", { name: join ? "参加" : "作成" }).click();
 }
 
-type SyncedDeviceInput = SyncedVaultInput & { viewport?: { width: number; height: number } };
+// hasTouch は、タッチの操作（引いて同期など）を送る端末で true にする。
+type SyncedDeviceInput = SyncedVaultInput & { viewport?: { width: number; height: number }; hasTouch?: boolean };
 
-export async function openSyncedDevice(browser: Browser, { remoteConfig, join, viewport = DESKTOP_VIEWPORT }: SyncedDeviceInput): Promise<Page> {
-  const page = await (await browser.newContext({ viewport })).newPage();
+export async function openSyncedDevice(browser: Browser, { remoteConfig, join, viewport = DESKTOP_VIEWPORT, hasTouch = false }: SyncedDeviceInput): Promise<Page> {
+  const page = await (await browser.newContext({ viewport, hasTouch })).newPage();
   await startSyncedVault(page, { remoteConfig, join });
   return page;
 }

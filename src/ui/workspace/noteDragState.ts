@@ -1,11 +1,11 @@
-// 左の列で、いまドラッグしているメモと、落とし先として光らせる一覧。
+// 左の列で、いまドラッグしているメモ（選んだ複数のメモのこともある）と、落とし先として光らせる一覧。
 // ドラッグの途中（dragover）では、ブラウザのドラッグのデータの中身を読めないので、画面の状態としても持つ。
 // 元の行を薄くする、元のノートブックを落とし先にしない、落とし先を 1 つだけ光らせる、をここから決める。
 
 import { useSyncExternalStore } from "react";
 
 export type DraggedNoteState = {
-  noteId: string;
+  noteIds: string[];
   // ドラッグを始めた一覧（viewKey）と、それがノートブックならその ID。
   fromViewKey: string;
   fromNotebookId: string | null;

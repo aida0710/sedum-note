@@ -6,6 +6,7 @@ import { yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
 import { AlarmClock, ChevronLeft, ListTree, MoreHorizontal, Star } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { bodyPlainText, BLOCK_EMBED_NODE, NOTE_LINK_NODE, plainTextHashtags } from "../../core/notes/bodyText";
+import type { UnlinkedMention } from "../../core/notes/noteMentions";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { isCursorInTaskItem, setTaskDueAtCursor, taskDueAtCursor } from "./dueMarks";
@@ -31,7 +32,9 @@ import { NotePicker } from "./NotePicker";
 import { BlockPicker } from "./BlockPicker";
 import { deleteCapturedPhotos } from "../platform/capturedPhotos";
 import { DocumentScanDialog } from "./DocumentScanDialog";
-import { isCursorInListItem, zoomIntoItemAtCursor } from "./listZoom";
+import { zoomIntoCursor, zoomTargetAtCursor } from "./zoom";
+import { useRememberedNoteView } from "./rememberedNoteView";
+import { insertDroppedNoteLink } from "./droppedNoteLink";
 import { NoteZoomBar } from "./NoteZoomBar";
 import { convertBodyToOutline } from "./outlineConversion";
 import { revealBlock } from "./blockIds";
@@ -57,8 +60,9 @@ type NoteEditorProps = {
   isMobile: boolean;
   // スマホでは上のバーに「戻る」を出す。
   onBack?: () => void;
-  // このメモにリンクしているメモ（バックリンク）。
+  // このメモにリンクしているメモ（バックリンク）と、題を文字のまま書いているメモ（リンクしていない言及）。
   backlinks: LiveNote[];
+  unlinkedMentions: UnlinkedMention[];
   // 一覧の検索で探している言葉。開いたメモの中の当たりに色を付ける。
   highlightedText?: string;
   // メモの中の検索を開く合図（ショートカット）。押すたびに serial が増える。
@@ -68,7 +72,7 @@ type NoteEditorProps = {
 // まだ一度も検索を開いていないときの合図。
 const NO_FIND_REQUEST: FindRequest = { serial: 0, showReplace: false };
 
-export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, onBack, highlightedText = "", findRequest = NO_FIND_REQUEST }: NoteEditorProps) {
+export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repository, isMobile, onBack, highlightedText = "", findRequest = NO_FIND_REQUEST }: NoteEditorProps) {
   const [title, setTitle] = useState(note.content.title);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [pickingNoteLink, setPickingNoteLink] = useState(false);
@@ -85,6 +89,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
   const outlineShown = isMobile ? outlineAnchor !== null : showOutline;
   const { openNote, blockToReveal } = useContext(NoteLinkTargetsContext);
   const titleInput = useRef<HTMLInputElement>(null);
+  const documentScroll = useRef<HTMLDivElement>(null);
   const dialogs = useDialogs();
   const attachments = useNoteAttachments(repository);
   // 録った音は、ほかのファイルと同じように添付する。
@@ -120,7 +125,8 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
     editable: !inTrash,
     editorProps: {
       handlePaste: (_view, event) => attachments.takeFiles(Array.from(event.clipboardData?.files ?? [])) || takeMarkdown(event.clipboardData),
-      handleDrop: (_view, event) => attachments.takeFiles(Array.from((event as DragEvent).dataTransfer?.files ?? [])),
+      // ファイルなら添付し、左の列のメモならリンクを入れる。
+      handleDrop: (view, event) => attachments.takeFiles(Array.from((event as DragEvent).dataTransfer?.files ?? [])) || insertDroppedNoteLink(view, event as DragEvent, noteId),
     },
     // アウトライン表示を切り替えたら、入れる機能が変わるので、エディタを作り直す。
   }, [noteId, isOutline]);
@@ -151,6 +157,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
       revealBlock(editor, blockToReveal.blockId);
     }
   }, [editor, noteId, blockToReveal]);
+  useRememberedNoteView({ noteId, editor, scrollContainer: documentScroll, skipRestore: blockToReveal?.noteId === noteId, isOutline });
 
   // 期限のダイアログを、何の期限のために開いているか（メモか、カーソルのあるチェックリストの項目か）。
   const [dueTarget, setDueTarget] = useState<"note" | "task" | null>(null);
@@ -261,7 +268,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
       )}
       {findBarOpen && <FindBar editor={editor} request={findRequest} onClose={() => setFindBarOpen(false)} />}
       <div className="document-area">
-      <div className="document-scroll">
+      <div className="document-scroll" ref={documentScroll}>
         <div className={`document align-${note.content.pageAlignment ?? defaultPageAlignment}`}>
           {inTrash && (
             <div className="trash-banner">
@@ -321,7 +328,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
           <NoteZoomBar editor={editor} />
           <EditorContent editor={editor} />
           <NoteFootnotes editor={editor} />
-          <NoteBacklinks backlinks={backlinks} onOpenNote={openNote} />
+          <NoteBacklinks note={note} backlinks={backlinks} unlinkedMentions={unlinkedMentions} repository={repository} onOpenNote={openNote} />
         </div>
       </div>
       {!isMobile && showOutline && <NoteOutline editor={editor} />}
@@ -367,7 +374,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
             convertsBodyToOutline.current = !isOutline;
             void repository.updateNote(noteId, { isOutline: !isOutline });
           }}
-          onZoomIntoItem={editor && isCursorInListItem(editor.state) ? () => zoomIntoItemAtCursor(editor) : undefined}
+          zoomTarget={editor ? zoomTargetAtCursor(editor.state) : null} onZoomIn={() => editor && zoomIntoCursor(editor)}
           onSetNoteDue={() => setDueTarget("note")}
           onSetTaskDue={editor && isCursorInTaskItem(editor.state) ? () => setDueTarget("task") : undefined}
           onShowHistory={() => setShowingHistory(true)} onExport={(format) => void exportNote.run({ notes: [note], format })}

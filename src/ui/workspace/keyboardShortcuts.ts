@@ -7,7 +7,7 @@ import type { MessageKey } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { isApplePlatform, type ShortcutKeys } from "../shared/shortcutKeys";
 
-export type ShortcutId = "commandPalette" | "newNote" | "dailyNote" | "searchNotes" | "findInNote" | "replaceInNote" | "nextTab" | "previousTab" | "closeTab" | "openSettings" | "graph" | "reminders" | "aiChat" | "focusMode" | "typewriterMode" | "lock";
+export type ShortcutId = "commandPalette" | "newNote" | "dailyNote" | "searchNotes" | "findInNote" | "replaceInNote" | "nextTab" | "previousTab" | "closeTab" | "reopenClosedTab" | "openSettings" | "graph" | "reminders" | "aiChat" | "focusMode" | "typewriterMode" | "lock";
 
 export const KEYBOARD_SHORTCUTS: Array<{ id: ShortcutId; label: MessageKey; keys: ShortcutKeys }> = [
   { id: "commandPalette", label: "shortcut.commandPalette", keys: { key: "k" } },
@@ -19,6 +19,7 @@ export const KEYBOARD_SHORTCUTS: Array<{ id: ShortcutId; label: MessageKey; keys
   { id: "nextTab", label: "shortcut.nextTab", keys: { key: "ArrowRight", alt: true } },
   { id: "previousTab", label: "shortcut.previousTab", keys: { key: "ArrowLeft", alt: true } },
   { id: "closeTab", label: "shortcut.closeTab", keys: { key: "w", alt: true } },
+  { id: "reopenClosedTab", label: "shortcut.reopenClosedTab", keys: { key: "t", alt: true, shift: true } },
   { id: "openSettings", label: "shortcut.openSettings", keys: { key: "," } },
   { id: "graph", label: "graph.title", keys: { key: "g", alt: true } },
   { id: "reminders", label: "due.title", keys: { key: "e", alt: true } },

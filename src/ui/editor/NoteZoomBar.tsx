@@ -1,9 +1,9 @@
-// 箇条書きの項目にズームしているときに本文の上に出す、パンくず。上の階層の項目か「全体」を押すと、そこへ戻る。
+// 箇条書きの項目か見出しのセクションにズームしているときに本文の上に出す、パンくず。上の階層か「全体」を押すと、そこへ戻る。
 
 import { type Editor, useEditorState } from "@tiptap/react";
 import { ChevronRight } from "lucide-react";
 import { translate } from "../i18n/translate";
-import { zoomPath, zoomToItem } from "./listZoom";
+import { zoomPath, zoomToItem } from "./zoom";
 
 export function NoteZoomBar({ editor }: { editor: Editor }) {
   // 道筋は毎回新しい配列になるので、変わったときだけ描き直すよう、文字にして比べる。

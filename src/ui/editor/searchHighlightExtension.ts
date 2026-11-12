@@ -3,15 +3,15 @@
 
 import { Extension } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
-import { findSearchMatches, type SearchMatch, type SearchMode } from "./searchMatches";
+import { DEFAULT_SEARCH_OPTIONS, findSearchMatches, type SearchMatch, type SearchOptions } from "./searchMatches";
 import { type EditorState, Plugin, PluginKey, type Transaction } from "@tiptap/pm/state";
 import { yUndoPluginKey } from "@tiptap/y-tiptap";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 
 export type SearchHighlightState = {
-  // words では空白で区切った言葉（どれかに当たった所に色を付ける）、regex では正規表現。
+  // 探す言葉か正規表現と、探し方の切り替え（searchMatches.ts）。
   query: string;
-  mode: SearchMode;
+  options: SearchOptions;
   // 正規表現として読めなかったとき true。
   invalidPattern: boolean;
   matches: SearchMatch[];
@@ -20,15 +20,15 @@ export type SearchHighlightState = {
   decorations: DecorationSet;
 };
 
-type SearchHighlightMeta = { query: string; mode: SearchMode } | { activeIndex: number };
+type SearchHighlightMeta = { query: string; options: SearchOptions } | { activeIndex: number };
 
 export const searchHighlightKey = new PluginKey<SearchHighlightState>("searchHighlight");
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     searchHighlight: {
-      // mode を省くと、言葉で探す（左の列の検索の言葉に色を付けるとき）。
-      setSearchQuery: (query: string, mode?: SearchMode) => ReturnType;
+      // options を省くと、言葉で、大文字と小文字を区別せずに探す（左の列の検索の言葉に色を付けるとき）。
+      setSearchQuery: (query: string, options?: SearchOptions) => ReturnType;
       // direction が 1 なら次、-1 なら前の当たりへ移る（端まで行ったら反対の端へ）。
       moveToSearchMatch: (direction: 1 | -1) => ReturnType;
       // いま選んでいる当たりを、replacement に置き換える。
@@ -50,22 +50,22 @@ function startNewUndoStep(state: EditorState): void {
   (yUndoPluginKey.getState(state) as { undoManager?: { stopCapturing: () => void } } | undefined)?.undoManager?.stopCapturing();
 }
 
-type BuildStateInput = { doc: ProseMirrorNode; query: string; mode: SearchMode; activeIndex: number };
+type BuildStateInput = { doc: ProseMirrorNode; query: string; options: SearchOptions; activeIndex: number };
 
-function buildState({ doc, query, mode, activeIndex }: BuildStateInput): SearchHighlightState {
-  const { matches, invalidPattern } = findSearchMatches(doc, query, mode);
+function buildState({ doc, query, options, activeIndex }: BuildStateInput): SearchHighlightState {
+  const { matches, invalidPattern } = findSearchMatches(doc, query, options);
   const active = matches.length === 0 ? -1 : Math.min(Math.max(activeIndex, 0), matches.length - 1);
   const decorations = DecorationSet.create(doc, matches.map((match, index) =>
     Decoration.inline(match.from, match.to, { class: index === active ? "search-match active" : "search-match" })));
-  return { query, mode, invalidPattern, matches, activeIndex: active, decorations };
+  return { query, options, invalidPattern, matches, activeIndex: active, decorations };
 }
 
 export const SearchHighlight = Extension.create({
   name: "searchHighlight",
   addCommands() {
     return {
-      setSearchQuery: (query, mode = "words") => ({ tr, dispatch }) => {
-        dispatch?.(tr.setMeta(searchHighlightKey, { query, mode } satisfies SearchHighlightMeta));
+      setSearchQuery: (query, options = DEFAULT_SEARCH_OPTIONS) => ({ tr, dispatch }) => {
+        dispatch?.(tr.setMeta(searchHighlightKey, { query, options } satisfies SearchHighlightMeta));
         return true;
       },
       moveToSearchMatch: (direction) => ({ state, tr, dispatch, view }) => {
@@ -113,17 +113,17 @@ export const SearchHighlight = Extension.create({
       new Plugin<SearchHighlightState>({
         key: searchHighlightKey,
         state: {
-          init: (_config, state) => buildState({ doc: state.doc, query: "", mode: "words", activeIndex: 0 }),
+          init: (_config, state) => buildState({ doc: state.doc, query: "", options: DEFAULT_SEARCH_OPTIONS, activeIndex: 0 }),
           apply(transaction, previous) {
             const meta = transaction.getMeta(searchHighlightKey) as SearchHighlightMeta | undefined;
             const { doc } = transaction;
             if (meta && "query" in meta) {
-              return buildState({ doc, query: meta.query, mode: meta.mode, activeIndex: 0 });
+              return buildState({ doc, query: meta.query, options: meta.options, activeIndex: 0 });
             }
             if (meta) {
-              return buildState({ doc, query: previous.query, mode: previous.mode, activeIndex: meta.activeIndex });
+              return buildState({ doc, query: previous.query, options: previous.options, activeIndex: meta.activeIndex });
             }
-            return transaction.docChanged ? buildState({ doc, query: previous.query, mode: previous.mode, activeIndex: previous.activeIndex }) : previous;
+            return transaction.docChanged ? buildState({ doc, query: previous.query, options: previous.options, activeIndex: previous.activeIndex }) : previous;
           },
         },
         props: {

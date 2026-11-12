@@ -2,7 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { createNoteOnDesktop, startLocalVault } from "./devices";
 
 const SCREENSHOT_DIRECTORY = process.env.SCREENSHOT_DIRECTORY;
-const zoomBar = (page: Page) => page.getByRole("navigation", { name: "ズームしている項目までの道筋" });
+const zoomBar = (page: Page) => page.getByRole("navigation", { name: "ズームしている所までの道筋" });
 // 画面に出ている本文の行。
 const visibleLines = (page: Page) => page.locator(".ProseMirror p:visible");
 
@@ -108,4 +108,42 @@ test("ズームしている間に、ズームの外の見出しへ目次から�
   await page.getByRole("navigation", { name: "目次" }).getByRole("button", { name: "行程" }).click();
   await expect(zoomBar(page)).toHaveCount(0);
   await expect(page.locator(".ProseMirror h2")).toBeVisible();
+});
+
+test("箇条書きの行頭の印を押すと、その項目にズームする", async ({ page }) => {
+  await writeNestedList(page);
+  // 「宿」の項目の印（行の左の余白）を押す。
+  const lodging = page.locator(".ProseMirror li", { has: page.locator("> p", { hasText: /^宿$/ }) });
+  const firstLine = (await lodging.locator("> p").boundingBox())!;
+  await page.mouse.click(firstLine.x - 10, firstLine.y + firstLine.height / 2);
+  await expect(zoomBar(page).locator("[aria-current]")).toHaveText("宿");
+  await expect(visibleLines(page)).toHaveText(["宿", "駅前のホテル"]);
+});
+
+test("見出しの右端のボタンで、そのセクション（次の同じ段か上の段の見出しの前まで）にズームする。パンくずには上の段の見出しが並ぶ", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "章立て");
+  for (const line of ["# 第1章", "前置き", "## 1.1 節", "節の本文", "### 1.1.1 項", "項の本文", "## 1.2 節", "次の節の本文", "# 第2章", "次の章の本文"]) {
+    await page.keyboard.type(line);
+    await page.keyboard.press("Enter");
+  }
+  const section = page.locator(".ProseMirror h3", { hasText: "1.1.1 項" });
+  await page.locator(".ProseMirror h2", { hasText: "1.1 節" }).hover();
+  await page.locator(".ProseMirror h2", { hasText: "1.1 節" }).getByRole("button", { name: "このセクションにズーム" }).click();
+  await expect(page.locator(".ProseMirror > :visible")).toHaveText(["1.1 節", "節の本文", "1.1.1 項", "項の本文"]);
+  await expect(section).toBeVisible();
+  await expect(zoomBar(page)).toHaveText("全体第1章1.1 節");
+
+  // パンくずの「第1章」で、上の段の見出しのセクションへ出る。
+  await zoomBar(page).getByRole("button", { name: "第1章" }).click();
+  await expect(page.locator(".ProseMirror > :visible")).toHaveText(["第1章", "前置き", "1.1 節", "節の本文", "1.1.1 項", "項の本文", "1.2 節", "次の節の本文"]);
+
+  // カーソルのある見出しには、メモの「…」からもズームできる。
+  await zoomBar(page).getByRole("button", { name: "全体" }).click();
+  await page.locator(".ProseMirror h1", { hasText: "第2章" }).click();
+  await page.locator(".editor-bar").getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "このセクションにズーム" }).click();
+  await expect(page.locator(".ProseMirror > :visible").first()).toHaveText("第2章");
+  await expect(page.locator(".ProseMirror p", { hasText: "次の章の本文" })).toBeVisible();
+  await expect(page.locator(".ProseMirror p", { hasText: "前置き" })).toBeHidden();
 });

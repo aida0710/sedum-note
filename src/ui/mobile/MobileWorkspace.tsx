@@ -2,7 +2,7 @@
 
 import { FileText, FolderOpen, Plus, Settings, Star } from "lucide-react";
 import { useState } from "react";
-import { selectNotes, type NoteView } from "../../core/notes/noteQueries";
+import { notebookNameLookup, selectNotes, type NoteView } from "../../core/notes/noteQueries";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import { NoteEditor } from "../editor/NoteEditor";
 import { createNoteLinkTargets, NoteLinkTargetsContext } from "../editor/noteLinkTargets";
@@ -12,10 +12,12 @@ import { createNoteInView } from "../workspace/createNoteInView";
 import { MobileLibrary } from "./MobileLibrary";
 import { listTitle, NoteList } from "./MobileNoteList";
 import { useBackGestureToClose } from "./useBackGestureToClose";
+import { useSyncFromPull } from "./useSyncFromPull";
 import { UpdateChip } from "../update/UpdateChip";
 import { REMINDERS_TAB, SETTINGS_TAB } from "../workspace/useWorkspaceNavigation";
 import { RemindersView } from "../workspace/RemindersView";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
+import { findUnlinkedMentions } from "../../core/notes/noteMentions";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
 import { NoteQuerySourceContext } from "../editor/noteQuerySource";
 import { AiChat } from "../ai/AiChat";
@@ -31,6 +33,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
   const aiChat = useAiChatSession();
   const [tab, setTab] = useState<MobileTab>("notes");
   const { noteSortOrder } = useDevicePreferences();
+  const syncFromPull = useSyncFromPull(session);
   // 開いているメモは PC の組み方と同じ所（navigation のタブ）に持つ。共有から作ったメモや、
   // メモ同士のリンクが、どちらの組み方でも同じ操作で開ける。
   const showsReminders = navigation.activeTab === REMINDERS_TAB;
@@ -68,8 +71,8 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
       <div className="phone">
         <NoteLinkTargetsContext.Provider value={createNoteLinkTargets({ repository, navigation, concealedNoteIds })}>
           <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
-              <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, openNote.id)}
-            repository={repository} isMobile onBack={goBack} />
+            <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, openNote.id)}
+              unlinkedMentions={findUnlinkedMentions(snapshot.summaries, openNote)} repository={repository} isMobile onBack={goBack} />
             </NoteQuerySourceContext.Provider>
         </NoteLinkTargetsContext.Provider>
         {aiChat.open && (
@@ -109,9 +112,10 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
       )}
       {tab !== "settings" && <UpdateChip onOpenSettings={() => { selectTab("settings"); navigation.selectSettingsPage("update"); }} />}
       {(tab === "notes" || tab === "bookmarked") && (
-        <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, { view, searchText: navigation.searchText, sortOrder: noteSortOrder })}
+        <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, { view, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNameOf: notebookNameLookup(snapshot.notebooks) })}
           notebooks={snapshot.notebooks.map((notebook) => ({ id: notebook.id, name: notebook.content.name }))}
-          view={view} showChips={tab === "notes"} navigation={navigation} onOpen={navigation.openNote} />
+          view={view} showChips={tab === "notes"} navigation={navigation} repository={repository} onOpen={navigation.openNote}
+          onPullToSync={syncFromPull} />
       )}
       {(tab === "notes" || tab === "bookmarked") && (
         <button className="fab" aria-label={translate("sidebar.newNote")} onClick={() => void createNote()}><Plus size={26} /></button>

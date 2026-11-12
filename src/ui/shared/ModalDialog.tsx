@@ -28,6 +28,11 @@ export function ModalDialog({ label, title, description, className = "", onClose
     }
     const opener = openerRef.current;
     return () => {
+      // 開発時の StrictMode は、閉じていないのに後始末を 1 度走らせる。そのときはダイアログが画面に残っているので、
+      // フォーカスを戻さない（戻すと、入力欄の autoFocus が外れ、開いた直後に打った文字が後ろの本文に入る）。
+      if (dialog?.isConnected) {
+        return;
+      }
       if (opener instanceof HTMLElement && opener.isConnected) {
         opener.focus();
       }
