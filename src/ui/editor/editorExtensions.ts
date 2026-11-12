@@ -25,6 +25,7 @@ import { Embed } from "./embedNode";
 import { Folding } from "./folding";
 import { FootnoteReference } from "./footnoteNode";
 import { HEADING_LEVELS } from "./headingLevels";
+import { ListZoom } from "./listZoom";
 import { Highlight } from "./highlightMark";
 import { DateTimeShortcuts } from "./insertDateTime";
 import { BlockDragHandle } from "./blockDragHandle";
@@ -90,6 +91,7 @@ export function createEditorExtensions(body: Y.XmlFragment, slashMenuController:
     TableRowFilterExtension,
     MermaidDiagrams,
     BlockDragHandle,
+    ListZoom,
     DateTimeShortcuts,
     TypewriterScroll.configure({ isEnabled: () => readDevicePreferences().typewriterMode, scrollContainerSelector: ".document-scroll" }),
     SearchHighlight,

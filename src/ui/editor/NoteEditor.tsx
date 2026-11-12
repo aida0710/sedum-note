@@ -25,6 +25,8 @@ import { NoteActionsMenu } from "./NoteActionsMenu";
 import { NoteHistoryDialog } from "./NoteHistoryDialog";
 import { NotePicker } from "./NotePicker";
 import { BlockPicker } from "./BlockPicker";
+import { isCursorInListItem, zoomIntoItemAtCursor } from "./listZoom";
+import { NoteZoomBar } from "./NoteZoomBar";
 import { revealBlock } from "./blockIds";
 import { NoteOutline } from "./NoteOutline";
 import { NoteLinkTargetsContext } from "./noteLinkTargets";
@@ -280,6 +282,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
               }
             }} />
           <NoteProperties note={note} properties={propertiesOfNote(note, notebooks)} repository={repository} readOnly={inTrash} />
+          <NoteZoomBar editor={editor} />
           <EditorContent editor={editor} />
           <NoteFootnotes editor={editor} />
           <NoteBacklinks backlinks={backlinks} onOpenNote={openNote} />
@@ -315,6 +318,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
           onDuplicate={async () => openNote((await repository.duplicateNote(noteId, translate("editor.duplicateTitle", { title: note.content.title || translate("sidebar.untitled") }))).id)}
           onMergeNote={() => setPickingNoteToMerge(true)}
           onOpenAiAssistant={() => aiChat.setOpen(true)}
+          onZoomIntoItem={editor && isCursorInListItem(editor.state) ? () => zoomIntoItemAtCursor(editor) : undefined}
           onShowHistory={() => setShowingHistory(true)} onExport={(format) => void exportNote.run({ notes: [note], format })} onClose={() => setMenuAnchor(null)} />
       )}
       {showingHistory && (

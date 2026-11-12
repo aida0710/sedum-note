@@ -286,6 +286,17 @@ button:disabled { cursor: default; opacity: .55; }
 .ProseMirror li:hover > .fold-toggle, .ProseMirror li:hover > div > .fold-toggle, .ProseMirror h1:hover > .fold-toggle, .ProseMirror h2:hover > .fold-toggle, .ProseMirror h3:hover > .fold-toggle,
 .ProseMirror h4:hover > .fold-toggle, .ProseMirror h5:hover > .fold-toggle, .ProseMirror h6:hover > .fold-toggle { opacity: 1; }
 .ProseMirror h1 > .fold-toggle, .ProseMirror h2 > .fold-toggle, .ProseMirror h3 > .fold-toggle, .ProseMirror h4 > .fold-toggle, .ProseMirror h5 > .fold-toggle, .ProseMirror h6 > .fold-toggle { left: -20px; }
+/* 箇条書きへのズーム。道筋の上にないものを隠し、道筋の上の入れ物からは字下げと印を外して、項目を本文の左端から出す。 */
+.ProseMirror .zoom-hidden { display: none; }
+.ProseMirror ul.zoom-path, .ProseMirror ol.zoom-path { padding-left: 0; margin: 0; }
+.ProseMirror li.zoom-path, .ProseMirror li.zoomed-item { list-style: none; }
+.ProseMirror li.zoom-path > .fold-toggle, .ProseMirror li.zoom-path > label, .ProseMirror li.zoomed-item > .fold-toggle { display: none; }
+/* ズームしている項目の行は、その画面の題として大きく出す（折りたたみの印が前に入るので、最初の段落を種類で選ぶ）。 */
+.ProseMirror li.zoomed-item > p:first-of-type, .ProseMirror li.zoomed-item > div > p:first-of-type { font-size: 1.3em; font-weight: 700; }
+.zoom-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin: 0 0 8px; color: var(--muted); font-size: 12.5px; }
+.zoom-bar-entry { display: inline-flex; align-items: center; gap: 2px; min-width: 0; }
+.zoom-bar .text-button { color: var(--accent); padding: 2px 4px; border-radius: 4px; }
+.zoom-bar .text-button:hover { background: var(--selected); }
 .ProseMirror li.collapsed-item > ul, .ProseMirror li.collapsed-item > ol, .ProseMirror li.collapsed-item > div > ul, .ProseMirror li.collapsed-item > div > ol { display: none; }
 .ProseMirror .folded-block { display: none; }
 .ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { font-size: 1em; margin: 12px 0 4px; }
