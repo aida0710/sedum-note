@@ -14,7 +14,7 @@ test("「/」を打つとブロックの候補が出て、上下のキーと Ent
   await expect(slashMenu(page).getByRole("option")).toHaveText([
     "本文", "見出し 1", "見出し 2", "見出し 3", "見出し 4", "見出し 5", "見出し 6", "箇条書き", "番号付きリスト", "チェックリスト", "引用",
     "コールアウト: 情報", "コールアウト: ヒント", "コールアウト: 注意", "コールアウト: 警告", "コード", "表", "区切り線",
-    "画像を貼る", "ファイルを添付", "今日の日付", "今の日時", "2 段組み", "3 段組み", "脚注", "数式", "図（Mermaid）", "クエリ（条件に合うメモの一覧）", "メモへのリンク",
+    "画像を貼る", "ファイルを添付", "今日の日付", "今の日時", "2 段組み", "3 段組み", "埋め込み（動画・Web ページ）", "脚注", "数式", "図（Mermaid）", "クエリ（条件に合うメモの一覧）", "メモへのリンク",
   ]);
   await page.keyboard.press("ArrowDown");
   await expect(slashMenu(page).getByRole("option", { name: "見出し 1" })).toHaveAttribute("aria-selected", "true");
@@ -199,4 +199,29 @@ test("「/」から脚注を入れると、本文に番号の印が付き、本�
 
   await page.locator(".ProseMirror .footnote-reference").first().click();
   await expect(footnotes.getByRole("textbox", { name: "脚注 1 の文" })).toBeFocused();
+});
+
+test("埋め込みは、URL を入れても外へつながず、「読み込む」を押したときに初めて枠の中に読み込む", async ({ page }) => {
+  // 試験では外へつながない。枠の中に読み込む要求だけを見て、空のページを返す。
+  const requestedUrls: string[] = [];
+  await page.route("https://www.youtube-nocookie.com/**", async (route) => {
+    requestedUrls.push(route.request().url());
+    await route.fulfill({ contentType: "text/html", body: "<title>video</title>" });
+  });
+  await openNewNote(page);
+  await page.keyboard.type("/うめこみ");
+  await page.keyboard.press("Enter");
+  await page.getByRole("textbox", { name: "埋め込む URL" }).fill("http://example.com/");
+  await expect(page.getByText("https:// で始まる URL を入れてください")).toBeVisible();
+  await page.getByRole("textbox", { name: "埋め込む URL" }).fill("https://www.youtube.com/watch?v=abcdefghijk");
+  await page.keyboard.press("Enter");
+
+  const embed = page.locator(".ProseMirror .embed");
+  await expect(embed.locator(".embed-url")).toHaveText("https://www.youtube.com/watch?v=abcdefghijk");
+  await expect(embed.locator("iframe")).toHaveCount(0);
+  expect(requestedUrls).toEqual([]);
+
+  await embed.getByRole("button", { name: "読み込む" }).click();
+  await expect(embed.locator("iframe")).toHaveAttribute("src", "https://www.youtube-nocookie.com/embed/abcdefghijk");
+  await expect.poll(() => requestedUrls).toEqual(["https://www.youtube-nocookie.com/embed/abcdefghijk"]);
 });

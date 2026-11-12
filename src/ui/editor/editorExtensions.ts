@@ -21,6 +21,7 @@ import { SearchHighlight } from "./searchHighlightExtension";
 import { SlashCommands } from "./slashCommandExtension";
 import { Callout } from "./calloutNode";
 import { Column, Columns } from "./columnsNode";
+import { Embed } from "./embedNode";
 import { Folding } from "./folding";
 import { FootnoteReference } from "./footnoteNode";
 import { HEADING_LEVELS } from "./headingLevels";
@@ -70,6 +71,7 @@ export function documentExtensions() {
     Columns,
     Column,
     FootnoteReference,
+    Embed,
     AttachmentImage,
     AttachmentFile,
     NoteLink,

@@ -100,6 +100,11 @@ button:disabled { cursor: default; opacity: .55; }
 .footnote-number:hover { background: var(--selected); }
 .footnote input { flex: 1; min-width: 0; height: 28px; border: 1px solid transparent; border-radius: 6px; padding: 0 8px; background: none; color: var(--text); }
 .footnote input:hover, .footnote input:focus { border-color: var(--line); }
+.embed { margin: 10px 0; }
+.embed-card { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.embed-url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12.5px; }
+.embed-url-input { width: 100%; height: 32px; border: 1px solid var(--accent); border-radius: 8px; padding: 0 10px; background: var(--panel); color: var(--text); }
+.embed-frame { width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--line); border-radius: 8px; background: var(--tag); }
 .backlinks { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); }
 .backlinks h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; }
 .sidebar-brand-actions { margin-left: auto; display: flex; gap: 2px; }
