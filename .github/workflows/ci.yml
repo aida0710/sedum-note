@@ -134,6 +134,12 @@ jobs:
         with:
           workspaces: src-tauri
           key: ${{ matrix.name }}
+      # キャッシュには、前の回に組み立てたアプリの束（bundle）も残っている。消さないと、下の手順の
+      # `target/*-apple-darwin` などに前の回の束も当たる（タグの回が作った universal の束は、中の実行ファイルだけが
+      # キャッシュから外れていて、起動の手順が「実行ファイルが無い」で落ちた）。
+      - name: Remove app bundles restored from the cache
+        shell: bash
+        run: rm -rf src-tauri/target/release/bundle src-tauri/target/*/release/bundle
       # Linux は、依存を入れてあるイメージの中で組み立てる。
       - name: Build the app
         if: matrix.name != 'Linux'
