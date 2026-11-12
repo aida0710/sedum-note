@@ -16,10 +16,14 @@ import { AttachmentImage } from "./attachmentImageNode";
 import { NoteLink } from "./noteLinkNode";
 import { SearchHighlight } from "./searchHighlightExtension";
 import { SlashCommands } from "./slashCommandExtension";
+import { TableShortcuts } from "./tableShortcuts";
 import type { SlashMenuController } from "./slashMenuController";
 
 // よく使われる言語（highlight.js の common の組）だけを入れる。言語の指定が無いコードは中身から推す。
 const codeHighlighter = createLowlight(common);
+
+// 幅を決めていない列と、ドラッグで縮められる列の、一番狭い幅（px）。1〜2 文字が入る幅にする。
+const TABLE_CELL_MIN_WIDTH = 72;
 
 // 本文に入れられる見出しの段。Markdown から取り込むときは、これより深い見出しを一番深い段にする。
 export const HEADING_LEVELS = [1, 2, 3] as const;
@@ -38,8 +42,9 @@ export function documentExtensions() {
     TaskList,
     TaskItem.configure({ nested: true }),
     CodeBlockLowlight.configure({ lowlight: codeHighlighter }),
-    // スマホの幅では表が画面をはみ出すので、包んだ要素の中で横に送れるようにする。
-    TableKit.configure({ table: { resizable: false, renderWrapper: true } }),
+    // 列の境目をドラッグして幅を変えられる。スマホの幅では表が画面をはみ出すので、包んだ要素（tableWrapper）の中で横に送る。
+    TableKit.configure({ table: { resizable: true, renderWrapper: true, cellMinWidth: TABLE_CELL_MIN_WIDTH } }),
+    TableShortcuts,
     AttachmentImage,
     AttachmentFile,
     NoteLink,

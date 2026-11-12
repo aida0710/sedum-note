@@ -4,10 +4,9 @@
 import { useEffect, useRef } from "react";
 import type { MessageKey } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
+import { isApplePlatform, type ShortcutKeys } from "../shared/shortcutKeys";
 
 export type ShortcutId = "newNote" | "searchNotes" | "findInNote" | "nextTab" | "previousTab" | "closeTab" | "openSettings";
-
-type ShortcutKeys = { key: string; alt?: boolean; shift?: boolean };
 
 export const KEYBOARD_SHORTCUTS: Array<{ id: ShortcutId; label: MessageKey; keys: ShortcutKeys }> = [
   { id: "newNote", label: "shortcut.newNote", keys: { key: "n", alt: true } },
@@ -18,26 +17,6 @@ export const KEYBOARD_SHORTCUTS: Array<{ id: ShortcutId; label: MessageKey; keys
   { id: "closeTab", label: "shortcut.closeTab", keys: { key: "w", alt: true } },
   { id: "openSettings", label: "shortcut.openSettings", keys: { key: "," } },
 ];
-
-export function isApplePlatform(): boolean {
-  return /Mac|iPhone|iPad/.test(navigator.platform);
-}
-
-const KEY_NAMES: Record<string, string> = { ArrowRight: "→", ArrowLeft: "←" };
-
-// 設定の一覧に出す表記（例: Ctrl + Alt + N、⌘ + ⌥ + N）。
-export function shortcutText(keys: ShortcutKeys): string {
-  const apple = isApplePlatform();
-  const parts = [apple ? "⌘" : "Ctrl"];
-  if (keys.alt) {
-    parts.push(apple ? "⌥" : "Alt");
-  }
-  if (keys.shift) {
-    parts.push(apple ? "⇧" : "Shift");
-  }
-  parts.push(KEY_NAMES[keys.key] ?? keys.key.toUpperCase());
-  return parts.join(" + ");
-}
 
 function matches(event: KeyboardEvent, keys: ShortcutKeys): boolean {
   const modifier = isApplePlatform() ? event.metaKey : event.ctrlKey;

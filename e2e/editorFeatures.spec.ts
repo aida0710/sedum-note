@@ -279,3 +279,105 @@ test("コードの中と、Markdown の書き方が無い文字は、そのま�
   await expect(page.locator(".ProseMirror pre code")).toHaveText("# これは見出しにしない");
   await expect(page.locator(".ProseMirror h1")).toHaveCount(0);
 });
+
+const firstBodyCell = (page: Page) => page.locator(".ProseMirror td").first();
+
+test("表の行と列を、上と左にも足せる。表の中のショートカットでも足せる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "行と列を足すメモ");
+  await page.locator(".ProseMirror").click();
+  await chooseTableAction(page, "表を挿入");
+  await firstBodyCell(page).click();
+  await page.keyboard.type("もと");
+
+  await chooseTableAction(page, "上に行を追加");
+  await chooseTableAction(page, "左に列を追加");
+  expect(await tableShape(page)).toEqual([["", "", "", ""], ["", "", "", ""], ["", "もと", "", ""], ["", "", "", ""]]);
+
+  // ショートカットで足しても、カーソルは元のセルに残る。
+  await page.locator(".ProseMirror td", { hasText: "もと" }).click();
+  await page.keyboard.press("ControlOrMeta+Enter");
+  await page.keyboard.press("ControlOrMeta+Shift+Enter");
+  await page.keyboard.press("ControlOrMeta+Alt+Enter");
+  await page.keyboard.press("ControlOrMeta+Alt+Shift+Enter");
+  await page.keyboard.type("のセル");
+  const empty = ["", "", "", "", "", ""];
+  expect(await tableShape(page)).toEqual([empty, empty, empty, ["", "", "もとのセル", "", "", ""], empty, empty]);
+});
+
+test("表のヘッダー行とヘッダー列を切り替えられる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "ヘッダーのメモ");
+  await page.locator(".ProseMirror").click();
+  await chooseTableAction(page, "表を挿入");
+  const headerCells = page.locator(".ProseMirror th");
+  await expect(headerCells).toHaveCount(3);
+
+  await firstBodyCell(page).click();
+  await page.getByRole("button", { name: "表", exact: true }).click();
+  await expect(page.getByRole("menuitemcheckbox", { name: "ヘッダー行" })).toBeChecked();
+  await expect(page.getByRole("menuitemcheckbox", { name: "ヘッダー列" })).not.toBeChecked();
+  await page.getByRole("menuitemcheckbox", { name: "ヘッダー行" }).click();
+  await expect(headerCells).toHaveCount(0);
+
+  await page.locator(".ProseMirror td").first().click();
+  await page.getByRole("button", { name: "表", exact: true }).click();
+  await page.getByRole("menuitemcheckbox", { name: "ヘッダー列" }).click();
+  await expect(headerCells).toHaveCount(3);
+  await expect(page.locator(".ProseMirror tr").first().locator("th")).toHaveCount(1);
+});
+
+test("表のセルを結合し、分割で元に戻せる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "結合のメモ");
+  await page.locator(".ProseMirror").click();
+  await chooseTableAction(page, "表を挿入");
+  const cells = page.locator(".ProseMirror td");
+  await cells.nth(0).click();
+  await page.keyboard.type("左");
+  // セルの外まで選択を広げると、セルを選んだ状態になる。
+  await cells.nth(0).hover();
+  await page.mouse.down();
+  await cells.nth(1).hover();
+  await page.mouse.up();
+
+  await page.getByRole("button", { name: "表", exact: true }).click();
+  await page.getByRole("menuitem", { name: "セルを結合" }).click();
+  await expect(page.locator('.ProseMirror td[colspan="2"]')).toHaveText("左");
+  await expect(cells).toHaveCount(5);
+
+  await page.locator('.ProseMirror td[colspan="2"]').click();
+  await page.getByRole("button", { name: "表", exact: true }).click();
+  await page.getByRole("menuitem", { name: "セルを分割" }).click();
+  await expect(cells).toHaveCount(6);
+});
+
+test("表の列の揃え方を選ぶと、その列の全部のセルが揃う", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "揃えのメモ");
+  await page.locator(".ProseMirror").click();
+  await chooseTableAction(page, "表を挿入");
+  await page.locator(".ProseMirror td").nth(1).click();
+  await page.getByRole("button", { name: "表", exact: true }).click();
+  await page.getByRole("menuitemcheckbox", { name: "列を右揃え" }).click();
+
+  const alignments = await page.evaluate(() =>
+    [...document.querySelectorAll(".ProseMirror table tr")].map((row) => [...row.children].map((cell) => (cell as HTMLElement).style.textAlign)));
+  expect(alignments).toEqual([["", "right", ""], ["", "right", ""], ["", "right", ""]]);
+});
+
+test("表の列の境目をドラッグすると、列の幅が変わる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "列幅のメモ");
+  await page.locator(".ProseMirror").click();
+  await chooseTableAction(page, "表を挿入");
+  const firstHeader = page.locator(".ProseMirror th").first();
+  const widthBefore = (await firstHeader.boundingBox())!.width;
+  const box = (await firstHeader.boundingBox())!;
+  await page.mouse.move(box.x + box.width - 1, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width + 119, box.y + box.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(async () => (await firstHeader.boundingBox())!.width).toBeGreaterThan(widthBefore + 80);
+  await expect(firstHeader).toHaveAttribute("colwidth", /\d+/);
+});

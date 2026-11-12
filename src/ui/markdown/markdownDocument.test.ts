@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { prosemirrorJSONToYXmlFragment } from "@tiptap/y-tiptap";
 import * as Y from "yjs";
 import { bodyAttachments, bodyPlainText } from "../../core/notes/bodyText";
+import { documentSchema } from "../editor/documentSchema";
 import { bodyToMarkdown, type ImportedAttachment, type MarkdownImportContext, writeMarkdownToBody } from "./markdownDocument";
 
 const NOTE_ID = "0123456789abcdef0123456789abcdef";
@@ -77,5 +79,34 @@ describe("Markdown の書き出し", () => {
     expect(exported).toContain("![beach.png](attachments/beach.png)");
     expect(exported).toContain("- [x] 充電器");
     expect(exported).toContain("const answer: number = 42;");
+  });
+});
+
+describe("表の Markdown での書き出し", () => {
+  const cell = (type: "tableHeader" | "tableCell", text: string, attrs: Record<string, unknown> = {}) =>
+    ({ type, attrs, content: [{ type: "paragraph", content: text === "" ? [] : [{ type: "text", text }] }] });
+  const tableBody = (rows: ReturnType<typeof cell>[][]): Y.XmlFragment => {
+    const body = new Y.Doc().getXmlFragment("body");
+    const table = { type: "table", content: rows.map((cells) => ({ type: "tableRow", content: cells })) };
+    prosemirrorJSONToYXmlFragment(documentSchema(), { type: "doc", content: [table] }, body);
+    return body;
+  };
+  const cellTexts = (markdown: string) => markdown.trim().split("\n").map((line) => line.split("|").slice(1, -1).map((text) => text.trim()));
+
+  it("結合したセルは、左上のマスに中身を残し、ほかのマスを空にして書き出す", () => {
+    const body = tableBody([
+      [cell("tableHeader", "品目"), cell("tableHeader", "数"), cell("tableHeader", "備考")],
+      [cell("tableCell", "紙とペン", { colspan: 2, rowspan: 2 }), cell("tableCell", "まとめ買い")],
+      [cell("tableCell", "来週")],
+    ]);
+    const [header, _separator, ...rows] = cellTexts(bodyToMarkdown(body, exportContext));
+    expect(header).toEqual(["品目", "数", "備考"]);
+    expect(rows).toEqual([["紙とペン", "", "まとめ買い"], ["", "", "来週"]]);
+  });
+
+  it("列の揃え方は、Markdown の表の区切りの行と往復する", async () => {
+    const markdown = "| 品目 | 数 | 金額 |\n| :-- | :-: | --: |\n| 紙 | 2 | 500 |\n";
+    const body = await bodyFromMarkdown(markdown, importContext({}));
+    expect(cellTexts(bodyToMarkdown(body, exportContext))[1]?.map((dashes) => dashes.replace(/-+/, "-"))).toEqual([":-", ":-:", "-:"]);
   });
 });

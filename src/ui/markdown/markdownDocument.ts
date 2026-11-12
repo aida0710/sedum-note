@@ -14,6 +14,7 @@ import { isRandomId } from "../../core/crypto/randomId";
 import { documentSchema } from "../editor/documentSchema";
 import { documentExtensions, HEADING_LEVELS } from "../editor/editorExtensions";
 import { decodeMarkdownPath } from "./markdownFileNames";
+import { withoutMergedCells } from "./unmergedTable";
 
 const NOTE_LINK_HREF_PREFIX = "sedum-note://note/";
 // Markdown の画像を読んだ直後の仮のノード。添付にするかリンクにするかを決めて、本文に入る前に置き換える。
@@ -74,6 +75,9 @@ export function bodyToMarkdown(body: Y.XmlFragment, context: MarkdownExportConte
       const title = context.noteTitle(String(node.attrs?.noteId));
       // リンク先が消えているリンクは、書き出すものが無い。
       return title === null ? [] : [{ ...node, attrs: { ...node.attrs, markdownTitle: title } }];
+    }
+    if (node.type === "table") {
+      return [withoutMergedCells(node)];
     }
     return [node];
   }));

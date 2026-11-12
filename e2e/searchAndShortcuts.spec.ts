@@ -58,7 +58,8 @@ test("ショートカットで、新しいメモ・タブの切り替え・タ�
 
   await page.keyboard.press("Control+,");
   await expect(page.getByRole("heading", { name: "キーボードショートカット" })).toBeVisible();
-  await expect(page.locator(".shortcut-list")).toContainText("Ctrl + Alt + N");
+  await expect(page.locator(".shortcut-list").first()).toContainText("Ctrl + Alt + N");
+  await expect(page.locator(".shortcut-list").last()).toContainText("Ctrl + Alt + Enter");
 
   await page.getByRole("button", { name: "このデバイスのデータを消す" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
