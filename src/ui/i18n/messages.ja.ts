@@ -331,6 +331,8 @@ export const japaneseMessages = {
   "editor.replacePlaceholder": "置換後の言葉",
   "editor.replaceRegexPlaceholder": "置換後の言葉（$1 で 1 つ目の括弧の中身）",
   "editor.findRegex": "正規表現で探す",
+  "editor.findCaseSensitive": "大文字と小文字を区別する",
+  "editor.findWholeWord": "単語単位で探す",
   "pageAlignment.title": "本文の配置",
   "pageAlignment.default": "既定",
   "pageAlignment.left": "左寄せ",

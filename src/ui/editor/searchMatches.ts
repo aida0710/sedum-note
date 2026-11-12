@@ -1,9 +1,15 @@
-// メモの中の検索で、本文から当たりを探す。言葉（空白で区切った言葉のどれか）と、正規表現の 2 つの探し方がある。
+// メモの中の検索で、本文から当たりを探す。探し方は 3 つの切り替えの組み合わせ。
+//   正規表現: 打った文字を正規表現として読む。切っているときは、空白で区切った言葉のどれかに当たる。
+//   大文字と小文字を区別: 切っているときは区別しない。
+//   単語単位: 前後が文字（かなや漢字を含む）か数字でない所だけに当たる。
 // 段落ごとに文字をつなげて探す（太字などの書式の境目をまたぐ言葉も当たるように）。
 
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 
-export type SearchMode = "words" | "regex";
+export type SearchOptions = { regex: boolean; caseSensitive: boolean; wholeWord: boolean };
+
+// 左の列の検索の言葉に色を付けるときと、検索の欄を開いたときの探し方。
+export const DEFAULT_SEARCH_OPTIONS: SearchOptions = { regex: false, caseSensitive: false, wholeWord: false };
 
 export type SearchMatch = {
   from: number;
@@ -20,19 +26,34 @@ export type SearchResult = {
 
 // 文字でないもの（メモへのリンクなど）の代わりに置く文字。当たりがそこをまたがないようにする（置き換えると消えてしまう）。
 const INLINE_ATOM_PLACEHOLDER = "￼";
-// 大文字と小文字を区別しない。u は、絵文字のようなサロゲートペアを 1 文字として扱うため。
-const REGEX_FLAGS = "giu";
+// 単語の境目。前後が文字（\p{L}。かなや漢字も入る）・数字・_ でない所。英語の \b は ASCII の文字しか見ないので使わない。
+const WORD_START = "(?<![\\p{L}\\p{N}_])";
+const WORD_END = "(?![\\p{L}\\p{N}_])";
 
 const NO_MATCH: SearchResult = { matches: [], invalidPattern: false };
 
-export function findSearchMatches(doc: ProseMirrorNode, query: string, mode: SearchMode): SearchResult {
+function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// 打った文字と切り替えから、探す正規表現の元の文字を作る。
+function patternOf(query: string, { regex, wholeWord }: SearchOptions): string {
+  const pattern = regex ? query : query.split(/\s+/).filter((word) => word !== "").map(escapeRegex).join("|");
+  return wholeWord ? `${WORD_START}(?:${pattern})${WORD_END}` : pattern;
+}
+
+export function findSearchMatches(doc: ProseMirrorNode, query: string, options: SearchOptions): SearchResult {
   if (query.trim() === "") {
     return NO_MATCH;
   }
-  if (mode === "regex") {
-    return findRegexMatches(doc, query);
+  let regex: RegExp;
+  try {
+    // u は、絵文字のようなサロゲートペアを 1 文字として扱い、\p{L} を使うため。
+    regex = new RegExp(patternOf(query, options), options.caseSensitive ? "gu" : "giu");
+  } catch {
+    return { matches: [], invalidPattern: true };
   }
-  return { matches: findWordMatches(doc, query), invalidPattern: false };
+  return { matches: collectMatches(doc, regex, options.regex), invalidPattern: false };
 }
 
 // 段落（文字を持つブロック）ごとに、つなげた文字と、その先頭の位置を渡す。
@@ -50,31 +71,8 @@ function forEachTextblock(doc: ProseMirrorNode, visit: (text: string, start: num
   });
 }
 
-function findWordMatches(doc: ProseMirrorNode, query: string): SearchMatch[] {
-  const words = query.toLocaleLowerCase().split(/\s+/).filter((word) => word !== "");
-  const matches: SearchMatch[] = [];
-  forEachTextblock(doc, (text, start) => {
-    const haystack = text.toLocaleLowerCase();
-    // 小文字にすると長さが変わる文字があると位置がずれるので、そのときはこの段落を飛ばす。
-    if (haystack.length !== text.length) {
-      return;
-    }
-    for (const word of words) {
-      for (let index = haystack.indexOf(word); index !== -1; index = haystack.indexOf(word, index + word.length)) {
-        matches.push({ from: start + index, to: start + index + word.length, replacementFor: (replacement) => replacement });
-      }
-    }
-  });
-  return matches.sort((left, right) => left.from - right.from);
-}
-
-function findRegexMatches(doc: ProseMirrorNode, pattern: string): SearchResult {
-  let regex: RegExp;
-  try {
-    regex = new RegExp(pattern, REGEX_FLAGS);
-  } catch {
-    return { matches: [], invalidPattern: true };
-  }
+// expandsReplacement が true（正規表現で探したとき）なら、置換の文字の $1 などを当たりの中身で展開する。
+function collectMatches(doc: ProseMirrorNode, regex: RegExp, expandsReplacement: boolean): SearchMatch[] {
   const matches: SearchMatch[] = [];
   forEachTextblock(doc, (text, start) => {
     for (const found of text.matchAll(regex)) {
@@ -85,11 +83,11 @@ function findRegexMatches(doc: ProseMirrorNode, pattern: string): SearchResult {
       }
       matches.push({
         from: start + found.index, to: start + found.index + matched.length,
-        replacementFor: (replacement) => expandRegexReplacement(replacement, found, text),
+        replacementFor: (replacement) => (expandsReplacement ? expandRegexReplacement(replacement, found, text) : replacement),
       });
     }
   });
-  return { matches, invalidPattern: false };
+  return matches;
 }
 
 // 置換の文字の $1・$&・$<名前>・$$・$` ・$' を、この当たりの中身で展開する（String.prototype.replace と同じ決まり）。

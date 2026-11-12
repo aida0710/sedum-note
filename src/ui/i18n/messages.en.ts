@@ -333,6 +333,8 @@ export const englishMessages: Record<MessageKey, string> = {
   "editor.replacePlaceholder": "Replace with",
   "editor.replaceRegexPlaceholder": "Replace with ($1 for the first group)",
   "editor.findRegex": "Use regular expression",
+  "editor.findCaseSensitive": "Match case",
+  "editor.findWholeWord": "Match whole word",
   "pageAlignment.title": "Page position",
   "pageAlignment.default": "Default",
   "pageAlignment.left": "Left",

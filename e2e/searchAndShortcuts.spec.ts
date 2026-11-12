@@ -106,6 +106,19 @@ test("Ctrl+R で、置換の欄を開いた検索が出る。ブラウザの再�
   await expect(page.getByPlaceholder("置換後の言葉")).toBeHidden();
 });
 
+test("大文字と小文字の区別と、単語単位をボタンで切り替えて探せる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "切り替えの試し", "Cat と cat と catalog");
+  await page.keyboard.press("Control+f");
+  await page.getByPlaceholder("このメモの中を検索").fill("cat");
+  const count = page.locator(".find-bar").getByRole("status");
+  await expect(count).toHaveText("1 / 3");
+  await page.getByRole("button", { name: "大文字と小文字を区別する" }).click();
+  await expect(count).toHaveText("1 / 2");
+  await page.getByRole("button", { name: "単語単位で探す" }).click();
+  await expect(count).toHaveText("1 / 1");
+});
+
 test("正規表現で探して、$1 を使って置換できる。読めない式は知らせる", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "正規表現の試し", "締切は 2026-11-12、予備は 2026-12-01。");
