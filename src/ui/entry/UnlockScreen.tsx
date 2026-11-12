@@ -4,13 +4,14 @@ import { translate } from "../i18n/translate";
 import type { VaultSession } from "../session/useVaultSession";
 import { WipeDeviceDataButton } from "../session/WipeDeviceDataButton";
 import { useAsyncAction } from "../shared/useAsyncAction";
+import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 
 export function UnlockScreen({ session }: { session: VaultSession }) {
   const [passphrase, setPassphrase] = useState("");
   const action = useAsyncAction(session.unlock);
   return (
     <div className="entry">
-      <form className="entry-card" onSubmit={(event) => { event.preventDefault(); void action.run(passphrase); }}>
+      <form className="entry-card" onKeyDown={preventSubmitByImeKey} onSubmit={(event) => { event.preventDefault(); void action.run(passphrase); }}>
         <h1><LockKeyhole size={20} />{translate("unlock.title")}</h1>
         <p className="description">{translate("unlock.description")}</p>
         <div className="field">

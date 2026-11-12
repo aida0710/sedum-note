@@ -34,7 +34,7 @@ export function SlashMenu({ controller }: { controller: SlashMenuController }) {
         setSelectedIndex((selected - 1 + commands.length) % commands.length);
         return true;
       }
-      if (event.key === "Enter" && !event.isComposing) {
+      if (event.key === "Enter") {
         const command = commands[selected];
         if (command) {
           state.choose(command);

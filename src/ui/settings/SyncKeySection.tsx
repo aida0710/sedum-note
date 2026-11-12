@@ -6,6 +6,7 @@ import { translate } from "../i18n/translate";
 import type { VaultSession } from "../session/useVaultSession";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { chosenSyncKey, findNewSyncKeyProblem, GENERATED_SYNC_KEY, NewSyncKeyChoice } from "../sync/NewSyncKeyChoice";
+import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 
 export function SyncKeySection({ session }: { session: VaultSession }) {
   const [passphrase, setPassphrase] = useState("");
@@ -16,7 +17,7 @@ export function SyncKeySection({ session }: { session: VaultSession }) {
   const replace = useAsyncAction(session.replaceSyncKey);
   const message = problem ?? replace.errorMessage;
   return (
-    <form className="settings-section" onSubmit={async (event) => {
+    <form className="settings-section" onKeyDown={preventSubmitByImeKey} onSubmit={async (event) => {
       event.preventDefault();
       setReplaced(false);
       const newSyncKeyProblem = findNewSyncKeyProblem(newSyncKey);

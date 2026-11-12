@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
-import { openSyncedDevice } from "./devices";
+import { openSyncedDevice, startLocalVault } from "./devices";
 
 // 日本語の変換中（未確定の文字がある間）に、ほかのデバイスの変更が同じ段落へマージされても、
 // 変換が壊れず、確定した文字とほかのデバイスの文字の両方が残ることを確かめる。
@@ -44,3 +44,35 @@ test("日本語の変換中に、ほかのデバイスの変更が同じ段落�
   await expect(laptop.locator(".ProseMirror")).not.toContainText("にほんご");
   await expect(laptop.getByText(/同期済み/)).toBeVisible({ timeout: 20_000 });
 });
+
+// 変換を確定する Enter の届き方は 2 通りある。Chromium は変換中（isComposing）として届け、
+// WebKit は変換の終了のあとに、keyCode 229 のまま届ける。どちらも入力の確定にしない。
+const IME_CONFIRM_ENTERS = [
+  { name: "変換中として届く Enter", init: { key: "Enter", keyCode: 229, isComposing: true } },
+  { name: "変換の終了のあとに届く Enter", init: { key: "Enter", keyCode: 229, isComposing: false } },
+];
+
+for (const confirmEnter of IME_CONFIRM_ENTERS) {
+  test(`${confirmEnter.name}では、タイトルから本文へ移らず、ノートブックの名前も決まらない`, async ({ page }) => {
+    await startLocalVault(page);
+    const pressImeConfirmEnter = () => page.evaluate((init) => {
+      document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { ...init, bubbles: true, cancelable: true }));
+    }, confirmEnter.init);
+
+    await page.getByRole("button", { name: "新しいメモ" }).click();
+    const title = page.getByPlaceholder("タイトル");
+    await title.fill("かいぎ");
+    await pressImeConfirmEnter();
+    await expect(title).toBeFocused();
+
+    await page.getByRole("button", { name: "ノートブックを追加" }).click();
+    const notebookName = page.getByPlaceholder("ノートブックの名前");
+    await notebookName.fill("しごと");
+    await pressImeConfirmEnter();
+    await expect(notebookName).toBeFocused();
+    // 変換していないときの Enter では決まる。
+    await notebookName.press("Enter");
+    await expect(notebookName).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "しごと" })).toBeVisible();
+  });
+}

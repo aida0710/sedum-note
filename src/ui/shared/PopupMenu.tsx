@@ -1,6 +1,7 @@
 // ボタンの下に開くメニュー。外を押すか Escape で閉じる。
 
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { isImeKeyEvent } from "./imeKeyEvent";
 
 type PopupMenuProps = {
   anchor: HTMLElement;
@@ -33,7 +34,7 @@ export function PopupMenu({ anchor, onClose, children }: PopupMenuProps) {
       }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !isImeKeyEvent(event)) {
         onClose();
       }
     };

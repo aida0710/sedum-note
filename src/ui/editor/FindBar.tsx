@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { translate } from "../i18n/translate";
 import { searchHighlightKey } from "./searchHighlightExtension";
+import { isImeKeyEvent } from "../shared/imeKeyEvent";
 
 type FindBarProps = {
   editor: Editor;
@@ -35,7 +36,10 @@ export function FindBar({ editor, focusRequest, onClose }: FindBarProps) {
       <input ref={input} value={search.query} placeholder={translate("editor.findPlaceholder")} aria-label={translate("editor.find")}
         onChange={(event) => editor.commands.setSearchQuery(event.target.value)}
         onKeyDown={(event) => {
-          if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+          if (isImeKeyEvent(event.nativeEvent)) {
+            return;
+          }
+          if (event.key === "Enter") {
             event.preventDefault();
             editor.commands.moveToSearchMatch(event.shiftKey ? -1 : 1);
           } else if (event.key === "Escape") {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { translate } from "../i18n/translate";
 import { isTrashRetentionDays, TRASH_RETENTION_DAYS_RANGE, updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
+import { isImeKeyEvent } from "../shared/imeKeyEvent";
 
 // 自動削除を有効にしたときに、最初に入れておく日数。
 const INITIAL_RETENTION_DAYS = 30;
@@ -32,7 +33,7 @@ export function TrashSection() {
           <label htmlFor="trash-retention-days">{translate("trash.retentionDays")}</label>
           <input id="trash-retention-days" type="number" inputMode="numeric" min={TRASH_RETENTION_DAYS_RANGE.minimum} max={TRASH_RETENTION_DAYS_RANGE.maximum}
             value={daysText} onChange={(event) => setDaysText(event.target.value)} onBlur={commitDays}
-            onKeyDown={(event) => event.key === "Enter" && commitDays()} />
+            onKeyDown={(event) => event.key === "Enter" && !isImeKeyEvent(event.nativeEvent) && commitDays()} />
           <span className="hint">{translate("trash.retentionDaysHint", { days: trashRetentionDays })}</span>
           {!isTrashRetentionDays(typedDays) && (
             <span className="form-error" role="alert">{translate("trash.retentionDaysInvalid", TRASH_RETENTION_DAYS_RANGE)}</span>

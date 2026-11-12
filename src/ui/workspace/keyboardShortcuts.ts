@@ -3,6 +3,7 @@
 
 import { useEffect, useRef } from "react";
 import type { MessageKey } from "../i18n/translate";
+import { isImeKeyEvent } from "../shared/imeKeyEvent";
 
 export type ShortcutId = "newNote" | "searchNotes" | "findInNote" | "nextTab" | "previousTab" | "closeTab" | "openSettings";
 
@@ -51,7 +52,7 @@ export function useKeyboardShortcuts(handlers: Record<ShortcutId, () => void>): 
   handlersRef.current = handlers;
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.isComposing || document.querySelector('[role="dialog"]')) {
+      if (isImeKeyEvent(event) || document.querySelector('[role="dialog"]')) {
         return;
       }
       const shortcut = KEYBOARD_SHORTCUTS.find((candidate) => matches(event, candidate.keys));

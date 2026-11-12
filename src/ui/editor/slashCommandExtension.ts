@@ -5,6 +5,7 @@ import { PluginKey } from "@tiptap/pm/state";
 import { Suggestion } from "@tiptap/suggestion";
 import { filterSlashCommands, type SlashCommand } from "./slashCommands";
 import type { SlashMenuController } from "./slashMenuController";
+import { isImeKeyEvent } from "../shared/imeKeyEvent";
 
 // 候補を出す文字。日本語の入力のままでも出せるよう、全角の「／」でも出す。
 const SLASH_CHARACTERS = ["/", "／"];
@@ -45,7 +46,8 @@ export const SlashCommands = Extension.create<{ controller: SlashMenuController 
           onUpdate: show,
           onExit: () => controller.hide(),
           onKeyDown: ({ event }) => {
-            if (controller.state() === null) {
+            // 変換中のキー（候補を選ぶ矢印、確定の Enter、やめる Escape）は、メニューの操作にしない。
+            if (controller.state() === null || isImeKeyEvent(event)) {
               return false;
             }
             if (event.key === "Escape") {

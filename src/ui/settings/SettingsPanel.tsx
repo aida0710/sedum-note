@@ -18,6 +18,7 @@ import { SyncSection } from "./SyncSection";
 import { ThemeSection } from "./ThemeSection";
 import { TrashSection } from "./TrashSection";
 import { UpdateSection } from "./UpdateSection";
+import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 
 type SettingsPanelProps = {
   session: VaultSession;
@@ -100,7 +101,7 @@ function PassphraseSection({ session }: { session: VaultSession }) {
   const [changed, setChanged] = useState(false);
   const change = useAsyncAction(session.changePassphrase);
   return (
-    <form className="settings-section" onSubmit={async (event) => {
+    <form className="settings-section" onKeyDown={preventSubmitByImeKey} onSubmit={async (event) => {
       event.preventDefault();
       setChanged(false);
       if (await change.run({ current, next })) {

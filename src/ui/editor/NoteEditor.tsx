@@ -30,6 +30,7 @@ import { insertPastedMarkdown, markdownInClipboard } from "./pastedMarkdown";
 import { SlashMenu } from "./SlashMenu";
 import { useNoteAttachments } from "./useNoteAttachments";
 import { SlashMenuController } from "./slashMenuController";
+import { isImeKeyEvent } from "../shared/imeKeyEvent";
 
 type NoteEditorProps = {
   note: LiveNote;
@@ -225,7 +226,7 @@ export function NoteEditor({ note, notebooks, repository, isMobile, onBack, high
             autoFocus={note.content.title === "" && bodyPlainText(note.body) === "" && note.content.attachments.length === 0}
             onChange={(event) => { setTitle(event.target.value); void repository.updateNote(noteId, { title: event.target.value }); }}
             onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+              if (event.key === "Enter" && !isImeKeyEvent(event.nativeEvent)) {
                 event.preventDefault();
                 // focus コマンドは次の描画まで待つので、続けて打った文字がタイトルに入る。
                 // その場で本文へ移す。

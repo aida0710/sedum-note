@@ -5,6 +5,7 @@ import { translate } from "../i18n/translate";
 import { CUSTOM_THEME_NAME_MAX_LENGTH, type CustomTheme, findContrastProblems, schemeOfColors } from "../theme/customTheme";
 import { THEME_COLOR_NAMES, type ThemeColorName } from "../theme/themeColors";
 import { ThemeSample } from "./ThemeSample";
+import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 
 type CustomThemeEditorProps = {
   initialTheme: CustomTheme;
@@ -18,7 +19,7 @@ export function CustomThemeEditor({ initialTheme, onSave, onCancel }: CustomThem
   const problems = findContrastProblems(colors);
   const colorLabel = (colorName: ThemeColorName) => translate(`theme.color.${colorName}`);
   return (
-    <form className="theme-editor" onSubmit={(event) => {
+    <form className="theme-editor" onKeyDown={preventSubmitByImeKey} onSubmit={(event) => {
       event.preventDefault();
       onSave({ id: initialTheme.id, name: name.trim() || translate("theme.newName"), scheme: schemeOfColors(colors), colors });
     }}>

@@ -12,6 +12,7 @@ import { useAsyncAction } from "../shared/useAsyncAction";
 import { SyncSetupImport } from "../sync/SyncSetupImport";
 import { SyncTargetFields } from "../sync/SyncTargetFields";
 import { useSyncTargetForm } from "../sync/useSyncTargetForm";
+import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 
 type SetupMode = "start" | "restore";
 
@@ -68,7 +69,7 @@ export function SetupScreen({ session }: { session: VaultSession }) {
   const message = inputProblem ?? action.errorMessage;
   return (
     <div className="entry">
-      <form className="entry-card" onSubmit={submit}>
+      <form className="entry-card" onKeyDown={preventSubmitByImeKey} onSubmit={submit}>
         <h1><LockKeyhole size={20} />{translate("setup.title")}</h1>
         <p className="description">{translate("setup.description")}</p>
         <div className="segmented" role="tablist">

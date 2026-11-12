@@ -1,6 +1,7 @@
 // 左の列の中で、名前（ノートブックの名前、メモのタイトル）をその場で打つ欄。Enter か欄を離れると決まり、Escape でやめる。
 
 import { useState } from "react";
+import { isImeKeyEvent } from "../shared/imeKeyEvent";
 
 type InlineNameInputProps = {
   initialName?: string;
@@ -17,7 +18,11 @@ export function InlineNameInput({ initialName = "", placeholder, onDone }: Inlin
       onFocus={(event) => event.target.select()}
       onBlur={() => onDone(name.trim())}
       onKeyDown={(event) => {
-        if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+        // 変換を確定する Enter と、変換をやめる Escape では、名前を決めない。
+        if (isImeKeyEvent(event.nativeEvent)) {
+          return;
+        }
+        if (event.key === "Enter") {
           onDone(name.trim());
         } else if (event.key === "Escape") {
           onDone(null);

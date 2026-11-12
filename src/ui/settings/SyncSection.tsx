@@ -14,6 +14,7 @@ import { SyncSetupExportDialog } from "../sync/SyncSetupExportDialog";
 import { SyncTargetFields } from "../sync/SyncTargetFields";
 import { useSyncTargetForm } from "../sync/useSyncTargetForm";
 import { SyncKeySection } from "./SyncKeySection";
+import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 
 type SyncSectionProps = { session: VaultSession; vault: UnlockedVault };
 
@@ -78,7 +79,7 @@ function SyncTargetEditor({ session, vault, onClose }: SyncTargetEditorProps) {
   const holdsOtherVault = form.checked?.inspected.state === "existing" && !isOwnVault(form.checked);
   const message = problem ?? save.errorMessage;
   return (
-    <form className="sync-target-editor" onSubmit={submit}>
+    <form className="sync-target-editor" onKeyDown={preventSubmitByImeKey} onSubmit={submit}>
       <SyncTargetFields form={form} isOwnVault={isOwnVault} />
       {placesNewVault && (
         <div className="field">

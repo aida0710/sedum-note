@@ -14,6 +14,7 @@ import { NotebookBranch } from "./NotebookBranch";
 import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { SearchResults, ViewGroup } from "./SidebarViewGroup";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
+import { isImeKeyEvent } from "../shared/imeKeyEvent";
 
 type SidebarProps = {
   snapshot: RepositorySnapshot;
@@ -67,7 +68,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, footer
           <Search size={14} />
           <input ref={searchInput} autoFocus value={navigation.searchText} placeholder={translate("sidebar.searchPlaceholder")}
             onChange={(event) => navigation.setSearchText(event.target.value)}
-            onKeyDown={(event) => event.key === "Escape" && closeSearch()} />
+            onKeyDown={(event) => event.key === "Escape" && !isImeKeyEvent(event.nativeEvent) && closeSearch()} />
         </label>
       )}
       <button className="new-note" onClick={onCreateNote}><Plus size={16} />{translate("sidebar.newNote")}</button>
