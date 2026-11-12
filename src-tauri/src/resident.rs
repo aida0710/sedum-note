@@ -28,10 +28,11 @@ pub fn show_main_window(app: &AppHandle) {
   }
 }
 
-// 常駐を入れている間は、ウィンドウを閉じる操作で、終了せずにウィンドウを隠す。
+// 常駐を入れている間は、最初のウィンドウを閉じる操作で、終了せずにウィンドウを隠す。
+// メモを別に開いたウィンドウは、そのまま閉じる（隠すと、開き直す手段が無い）。
 pub fn hide_instead_of_closing(window: &Window, event: &WindowEvent) {
   if let WindowEvent::CloseRequested { api, .. } = event {
-    if window.state::<ResidentState>().enabled.load(Ordering::Relaxed) {
+    if window.label() == MAIN_WINDOW_LABEL && window.state::<ResidentState>().enabled.load(Ordering::Relaxed) {
       api.prevent_close();
       let _ = window.hide();
     }

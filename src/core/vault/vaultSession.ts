@@ -9,7 +9,8 @@ import type { Argon2idParameters } from "../crypto/passphraseKey";
 import { newRandomId } from "../crypto/randomId";
 import { open, seal } from "../crypto/sealedBox";
 import type { LocalStore } from "../local/localStore";
-import { SerialQueue } from "../local/serialQueue";
+import { SerialQueue, type WriteQueue } from "../local/serialQueue";
+import type { RecordChangeChannel } from "../notes/recordChangeChannel";
 import { BODY_SCHEMA_VERSION, ensureBodySchemaSupported } from "../notes/bodySchema";
 import { NoteRepository } from "../notes/noteRepository";
 import { ensureConditionalWrites } from "../remote/conditionalWriteCheck";
@@ -50,6 +51,10 @@ export type VaultSessionEnvironment = {
   kdfCost?: Omit<Argon2idParameters, "salt">;
   // 今の時刻。試験で時刻を進めるのに使う。
   now?: () => Date;
+  // 同じ手元の保存を、ほかのウィンドウ（Web 版ならほかのタブ）も開くときに渡す。記録の書き込みをウィンドウをまたいで
+  // 1 つずつ流す順番待ちと、書いた記録をほかのウィンドウへ知らせる通り道（どちらも、その vault の中だけで働く）。
+  createWriteQueue?: (vaultId: string) => WriteQueue;
+  createRecordChangeChannel?: (vaultId: string) => RecordChangeChannel;
 };
 
 export type UnlockedVault = {
@@ -229,7 +234,8 @@ async function assembleUnlockedVault(
     localStore,
     masterKey,
     deviceId,
-    writeQueue: new SerialQueue(),
+    writeQueue: environment.createWriteQueue?.(vaultId) ?? new SerialQueue(),
+    recordChangeChannel: environment.createRecordChangeChannel?.(vaultId),
     downloadBlob: (id) => syncEngine?.downloadBlob(id) ?? Promise.resolve(null),
     downloadVersions: (noteId) => syncEngine?.downloadVersions(noteId) ?? Promise.resolve(),
     now: environment.now,

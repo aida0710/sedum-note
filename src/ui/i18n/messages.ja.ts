@@ -193,6 +193,8 @@ export const japaneseMessages = {
 
   "sync.synced": "同期済み · {time}",
   "sync.unsynced": "未送信 {count}件",
+  "sync.delegated": "別のウィンドウが同期しています",
+  "settings.syncDelegated": "同期は、このメモを開いている別のウィンドウ（かタブ）が行っています。このウィンドウで書いたものも、そちらから送られます。",
   "sync.syncing": "同期しています…",
   "sync.failed": "同期に失敗しました",
   "sync.stopped": "同期を止めています",
@@ -517,6 +519,8 @@ export const japaneseMessages = {
   "reminders.stayResidentDescription": "ウィンドウを閉じても終了せず、通知の領域（Mac はメニューバー）のアイコンに残ります。ロックを解除したままなら、閉じている間も期限を通知します。終了するには、アイコンのメニューから「終了」を選びます。",
   "reminders.trayShow": "ウィンドウを開く",
   "reminders.trayQuit": "終了",
+  "window.openInNewWindow": "別のウィンドウで開く",
+  "window.keepOnTop": "ウィンドウを最前面に固定",
   "lock.locked": "ロック中",
   "lock.lockNote": "メモをロック",
   "lock.unlockNote": "メモのロックを外す",

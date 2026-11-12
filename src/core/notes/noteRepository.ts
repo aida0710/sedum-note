@@ -10,7 +10,7 @@ import * as Y from "yjs";
 import { newRandomId } from "../crypto/randomId";
 import { open, seal } from "../crypto/sealedBox";
 import type { LocalRecordEntry, LocalStore } from "../local/localStore";
-import type { SerialQueue } from "../local/serialQueue";
+import type { WriteQueue } from "../local/serialQueue";
 import { blobBinding } from "../sync/remoteLayout";
 import { bodyAttachments } from "./bodyText";
 import { databaseViewFromField } from "./databaseView";
@@ -19,6 +19,7 @@ import { linkFirstMention } from "./noteMentions";
 import { PROPERTY_DEFINITION_FIELD_PREFIX, PROPERTY_VALUE_FIELD_PREFIX, type PropertyDefinition, propertyDefinitionFromField, type PropertyValue } from "./noteProperties";
 import { type AttachmentReference, type LiveNote, type LiveNotebook, type LiveRecord, type LiveSavedSearch, type NotebookContent, PAGE_ALIGNMENTS, type PageAlignment, type SavedSearchContent } from "./noteRecords";
 import { type NoteVersion, NoteVersionHistory } from "./noteVersions";
+import type { RecordChangeChannel } from "./recordChangeChannel";
 import { openRecordPayload, type RecordPayload, sealRecordPayload } from "./recordCodec";
 import {
   encodeRecordState,
@@ -44,7 +45,9 @@ export type NoteRepositoryDependencies = {
   localStore: LocalStore;
   masterKey: CryptoKey;
   deviceId: string;
-  writeQueue: SerialQueue;
+  writeQueue: WriteQueue;
+  // 同じ手元の保存を開いている、ほかのウィンドウとの通り道。渡さなければ、ほかのウィンドウは無いものとして動く。
+  recordChangeChannel?: RecordChangeChannel;
   // 手元に無い添付を同期先から取る。同期先を設定していなければ null を返す。
   downloadBlob: (id: string) => Promise<Uint8Array | null>;
   // ほかのデバイスが残したメモの履歴を、同期先から取る。同期先を設定していなければ何もしない。
@@ -69,9 +72,15 @@ export type NoteChanges = Partial<{
 // 同期から読み直したもの。
 export type RepositoryChangeOrigin = "local" | "stored";
 
+// ほかのウィンドウが手元の保存に書いた中身を、開いている文書へマージするときの origin。このウィンドウの編集ではないので、
+// 保存の予約はしない（書いたのは相手のウィンドウ）。
+const OTHER_WINDOW_ORIGIN = "otherWindow";
+
 type LiveHolder = {
   state: "live";
   doc: Y.Doc;
+  // このウィンドウが最後に読むか書くかした、手元の保存の暗号文。手元の保存がこれと違えば、ほかのウィンドウが書いている。
+  lastStoredSealed: Uint8Array | null;
   revision: number;
   cachedView: LiveRecord | null;
   // 本文を変えて、まだ「編集した時刻」を書いていない。
@@ -108,6 +117,7 @@ export class NoteRepository {
     this.#versionHistory = new NoteVersionHistory({
       localStore: dependencies.localStore, masterKey: dependencies.masterKey, now: () => this.#now(),
     });
+    dependencies.recordChangeChannel?.subscribe((recordId) => void this.#adoptRecordStoredByOtherWindow(recordId));
   }
 
   async load(): Promise<void> {
@@ -116,7 +126,7 @@ export class NoteRepository {
     this.#waitingForPushIds.clear();
     for (const entry of await this.#dependencies.localStore.listRecordEntries()) {
       try {
-        this.#hold(entry.id, await openRecordPayload(this.#dependencies.masterKey, entry.id, entry.sealed));
+        this.#hold(entry.id, await openRecordPayload(this.#dependencies.masterKey, entry.id, entry.sealed), entry.sealed);
         if (entry.waitingForPush) {
           this.#waitingForPushIds.add(entry.id);
         }
@@ -455,20 +465,66 @@ export class NoteRepository {
 
   #newDocument(id: string, kind: RecordKind): Y.Doc {
     const doc = new Y.Doc();
-    this.#holders.set(id, { state: "live", doc, revision: 0, cachedView: null, bodyEdited: false });
+    this.#holders.set(id, { state: "live", doc, lastStoredSealed: null, revision: 0, cachedView: null, bodyEdited: false });
     this.#watch(id, doc);
     this.#writeFields(doc, { kind, createdAt: this.#now().toISOString() });
     return doc;
   }
 
-  #hold(id: string, payload: RecordPayload): void {
+  // storedSealed は、この中身を読んだ手元の保存の暗号文。同期先から受け取った中身のように、まだ手元に書いていなければ null。
+  #hold(id: string, payload: RecordPayload, storedSealed: Uint8Array | null = null): void {
     if (payload.kind === "removed") {
       this.#holders.set(id, { state: "removed", removedAt: payload.removedAt, attachmentIds: payload.attachmentIds });
       return;
     }
     const doc = recordDocumentFromState(payload.state);
-    this.#holders.set(id, { state: "live", doc, revision: 0, cachedView: null, bodyEdited: false });
+    this.#holders.set(id, { state: "live", doc, lastStoredSealed: storedSealed, revision: 0, cachedView: null, bodyEdited: false });
     this.#watch(id, doc);
+  }
+
+  // ほかのウィンドウが手元の保存に書いた記録を、このウィンドウの文書に取り込む。
+  async #adoptRecordStoredByOtherWindow(id: string): Promise<void> {
+    if (this.#closed) {
+      return;
+    }
+    await this.#dependencies.writeQueue.run(async () => {
+      const stored = await this.#dependencies.localStore.getRecordEntry(id);
+      if (stored) {
+        await this.#mergeStoredEntry(stored);
+        this.#rememberWaitingForPush(stored);
+      }
+    });
+    // 同期を受け持つウィンドウが、相手の編集を送れるように、このデバイスでの変更として知らせる。
+    this.#notify("local");
+  }
+
+  // 手元の保存にある中身を、開いている文書に取り込む。writeQueue の中から呼ぶ。開けない中身は取り込まない。
+  // 相手のウィンドウが記録を完全に削除していたら、このウィンドウでも削除にして false を返す（まだ保存していない編集は捨てる）。
+  async #mergeStoredEntry(stored: LocalRecordEntry): Promise<boolean> {
+    const holder = this.#holders.get(stored.id);
+    if (holder?.state === "live" && holder.lastStoredSealed !== null && sameBytes(holder.lastStoredSealed, stored.sealed)) {
+      return true;
+    }
+    let payload: RecordPayload;
+    try {
+      payload = await openRecordPayload(this.#dependencies.masterKey, stored.id, stored.sealed);
+    } catch {
+      return true;
+    }
+    if (payload.kind === "state" && holder?.state === "live") {
+      Y.applyUpdate(holder.doc, payload.state, OTHER_WINDOW_ORIGIN);
+      holder.lastStoredSealed = stored.sealed;
+      return true;
+    }
+    if (payload.kind === "removed" && holder?.state === "removed") {
+      return false;
+    }
+    if (holder?.state === "live") {
+      holder.doc.destroy();
+    }
+    this.#unsavedIds.delete(stored.id);
+    this.#hold(stored.id, payload, stored.sealed);
+    return payload.kind === "state";
   }
 
   // このデバイスでの変更（エディタの入力と項目の書き込み）を見張り、保存を予約する。
@@ -479,6 +535,9 @@ export class NoteRepository {
         return;
       }
       this.#touch(holder);
+      if (origin === OTHER_WINDOW_ORIGIN) {
+        return;
+      }
       if (origin !== FIELD_ORIGIN) {
         holder.bodyEdited = true;
       }
@@ -562,6 +621,10 @@ export class NoteRepository {
       return;
     }
     const stored = await this.#dependencies.localStore.getRecordEntry(id);
+    // ほかのウィンドウが先に書いていたら、その中身を取り込んでから書く（手元の保存から、相手の編集を消さない）。
+    if (stored && !(await this.#mergeStoredEntry(stored))) {
+      return;
+    }
     if (holder.bodyEdited) {
       holder.bodyEdited = false;
       this.#writeFields(holder.doc, { editedAt: this.#now().toISOString() });
@@ -575,8 +638,18 @@ export class NoteRepository {
     await this.#putEntry({ id, sealed, remoteEtag, waitingForPush: bookkeeping.waitingForPush ?? true });
   }
 
+  // 手元の保存に書いて、ほかのウィンドウへ知らせる。
   async #putEntry(entry: LocalRecordEntry): Promise<void> {
     await this.#dependencies.localStore.putRecordEntry(entry);
+    const holder = this.#holders.get(entry.id);
+    if (holder?.state === "live") {
+      holder.lastStoredSealed = entry.sealed;
+    }
+    this.#rememberWaitingForPush(entry);
+    this.#dependencies.recordChangeChannel?.announce(entry.id);
+  }
+
+  #rememberWaitingForPush(entry: LocalRecordEntry): void {
     if (entry.waitingForPush) {
       this.#waitingForPushIds.add(entry.id);
     } else {

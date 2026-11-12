@@ -128,7 +128,7 @@ function SyncOverview({ session }: { session: VaultSession }) {
       <SyncStatusDetail status={session.syncStatus} autoSync={autoSync} />
       {syncNow.errorMessage && <div className="form-error" role="alert">{syncNow.errorMessage}</div>}
       <div className="form-actions">
-        <button type="button" className="secondary-button" disabled={syncNow.busy} onClick={() => void syncNow.run(undefined)}>
+        <button type="button" className="secondary-button" disabled={syncNow.busy || session.syncStatus?.state === "delegated"} onClick={() => void syncNow.run(undefined)}>
           {translate("settings.syncNow")}
         </button>
       </div>
@@ -139,6 +139,9 @@ function SyncOverview({ session }: { session: VaultSession }) {
 function SyncStatusDetail({ status, autoSync }: { status: SyncStatus | null; autoSync: boolean }) {
   if (status === null) {
     return null;
+  }
+  if (status.state === "delegated") {
+    return <p className="hint" role="status">{translate("settings.syncDelegated")}</p>;
   }
   const lastSynced = status.lastSyncedAt === null
     ? translate("sync.never")

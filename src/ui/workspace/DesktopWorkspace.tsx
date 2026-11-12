@@ -34,7 +34,7 @@ import { useAiChatSession } from "../ai/aiChatSession";
 import { LockedNoteGate } from "../editor/LockedNoteGate";
 import { useNoteLockState } from "../session/noteLockState";
 
-export function DesktopWorkspace({ session, vault, snapshot, navigation }: WorkspaceProps) {
+export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteWindow }: WorkspaceProps) {
   const { repository } = vault;
   const showsGraph = navigation.activeTab === GRAPH_TAB;
   const showsReminders = navigation.activeTab === REMINDERS_TAB;
@@ -88,7 +88,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
   // MCP の欄は PC 版（デスクトップのアプリ）にだけある。無い版では、パレットの設定の項目からも外す。
   const includesMcp = useContext(McpSectionSlot) !== null;
   return (
-    <div className={`workspace${focusMode ? " focus-mode" : ""}${typewriterMode ? " typewriter-mode" : ""}${aiChat.open ? " with-ai-chat" : ""}`}>
+    <div className={`workspace${isNoteWindow ? " note-window" : ""}${isNoteWindow && navigation.openTabs.length <= 1 ? " single-note" : ""}${focusMode ? " focus-mode" : ""}${typewriterMode ? " typewriter-mode" : ""}${aiChat.open ? " with-ai-chat" : ""}`}>
       {focusMode && (
         <button className="icon-button focus-mode-exit" aria-label={translate("workspace.exitFocusMode")} title={translate("workspace.exitFocusMode")}
           onClick={() => setFocusMode(false)}><Minimize2 size={16} /></button>

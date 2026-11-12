@@ -104,3 +104,14 @@ export async function addNotebookOnDesktop(page: Page, name: string): Promise<vo
   await page.getByPlaceholder("ノートブックの名前").fill(name);
   await page.getByPlaceholder("ノートブックの名前").press("Enter");
 }
+
+// 本文の末尾にカーソルを置く。クリックと Ctrl+End では、続けて送ったキーが、エディタが選択を読み直す前に届いて
+// 前の位置に入ることがあるので、エディタの API で移す。
+export async function placeCursorAtBodyEnd(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const body = document.querySelector(".ProseMirror") as HTMLElement & { editor: { commands: { focus: (position: "end") => boolean }; view: { focus: () => void } } };
+    body.editor.commands.focus("end");
+    // Tiptap の focus は、フォーカスを次の描画まで待つ。続けて打つ文字が本文に入るよう、その場でもフォーカスを移す。
+    body.editor.view.focus();
+  });
+}

@@ -49,6 +49,10 @@ button:disabled { cursor: default; opacity: .55; }
 /* ── PC の組み方 ───────────────────────── */
 .workspace { display: grid; grid-template-columns: var(--sidebar-width) 1fr; height: 100%; overflow: hidden; }
 .workspace.focus-mode { grid-template-columns: 1fr; }
+/* メモを 1 つだけ開く、別のウィンドウ。左の列を出さない。タブは、リンクからほかのメモを開いて 2 つ以上になったときだけ出す。 */
+.workspace.note-window { grid-template-columns: 1fr; }
+.workspace.note-window.with-ai-chat { grid-template-columns: 1fr var(--ai-chat-width); }
+.note-window .sidebar, .note-window.single-note .tabs-bar { display: none; }
 .focus-mode .sidebar, .focus-mode .tabs-bar, .focus-mode .editor-bar { display: none; }
 .focus-mode-exit { position: fixed; top: 10px; right: 14px; z-index: 6; }
 .typewriter-mode .document { padding-bottom: 50vh; }

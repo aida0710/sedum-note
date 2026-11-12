@@ -1,13 +1,15 @@
-// メモの「…」メニュー: ピン留め、ノートブックの付け外し、本文の配置（PC だけ）、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、期限、AI チャット、履歴、ファイルへの書き出し、印刷、ロック、ゴミ箱。
+// メモの「…」メニュー: ピン留め、ノートブックの付け外し、本文の配置（PC だけ）、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、期限、別のウィンドウで開く、最前面に固定、AI チャット、履歴、ファイルへの書き出し、印刷、ロック、ゴミ箱。
 
-import { AlarmClock, Check, Copy, FileDown, History, ListTree, Merge, LayoutTemplate, LockKeyhole, LockKeyholeOpen, Pin, PinOff, Printer, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
+import { AlarmClock, AppWindow, ArrowUpToLine, Check, Copy, FileDown, History, ListTree, Merge, LayoutTemplate, LockKeyhole, LockKeyholeOpen, Pin, PinOff, Printer, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { type MessageKey, translate } from "../i18n/translate";
 import type { NoteFileFormat } from "../markdown/noteFileExport";
 import type { ZoomTarget } from "./zoom";
 import { isPrintAvailable } from "../platform/printPage";
+import { canKeepWindowOnTop } from "../platform/noteWindows";
 import { PopupMenu } from "../shared/PopupMenu";
+import { useWindowOnTop } from "../shared/useWindowOnTop";
 import { useTrashWithUndo } from "../workspace/useTrashWithUndo";
 import { PageAlignmentChoices } from "./PageAlignmentChoices";
 
@@ -36,6 +38,8 @@ type NoteActionsMenuProps = {
   onSetNoteDue: () => void;
   // カーソルのあるチェックリストの項目の期限を選ぶ画面を開く。カーソルが項目の中に無ければ undefined。
   onSetTaskDue: (() => void) | undefined;
+  // メモを別のウィンドウで開く。開けない画面（スマホ）では undefined。
+  onOpenInNewWindow: (() => void) | undefined;
   onShowHistory: () => void;
   onExport: (format: NoteFileFormat) => void;
   // 本文の列の置き場所を選べるか。スマホの幅では列が画面いっぱいなので出さない。
@@ -43,9 +47,10 @@ type NoteActionsMenuProps = {
   onClose: () => void;
 };
 
-export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, zoomTarget, onZoomIn, onSetNoteDue, onSetTaskDue, onShowHistory, onExport, canChoosePageAlignment, onClose }: NoteActionsMenuProps) {
+export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, zoomTarget, onZoomIn, onSetNoteDue, onSetTaskDue, onOpenInNewWindow, onShowHistory, onExport, canChoosePageAlignment, onClose }: NoteActionsMenuProps) {
   const { content } = note;
   const moveToTrash = useTrashWithUndo(repository);
+  const { windowIsOnTop, toggleWindowOnTop } = useWindowOnTop();
   const toggleNotebook = (notebookId: string) => {
     const notebookIds = content.notebookIds.includes(notebookId)
       ? content.notebookIds.filter((id) => id !== notebookId)
@@ -113,6 +118,17 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
       {onSetTaskDue && (
         <button className="menu-item" role="menuitem" onClick={() => { onClose(); onSetTaskDue(); }}>
           <AlarmClock size={15} />{translate("due.setForTask")}
+        </button>
+      )}
+      {onOpenInNewWindow && (
+        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onOpenInNewWindow(); }}>
+          <AppWindow size={15} />{translate("window.openInNewWindow")}
+        </button>
+      )}
+      {canKeepWindowOnTop() && (
+        <button className="menu-item" role="menuitemcheckbox" aria-checked={windowIsOnTop} onClick={runAndClose(toggleWindowOnTop)}>
+          <ArrowUpToLine size={15} /><span className="nav-label">{translate("window.keepOnTop")}</span>
+          {windowIsOnTop && <Check size={15} className="menu-check" />}
         </button>
       )}
       {/* 開いているメモは、もうパスフレーズを確かめてある。ロックを外すのに、もう一度は聞かない。 */}

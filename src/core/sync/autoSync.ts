@@ -18,6 +18,8 @@ export const POLL_INTERVAL_MILLISECONDS = 60_000;
 export const MAX_RETRY_INTERVAL_MILLISECONDS = 5 * 60_000;
 
 export type SyncStatus =
+  // 同じ vault を開いている、ほかのウィンドウが同期を受け持っている。
+  | { state: "delegated" }
   | { state: "idle"; lastSyncedAt: Date | null }
   | { state: "syncing"; lastSyncedAt: Date | null }
   // willRetry が false なら、待っても直らない失敗で、自動の同期を止めている。

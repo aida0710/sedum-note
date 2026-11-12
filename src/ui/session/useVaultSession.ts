@@ -23,6 +23,7 @@ import {
   wipeDeviceData,
 } from "../../core/vault/vaultSession";
 import { resetDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
+import { holdSyncDuty } from "../platform/crossWindowStorage";
 import { createAppEnvironment } from "./appEnvironment";
 import { clearDueReminderRecords } from "./dueReminderRecords";
 
@@ -109,12 +110,18 @@ export function useVaultSession(): VaultSession {
         autoSync.noteLocalChange();
       }
     });
-    autoSyncRef.current = autoSync;
-    autoSync.start();
+    // 同じ vault を 2 つのウィンドウで開いているときは、片方だけが同期する（同じ記録を 2 つの画面から送り合わない）。
+    // 受け持ちでないウィンドウの編集は、手元の保存を通じて、受け持ちのウィンドウが送る。
+    setSyncStatus({ state: "delegated" });
+    const releaseSyncDuty = holdSyncDuty(vault.vaultId, () => {
+      autoSyncRef.current = autoSync;
+      autoSync.start();
+    });
     return () => {
       unsubscribe();
       autoSync.stop();
       autoSyncRef.current = null;
+      releaseSyncDuty();
     };
   }, [vault]);
 

@@ -2,6 +2,7 @@
 
 import { IndexedDbLocalStore } from "../../core/local/indexedDbLocalStore";
 import { S3ObjectStore } from "../../core/remote/s3ObjectStore";
+import { createCrossWindowWriteQueue, createRecordChangeChannel } from "../platform/crossWindowStorage";
 import { storageRequestSender } from "../platform/storageRequestSender";
 import type { VaultSessionEnvironment } from "../../core/vault/vaultSession";
 
@@ -12,5 +13,7 @@ export function createAppEnvironment(): VaultSessionEnvironment {
   return {
     localStore: new IndexedDbLocalStore(LOCAL_DATABASE_NAME),
     createObjectStore: (config) => new S3ObjectStore(config, sendStorageRequest),
+    createWriteQueue: createCrossWindowWriteQueue,
+    createRecordChangeChannel,
   };
 }

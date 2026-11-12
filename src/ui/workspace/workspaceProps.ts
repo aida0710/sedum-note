@@ -8,4 +8,6 @@ export type WorkspaceProps = {
   vault: UnlockedVault;
   snapshot: RepositorySnapshot;
   navigation: WorkspaceNavigation;
+  // メモを 1 つだけ開く、別のウィンドウか。左の列とタブを出さない。
+  isNoteWindow: boolean;
 };

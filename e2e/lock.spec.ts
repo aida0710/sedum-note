@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { addNotebookOnDesktop, createNoteOnDesktop, PASSPHRASE, PHONE_VIEWPORT, startLocalVault } from "./devices";
+import { addNotebookOnDesktop, createNoteOnDesktop, PASSPHRASE, PHONE_VIEWPORT, placeCursorAtBodyEnd, startLocalVault } from "./devices";
 
 async function unlockApp(page: Page): Promise<void> {
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
@@ -119,8 +119,7 @@ test("ロックしたメモの中身は、埋め込みに出ず、ブロック�
   await expect(page.locator(".block-embed")).toContainText("ロックしたメモの中身は、ここには出しません。");
   await expect(page.locator(".block-embed")).not.toContainText("宿は駅前");
   // ブロックの指定の相手にも選べない。
-  await page.locator(".ProseMirror").first().click();
-  await page.keyboard.press("Control+End");
+  await placeCursorAtBodyEnd(page);
   await page.keyboard.type("/うめこみ");
   await page.getByRole("listbox", { name: "ブロックの種類" }).getByRole("option", { name: "ブロックの埋め込み（ほかのメモの一部を出す）" }).click();
   await expect(page.getByRole("dialog", { name: "ブロックのあるメモを選ぶ" }).getByRole("button", { name: "計画" })).toHaveCount(0);

@@ -195,6 +195,8 @@ export const englishMessages: Record<MessageKey, string> = {
 
   "sync.synced": "Synced · {time}",
   "sync.unsynced": "{count} not sent",
+  "sync.delegated": "Another window is syncing",
+  "settings.syncDelegated": "Another window (or tab) that has these notes open is doing the sync. What you write in this window is sent from there too.",
   "sync.syncing": "Syncing…",
   "sync.failed": "Sync failed",
   "sync.stopped": "Sync is stopped",
@@ -519,6 +521,8 @@ export const englishMessages: Record<MessageKey, string> = {
   "reminders.stayResidentDescription": "Closing the window does not quit the app; it stays as an icon in the notification area (the menu bar on Mac). If it is left unlocked, due notifications keep coming while the window is closed. To quit, choose \"Quit\" from the icon's menu.",
   "reminders.trayShow": "Open window",
   "reminders.trayQuit": "Quit",
+  "window.openInNewWindow": "Open in a new window",
+  "window.keepOnTop": "Keep window on top",
   "lock.locked": "Locked",
   "lock.lockNote": "Lock note",
   "lock.unlockNote": "Remove note lock",

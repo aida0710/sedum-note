@@ -12,6 +12,7 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { isCursorInTaskItem, setTaskDueAtCursor, taskDueAtCursor } from "./dueMarks";
 import { DueDateDialog } from "../shared/DueDateDialog";
 import { formatDueTime } from "../shared/formatTime";
+import { canOpenNoteWindows, openNoteInNewWindow } from "../platform/noteWindows";
 import { useNoteLockState } from "../session/noteLockState";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
@@ -375,6 +376,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
             void repository.updateNote(noteId, { isOutline: !isOutline });
           }}
           zoomTarget={editor ? zoomTargetAtCursor(editor.state) : null} onZoomIn={() => editor && zoomIntoCursor(editor)}
+          onOpenInNewWindow={!isMobile && canOpenNoteWindows() ? () => void openNoteInNewWindow(noteId, note.content.title || translate("sidebar.untitled")) : undefined}
           onSetNoteDue={() => setDueTarget("note")}
           onSetTaskDue={editor && isCursorInTaskItem(editor.state) ? () => setDueTarget("task") : undefined}
           onShowHistory={() => setShowingHistory(true)} onExport={(format) => void exportNote.run({ notes: [note], format })}

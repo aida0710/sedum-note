@@ -84,9 +84,10 @@ export function viewKey(view: NoteView): string {
   }
 }
 
-export function useWorkspaceNavigation(): WorkspaceNavigation {
+// initialNoteId を渡すと、そのメモを開いた状態から始める（メモを 1 つだけ開く、別のウィンドウ）。
+export function useWorkspaceNavigation(initialNoteId: string | null = null): WorkspaceNavigation {
   const [view, setView] = useState<NoteView>({ kind: "all" });
-  const [tabs, setTabs] = useState<TabsState>(NO_TABS);
+  const [tabs, setTabs] = useState<TabsState>(() => (initialNoteId === null ? NO_TABS : openTabIn(NO_TABS, initialNoteId)));
   // 利用者が開け閉めした行だけを持つ。持っていない行は既定の状態。
   const [expandedOverrides, setExpandedOverrides] = useState<ReadonlyMap<string, boolean>>(new Map());
   const [searchText, setSearchText] = useState("");

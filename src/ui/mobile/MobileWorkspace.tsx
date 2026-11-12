@@ -28,7 +28,7 @@ import { useNoteLockState } from "../session/noteLockState";
 
 type MobileTab = "notes" | "notebooks" | "bookmarked" | "settings";
 
-export function MobileWorkspace({ session, vault, snapshot, navigation }: WorkspaceProps) {
+export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<WorkspaceProps, "isNoteWindow">) {
   const { repository } = vault;
   const aiChat = useAiChatSession();
   const [tab, setTab] = useState<MobileTab>("notes");

@@ -37,13 +37,15 @@ function notificationOf(item: DueItem, lockedNoteIds: ReadonlySet<string>): Syst
 }
 
 type DueRemindersInput = {
+  // このウィンドウが通知を受け持つか。メモを 1 つだけ開く別のウィンドウでは false（同じ通知を 2 つ出さない）。
+  enabled: boolean;
   // ロックで隠す前の要約（ロックしたメモの期限も知らせる）。
   summaries: NoteSummary[];
   lockedNoteIds: ReadonlySet<string>;
 };
 
-export function useDueReminders({ summaries, lockedNoteIds }: DueRemindersInput): void {
-  const { dueNotifications } = useDevicePreferences();
+export function useDueReminders({ enabled, summaries, lockedNoteIds }: DueRemindersInput): void {
+  const dueNotifications = useDevicePreferences().dueNotifications && enabled;
   const items = useMemo(() => dueItemsOf(summaries), [summaries]);
 
   // 開いている間に来た期限を出す。期限は、決めた間隔で見直す。前の見直しのときにも同じ形であった期限だけを知らせる
@@ -84,7 +86,7 @@ export function useDueReminders({ summaries, lockedNoteIds }: DueRemindersInput)
   // Android では、これから来る期限を OS に予約し直す。予約の中身が前と同じなら、何もしない。
   const lastScheduled = useRef<string | null>(null);
   useEffect(() => {
-    if (!canScheduleNotifications()) {
+    if (!canScheduleNotifications() || !enabled) {
       return;
     }
     const scheduled = dueNotifications
@@ -96,5 +98,5 @@ export function useDueReminders({ summaries, lockedNoteIds }: DueRemindersInput)
       lastScheduled.current = serialized;
       void replaceScheduledNotifications(scheduled);
     }
-  }, [dueNotifications, items, lockedNoteIds]);
+  }, [enabled, dueNotifications, items, lockedNoteIds]);
 }

@@ -16,6 +16,9 @@ export function describeSyncStatus({ status, now, unsyncedCount, automatic }: Sy
   if (status === null) {
     return { text: translate("sync.notConfigured"), dotClass: "off" };
   }
+  if (status.state === "delegated") {
+    return { text: translate("sync.delegated"), dotClass: "off" };
+  }
   if (status.state === "syncing") {
     return { text: translate("sync.syncing"), dotClass: "syncing" };
   }

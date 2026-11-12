@@ -1,6 +1,6 @@
 // 画面の入口。vault の状態で、初回の設定・ロック解除・メモの画面を出し分ける。
 
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { languageInUse } from "./i18n/languageInUse";
 import { translate } from "./i18n/translate";
 import { useDevicePreferences } from "./preferences/devicePreferences";
@@ -21,6 +21,7 @@ import { useTrashRetention } from "./session/useTrashRetention";
 import { useDueReminders } from "./session/useDueReminders";
 import { applyResidentAppSetting } from "./platform/residentApp";
 import { canStayResident } from "./platform/runtime";
+import { noteIdOfThisWindow, setWindowTitle } from "./platform/noteWindows";
 import { NoteLockStateContext, useSnapshotWithLocks } from "./session/noteLockState";
 import { PassphraseConfirmProvider } from "./session/PassphraseConfirmProvider";
 import { useVaultSession, type VaultSession } from "./session/useVaultSession";
@@ -81,15 +82,25 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
     applyCustomCss(customCssEnabled ? customCss : "");
     return () => applyCustomCss("");
   }, [customCss, customCssEnabled]);
-  const navigation = useWorkspaceNavigation();
+  // メモを 1 つだけ開く別のウィンドウなら、そのメモの ID。ウィンドウを開いたときに決まり、あとから変わらない。
+  const [windowNoteId] = useState(noteIdOfThisWindow);
+  const isNoteWindow = windowNoteId !== null;
+  const navigation = useWorkspaceNavigation(windowNoteId);
   const { snapshot, lockState } = useSnapshotWithLocks(repositorySnapshot, navigation.revealedNoteIds);
-  useDueReminders({ summaries: repositorySnapshot.summaries, lockedNoteIds: lockState.lockedNoteIds });
+  useDueReminders({ enabled: !isNoteWindow, summaries: repositorySnapshot.summaries, lockedNoteIds: lockState.lockedNoteIds });
+  // 別のウィンドウの名前は、開いているメモの題にする。
+  const windowNoteTitle = windowNoteId === null ? null : vault.repository.note(navigation.activeTab ?? windowNoteId)?.content.title ?? null;
+  useEffect(() => {
+    if (isNoteWindow) {
+      void setWindowTitle(windowNoteTitle || translate("sidebar.untitled"));
+    }
+  }, [isNoteWindow, windowNoteTitle]);
   const isMobile = useMediaQuery(MOBILE_LAYOUT_QUERY);
   useLaunchRequests(vault.repository, navigation.openNote);
   const availableUpdate = useAvailableUpdate();
   useTrashRetention(vault, session.syncStatus);
   const aiSettings = useAiSettingsOfVault(vault);
-  const props = { session, vault, snapshot, navigation };
+  const props = { session, vault, snapshot, navigation, isNoteWindow };
   const workspace = (
     <>
       {isMobile ? <MobileWorkspace {...props} /> : <DesktopWorkspace {...props} />}
@@ -104,7 +115,8 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
           <AiChatSessionProvider>
           <NoteLockStateContext.Provider value={lockState}>
           <PassphraseConfirmProvider verifyPassphrase={session.verifyPassphrase}>
-          {McpGatewayProvider
+          {/* MCP の窓口は、最初のウィンドウだけが開く（別のウィンドウが同じポートを取り合わない）。 */}
+          {McpGatewayProvider && !isNoteWindow
             ? <Suspense fallback={null}><McpGatewayProvider vault={vault}>{workspace}</McpGatewayProvider></Suspense>
             : workspace}
           </PassphraseConfirmProvider>
