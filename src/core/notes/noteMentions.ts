@@ -121,19 +121,26 @@ function operationsFrom(operations: TextOperation[], offset: number): TextOperat
 type LinkReplacement = { operations: TextOperation[]; match: { index: number; length: number }; noteId: string };
 
 // 「前の文字・リンク・後ろの文字」の 3 つに分ける。リンクは段落の中の別の要素なので、文字のまとまりを 2 つに切る。
+// 言及が文字のまとまりの頭にあるときは、前の文字が空になるので、まとまりごとリンクと後ろの文字に置き換える
+// （空の文字のまとまりを残さない）。
 function replaceWithLink(text: Y.XmlText, { operations, match, noteId }: LinkReplacement): void {
   const parent = text.parent as Y.XmlElement;
   const fullLength = operations.reduce((length, operation) => length + operation.insert.length, 0);
   const rest = operationsFrom(operations, match.index + match.length);
   const link = new Y.XmlElement(NOTE_LINK_NODE);
   link.setAttribute("noteId", noteId);
-  const nodesAfter: Array<Y.XmlElement | Y.XmlText> = [link];
+  const replacement: Array<Y.XmlElement | Y.XmlText> = [link];
   if (rest.length > 0) {
     const restText = new Y.XmlText();
     restText.applyDelta(rest);
-    nodesAfter.push(restText);
+    replacement.push(restText);
   }
-  const position = parent.toArray().indexOf(text) + 1;
+  const position = parent.toArray().indexOf(text);
+  if (match.index === 0) {
+    parent.delete(position, 1);
+    parent.insert(position, replacement);
+    return;
+  }
   text.delete(match.index, fullLength - match.index);
-  parent.insert(position, nodesAfter);
+  parent.insert(position + 1, replacement);
 }

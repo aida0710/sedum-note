@@ -63,6 +63,15 @@ describe("リンクしていない言及", () => {
     expect((paragraph.get(2) as Y.XmlText).toDelta()).toEqual([{ insert: "の本", attributes: { bold: true } }]);
   });
 
+  it("段落の頭や、段落の全部が言及なら、空の文字を残さずにリンクにする", () => {
+    const whole = bodyWith("旅行");
+    expect(linkFirstMention(whole, { title: "旅行", noteId: "t" })).toBe(true);
+    expect(paragraphChildren(whole)).toEqual(["noteLink:t"]);
+    const head = bodyWith("旅行の準備");
+    expect(linkFirstMention(head, { title: "旅行", noteId: "t" })).toBe(true);
+    expect(paragraphChildren(head)).toEqual(["noteLink:t", "text:の準備"]);
+  });
+
   it("言及が見つからなければ、何も変えずに false を返す", () => {
     const body = bodyWith("関係のない話");
     expect(linkFirstMention(body, { title: "旅行", noteId: "t" })).toBe(false);

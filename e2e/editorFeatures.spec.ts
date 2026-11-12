@@ -631,3 +631,26 @@ test("題を文字のまま書いたメモは「リンクしていない言及�
   await expect(page.locator(".ProseMirror p")).toContainText("金曜に旅行の持ち物を見直す");
   await expect(page.locator(".ProseMirror .note-link")).toHaveText("旅行の持ち物");
 });
+
+test("段落が題だけの言及もリンクにでき、リンクの前と後ろに続けて書ける", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "週の予定");
+  await page.keyboard.type("旅行の持ち物");
+  await newNote(page, "旅行の持ち物");
+
+  const backlinks = page.getByRole("region", { name: "このメモへのリンク" });
+  await backlinks.getByRole("button", { name: "リンクしていない言及（1件）" }).click();
+  await backlinks.getByRole("button", { name: "「週の予定」の中の言及をリンクにする" }).click();
+  await expect(backlinks).toContainText("このメモへのリンク（1件）");
+
+  await backlinks.getByRole("button", { name: "週の予定" }).click();
+  const paragraph = page.locator(".ProseMirror p").first();
+  await expect(paragraph.locator(".note-link")).toHaveText("旅行の持ち物");
+  // 段落の右の空いた所を押して、リンクの後ろにカーソルを置く。
+  const box = (await paragraph.boundingBox())!;
+  await page.mouse.click(box.x + box.width - 10, box.y + box.height / 2);
+  await page.keyboard.type("と傘");
+  await page.keyboard.press("Home");
+  await page.keyboard.type("持つ物: ");
+  await expect(paragraph).toHaveText("持つ物: 旅行の持ち物と傘");
+});
