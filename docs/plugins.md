@@ -67,11 +67,11 @@ GitHub へつなぐのは、取り込むときと、「更新を確かめる」�
   "id": "text-tools",
   "name": "Text tools",
   "version": "1.0.0",
-  "description": "Sorts the selected lines, removes duplicate lines, and counts the characters of the note.",
+  "description": "Sorts the selected lines, removes duplicate lines, counts the characters of the note, and removes trailing spaces.",
   "author": "Sedum Note",
   "module": "text-tools.wasm",
   "reads": ["note.selection", "note.body"],
-  "writes": ["note.selection", "message"],
+  "writes": ["note.selection", "note.body", "message"],
   "commands": [
     { "id": "sort-lines", "title": "Sort the selected lines", "description": "Sorts the lines of the selection in ascending order." }
   ]

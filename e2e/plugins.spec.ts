@@ -135,3 +135,40 @@ test("終わらないプラグインは、決めた時間で止めて知らせ�
   await page.keyboard.type("まだ書ける");
   await expect(page.locator(".ProseMirror")).toHaveText("まだ書ける");
 });
+
+// 1x1 の PNG。
+const TINY_PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
+
+test("本文の全部を置き換えるコマンドのあとも、添付と、リンクが指しているブロックが残る。置き換える前の状態は、履歴に残る", async ({ page }) => {
+  await serveGitHub(page, { manifest: exampleManifest, module: exampleModule });
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "計画");
+  await page.keyboard.type("出発は朝");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("宿は駅前");
+  await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "map.png", mimeType: "image/png", buffer: TINY_PNG });
+  await expect(page.locator(".ProseMirror img")).toHaveCount(1);
+  // 別のメモから、「宿は駅前」の段落へリンクする（その段落に、ブロックの ID が付く）。
+  await createNoteOnDesktop(page, "メモ");
+  await page.keyboard.type("/ぶろっく");
+  await page.keyboard.press("Enter");
+  await page.getByRole("dialog", { name: "ブロックのあるメモを選ぶ" }).getByRole("button", { name: "計画" }).click();
+  await page.getByRole("dialog", { name: "「計画」の中のブロックを選ぶ" }).getByRole("button", { name: "宿は駅前" }).click();
+  const blockLink = page.locator(".ProseMirror .note-link button");
+  await expect(blockLink).toHaveText("計画 › 宿は駅前");
+
+  await fetchPlugin(page, "aida0710/sedum-note/plugins/text-tools");
+  await page.getByRole("dialog").getByRole("button", { name: "入れる" }).click();
+  await page.getByRole("tab", { name: "計画" }).click();
+  await runFromNoteMenu(page, "Remove trailing spaces");
+
+  // 本文を書き直しても、写真は残り、リンクは同じ段落を指したまま。
+  await expect(page.locator(".ProseMirror img")).toHaveCount(1);
+  await expect(page.locator(".ProseMirror p").filter({ hasText: /\S/ })).toHaveText(["出発は朝", "宿は駅前"]);
+  await page.getByRole("tab", { name: "メモ", exact: true }).click();
+  await expect(blockLink).toHaveText("計画 › 宿は駅前");
+  // 置き換える前の状態が、履歴に残っている。
+  await page.getByRole("tab", { name: "計画" }).click();
+  await runFromNoteMenu(page, "履歴");
+  await expect(page.getByRole("dialog", { name: "履歴" }).getByRole("option")).toHaveCount(1);
+});

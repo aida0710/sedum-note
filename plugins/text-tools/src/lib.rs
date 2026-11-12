@@ -1,4 +1,4 @@
-//! Sedum Note のプラグインの見本。選択した行を並べ替える・重なった行を消す・本文の文字数を数える。
+//! Sedum Note のプラグインの見本。選択した行を並べ替える・重なった行を消す・本文の文字数を数える・行末の空白を消す。
 //!
 //! プラグインは、外の関数を何も取り込まない WebAssembly のモジュール。アプリから JSON の入力を受けて、
 //! JSON の出力（書き換えの指示）を返す。決まりは docs/plugins.md。
@@ -24,6 +24,8 @@ struct Note {
 struct Output {
   #[serde(rename = "replaceSelection", skip_serializing_if = "Option::is_none")]
   replace_selection: Option<String>,
+  #[serde(rename = "replaceBody", skip_serializing_if = "Option::is_none")]
+  replace_body: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   message: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -56,6 +58,12 @@ fn count_characters(markdown: &str) -> Output {
   Output { message: Some(format!("{characters} characters, {lines} lines")), ..Output::default() }
 }
 
+/// 本文（Markdown）の、行末の空白を消す。行の中身は変えないので、添付へのリンクや、行末のブロックの ID はそのまま残る。
+fn trim_trailing_spaces(markdown: &str) -> Output {
+  let trimmed: Vec<&str> = markdown.lines().map(|line| line.trim_end_matches([' ', '\t', '\u{3000}'])).collect();
+  Output { replace_body: Some(trimmed.join("\n")), ..Output::default() }
+}
+
 fn run(input: &[u8]) -> Output {
   let input: Input = match serde_json::from_slice(input) {
     Ok(input) => input,
@@ -65,6 +73,7 @@ fn run(input: &[u8]) -> Output {
     "sort-lines" => sort_lines(&input.note.selection),
     "remove-duplicate-lines" => remove_duplicate_lines(&input.note.selection),
     "count-characters" => count_characters(&input.note.markdown),
+    "trim-trailing-spaces" => trim_trailing_spaces(&input.note.markdown),
     _ => failure("unknown command"),
   }
 }

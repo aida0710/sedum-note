@@ -25,8 +25,8 @@ const problemOf = (run: () => unknown) => {
 
 describe("プラグインの宣言", () => {
   it("見本のプラグインの宣言を読める", () => {
-    expect(exampleManifest).toMatchObject({ id: "text-tools", module: "text-tools.wasm", reads: ["note.selection", "note.body"], writes: ["note.selection", "message"] });
-    expect(exampleManifest.commands.map((command) => command.id)).toEqual(["sort-lines", "remove-duplicate-lines", "count-characters"]);
+    expect(exampleManifest).toMatchObject({ id: "text-tools", module: "text-tools.wasm", reads: ["note.selection", "note.body"], writes: ["note.selection", "note.body", "message"] });
+    expect(exampleManifest.commands.map((command) => command.id)).toEqual(["sort-lines", "remove-duplicate-lines", "count-characters", "trim-trailing-spaces"]);
   });
 
   it("決まりに合わない宣言は、理由を付けて断る", () => {
@@ -49,6 +49,10 @@ describe("プラグインのモジュール", () => {
     expect(await run("sort-lines")).toEqual({ replaceSelection: "みかん\nみかん\nりんご" });
     expect(await run("remove-duplicate-lines")).toEqual({ replaceSelection: "みかん\nりんご" });
     expect(await run("count-characters")).toEqual({ message: "6 characters, 2 lines" });
+    const withSpaces = { ...note, markdown: "牛乳  \n\n- 卵 ^1a-2\t\n![写真](sedum-note://attachment/abc)　" };
+    const trimmed = parsePluginResult(exampleManifest, await executePluginModule(exampleModule, pluginInput(exampleManifest, "trim-trailing-spaces", withSpaces, "ja")));
+    // 行の中身は変えない。添付へのリンクと、行末のブロックの ID は残る。
+    expect(trimmed).toEqual({ replaceBody: "牛乳\n\n- 卵 ^1a-2\n![写真](sedum-note://attachment/abc)" });
   });
 
   it("プラグインが失敗を返したら、その説明を付けて失敗にする", async () => {

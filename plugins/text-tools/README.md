@@ -5,6 +5,7 @@ Sedum Note のプラグインの見本です。メモの「…」のメニュー
 - Sort the selected lines: 選択した行を、小さい順に並べ替える
 - Remove duplicate lines: 選択した行のうち、重なった行を消す（最初のものを残す）
 - Count characters: メモの文字数と行数を出す
+- Remove trailing spaces: メモの全部の行の、行末の空白を消す
 
 取り込み元は `aida0710/sedum-note/plugins/text-tools` です。プラグインの決まりは [docs/plugins.md](../../docs/plugins.md) にあります。
 
