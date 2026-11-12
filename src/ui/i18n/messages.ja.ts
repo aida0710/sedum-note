@@ -409,6 +409,13 @@ export const japaneseMessages = {
   "editor.imageMissing": "画像を読み込めませんでした",
   "editor.empty": "左のメモを選ぶか、新しいメモを作ってください",
   "editor.closeTab": "タブを閉じる",
+  "tabs.closeOthers": "ほかのタブを閉じる",
+  "tabs.closeToRight": "右のタブを閉じる",
+  "tabs.pin": "タブをピン留め",
+  "tabs.unpin": "タブのピン留めを外す",
+  "tabs.pinned": "ピン留めしたタブ",
+  "tabs.list": "開いているタブの一覧",
+  "shortcut.reopenClosedTab": "閉じたタブを開き直す",
   "editor.back": "戻る",
 
   "settings.title": "設定",

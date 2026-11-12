@@ -411,6 +411,13 @@ export const englishMessages: Record<MessageKey, string> = {
   "editor.imageMissing": "The image could not be loaded",
   "editor.empty": "Choose a note on the left, or create a new one",
   "editor.closeTab": "Close tab",
+  "tabs.closeOthers": "Close other tabs",
+  "tabs.closeToRight": "Close tabs to the right",
+  "tabs.pin": "Pin tab",
+  "tabs.unpin": "Unpin tab",
+  "tabs.pinned": "Pinned tab",
+  "tabs.list": "Open tabs",
+  "shortcut.reopenClosedTab": "Reopen closed tab",
   "editor.back": "Back",
 
   "settings.title": "Settings",

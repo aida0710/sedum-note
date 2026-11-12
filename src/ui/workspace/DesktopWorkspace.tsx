@@ -67,6 +67,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
     nextTab: () => openNeighborTab(1),
     previousTab: () => openNeighborTab(-1),
     closeTab: () => navigation.activeTab && navigation.closeTab(navigation.activeTab),
+    reopenClosedTab: () => void navigation.reopenClosedTab(),
     openSettings: () => navigation.openSettings(),
     graph: () => navigation.openTab(GRAPH_TAB),
     aiChat: () => aiChat.setOpen(!aiChat.open),

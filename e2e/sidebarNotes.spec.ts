@@ -149,3 +149,37 @@ test("メモを複製すると、同じ本文のコピーが開く。ほかの�
   await expect(page.locator(".ProseMirror h2")).toHaveText("材料");
   await expect(noteRow(page, "材料")).toHaveCount(0);
 });
+
+test("タブを右クリックすると、ほか・右のタブを閉じたり、ピン留めしたりできる。閉じたタブは開き直せ、右端のボタンから一覧で選べる", async ({ page }) => {
+  await startLocalVault(page);
+  for (const title of ["一", "二", "三", "四"]) {
+    await createNoteOnDesktop(page, title);
+  }
+  const tabs = page.getByRole("tab");
+  await expect(tabs).toHaveText(["一", "二", "三", "四"]);
+
+  // 「三」をピン留めすると左に動き、× が消える。
+  await page.getByRole("tab", { name: "三" }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "タブをピン留め" }).click();
+  await expect(tabs).toHaveText(["三", "一", "二", "四"]);
+  await expect(page.getByRole("tab", { name: "三" }).getByRole("button", { name: "タブを閉じる" })).toHaveCount(0);
+
+  // 「一」の右を閉じても、ピン留めした「三」は残る。
+  await page.getByRole("tab", { name: "一" }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "右のタブを閉じる" }).click();
+  await expect(tabs).toHaveText(["三", "一"]);
+
+  // 閉じたタブは、最後に閉じたものから開き直せる。
+  await page.keyboard.press("Control+Alt+Shift+t");
+  await expect(tabs).toHaveText(["三", "一", "四"]);
+
+  await page.getByRole("tab", { name: "四" }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "ほかのタブを閉じる" }).click();
+  await expect(tabs).toHaveText(["三", "四"]);
+
+  // 右端のボタンから、開いているタブを選べる。
+  await page.getByRole("button", { name: "開いているタブの一覧" }).click();
+  await page.getByRole("menuitem", { name: "三" }).click();
+  await expect(page.getByRole("tab", { name: "三" })).toHaveAttribute("aria-selected", "true");
+});
+

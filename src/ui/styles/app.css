@@ -49,7 +49,7 @@ button:disabled { cursor: default; opacity: .55; }
 /* ── PC の組み方 ───────────────────────── */
 .workspace { display: grid; grid-template-columns: var(--sidebar-width) 1fr; height: 100%; overflow: hidden; }
 .workspace.focus-mode { grid-template-columns: 1fr; }
-.focus-mode .sidebar, .focus-mode .tabs, .focus-mode .editor-bar { display: none; }
+.focus-mode .sidebar, .focus-mode .tabs-bar, .focus-mode .editor-bar { display: none; }
 .focus-mode-exit { position: fixed; top: 10px; right: 14px; z-index: 6; }
 .typewriter-mode .document { padding-bottom: 50vh; }
 .code-input { width: 100%; font-family: var(--font-mono); font-size: var(--font-size-small); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 8px 10px; background: var(--panel); color: var(--text); resize: vertical; }
@@ -249,7 +249,11 @@ button:disabled { cursor: default; opacity: .55; }
 .sync-line .status-dot.off { background: var(--muted); }
 
 .main { background: var(--panel); display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--line); background: var(--sidebar); overflow-x: auto; flex: none; scrollbar-width: none; }
+/* タブの並びと、右端の「開いているタブの一覧」のボタン。タブが多いときは並びだけを横に送り、ボタンは右端に残す。 */
+.tabs-bar { display: flex; flex: none; background: var(--sidebar); }
+.tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--line); background: var(--sidebar); overflow-x: auto; flex: 1; min-width: 0; scrollbar-width: none; }
+.tabs-end { display: flex; align-items: center; padding: 6px 8px 0; border-bottom: 1px solid var(--line); flex: none; }
+.tab .tab-pin { color: var(--muted); flex: none; }
 .tab { display: flex; align-items: center; gap: 6px; padding: 7px 8px 7px 14px; border-radius: var(--radius-control) var(--radius-control) 0 0; color: var(--muted); font-size: var(--font-size-small); max-width: 220px; flex: none; border: 1px solid transparent; }
 .tab .tab-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* タブとタブの間の区切り線。開いているタブと、マウスを乗せたタブの両隣には出さない（タブの形と線が重なって見えるため）。 */
@@ -630,7 +634,7 @@ details summary { cursor: pointer; color: var(--accent); }
   .workspace, .phone, .main, .document-area { display: block; height: auto; overflow: visible; }
   .document-scroll { overflow: visible; }
   .document { max-width: none; padding: 0; }
-  .section-zoom, .sidebar, .tabs, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
+  .section-zoom, .sidebar, .tabs-bar, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
   .document-meta .unsynced, .update-chip { display: none !important; }
   .search-match, .search-match.active { background: none; color: inherit; }
   .ProseMirror pre, .ProseMirror table, .attachment-image, .attachment-file { break-inside: avoid; }
