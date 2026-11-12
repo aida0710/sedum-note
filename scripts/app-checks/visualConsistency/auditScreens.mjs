@@ -266,10 +266,34 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
         await page.locator(".ProseMirror").click();
         await page.keyboard.press("Control+F");
         await page.keyboard.type("の");
-        await page.getByRole("button", { name: "置換", exact: true }).first().click();
+        await page.getByRole("button", { name: "置換の欄を出す" }).click();
+      },
+    },
+    {
+      name: "find-regex-invalid",
+      open: async (page) => {
+        await page.locator(".ProseMirror").click();
+        await page.keyboard.press("Control+R");
+        await page.getByRole("button", { name: "正規表現で探す" }).click();
+        await page.getByPlaceholder("このメモの中を検索").fill("(\\d+");
+      },
+      close: async (page) => {
+        await page.getByRole("button", { name: "正規表現で探す" }).click();
+        await page.keyboard.press("Escape");
       },
     },
     { name: "note-actions-menu", open: openEditorMoreMenu },
+    {
+      name: "page-align-right",
+      open: async (page) => {
+        await openEditorMoreMenu(page);
+        await page.getByRole("group", { name: "本文の配置" }).getByRole("button", { name: "右寄せ" }).click();
+      },
+      close: async (page) => {
+        await openEditorMoreMenu(page);
+        await page.getByRole("group", { name: "本文の配置" }).getByRole("button", { name: "既定" }).click();
+      },
+    },
     {
       name: "note-history",
       open: async (page) => { await openEditorMoreMenu(page); await page.getByRole("menuitem", { name: "履歴" }).click(); },
@@ -288,6 +312,24 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       open: (page) => openSidebarNoteMenu(page, "読みたい本"),
     },
     { name: "notebook-menu", open: (page) => openNotebookMenu(page, "仕事") },
+    {
+      // ドラッグの途中。札（setDragImage）は画面の撮影に写らないので、元の行と落とし先の光り方だけを撮る。
+      name: "dragging-note",
+      open: async (page) => {
+        const source = page.locator(".tree-note", { hasText: "読みたい本" }).first();
+        const target = page.locator(".tree-note", { hasText: "沖縄旅行の持ち物" }).first();
+        await source.hover();
+        await page.mouse.down();
+        const box = await target.boundingBox();
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 8 });
+        await page.locator(".view-group.drop-target").waitFor();
+      },
+      close: async (page) => {
+        // 落とさずに、左の列の外で離す（メモは動かさない）。
+        await page.mouse.move(900, 400, { steps: 4 });
+        await page.mouse.up();
+      },
+    },
     {
       name: "confirm-dialog",
       open: async (page) => {
@@ -327,11 +369,15 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
     },
     {
       name: "command-palette",
-      open: async (page) => { await openRichNote(page); await page.keyboard.press("Control+Alt+K"); await page.getByRole("dialog").waitFor(); },
+      open: async (page) => { await openRichNote(page); await page.keyboard.press("Control+K"); await page.getByRole("dialog").waitFor(); },
+    },
+    {
+      name: "command-palette-everything",
+      open: async (page) => { await page.keyboard.press("Control+K"); await page.getByRole("dialog").waitFor(); await page.keyboard.type("の"); },
     },
     {
       name: "command-palette-commands",
-      open: async (page) => { await page.keyboard.press("Control+Alt+K"); await page.getByRole("dialog").waitFor(); await page.keyboard.type(">"); },
+      open: async (page) => { await page.keyboard.press("Control+K"); await page.getByRole("dialog").waitFor(); await page.keyboard.type(">"); },
     },
     { name: "graph", open: async (page) => { await page.keyboard.press("Control+Alt+G"); await page.waitForTimeout(800); } },
     {
@@ -528,6 +574,16 @@ export function PHONE_SCREENS({ baseUrl, passphrase }) {
       },
     },
     { name: "phone-slash-menu", open: (page) => openSlashMenu(page), close: closeSlashMenu },
+    {
+      name: "phone-find-and-replace",
+      open: async (page) => {
+        await openEditorMoreMenu(page);
+        await page.getByRole("menuitem", { name: "メモの中を検索" }).click();
+        await page.getByPlaceholder("このメモの中を検索").fill("の");
+        await page.getByRole("button", { name: "置換の欄を出す" }).click();
+      },
+      close: async (page) => { await page.locator(".find-bar").getByRole("button", { name: "閉じる" }).click(); },
+    },
     {
       name: "phone-note-actions-menu",
       open: openEditorMoreMenu,
