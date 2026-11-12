@@ -1,6 +1,7 @@
 // コマンドパレットで探せるもの（メモ・ノートブック・タグ・設定の項目・操作）と、打った言葉での絞り込み。
 
 import { excerptAt } from "../../core/notes/textExcerpt";
+import { containsAllWords, searchWordsOf } from "../shared/searchWords";
 
 // create は、打った言葉を題にして新しいメモを作る項目（候補からではなく、パレットが最後に足す）。
 export type PaletteItemKind = "note" | "notebook" | "tag" | "setting" | "command" | "create";
@@ -31,15 +32,6 @@ const MAX_ITEMS_PER_KIND: Record<PaletteItemKind, number> = { note: 20, notebook
 // 何も打っていないときに並べる、最近のメモの件数。
 const MAX_RECENT_NOTES = 30;
 
-function wordsOf(query: string): string[] {
-  return query.toLocaleLowerCase().split(/\s+/).filter((word) => word !== "");
-}
-
-function containsAll(text: string, words: string[]): boolean {
-  const haystack = text.toLocaleLowerCase();
-  return words.every((word) => haystack.includes(word));
-}
-
 // 本文の中の、最初の言葉が当たった所の前後を 1 行にして出す。
 function excerptAround(text: string, word: string): string {
   const index = text.toLocaleLowerCase().indexOf(word);
@@ -52,19 +44,19 @@ function byNewest(left: PaletteCandidate, right: PaletteCandidate): number {
 
 export function searchPalette(candidates: PaletteCandidate[], query: string): PaletteItem[] {
   if (query.startsWith(COMMAND_PREFIX)) {
-    const words = wordsOf(query.slice(COMMAND_PREFIX.length));
-    return candidates.filter((candidate) => candidate.kind === "command" && containsAll(candidate.label, words));
+    const words = searchWordsOf(query.slice(COMMAND_PREFIX.length));
+    return candidates.filter((candidate) => candidate.kind === "command" && containsAllWords(candidate.label, words));
   }
-  const words = wordsOf(query);
+  const words = searchWordsOf(query);
   if (words.length === 0) {
     return candidates.filter((candidate) => candidate.kind === "note").sort(byNewest).slice(0, MAX_RECENT_NOTES);
   }
   return PALETTE_KIND_ORDER.flatMap((kind) => {
     const ofKind = candidates.filter((candidate) => candidate.kind === kind);
     // 名前に当たったものを先に、本文などにだけ当たったものを後に並べる。
-    const byLabel = ofKind.filter((candidate) => containsAll(candidate.label, words)).sort(byNewest);
+    const byLabel = ofKind.filter((candidate) => containsAllWords(candidate.label, words)).sort(byNewest);
     const byExtraText = ofKind
-      .filter((candidate) => !containsAll(candidate.label, words) && containsAll(`${candidate.label}\n${candidate.extraText}`, words))
+      .filter((candidate) => !containsAllWords(candidate.label, words) && containsAllWords(`${candidate.label}\n${candidate.extraText}`, words))
       .sort(byNewest)
       .map((candidate) => (candidate.kind === "note" ? { ...candidate, hint: excerptAround(candidate.extraText, words[0]!) } : candidate));
     return [...byLabel, ...byExtraText].slice(0, MAX_ITEMS_PER_KIND[kind]);

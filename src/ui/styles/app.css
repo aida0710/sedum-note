@@ -522,6 +522,15 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .command-palette .palette-item-hint { margin-left: auto; color: var(--muted); font-size: var(--font-size-small); max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
 .command-palette .menu-heading:not(:first-child) { margin-top: 4px; }
 .note-picker-list { overflow-y: auto; min-height: 80px; display: flex; flex-direction: column; }
+/* ノートブックを選ぶダイアログの行（editor/NoteNotebooksDialog.tsx）。行のどこを押しても付け外しする。 */
+.notebook-choice { cursor: pointer; }
+.notebook-choice input[type="checkbox"] { width: 15px; height: 15px; flex: none; accent-color: var(--accent); }
+.notebook-choice .nav-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 絞り込みで、名前に当たった子の親として残しただけの行。 */
+.notebook-choice.ancestor-only { color: var(--muted); }
+/* フォーカスの枠は、小さなチェックボックスではなく行に出す（一覧のどこにいるかを見やすくするため）。 */
+.notebook-choice input:focus-visible { outline: none; }
+.notebook-choice:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
 .dialog.note-history { width: min(760px, 100%); max-height: min(620px, 92%); }
 .note-history .hint { color: var(--muted); font-size: var(--font-size-small); }
 .note-history-body { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 12px; min-height: 0; flex: 1; }

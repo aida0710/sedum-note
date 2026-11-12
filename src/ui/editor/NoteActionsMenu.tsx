@@ -1,7 +1,7 @@
-// メモの「…」メニュー: ピン留め、ノートブックの付け外し、本文の配置（PC だけ）、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、期限、画面分割、別のウィンドウで開く、最前面に固定、プラグインのコマンド、AI チャット、履歴、ファイルへの書き出し、印刷、ロック、ゴミ箱。
+// メモの「…」メニュー: ピン留め、ノートブックを選ぶダイアログ、本文の配置（PC だけ）、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、期限、画面分割、別のウィンドウで開く、最前面に固定、プラグインのコマンド、AI チャット、履歴、ファイルへの書き出し、印刷、ゴミ箱。
 
-import { AlarmClock, AppWindow, ArrowUpToLine, Check, Columns2, Copy, FileDown, History, ListTree, Merge, LayoutTemplate, Pin, PinOff, Printer, Puzzle, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
-import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
+import { AlarmClock, AppWindow, ArrowUpToLine, Check, Columns2, Copy, FileDown, FolderInput, History, ListTree, Merge, LayoutTemplate, Pin, PinOff, Printer, Puzzle, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
+import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { type MessageKey, translate } from "../i18n/translate";
 import type { NoteFileFormat } from "../markdown/noteFileExport";
@@ -22,8 +22,9 @@ const EXPORT_FORMATS: Array<{ format: NoteFileFormat; label: MessageKey }> = [
 type NoteActionsMenuProps = {
   anchor: HTMLElement;
   note: LiveNote;
-  notebooks: LiveNotebook[];
   repository: NoteRepository;
+  // 入れるノートブックを選ぶダイアログを開く。ノートブックが 1 つも無ければ undefined。
+  onChooseNotebooks: (() => void) | undefined;
   onFind: () => void;
   onPrint: () => void;
   onDuplicate: () => Promise<unknown>;
@@ -51,16 +52,10 @@ type NoteActionsMenuProps = {
   onClose: () => void;
 };
 
-export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, zoomTarget, onZoomIn, onSetNoteDue, onSetTaskDue, pluginCommands, onOpenInSplit, onOpenInNewWindow, onShowHistory, onExport, canChoosePageAlignment, onClose }: NoteActionsMenuProps) {
+export function NoteActionsMenu({ anchor, note, repository, onChooseNotebooks, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, zoomTarget, onZoomIn, onSetNoteDue, onSetTaskDue, pluginCommands, onOpenInSplit, onOpenInNewWindow, onShowHistory, onExport, canChoosePageAlignment, onClose }: NoteActionsMenuProps) {
   const { content } = note;
   const moveToTrash = useTrashWithUndo(repository);
   const { windowIsOnTop, toggleWindowOnTop } = useWindowOnTop();
-  const toggleNotebook = (notebookId: string) => {
-    const notebookIds = content.notebookIds.includes(notebookId)
-      ? content.notebookIds.filter((id) => id !== notebookId)
-      : [...content.notebookIds, notebookId];
-    void repository.updateNote(note.id, { notebookIds });
-  };
   const runAndClose = (action: () => Promise<unknown>) => () => {
     onClose();
     void action();
@@ -71,17 +66,10 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
         {content.pinned ? <PinOff size={15} /> : <Pin size={15} />}
         {translate(content.pinned ? "editor.unpin" : "editor.pin")}
       </button>
-      {notebooks.length > 0 && (
-        <>
-          <div className="menu-separator" />
-          <div className="menu-heading">{translate("editor.notebooks")}</div>
-          {notebooks.map((notebook) => (
-            <button key={notebook.id} className="menu-item" role="menuitemcheckbox" aria-checked={content.notebookIds.includes(notebook.id)} onClick={() => toggleNotebook(notebook.id)}>
-              <span className="nav-label">{notebook.content.name}</span>
-              {content.notebookIds.includes(notebook.id) && <Check size={15} className="menu-check" />}
-            </button>
-          ))}
-        </>
+      {onChooseNotebooks && (
+        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onChooseNotebooks(); }}>
+          <FolderInput size={15} />{translate("editor.chooseNotebooks")}
+        </button>
       )}
       {canChoosePageAlignment && (
         <>

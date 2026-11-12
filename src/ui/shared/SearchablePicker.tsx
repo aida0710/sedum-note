@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { useState } from "react";
 import { translate } from "../i18n/translate";
 import { ModalDialog } from "./ModalDialog";
+import { containsAllWords, searchWordsOf } from "./searchWords";
 
 // 一度に並べる件数。これより多いときは検索で絞ってもらう。
 const MAX_LISTED_CHOICES = 50;
@@ -26,8 +27,8 @@ type SearchablePickerProps = {
 
 export function SearchablePicker({ title, description, choices, searchPlaceholder, emptyMessage, onPick, onCancel }: SearchablePickerProps) {
   const [searchText, setSearchText] = useState("");
-  const words = searchText.toLocaleLowerCase().split(/\s+/).filter((word) => word !== "");
-  const listed = choices.filter((choice) => words.every((word) => choice.label.toLocaleLowerCase().includes(word))).slice(0, MAX_LISTED_CHOICES);
+  const words = searchWordsOf(searchText);
+  const listed = choices.filter((choice) => containsAllWords(choice.label, words)).slice(0, MAX_LISTED_CHOICES);
   return (
     <ModalDialog label={title} title={title} description={description} className="note-picker" onClose={onCancel}>
       <label className="sidebar-search">

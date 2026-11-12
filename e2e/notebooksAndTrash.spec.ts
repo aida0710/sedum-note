@@ -1,5 +1,25 @@
-import { expect, test } from "@playwright/test";
-import { addNotebookOnDesktop, createNoteOnDesktop, openSettingsPage, startLocalVault } from "./devices";
+import { expect, type Page, test } from "@playwright/test";
+import { addNotebookOnDesktop, createNoteOnDesktop, openSettingsPage, PHONE_VIEWPORT, startLocalVault } from "./devices";
+
+function notebookRow(page: Page, name: string) {
+  return page.locator(".nav-row", { has: page.locator(".nav", { hasText: name }) });
+}
+
+// 開いているメモの「…」から、入れるノートブックを選ぶダイアログを開く（PC は上のバー、スマホは上の行の「…」）。
+async function openNotebookPicker(page: Page) {
+  await page.locator(".editor-bar, .phone-top").getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "ノートブックを選ぶ" }).click();
+  return page.getByRole("dialog", { name: "入れるノートブックを選ぶ" });
+}
+
+// メモの上に並ぶ、入っているノートブックの印（タグなどのチップは除く）。
+function notebookChipsOfNote(page: Page) {
+  return page.locator(".document-meta .chip", { has: page.locator(".dot, .notebook-icon") });
+}
+
+async function sortedTexts(chips: ReturnType<typeof notebookChipsOfNote>) {
+  return (await chips.allTextContents()).sort();
+}
 
 test("ノートブックの色とアイコンを選ぶと、左の列の印が変わり、開き直しても保たれる", async ({ page }) => {
   await startLocalVault(page);
@@ -132,4 +152,135 @@ test("データベース表示で、ノートブックのメモをプロパテ�
   await expect(database.getByRole("radio", { name: "ボード" })).toBeChecked();
   await database.getByRole("region", { name: "読了" }).locator(".database-card").click();
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("こころ");
+});
+
+test("メモの「…」の「ノートブックを選ぶ」では、入っているノートブックに印が付いた一覧が入れ子の字下げつきで開き、複数に入れたり全部外したりできる", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "仕事");
+  await addNotebookOnDesktop(page, "旅行");
+  await notebookRow(page, "仕事").hover();
+  await notebookRow(page, "仕事").getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "中にノートブックを追加" }).click();
+  await page.getByPlaceholder("ノートブックの名前").fill("会議");
+  await page.getByPlaceholder("ノートブックの名前").press("Enter");
+  // 「旅行」を開いて作ったメモは、「旅行」に入る。
+  await notebookRow(page, "旅行").locator(".nav").click();
+  await createNoteOnDesktop(page, "持ち物");
+  const chips = notebookChipsOfNote(page);
+  await expect(chips).toHaveText(["旅行"]);
+
+  const dialog = await openNotebookPicker(page);
+  const checkboxOf = (name: string) => dialog.getByRole("checkbox", { name, exact: true });
+  await expect(dialog.locator(".notebook-choice")).toHaveText(["仕事", "会議", "旅行"]);
+  await expect(checkboxOf("旅行")).toBeChecked();
+  await expect(checkboxOf("仕事")).not.toBeChecked();
+  await expect(checkboxOf("会議")).not.toBeChecked();
+  // 子は親より右に字下げする。
+  const parentLeft = (await checkboxOf("仕事").boundingBox())!.x;
+  const childLeft = (await checkboxOf("会議").boundingBox())!.x;
+  expect(childLeft).toBeGreaterThan(parentLeft);
+
+  // 押すとその場で入り、メモの上の印も変わる。
+  await checkboxOf("会議").check();
+  await checkboxOf("仕事").check();
+  await expect.poll(() => sortedTexts(chips)).toEqual(["仕事", "会議", "旅行"].sort());
+
+  // 名前で絞り込むと、当たった子の親も残す。
+  const search = dialog.getByPlaceholder("ノートブックを名前で絞り込む");
+  await search.fill("会議");
+  await expect(dialog.locator(".notebook-choice")).toHaveText(["仕事", "会議"]);
+  await search.fill("無い名前");
+  await expect(dialog.getByText("当てはまるノートブックがありません")).toBeVisible();
+  await search.fill("");
+
+  // 全部外すと、どのノートブックにも入っていないメモになる。
+  for (const name of ["仕事", "会議", "旅行"]) {
+    await checkboxOf(name).uncheck();
+  }
+  await expect(chips).toHaveCount(0);
+  await dialog.getByRole("button", { name: "閉じる" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(notebookRow(page, "旅行").locator(".count")).toHaveText("0");
+
+  // 開き直すと、今の状態（どこにも入っていない）で開く。
+  const reopened = await openNotebookPicker(page);
+  await expect(reopened.getByRole("checkbox", { checked: true })).toHaveCount(0);
+});
+
+test("ノートブックを選ぶダイアログは、キーボードだけで絞り込み・付け外し・閉じるができる", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "仕事");
+  await addNotebookOnDesktop(page, "旅行");
+  await notebookRow(page, "すべてのメモ").locator(".nav").click();
+  await createNoteOnDesktop(page, "持ち物");
+
+  const dialog = await openNotebookPicker(page);
+  const search = dialog.getByPlaceholder("ノートブックを名前で絞り込む");
+  const travel = dialog.getByRole("checkbox", { name: "旅行", exact: true });
+  await expect(search).toBeFocused();
+  await page.keyboard.type("旅");
+  await page.keyboard.press("Tab");
+  await expect(travel).toBeFocused();
+  // Enter でも Space でも付け外しする。
+  await page.keyboard.press("Enter");
+  await expect(travel).toBeChecked();
+  await page.keyboard.press("Space");
+  await expect(travel).not.toBeChecked();
+  await page.keyboard.press("Enter");
+  await expect(travel).toBeChecked();
+
+  // 絞り込みを消すと、全部のノートブックを Tab で順にたどり、最後に「閉じる」へ移る。
+  await page.keyboard.press("Shift+Tab");
+  await expect(search).toBeFocused();
+  await page.keyboard.press("Control+A");
+  await page.keyboard.press("Backspace");
+  await page.keyboard.press("Tab");
+  await expect(dialog.getByRole("checkbox", { name: "仕事", exact: true })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(travel).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(dialog.getByRole("button", { name: "閉じる" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(notebookChipsOfNote(page)).toHaveText(["旅行"]);
+});
+
+test("ノートブックが多くても、選ぶダイアログは画面の中に収まって一覧だけを送り、スマホの幅でも横にはみ出さない", async ({ page }) => {
+  await startLocalVault(page);
+  const longName = "とても長い名前のノートブック".repeat(4);
+  const names = [...Array.from({ length: 30 }, (_, index) => `ノート ${String(index + 1).padStart(2, "0")}`), longName];
+  for (const name of names) {
+    await addNotebookOnDesktop(page, name);
+  }
+  await notebookRow(page, "すべてのメモ").locator(".nav").click();
+  await createNoteOnDesktop(page, "持ち物");
+
+  const expectDialogFitsViewport = async () => {
+    const dialog = await openNotebookPicker(page);
+    const viewport = page.viewportSize()!;
+    const dialogBox = (await dialog.boundingBox())!;
+    expect(dialogBox.y).toBeGreaterThanOrEqual(0);
+    expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(viewport.height);
+    expect(dialogBox.x).toBeGreaterThanOrEqual(0);
+    expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(viewport.width);
+    await expect(dialog.getByRole("button", { name: "閉じる" })).toBeInViewport();
+    // 一覧は枠の中で送る。
+    expect(await dialog.locator(".note-picker-list").evaluate((list) => list.scrollHeight > list.clientHeight)).toBe(true);
+    // 長い名前は行の中で省略し、行も一覧も横にはみ出さない。
+    const longRow = dialog.locator(".notebook-choice", { hasText: "とても長い名前" });
+    expect(await longRow.evaluate((row) => row.scrollWidth <= row.clientWidth)).toBe(true);
+    expect(await longRow.locator(".nav-label").evaluate((label) => label.scrollWidth > label.clientWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    return dialog;
+  };
+
+  const desktopDialog = await expectDialogFitsViewport();
+  // 一覧の下の方のノートブックも、送って選べる。
+  await desktopDialog.getByRole("checkbox", { name: "ノート 30", exact: true }).check();
+  await expect(notebookChipsOfNote(page)).toHaveText(["ノート 30"]);
+  await page.keyboard.press("Escape");
+
+  await page.setViewportSize(PHONE_VIEWPORT);
+  const phoneDialog = await expectDialogFitsViewport();
+  await expect(phoneDialog.getByRole("checkbox", { name: "ノート 30", exact: true })).toBeChecked();
 });

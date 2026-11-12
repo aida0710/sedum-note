@@ -33,6 +33,7 @@ import { FindBar, type FindRequest } from "./FindBar";
 import { createEditorExtensions } from "./editorExtensions";
 import { NoteActionsMenu } from "./NoteActionsMenu";
 import { NoteHistoryDialog } from "./NoteHistoryDialog";
+import { NoteNotebooksDialog } from "./NoteNotebooksDialog";
 import { NotePicker } from "./NotePicker";
 import { BlockPicker } from "./BlockPicker";
 import { deleteCapturedPhotos } from "../platform/capturedPhotos";
@@ -90,6 +91,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   // ブロックを選んでいる途中なら、選んだあとに入れるもの（リンクか埋め込み）。
   const [pickingBlockFor, setPickingBlockFor] = useState<"link" | "embed" | null>(null);
   const [pickingNoteToMerge, setPickingNoteToMerge] = useState(false);
+  const [choosingNotebooks, setChoosingNotebooks] = useState(false);
   const [showingHistory, setShowingHistory] = useState(false);
   // 目次。PC では本文の横に出したままにでき（設定に覚える）、スマホではメニューで出す。
   const { showOutline, pageAlignment: defaultPageAlignment } = useDevicePreferences();
@@ -389,7 +391,8 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
           onCancel={() => setPickingNoteToMerge(false)} />
       )}
       {menuAnchor && (
-        <NoteActionsMenu anchor={menuAnchor} note={note} notebooks={notebooks} repository={repository}
+        <NoteActionsMenu anchor={menuAnchor} note={note} repository={repository}
+          onChooseNotebooks={notebooks.length > 0 ? () => setChoosingNotebooks(true) : undefined}
           onFind={() => setFindBarOpen(true)}
           onPrint={() => void print.run(undefined)}
           onDuplicate={async () => openNote((await repository.duplicateNote(noteId, translate("editor.duplicateTitle", { title: note.content.title || translate("sidebar.untitled") }))).id)}
@@ -408,6 +411,9 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
           onSetTaskDue={editor && isCursorInTaskItem(editor.state) ? () => setDueTarget("task") : undefined}
           onShowHistory={() => setShowingHistory(true)} onExport={(format) => void exportNote.run({ notes: [note], format })}
           canChoosePageAlignment={!isMobile} onClose={() => setMenuAnchor(null)} />
+      )}
+      {choosingNotebooks && (
+        <NoteNotebooksDialog note={note} notebooks={notebooks} repository={repository} onClose={() => setChoosingNotebooks(false)} />
       )}
       {dueTarget === "note" && (
         <DueDateDialog title={translate("due.dialogTitleNote")} dueAt={note.content.dueAt} onClose={() => setDueTarget(null)}
