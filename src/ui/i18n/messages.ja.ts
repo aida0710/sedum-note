@@ -348,6 +348,7 @@ export const japaneseMessages = {
   "editor.outline": "目次",
   "editor.dragBlock": "ドラッグしてブロックを動かす",
   "editor.zoomIntoItem": "この項目にズーム",
+  "editor.zoomOutOneLevel": "ズームを 1 つ上の階層へ戻す",
   "editor.zoomPath": "ズームしている項目までの道筋",
   "editor.zoomWholeNote": "全体",
   "editor.zoomEmptyItem": "（空の項目）",

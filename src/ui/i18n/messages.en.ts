@@ -350,6 +350,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "editor.outline": "Outline",
   "editor.dragBlock": "Drag to move the block",
   "editor.zoomIntoItem": "Zoom into this item",
+  "editor.zoomOutOneLevel": "Zoom out one level",
   "editor.zoomPath": "Path to the zoomed item",
   "editor.zoomWholeNote": "Whole note",
   "editor.zoomEmptyItem": "(empty item)",
