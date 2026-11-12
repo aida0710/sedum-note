@@ -30,7 +30,9 @@ export function useRememberedNoteView({ noteId, editor, scrollContainer, skipRes
     const switchedOutline = outlineOfPreviousEditor.current !== null && outlineOfPreviousEditor.current !== isOutline;
     outlineOfPreviousEditor.current = isOutline;
     const remembered = rememberedViews.get(noteId);
-    if (remembered && !skipRestore && !switchedOutline) {
+    // 開いてすぐ利用者が本文を押していたら（エディタにもうフォーカスがあれば）、その位置を優先して戻さない。
+    const userAlreadyInBody = editor.view.hasFocus();
+    if (remembered && !skipRestore && !switchedOutline && !userAlreadyInBody) {
       // 覚えた位置が、ほかのデバイスの編集で本文の外になっていることがあるので、本文の中に収める。
       const size = editor.state.doc.content.size;
       const within = (position: number) => Math.min(Math.max(position, 1), size);
