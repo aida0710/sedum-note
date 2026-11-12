@@ -21,7 +21,8 @@ html, body { height: 100%; }
 #root { position: fixed; left: 0; right: 0; top: var(--visible-top, 0px); height: var(--visible-height, 100%); }
 body { background: var(--canvas); overflow: hidden; }
 button, input, select, textarea { font: inherit; color: inherit; }
-button { border: 0; background: none; cursor: pointer; }
+/* ブラウザの既定の余白（左右 6px）を消す。残すと、アイコンより少し大きいだけのボタンで、アイコンが中央からずれる。余白の要るボタンは、自分で決める。 */
+button { border: 0; background: none; cursor: pointer; padding: 0; }
 button:disabled { cursor: default; opacity: .55; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
@@ -177,13 +178,14 @@ button:disabled { cursor: default; opacity: .55; }
 .ProseMirror h2 { font-size: 1.17em; margin: 18px 0 6px; }
 .ProseMirror h3 { font-size: 1.03em; margin: 14px 0 4px; }
 .ProseMirror li, .ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { position: relative; }
-.ProseMirror .fold-toggle { position: absolute; left: -34px; top: 0.4em; width: 16px; height: 1.3em; display: grid; place-items: center; color: var(--muted); opacity: 0; font-size: 10px; line-height: 1; }
-.ProseMirror .fold-toggle::before { content: "▼"; }
+/* 印の高さを 1 行ぶん（文字の行の高さ）にして、その中央に置く。こうすると、行の文字と縦の中心がそろう。lh を知らないブラウザでは、本文の行の高さに近い 1.7em にする。 */
+.ProseMirror .fold-toggle { position: absolute; left: -34px; top: 0; width: 16px; height: 1.7em; height: 1lh; display: grid; place-items: center; color: var(--muted); opacity: 0; }
+.ProseMirror .fold-toggle::before { content: "▼"; font-size: 10px; line-height: 1; }
 .ProseMirror .fold-toggle.collapsed { opacity: 1; }
 .ProseMirror .fold-toggle.collapsed::before { content: "▶"; }
 .ProseMirror li:hover > .fold-toggle, .ProseMirror li:hover > div > .fold-toggle, .ProseMirror h1:hover > .fold-toggle, .ProseMirror h2:hover > .fold-toggle, .ProseMirror h3:hover > .fold-toggle,
 .ProseMirror h4:hover > .fold-toggle, .ProseMirror h5:hover > .fold-toggle, .ProseMirror h6:hover > .fold-toggle { opacity: 1; }
-.ProseMirror h1 > .fold-toggle, .ProseMirror h2 > .fold-toggle, .ProseMirror h3 > .fold-toggle, .ProseMirror h4 > .fold-toggle, .ProseMirror h5 > .fold-toggle, .ProseMirror h6 > .fold-toggle { left: -20px; top: 0; height: 100%; }
+.ProseMirror h1 > .fold-toggle, .ProseMirror h2 > .fold-toggle, .ProseMirror h3 > .fold-toggle, .ProseMirror h4 > .fold-toggle, .ProseMirror h5 > .fold-toggle, .ProseMirror h6 > .fold-toggle { left: -20px; }
 .ProseMirror li.collapsed-item > ul, .ProseMirror li.collapsed-item > ol, .ProseMirror li.collapsed-item > div > ul, .ProseMirror li.collapsed-item > div > ol { display: none; }
 .ProseMirror .folded-block { display: none; }
 .ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { font-size: 1em; margin: 12px 0 4px; }
@@ -192,7 +194,8 @@ button:disabled { cursor: default; opacity: .55; }
 .ProseMirror ul, .ProseMirror ol { padding-left: 22px; }
 .ProseMirror ul[data-type="taskList"] { list-style: none; padding-left: 0; }
 .ProseMirror ul[data-type="taskList"] li { display: flex; gap: 8px; align-items: flex-start; }
-.ProseMirror ul[data-type="taskList"] li > label { margin-top: 5px; flex: none; }
+/* チェックボックスを、1 行ぶんの高さの中央に置く（行の文字と縦の中心をそろえる）。lh を知らないブラウザでは、本文の行の高さに近い 1.7em にする。 */
+.ProseMirror ul[data-type="taskList"] li > label { flex: none; display: flex; align-items: center; height: 1.7em; height: 1lh; }
 .ProseMirror ul[data-type="taskList"] li > label input { width: 15px; height: 15px; accent-color: var(--accent); }
 .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div { color: var(--muted); text-decoration: line-through; }
 .ProseMirror ul[data-type="taskList"] li > div { flex: 1; }
@@ -349,10 +352,13 @@ kbd { font: inherit; font-size: 12px; background: var(--tag); border: 1px solid 
 .qr-code-scanner-video { width: 100%; max-height: 60vh; border-radius: 8px; background: #000; object-fit: contain; }
 .found-folders { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .found-folders .hint { flex-basis: 100%; }
-.primary-button { background: var(--accent); color: var(--on-accent); border-radius: 8px; height: 36px; padding: 0 16px; font-weight: 600; }
-.secondary-button { border: 1px solid var(--line); border-radius: 8px; height: 32px; padding: 0 12px; background: var(--panel); }
+.primary-button { background: var(--accent); color: var(--on-accent); border-radius: 8px; height: 36px; padding: 0 16px; font-weight: 600; white-space: nowrap; }
+.secondary-button { border: 1px solid var(--line); border-radius: 8px; height: 32px; padding: 0 12px; background: var(--panel); white-space: nowrap; }
 .danger-button { color: var(--danger); border: 1px solid var(--line); border-radius: 8px; height: 32px; padding: 0 12px; }
-.form-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+/* ボタンが多くて 1 行に収まらないときは、ボタンの中で文字を折らずに、行を分ける。 */
+/* アイコンと文字を並べたボタンで、アイコンが文字より上にずれないよう、縦の中央でそろえる。 */
+.primary-button, .secondary-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.form-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
 
 /* 設定 */
 .settings { padding: 28px 56px 80px; max-width: 860px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 28px; }
