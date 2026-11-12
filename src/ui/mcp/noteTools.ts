@@ -6,7 +6,7 @@
 
 import { concealSummary, lockedNoteIds } from "../../core/notes/noteLock";
 import { McpToolError, type McpTool } from "../../core/mcp/mcpServer";
-import { buildNotebookTree, countTags, selectNotes, summarizeNote, type NoteView } from "../../core/notes/noteQueries";
+import { buildNotebookTree, countTags, notebookNameLookup, selectNotes, summarizeNote, type NoteView } from "../../core/notes/noteQueries";
 import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteChanges, NoteRepository } from "../../core/notes/noteRepository";
 import { appendMarkdownToBody } from "../markdown/appendMarkdown";
@@ -144,7 +144,9 @@ export function createNoteTools(repository: NoteRepository, options: NoteToolOpt
         const limit = Math.min(MAX_SEARCH_LIMIT, Math.max(1, Number(toolArguments.limit ?? DEFAULT_SEARCH_LIMIT) || DEFAULT_SEARCH_LIMIT));
         const locked = lockedIds();
         const summaries = repository.notes().map(summarizeNote).map((summary) => (locked.has(summary.note.id) ? concealSummary(summary) : summary));
-        const found = selectNotes(summaries, { view, searchText: optionalString(toolArguments, "query") ?? "" });
+        const found = selectNotes(summaries, {
+          view, searchText: optionalString(toolArguments, "query") ?? "", notebookNameOf: notebookNameLookup(repository.notebooks()),
+        });
         return {
           totalCount: found.length,
           notes: found.slice(0, limit).map((summary) => ({

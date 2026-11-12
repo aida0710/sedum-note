@@ -22,6 +22,7 @@ import { NotebookDatabaseView } from "./NotebookDatabaseView";
 import { NoteGraphView } from "./NoteGraphView";
 import { GRAPH_TAB, notebookIdOfDatabaseTab, SETTINGS_TAB } from "./useWorkspaceNavigation";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
+import { parseNoteSearchQuery } from "../../core/notes/noteSearchQuery";
 import { NoteQuerySourceContext } from "../editor/noteQuerySource";
 import { AiChat } from "../ai/AiChat";
 import { McpSectionSlot } from "../settings/mcpSectionSlot";
@@ -125,7 +126,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
             <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
               <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, activeNote.id)}
               repository={repository} isMobile={false}
-              highlightedText={navigation.searchText} findRequest={navigation.findInNoteRequest} />
+              highlightedText={parseNoteSearchQuery(navigation.searchText).words.join(" ")} findRequest={navigation.findInNoteRequest} />
             </NoteQuerySourceContext.Provider>
           </NoteLinkTargetsContext.Provider>
         )}

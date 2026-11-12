@@ -42,6 +42,24 @@ test("一覧の検索で開いたメモは、探した言葉に色が付く。�
   await expect(page.locator(".ProseMirror .search-match")).toHaveText("持ち物");
 });
 
+test("メモ全体の検索は、#タグ と notebook:名前 で絞り込める。本文の色付けは、絞り込みの書き方を除いた言葉にだけ付く", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "ノートブックを追加" }).click();
+  await page.getByPlaceholder("ノートブックの名前").fill("仕事");
+  await page.getByPlaceholder("ノートブックの名前").press("Enter");
+  await newNote(page, "家の予算", "予算の見直し #todo");
+  await page.getByRole("button", { name: /^仕事/ }).click();
+  await newNote(page, "会議の予算", "予算を決める #todo");
+  await newNote(page, "会議の記録", "予算の話は来週");
+  await page.locator(".nav", { hasText: "すべてのメモ" }).click();
+
+  await page.keyboard.press("Control+Shift+f");
+  await page.getByPlaceholder("メモを検索").fill("予算 #todo notebook:仕事");
+  await expect(page.getByText("検索結果（1件）")).toBeVisible();
+  await page.locator(".sidebar .tree-note", { hasText: "会議の予算" }).click();
+  await expect(page.locator(".ProseMirror .search-match")).toHaveText(["予算"]);
+});
+
 test("ショートカットで、新しいメモ・タブの切り替え・タブを閉じる・設定ができる。ダイアログが開いている間は効かない", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "1 つ目", "");

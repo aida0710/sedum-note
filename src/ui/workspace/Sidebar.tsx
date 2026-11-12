@@ -3,7 +3,7 @@
 
 import { Bookmark, CalendarDays, FileText, Hash, LayoutTemplate, Maximize2, Plus, Search, Star, Trash2, Waypoints, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { buildNotebookTree, countTags, type NoteView, selectNotes } from "../../core/notes/noteQueries";
+import { buildNotebookTree, countTags, notebookNameLookup, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
@@ -107,7 +107,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
       {searchOpen && (
         <label className="sidebar-search">
           <Search size={14} />
-          <input ref={searchInput} autoFocus value={navigation.searchText} placeholder={translate("sidebar.searchPlaceholder")}
+          <input ref={searchInput} autoFocus value={navigation.searchText} placeholder={translate("sidebar.searchPlaceholder")} title={translate("sidebar.searchSyntax")}
             onChange={(event) => navigation.setSearchText(event.target.value)}
             onKeyDown={(event) => event.key === "Escape" && !isImeKeyEvent(event.nativeEvent) && closeSearch()} />
         </label>
@@ -125,7 +125,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
               </button>
             )}
             <button className="search-scope" onClick={() => void saveSearch()}><Bookmark size={13} />{translate("sidebar.saveSearch")}</button>
-            <SearchResults summaries={selectNotes(summaries, { view: searchView, searchText: navigation.searchText, sortOrder: noteSortOrder })}
+            <SearchResults summaries={selectNotes(summaries, { view: searchView, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNameOf: notebookNameLookup(snapshot.notebooks) })}
               view={searchView} navigation={navigation} repository={repository} />
           </>
         ) : (

@@ -116,6 +116,7 @@ export const japaneseMessages = {
 
   "sidebar.search": "検索",
   "sidebar.searchPlaceholder": "メモを検索",
+  "sidebar.searchSyntax": "題と本文から探します。#タグ でタグ、notebook:名前 でノートブックに絞り込めます。空白を含む言葉は \"…\" で囲みます。",
   "sidebar.saveSearch": "この検索を保存",
   "sidebar.savedSearches": "保存した検索",
   "sidebar.saveSearchPrompt": "保存する検索の名前",

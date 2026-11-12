@@ -118,6 +118,7 @@ export const englishMessages: Record<MessageKey, string> = {
 
   "sidebar.search": "Search",
   "sidebar.searchPlaceholder": "Search notes",
+  "sidebar.searchSyntax": "Searches titles and bodies. Narrow with #tag or notebook:name. Wrap words with spaces in \"…\".",
   "sidebar.saveSearch": "Save this search",
   "sidebar.savedSearches": "Saved searches",
   "sidebar.saveSearchPrompt": "Name for the saved search",

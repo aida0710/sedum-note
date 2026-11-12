@@ -1,6 +1,7 @@
 // 画面に並べるメモの絞り込みと並べ替え。画面の部品から切り離して試験できるようにする。
 
 import { bodyLinkedNoteIds, bodyPlainText, plainTextHashtags } from "./bodyText";
+import { matchesNoteSearch, parseNoteSearchQuery } from "./noteSearchQuery";
 import type { LiveNote, LiveNotebook } from "./noteRecords";
 
 export type NoteView =
@@ -57,10 +58,6 @@ function belongsToView(summary: NoteSummary, view: NoteView): boolean {
   }
 }
 
-function matchesSearch(summary: NoteSummary, words: string[]): boolean {
-  const haystack = `${summary.note.content.title}\n${summary.plainText}`.toLocaleLowerCase();
-  return words.every((word) => haystack.includes(word));
-}
 
 export const NOTE_SORT_ORDERS = ["updatedAt", "createdAt", "title"] as const;
 // 一覧の並び順。updatedAt と createdAt は新しい順、title は名前の順。
@@ -81,15 +78,26 @@ function compareBySortOrder(left: LiveNote, right: LiveNote, sortOrder: NoteSort
 
 export type NoteSelection = {
   view: NoteView;
+  // 検索の言葉。#タグ や notebook:名前 の絞り込みも書ける（noteSearchQuery.ts）。
   searchText?: string;
   sortOrder?: NoteSortOrder;
+  // notebook:名前 の絞り込みで、ノートブックの ID から名前を引く。渡さなければ、notebook: に当たるメモは無い。
+  notebookNameOf?: (notebookId: string) => string | undefined;
 };
 
+// ノートブックの一覧から、ID で名前を引く関数を作る（selectNotes の notebookNameOf に渡す）。
+export function notebookNameLookup(notebooks: Array<{ id: string; content: { name: string } }>): (notebookId: string) => string | undefined {
+  const names = new Map(notebooks.map((notebook) => [notebook.id, notebook.content.name]));
+  return (notebookId) => names.get(notebookId);
+}
+
 // ピン留めを先に、残りは選んだ並び順で返す。
-export function selectNotes(summaries: NoteSummary[], { view, searchText = "", sortOrder = "updatedAt" }: NoteSelection): NoteSummary[] {
-  const words = searchText.toLocaleLowerCase().split(/\s+/).filter((word) => word !== "");
+export function selectNotes(summaries: NoteSummary[], { view, searchText = "", sortOrder = "updatedAt", notebookNameOf = () => undefined }: NoteSelection): NoteSummary[] {
+  const query = parseNoteSearchQuery(searchText);
   return summaries
-    .filter((summary) => belongsToView(summary, view) && matchesSearch(summary, words))
+    .filter((summary) => belongsToView(summary, view) && matchesNoteSearch({
+      title: summary.note.content.title, plainText: summary.plainText, tags: summary.tags, notebookIds: summary.note.content.notebookIds,
+    }, query, notebookNameOf))
     .sort((left, right) => {
       if (left.note.content.pinned !== right.note.content.pinned) {
         return left.note.content.pinned ? -1 : 1;
