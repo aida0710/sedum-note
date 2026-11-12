@@ -26,6 +26,11 @@ async function bodyFromMarkdown(markdown: string, context: MarkdownImportContext
 }
 
 describe("Markdown の取り込み", () => {
+  it("本文に無い深さの見出しは、一番深い見出しにする", async () => {
+    const body = await bodyFromMarkdown("#### 4 段目\n\n###### 6 段目\n", importContext({}));
+    expect(bodyToMarkdown(body, exportContext)).toBe("### 4 段目\n\n### 6 段目");
+  });
+
   it("見出し・書式・チェックリスト・表・コードを本文にする", async () => {
     const body = await bodyFromMarkdown("# 見出し\n\n本文 **太字**\n\n- [x] 済み\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n```js\nconst x = 1;\n```\n", importContext({}));
     expect(bodyPlainText(body)).toBe("見出し\n本文 太字\n済み\na\nb\n1\n2\nconst x = 1;");

@@ -224,3 +224,58 @@ test("メモをテンプレートにすると「テンプレート」に並び�
   await page.keyboard.press("Enter");
   await expect(page.locator(".ProseMirror h2")).toHaveText("決まったこと");
 });
+
+async function pasteText(page: Page, contents: Record<string, string>): Promise<void> {
+  await page.locator(".ProseMirror").evaluate((editor, clipboardContents) => {
+    const transfer = new DataTransfer();
+    for (const [type, value] of Object.entries(clipboardContents)) {
+      transfer.setData(type, value);
+    }
+    editor.dispatchEvent(new ClipboardEvent("paste", { clipboardData: transfer, bubbles: true, cancelable: true }));
+  }, contents);
+}
+
+test("Markdown の文字を貼り付けると、見出し・リスト・表・コードになる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "貼り付けのメモ");
+  await page.locator(".ProseMirror").click();
+  await pasteText(page, { "text/plain": "# 題名\n\n- 牛乳\n- [x] 卵\n\n| 品目 | 数 |\n|---|---|\n| 紙 | 2 |\n\n```js\nconst x = 1;\n```\n\n#### 小さい見出し\n" });
+
+  const body = page.locator(".ProseMirror");
+  await expect(body.locator("h1")).toHaveText("題名");
+  await expect(body.locator("li").first()).toHaveText("牛乳");
+  await expect(body.locator('li[data-checked="true"] p')).toHaveText("卵");
+  expect(await tableShape(page)).toEqual([["品目", "数"], ["紙", "2"]]);
+  await expect(body.locator("pre code")).toHaveText("const x = 1;");
+  // 本文の見出しは 3 段までなので、それより深い見出しは 3 段目になる。
+  await expect(body.locator("h3")).toHaveText("小さい見出し");
+  await expect(body).not.toContainText("# 題名");
+});
+
+test("行の途中に太字の Markdown を貼り付けても、行が分かれない", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "行の途中のメモ");
+  await page.locator(".ProseMirror").click();
+  await page.keyboard.type("前の文字 ");
+  await pasteText(page, { "text/plain": "ここが **大事** です" });
+
+  const paragraphs = page.locator(".ProseMirror p");
+  await expect(paragraphs).toHaveCount(1);
+  await expect(paragraphs.first()).toHaveText("前の文字 ここが 大事 です");
+  await expect(paragraphs.first().locator("strong")).toHaveText("大事");
+});
+
+test("コードの中と、Markdown の書き方が無い文字は、そのままの文字で貼り付く", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "そのまま貼るメモ");
+  await page.locator(".ProseMirror").click();
+  await pasteText(page, { "text/plain": "#買い物 のメモ" });
+  await expect(page.locator(".ProseMirror p").first()).toHaveText("#買い物 のメモ");
+
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("```");
+  await page.keyboard.press("Enter");
+  await pasteText(page, { "text/plain": "# これは見出しにしない" });
+  await expect(page.locator(".ProseMirror pre code")).toHaveText("# これは見出しにしない");
+  await expect(page.locator(".ProseMirror h1")).toHaveCount(0);
+});

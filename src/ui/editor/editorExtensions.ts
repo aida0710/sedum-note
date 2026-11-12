@@ -21,11 +21,14 @@ import type { SlashMenuController } from "./slashMenuController";
 // よく使われる言語（highlight.js の common の組）だけを入れる。言語の指定が無いコードは中身から推す。
 const codeHighlighter = createLowlight(common);
 
+// 本文に入れられる見出しの段。Markdown から取り込むときは、これより深い見出しを一番深い段にする。
+export const HEADING_LEVELS = [1, 2, 3] as const;
+
 // 文書の形（ノードと書式）を決める機能。エディタのほか、Markdown との変換（ui/markdown）でも使う。
 export function documentExtensions() {
   return [
     StarterKit.configure({
-      heading: { levels: [1, 2, 3] },
+      heading: { levels: [...HEADING_LEVELS] },
       link: { openOnClick: false, autolink: true },
       // コードの色付けつきのもの（CodeBlockLowlight）に置き換える。ノード名は同じ codeBlock。
       codeBlock: false,

@@ -12,7 +12,7 @@ import type * as Y from "yjs";
 import { ATTACHMENT_FILE_NODE, ATTACHMENT_IMAGE_NODE, NOTE_LINK_NODE } from "../../core/notes/bodyText";
 import { isRandomId } from "../../core/crypto/randomId";
 import { documentSchema } from "../editor/documentSchema";
-import { documentExtensions } from "../editor/editorExtensions";
+import { documentExtensions, HEADING_LEVELS } from "../editor/editorExtensions";
 import { decodeMarkdownPath } from "./markdownFileNames";
 
 const NOTE_LINK_HREF_PREFIX = "sedum-note://note/";
@@ -87,11 +87,25 @@ export type MarkdownImportContext = {
   noteExists: (noteId: string) => boolean;
 };
 
+// Markdown を、本文に入れられるブロックの並びにする。
+export async function markdownToBodyBlocks(markdown: string, context: MarkdownImportContext): Promise<JSONContent[]> {
+  const parsed = await replaceImportedNodes(markdownManager().parse(markdown), context);
+  return mapNodes(parsed, (node) => [withSupportedHeadingLevel(node)]).content ?? [];
+}
+
+const DEEPEST_HEADING_LEVEL = Math.max(...HEADING_LEVELS);
+
+// 本文に無い深さの見出し（####以降）は、そのままだと一番大きい見出しになってしまうので、一番深い段にする。
+function withSupportedHeadingLevel(node: JSONContent): JSONContent {
+  const isTooDeep = node.type === "heading" && Number(node.attrs?.level) > DEEPEST_HEADING_LEVEL;
+  return isTooDeep ? { ...node, attrs: { ...node.attrs, level: DEEPEST_HEADING_LEVEL } } : node;
+}
+
 // Markdown を本文に入れる。本文は空にしてから入れる。
 export async function writeMarkdownToBody(markdown: string, body: Y.XmlFragment, context: MarkdownImportContext): Promise<void> {
-  const parsed = await replaceImportedNodes(markdownManager().parse(markdown), context);
+  const blocks = await markdownToBodyBlocks(markdown, context);
   // 本文は空にしない。空のままだと、開いたデバイスごとにエディタが段落を足し、マージで空の段落が重なる。
-  const document = parsed.content && parsed.content.length > 0 ? parsed : { type: "doc", content: [{ type: "paragraph" }] };
+  const document = { type: "doc", content: blocks.length > 0 ? blocks : [{ type: "paragraph" }] };
   body.delete(0, body.length);
   prosemirrorJSONToYXmlFragment(documentSchema(), document, body);
 }

@@ -1,7 +1,7 @@
 // 1 件のメモの編集画面。タイトル・タグとノートブックの表示・本文を並べ、ツールバーやメニューから開く部品
 // （添付、メモの中の検索、目次、履歴、リンク先の選択、「/」の候補）をつなぐ。それぞれの中身は別のファイルにある。
 
-import { EditorContent, type JSONContent, useEditor } from "@tiptap/react";
+import { type Editor, EditorContent, type JSONContent, useEditor } from "@tiptap/react";
 import { yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
 import { ChevronLeft, ListTree, MoreHorizontal, Star } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -26,6 +26,7 @@ import { NoteHistoryDialog } from "./NoteHistoryDialog";
 import { NoteLinkPicker } from "./NoteLinkPicker";
 import { NoteOutline } from "./NoteOutline";
 import { NoteLinkTargetsContext } from "./noteLinkTargets";
+import { insertPastedMarkdown, markdownInClipboard } from "./pastedMarkdown";
 import { SlashMenu } from "./SlashMenu";
 import { useNoteAttachments } from "./useNoteAttachments";
 import { SlashMenuController } from "./slashMenuController";
@@ -56,10 +57,28 @@ export function NoteEditor({ note, notebooks, repository, isMobile, onBack, high
   const titleInput = useRef<HTMLInputElement>(null);
   const dialogs = useDialogs();
   const attachments = useNoteAttachments(repository);
+  // 貼り付けの処理が使うエディタ。エディタを作るときに貼り付けの処理を渡すので、作ったあとに入れる。
+  const editorOfPaste = useRef<Editor | null>(null);
   const slashMenuController = useMemo(() => new SlashMenuController(), []);
   const unsyncedIds = useContext(UnsyncedRecordsContext);
   const noteId = note.id;
   const inTrash = note.content.trashedAt !== null;
+
+  const pasteMarkdown = useAsyncAction(async (markdown: string) => {
+    if (editorOfPaste.current) {
+      await insertPastedMarkdown(editorOfPaste.current, markdown, { noteExists: (id) => repository.note(id) !== undefined });
+    }
+  });
+  // 貼り付けた文字が Markdown なら書式つきで入れ、true を返す（エディタの既定の処理を止める合図）。
+  // コードの中では、書いたとおりの文字で入れたいので取り込まない。
+  const takeMarkdown = (clipboard: DataTransfer | null): boolean => {
+    const markdown = editorOfPaste.current?.isActive("codeBlock") ? null : markdownInClipboard(clipboard);
+    if (markdown === null) {
+      return false;
+    }
+    void pasteMarkdown.run(markdown);
+    return true;
+  };
 
   // 本文は、メモの Yjs の文書をエディタが直接読み書きする。保存と同期は NoteRepository が文書の
   // 変更を見て行い、ほかのデバイスの変更も同じ文書に入るので、開いたまま画面に出る。
@@ -67,11 +86,12 @@ export function NoteEditor({ note, notebooks, repository, isMobile, onBack, high
     extensions: createEditorExtensions(note.body, slashMenuController),
     editable: !inTrash,
     editorProps: {
-      handlePaste: (_view, event) => attachments.takeFiles(Array.from(event.clipboardData?.files ?? [])),
+      handlePaste: (_view, event) => attachments.takeFiles(Array.from(event.clipboardData?.files ?? [])) || takeMarkdown(event.clipboardData),
       handleDrop: (_view, event) => attachments.takeFiles(Array.from((event as DragEvent).dataTransfer?.files ?? [])),
     },
   }, [noteId]);
   attachments.editor.current = editor;
+  editorOfPaste.current = editor;
 
   const exportMarkdown = useMarkdownExport(repository);
   const print = useAsyncAction(printPage);
@@ -148,7 +168,7 @@ export function NoteEditor({ note, notebooks, repository, isMobile, onBack, high
     .map((template) => ({ id: template.id, title: template.content.title }));
   slashMenuController.actions = { pickImage, pickFile, pickNoteLink, templates, insertTemplate };
 
-  const actionError = attachments.errorMessage ?? exportMarkdown.errorMessage ?? print.errorMessage;
+  const actionError = attachments.errorMessage ?? pasteMarkdown.errorMessage ?? exportMarkdown.errorMessage ?? print.errorMessage;
   if (!editor) {
     return null;
   }
