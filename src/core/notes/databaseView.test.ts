@@ -7,7 +7,7 @@ import type { LiveNote } from "./noteRecords";
 function note(title: string, propertyValues: Record<string, PropertyValue> = {}, updatedAt = "2026-11-12T00:00:00.000Z"): LiveNote {
   return {
     id: title, kind: "note", updatedAt, revision: 0, body: new Y.Doc().getXmlFragment("body"),
-    content: { title, notebookIds: [], pinned: false, bookmarked: false, trashedAt: null, isTemplate: false, attachments: [], propertyValues, createdAt: updatedAt },
+    content: { title, notebookIds: [], pinned: false, bookmarked: false, trashedAt: null, isTemplate: false, isOutline: false, attachments: [], propertyValues, createdAt: updatedAt },
   };
 }
 

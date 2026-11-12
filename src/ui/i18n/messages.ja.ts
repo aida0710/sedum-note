@@ -340,6 +340,8 @@ export const japaneseMessages = {
   "editor.findPlaceholder": "このメモの中を検索",
   "editor.findNext": "次の当たり",
   "editor.findPrevious": "前の当たり",
+  "editor.makeOutline": "アウトライン表示にする",
+  "editor.stopBeingOutline": "ふつうの表示に戻す",
   "editor.makeTemplate": "テンプレートにする",
   "editor.stopBeingTemplate": "テンプレートをやめる",
   "editor.isTemplate": "このメモはテンプレートです",

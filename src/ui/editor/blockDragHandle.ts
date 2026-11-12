@@ -1,6 +1,6 @@
-// ブロックをドラッグして並べ替える持ち手。本文の直下のブロック（段落、見出し、リスト、表など）にマウスを乗せると、
-// 左に持ち手を出す。持ち手をつかんで動かすと、そのブロックごと移る（落とす位置の線は、エディタの既定のものが出る）。
-// マウスで使うもので、スマホの画面では出ない。
+// ブロックをドラッグして並べ替える持ち手。本文の直下のブロック（段落、見出し、表など）か、箇条書きの項目に
+// マウスを乗せると、左に持ち手を出す。持ち手をつかんで動かすと、そのブロックごと（項目は子ごと）移る
+// （落とす位置の線は、エディタの既定のものが出る）。マウスで使うもので、スマホの画面では出ない。
 
 import { Extension } from "@tiptap/core";
 import { NodeSelection, Plugin } from "@tiptap/pm/state";
@@ -11,16 +11,25 @@ import { translate } from "../i18n/translate";
 const HANDLE_OFFSET_LEFT = 50;
 const HANDLE_CLASS = "block-drag-handle";
 
-// マウスのある高さにある、本文の直下のブロックの位置。無ければ null。
-function topLevelBlockAt(view: EditorView, clientY: number): { position: number; element: HTMLElement } | null {
+const LIST_ITEM_TYPES = ["listItem", "taskItem"];
+
+// マウスの位置にある、動かせるブロックの位置。箇条書きの中なら、いちばん内側の項目。それ以外は本文の直下のブロック。無ければ null。
+function draggableBlockAt(view: EditorView, mouse: { clientX: number; clientY: number }): { position: number; element: HTMLElement } | null {
   const editorBox = view.dom.getBoundingClientRect();
-  // 左の余白にマウスがあっても拾えるよう、横は本文の中の位置で探す。
-  const found = view.posAtCoords({ left: editorBox.left + 1, top: clientY });
+  // 左の余白にマウスがあっても拾えるよう、横は本文の中に収める。
+  const left = Math.min(Math.max(mouse.clientX, editorBox.left + 1), editorBox.right - 1);
+  const found = view.posAtCoords({ left, top: mouse.clientY });
   if (!found) {
     return null;
   }
   const resolved = view.state.doc.resolve(found.pos);
-  const position = resolved.depth === 0 ? found.inside : resolved.before(1);
+  let position = resolved.depth === 0 ? found.inside : resolved.before(1);
+  for (let depth = resolved.depth; depth >= 1; depth -= 1) {
+    if (LIST_ITEM_TYPES.includes(resolved.node(depth).type.name)) {
+      position = resolved.before(depth);
+      break;
+    }
+  }
   const element = position < 0 ? null : view.nodeDOM(position);
   return element instanceof HTMLElement ? { position, element } : null;
 }
@@ -53,7 +62,11 @@ export const BlockDragHandle = Extension.create({
           let hoveredPosition: number | null = null;
 
           const showHandleAt = (event: MouseEvent) => {
-            const block = view.editable ? topLevelBlockAt(view, event.clientY) : null;
+            // 持ち手の上では、いま出しているブロックのままにする（持ち手は本文の左の外にあり、そこから探すと別のブロックに当たる）。
+            if (event.target === handle) {
+              return;
+            }
+            const block = view.editable ? draggableBlockAt(view, event) : null;
             if (!block) {
               return;
             }

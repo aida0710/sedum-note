@@ -1,6 +1,6 @@
-// メモの「…」メニュー: ピン留め、ノートブックの付け外し、テンプレートにする、複製、結合、メモの中の検索、箇条書きへのズーム、AI チャット、履歴、ファイルへの書き出し、印刷、ゴミ箱。
+// メモの「…」メニュー: ピン留め、ノートブックの付け外し、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、AI チャット、履歴、ファイルへの書き出し、印刷、ゴミ箱。
 
-import { Check, Copy, FileDown, History, Merge, LayoutTemplate, Pin, PinOff, Printer, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
+import { Check, Copy, FileDown, History, ListTree, Merge, LayoutTemplate, Pin, PinOff, Printer, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { type MessageKey, translate } from "../i18n/translate";
@@ -25,6 +25,8 @@ type NoteActionsMenuProps = {
   onDuplicate: () => Promise<unknown>;
   onMergeNote: () => void;
   onOpenAiAssistant: () => void;
+  // アウトライン表示と、ふつうの表示を切り替える。
+  onToggleOutline: () => void;
   // カーソルのある箇条書きの項目にズームする。カーソルが項目の中に無ければ undefined。
   onZoomIntoItem: (() => void) | undefined;
   onShowHistory: () => void;
@@ -32,7 +34,7 @@ type NoteActionsMenuProps = {
   onClose: () => void;
 };
 
-export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onZoomIntoItem, onShowHistory, onExport, onClose }: NoteActionsMenuProps) {
+export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, onZoomIntoItem, onShowHistory, onExport, onClose }: NoteActionsMenuProps) {
   const { content } = note;
   const moveToTrash = useTrashWithUndo(repository);
   const toggleNotebook = (notebookId: string) => {
@@ -78,6 +80,11 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
       <button className="menu-item" role="menuitem" onClick={() => { onClose(); onFind(); }}>
         <Search size={15} />{translate("editor.find")}
       </button>
+      {content.trashedAt === null && (
+        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onToggleOutline(); }}>
+          <ListTree size={15} />{translate(content.isOutline ? "editor.stopBeingOutline" : "editor.makeOutline")}
+        </button>
+      )}
       {onZoomIntoItem && (
         <button className="menu-item" role="menuitem" onClick={() => { onClose(); onZoomIntoItem(); }}>
           <ZoomIn size={15} />{translate("editor.zoomIntoItem")}

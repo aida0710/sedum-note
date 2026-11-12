@@ -55,6 +55,7 @@ export type NoteChanges = Partial<{
   bookmarked: boolean;
   trashedAt: string | null;
   isTemplate: boolean;
+  isOutline: boolean;
 }>;
 
 // local は、このデバイスで変えたもの（同期で送る必要がある）。stored は、手元の保存や
@@ -683,6 +684,7 @@ function buildView(id: string, holder: LiveHolder): LiveRecord | null {
       bookmarked: readField<boolean>(doc, "bookmarked") ?? false,
       trashedAt: readField<string | null>(doc, "trashedAt") ?? null,
       isTemplate: readField<boolean>(doc, "isTemplate") ?? false,
+      isOutline: readField<boolean>(doc, "isOutline") ?? false,
       attachments: bodyAttachments(body),
       propertyValues: propertyValuesOf(doc),
       createdAt,

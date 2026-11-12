@@ -15,7 +15,7 @@ function bodyWith(...paragraphs: string[]): Y.XmlFragment {
 function note(id: string, overrides: Partial<LiveNote["content"]>, updatedAt: string, body = bodyWith()): LiveNote {
   return {
     id, kind: "note", updatedAt, revision: 0, body,
-    content: { title: "", notebookIds: [], pinned: false, bookmarked: false, trashedAt: null, isTemplate: false, attachments: [], propertyValues: {}, createdAt: updatedAt, ...overrides },
+    content: { title: "", notebookIds: [], pinned: false, bookmarked: false, trashedAt: null, isTemplate: false, isOutline: false, attachments: [], propertyValues: {}, createdAt: updatedAt, ...overrides },
   };
 }
 

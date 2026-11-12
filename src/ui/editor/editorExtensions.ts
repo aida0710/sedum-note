@@ -26,6 +26,7 @@ import { Folding } from "./folding";
 import { FootnoteReference } from "./footnoteNode";
 import { HEADING_LEVELS } from "./headingLevels";
 import { ListZoom } from "./listZoom";
+import { OutlineMode } from "./outlineMode";
 import { Highlight } from "./highlightMark";
 import { DateTimeShortcuts } from "./insertDateTime";
 import { BlockDragHandle } from "./blockDragHandle";
@@ -46,9 +47,12 @@ const codeHighlighter = createLowlight(common);
 const TABLE_CELL_MIN_WIDTH = 72;
 
 // 文書の形（ノードと書式）を決める機能。エディタのほか、Markdown との変換（ui/markdown）でも使う。
-export function documentExtensions() {
+// keepsTrailingParagraph を false にすると、本文の末尾に空の段落を足す機能を外す（アウトライン表示では、
+// 本文が 1 つの箇条書きなので、末尾の段落は要らない）。文書の形は変わらない。
+export function documentExtensions({ keepsTrailingParagraph = true }: { keepsTrailingParagraph?: boolean } = {}) {
   return [
     StarterKit.configure({
+      ...(keepsTrailingParagraph ? {} : { trailingNode: false as const }),
       heading: { levels: [...HEADING_LEVELS] },
       link: { openOnClick: false, autolink: true },
       // コードの色付けつきのもの（CodeBlockLowlight）に置き換える。ノード名は同じ codeBlock。
@@ -83,9 +87,12 @@ export function documentExtensions() {
   ];
 }
 
-export function createEditorExtensions(body: Y.XmlFragment, slashMenuController: SlashMenuController) {
+type EditorExtensionsInput = { body: Y.XmlFragment; slashMenuController: SlashMenuController; isOutline: boolean };
+
+export function createEditorExtensions({ body, slashMenuController, isOutline }: EditorExtensionsInput) {
   return [
-    ...documentExtensions(),
+    ...documentExtensions({ keepsTrailingParagraph: !isOutline }),
+    ...(isOutline ? [OutlineMode] : []),
     SlashCommands.configure({ controller: slashMenuController }),
     TableShortcuts,
     TableRowFilterExtension,

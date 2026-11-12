@@ -9,7 +9,7 @@ function summary(id: string, linkedNoteIds: string[] = [], overrides: { trashedA
     note: {
       id, kind: "note", updatedAt: "2026-11-12T00:00:00.000Z", revision: 0, body: new Y.Doc().getXmlFragment("body"),
       content: {
-        title: id, notebookIds: [], pinned: false, bookmarked: false, trashedAt: overrides.trashedAt ?? null, isTemplate: overrides.isTemplate ?? false,
+        title: id, notebookIds: [], pinned: false, bookmarked: false, trashedAt: overrides.trashedAt ?? null, isTemplate: overrides.isTemplate ?? false, isOutline: false,
         attachments: [], propertyValues: {}, createdAt: "2026-11-12T00:00:00.000Z",
       },
     },
