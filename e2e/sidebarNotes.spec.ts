@@ -234,3 +234,39 @@ test("Ctrl と Shift で左の列のメモを複数選び、まとめてノー�
   await toast.getByRole("button", { name: "元に戻す" }).click();
   await expect(trashCount).toHaveText("0");
 });
+
+test("左の列は、↑↓ で行を移り、→← で一覧を開け閉めし、Enter でメモを開ける", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "旅行");
+  await viewRow(page, "旅行").locator(".nav").click();
+  await createNoteOnDesktop(page, "持ち物");
+  await createNoteOnDesktop(page, "宿");
+  const travel = viewRow(page, "旅行").locator(".nav");
+  await travel.click();
+  await expect(travel).toHaveAttribute("aria-expanded", "false");
+
+  await travel.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(travel).toHaveAttribute("aria-expanded", "true");
+  // 開いた一覧で → を押すと、中の最初のメモへ移る。↓ で次のメモへ移り、Enter で開く。
+  await page.keyboard.press("ArrowRight");
+  const firstNote = page.locator(".tree-note").first();
+  await expect(page.locator(".tree-note:focus")).toHaveCount(1);
+  const firstTitle = await page.locator(".tree-note:focus").textContent();
+  await page.keyboard.press("ArrowDown");
+  const secondTitle = await page.locator(".tree-note:focus").textContent();
+  expect(new Set([firstTitle, secondTitle])).toEqual(new Set(["持ち物", "宿"]));
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("tab", { name: secondTitle!, selected: true })).toBeVisible();
+
+  // メモの行で ← を押すと一覧の行へ戻り、もう一度 ← で閉じる。↑ で前の行へ移る。
+  await noteRow(page, secondTitle!).locator(".tree-note").focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(travel).toBeFocused();
+  await page.keyboard.press("ArrowLeft");
+  await expect(travel).toHaveAttribute("aria-expanded", "false");
+  await expect(firstNote).toBeHidden();
+  await page.keyboard.press("ArrowUp");
+  await expect(travel).not.toBeFocused();
+  await expect(page.locator(".sidebar-scroll button.nav:focus")).toHaveCount(1);
+});

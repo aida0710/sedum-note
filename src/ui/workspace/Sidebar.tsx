@@ -15,6 +15,7 @@ import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { SearchResults, ViewGroup } from "./SidebarViewGroup";
 import { isNoteDrag } from "./noteDrag";
 import { markNoteDropTarget } from "./noteDragState";
+import { moveFocusBetweenRows } from "./sidebarKeyboard";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { useDialogs } from "../shared/DialogProvider";
@@ -114,7 +115,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
       )}
       <button className="new-note" onClick={onCreateNote}><Plus size={16} />{translate("sidebar.newNote")}</button>
       {/* 落とせる一覧の外（タグ、見出し、行の間）に来たら、落とし先の光りを消す。一覧の外へ出たときも消す。 */}
-      <div className="sidebar-scroll"
+      <div className="sidebar-scroll" onKeyDown={moveFocusBetweenRows}
         onDragOver={(event) => isNoteDrag(event) && markNoteDropTarget(null)}
         onDragLeave={(event) => !event.currentTarget.contains(event.relatedTarget as Node | null) && markNoteDropTarget(null)}>
         {searching ? (
