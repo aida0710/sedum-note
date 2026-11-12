@@ -136,15 +136,19 @@ test("期限の通知を入れると、期限が来たときに 1 回だけ通�
   await page.clock.runFor(5_000);
   await page.keyboard.type(" 10:05");
   await page.clock.runFor(4 * 60_000);
-  expect(await shownNotifications(page)).toEqual([]);
+  // 設定を入れたときに、確かめの通知が 1 つ出る。
+  const confirmation = { title: "期限の通知を入れました", body: "期限が来たら、このように知らせます。" };
+  expect(await shownNotifications(page)).toEqual([confirmation]);
   await page.clock.runFor(2 * 60_000);
   const groceries = [
     { title: "牛乳を買う", body: "期限: 11月12日 10:05（買い物）" },
     { title: "卵を買う", body: "期限: 11月12日 10:05（買い物）" },
   ];
-  expect(await shownNotifications(page)).toEqual(groceries);
+  expect(await shownNotifications(page)).toEqual([confirmation, ...groceries]);
   await page.clock.runFor(10 * 60_000);
-  expect(await shownNotifications(page)).toEqual([...groceries, { title: "ロックしたメモの期限です", body: "期限: 11月12日 10:10（日記）" }]);
+  // 知らせた期限の覚えは暗号化しない場所に置くので、項目の文字やメモの題を入れない。
+  expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toMatch(/牛乳|卵|買い物/);
+  expect(await shownNotifications(page)).toEqual([confirmation, ...groceries, { title: "ロックしたメモの期限です", body: "期限: 11月12日 10:10（日記）" }]);
 });
 
 test("通知が許可されなければ、期限の通知は入らず、その旨を出す", async ({ page }) => {
@@ -152,6 +156,6 @@ test("通知が許可されなければ、期限の通知は入らず、その�
   await startLocalVault(page);
   await openSettingsPage(page, "一般");
   await page.getByLabel("期限が来たら通知する").click();
-  await expect(page.getByRole("alert")).toContainText("通知が許可されませんでした");
+  await expect(page.getByRole("alert")).toContainText("通知を出せませんでした");
   await expect(page.getByLabel("期限が来たら通知する")).not.toBeChecked();
 });

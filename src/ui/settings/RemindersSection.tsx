@@ -2,17 +2,26 @@
 
 import { translate } from "../i18n/translate";
 import { canStayResident, isAndroidApp } from "../platform/runtime";
-import { requestNotificationPermission } from "../platform/systemNotifications";
+import { requestNotificationPermission, showNotification } from "../platform/systemNotifications";
 import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { useAsyncAction } from "../shared/useAsyncAction";
 
 class NotificationsNotPermittedError extends Error {}
 
+// 設定を入れたときに出す、確かめの通知の番号。期限の通知の番号（期限の名前から決める）とは別にしておく。
+const CONFIRMATION_NOTIFICATION_ID = 1;
+
 export function RemindersSection() {
   const { dueNotifications, stayResident } = useDevicePreferences();
-  // 入れるときに、OS（かブラウザ）に通知の許可を求める。許されなければ入れない。
+  // 入れるときに、OS（かブラウザ）に通知の許可を求め、確かめの通知を 1 つ出す。許されないか、通知を出せなければ入れない
+  // （スマホのブラウザは、許可しても、ページから通知を作らせない）。
   const turnOn = useAsyncAction(async () => {
     if (!(await requestNotificationPermission())) {
+      throw new NotificationsNotPermittedError();
+    }
+    try {
+      showNotification({ id: CONFIRMATION_NOTIFICATION_ID, title: translate("reminders.turnedOn"), body: translate("reminders.turnedOnBody") });
+    } catch {
       throw new NotificationsNotPermittedError();
     }
     updateDevicePreferences({ dueNotifications: true });

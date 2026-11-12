@@ -10,6 +10,7 @@ import { dueTimeAsDate } from "../../core/notes/dueTimes";
 import type { NoteSummary } from "../../core/notes/noteQueries";
 import { translate } from "../i18n/translate";
 import { canScheduleNotifications, replaceScheduledNotifications, showNotification, type SystemNotification } from "../platform/systemNotifications";
+import { readNotifiedDueKeys, writeNotifiedDueKeys } from "./dueReminderRecords";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import { formatDueTime } from "../shared/formatTime";
 
@@ -17,18 +18,6 @@ import { formatDueTime } from "../shared/formatTime";
 const DUE_CHECK_INTERVAL_MILLISECONDS = 30_000;
 // OS に予約する通知の数の上限（期限の近い順）。Android が 1 つのアプリに許す予約の数（500）に、余裕を持って収める。
 const MAX_SCHEDULED_NOTIFICATIONS = 100;
-// もう知らせた期限の名前（DueItem.key）の置き場所。このデバイスだけで持つ。
-const NOTIFIED_KEYS_STORAGE_KEY = "sedum-note:notifiedDueKeys";
-
-function readNotifiedKeys(): Set<string> {
-  try {
-    const stored: unknown = JSON.parse(localStorage.getItem(NOTIFIED_KEYS_STORAGE_KEY) ?? "[]");
-    return new Set(Array.isArray(stored) ? stored.filter((key) => typeof key === "string") : []);
-  } catch {
-    return new Set();
-  }
-}
-
 // 通知の番号。期限の名前から決めるので、同じ期限は、予約し直しても同じ番号になる。
 function notificationId(key: string): number {
   let hash = 0;
@@ -68,17 +57,24 @@ export function useDueReminders({ summaries, lockedNoteIds }: DueRemindersInput)
     let keysAtPreviousCheck = new Set<string>();
     const notifyDueItems = () => {
       const { items: currentItems, lockedNoteIds: currentLockedNoteIds } = latest.current;
-      const notifiedKeys = readNotifiedKeys();
+      const notifiedKeys = readNotifiedDueKeys();
       const dueItems = dueItemsToNotify(currentItems, { now: new Date(), notifiedKeys }).filter((item) => keysAtPreviousCheck.has(item.key));
       const currentKeys = new Set(currentItems.map((item) => item.key));
       keysAtPreviousCheck = currentKeys;
       if (dueItems.length === 0) {
         return;
       }
-      dueItems.forEach((item) => void showNotification(notificationOf(item, currentLockedNoteIds)));
-      // もう無い期限の名前は捨てて、増え続けないようにする。
-      const kept = [...notifiedKeys].filter((key) => currentKeys.has(key));
-      localStorage.setItem(NOTIFIED_KEYS_STORAGE_KEY, JSON.stringify([...kept, ...dueItems.map((item) => item.key)]));
+      // もう無い期限の名前は捨てて、増え続けないようにする。出せなかった通知は、知らせたことにしない（次の見直しでまた試す）。
+      const keptKeys = [...notifiedKeys].filter((key) => currentKeys.has(key));
+      const shownKeys = dueItems.filter((item) => {
+        try {
+          showNotification(notificationOf(item, currentLockedNoteIds));
+          return true;
+        } catch {
+          return false;
+        }
+      }).map((item) => item.key);
+      writeNotifiedDueKeys([...keptKeys, ...shownKeys]);
     };
     notifyDueItems();
     const timer = setInterval(notifyDueItems, DUE_CHECK_INTERVAL_MILLISECONDS);

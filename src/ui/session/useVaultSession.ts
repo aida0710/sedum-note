@@ -24,6 +24,7 @@ import {
 } from "../../core/vault/vaultSession";
 import { resetDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { createAppEnvironment } from "./appEnvironment";
+import { clearDueReminderRecords } from "./dueReminderRecords";
 
 export type VaultPhase =
   | { phase: "loading" }
@@ -179,6 +180,7 @@ export function useVaultSession(): VaultSession {
       autoSyncRef.current?.stop();
       await wipeDeviceData(environment.localStore, vault);
       resetDevicePreferences();
+      await clearDueReminderRecords();
       // メモリに残った鍵と開いた文書ごと捨てて、最初の画面から始め直す。
       window.location.reload();
     },

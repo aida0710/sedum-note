@@ -29,9 +29,10 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return "Notification" in window && (await Notification.requestPermission()) === "granted";
 }
 
-export async function showNotification({ id, title, body }: SystemNotification): Promise<void> {
+// 通知を出す。ブラウザが通知を作らせないとき（スマホのブラウザなど）は、その場で失敗する。
+export function showNotification({ id, title, body }: SystemNotification): void {
   if (isRunningInTauri()) {
-    (await import("@tauri-apps/plugin-notification")).sendNotification({ id, title, body });
+    void import("@tauri-apps/plugin-notification").then(({ sendNotification }) => sendNotification({ id, title, body }));
     return;
   }
   new Notification(title, { body, tag: String(id) });
