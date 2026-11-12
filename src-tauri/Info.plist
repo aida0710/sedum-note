@@ -5,5 +5,8 @@
 	<!-- 同期の設定の QR をカメラで読むときに、macOS が利用者に見せる理由。 -->
 	<key>NSCameraUsageDescription</key>
 	<string>Sedum Note uses the camera to read the QR code of the sync settings.</string>
+	<!-- 本文の録音でマイクを使うときに、macOS が利用者に見せる理由。 -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Sedum Note uses the microphone to record audio into your notes.</string>
 </dict>
 </plist>

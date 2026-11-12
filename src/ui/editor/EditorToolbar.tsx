@@ -1,7 +1,7 @@
 // 本文の書式・表・リンクと、写真・ファイルを添付するボタン。PC では本文の上、スマホでは画面の下に出す。
 
 import { type Editor, useEditorState } from "@tiptap/react";
-import { Baseline, Bold, Camera, Code, FileSymlink, Heading, Highlighter, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, Paperclip, Underline } from "lucide-react";
+import { Baseline, Bold, Camera, Code, FileSymlink, Heading, Highlighter, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, Mic, Paperclip, Square, Underline } from "lucide-react";
 import type { ReactNode } from "react";
 import { translate, type MessageKey } from "../i18n/translate";
 import { ColorMenu } from "./ColorMenu";
@@ -15,6 +15,9 @@ type EditorToolbarProps = {
   onPickFile: () => void;
   // カメラを開いて、その場で撮る。カメラを出さない画面（PC）では渡さない。
   onCapturePhoto?: () => void;
+  // 録音を始める・止める。録音できない環境では渡さない。
+  onToggleRecording?: () => void;
+  recording?: boolean;
   // リンク先を聞く。やめたら null。
   onAskLink: () => Promise<string | null>;
   // リンクするメモを選ぶ画面を開く。
@@ -24,7 +27,7 @@ type EditorToolbarProps = {
 
 const ICON_SIZE = 16;
 
-export function EditorToolbar({ editor, onPickImage, onPickFile, onCapturePhoto, onAskLink, onPickNoteLink, trailing }: EditorToolbarProps) {
+export function EditorToolbar({ editor, onPickImage, onPickFile, onCapturePhoto, onToggleRecording, recording = false, onAskLink, onPickNoteLink, trailing }: EditorToolbarProps) {
   const active = useEditorState({
     editor,
     selector: ({ editor: current }) => ({
@@ -79,6 +82,7 @@ export function EditorToolbar({ editor, onPickImage, onPickFile, onCapturePhoto,
       {tool("editor.image", false, onPickImage, <ImagePlus size={ICON_SIZE} />)}
       {onCapturePhoto && tool("editor.capturePhoto", false, onCapturePhoto, <Camera size={ICON_SIZE} />)}
       {tool("editor.file", false, onPickFile, <Paperclip size={ICON_SIZE} />)}
+      {onToggleRecording && tool(recording ? "editor.stopRecording" : "editor.startRecording", recording, onToggleRecording, recording ? <Square size={ICON_SIZE} /> : <Mic size={ICON_SIZE} />)}
       {tool("editor.link", active.link, () => void toggleLink(), <Link size={ICON_SIZE} />)}
       {tool("editor.noteLink", false, onPickNoteLink, <FileSymlink size={ICON_SIZE} />)}
       {tool("editor.code", active.codeBlock, () => editor.chain().focus().toggleCodeBlock().run(), <Code size={ICON_SIZE} />)}

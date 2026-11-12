@@ -114,6 +114,8 @@ button:disabled { cursor: default; opacity: .55; }
 .note-graph-node:hover circle, .note-graph-node:focus-visible circle { fill: var(--text); }
 .note-graph-node text { fill: var(--muted); font-size: 11px; pointer-events: none; }
 .note-graph-node:hover text, .note-graph-node:focus-visible text { fill: var(--text); }
+.attachment-audio { flex: 0 0 100%; margin-top: 8px; width: 100%; height: 36px; }
+.editor-bar .tool.on svg.lucide-square { color: var(--danger); }
 .backlinks { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); }
 .backlinks h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; }
 .sidebar-brand-actions { margin-left: auto; display: flex; gap: 2px; }

@@ -36,6 +36,7 @@ import { NoteBacklinks } from "./NoteBacklinks";
 import { NoteProperties } from "./NoteProperties";
 import { propertiesOfNote } from "../../core/notes/noteProperties";
 import { NoteFootnotes } from "./NoteFootnotes";
+import { isAudioRecordingAvailable, useAudioRecorder } from "./useAudioRecorder";
 
 type NoteEditorProps = {
   note: LiveNote;
@@ -66,6 +67,8 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
   const titleInput = useRef<HTMLInputElement>(null);
   const dialogs = useDialogs();
   const attachments = useNoteAttachments(repository);
+  // 録った音は、ほかのファイルと同じように添付する。
+  const audioRecorder = useAudioRecorder((file) => attachments.takeFiles([file]));
   // 貼り付けの処理が使うエディタ。エディタを作るときに貼り付けの処理を渡すので、作ったあとに入れる。
   const editorOfPaste = useRef<Editor | null>(null);
   const slashMenuController = useMemo(() => new SlashMenuController(), []);
@@ -166,6 +169,8 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
     onPickImage: pickImage, onPickFile: pickFile, onAskLink: askLink, onPickNoteLink: pickNoteLink,
     // スマホでは、カメラを開いてその場で撮れる。
     onCapturePhoto: isMobile ? attachments.capturePhoto : undefined,
+    onToggleRecording: isAudioRecordingAvailable() ? audioRecorder.toggle : undefined,
+    recording: audioRecorder.recording,
   };
   // テンプレートの本文を、カーソルの所に入れる。
   const insertTemplate = (templateId: string) => {
@@ -179,7 +184,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
     .map((template) => ({ id: template.id, title: template.content.title }));
   slashMenuController.actions = { pickImage, pickFile, pickNoteLink, templates, insertTemplate };
 
-  const actionError = attachments.errorMessage ?? pasteMarkdown.errorMessage ?? exportNote.errorMessage ?? print.errorMessage;
+  const actionError = attachments.errorMessage ?? audioRecorder.errorMessage ?? pasteMarkdown.errorMessage ?? exportNote.errorMessage ?? print.errorMessage;
   if (!editor) {
     return null;
   }

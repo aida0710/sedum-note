@@ -202,3 +202,32 @@ test("添付した PDF は、メモの中でプレビューを開いて、ペー
   await page.getByRole("button", { name: "資料.pdf をプレビュー" }).click();
   await expect(preview).toHaveCount(0);
 });
+
+test("録音のボタンで録り始め、止めると音声が添付される。添付した音声は、その場で再生できる", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium", "マイクの代わりの音は、Chromium の AudioContext で作る");
+  // マイクの代わりに、作った音（無音に近い波）を返す。
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = async () => {
+      const context = new AudioContext();
+      const destination = context.createMediaStreamDestination();
+      const oscillator = context.createOscillator();
+      oscillator.connect(destination);
+      oscillator.start();
+      return destination.stream;
+    };
+  });
+  await startLocalVault(page);
+  await page.getByPlaceholder("タイトル").fill("録音のメモ");
+  await page.getByPlaceholder("タイトル").press("Enter");
+
+  await page.getByRole("button", { name: "録音する" }).click();
+  await expect(page.getByRole("button", { name: "録音を止めて添付する" })).toHaveAttribute("aria-pressed", "true");
+  await page.waitForTimeout(600);
+  await page.getByRole("button", { name: "録音を止めて添付する" }).click();
+  const attachment = page.locator(".attachment-file");
+  await expect(attachment).toContainText(/録音 \d{4}-\d{2}-\d{2} \d{2}\.\d{2}\.webm/);
+  await expect(page.getByRole("button", { name: "録音する" })).toHaveAttribute("aria-pressed", "false");
+
+  await attachment.getByRole("button", { name: /を再生$/ }).click();
+  await expect(attachment.locator("audio")).toHaveAttribute("src", /^blob:/);
+});

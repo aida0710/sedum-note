@@ -1,8 +1,8 @@
 // 本文に添付した、写真以外のファイルのノード。文書には添付の ID・名前・大きさだけを入れ、
-// 中身は添付（blobs/<id>）として別に暗号化して置く。押すと復号して保存する。PDF は、その場でプレビューを開ける。
+// 中身は添付（blobs/<id>）として別に暗号化して置く。押すと復号して保存する。PDF は、その場でプレビューを開ける。音声は、その場で再生できる。
 
 import { mergeAttributes, Node, NodeViewWrapper, type ReactNodeViewProps, ReactNodeViewRenderer } from "@tiptap/react";
-import { Download, Eye, FileText } from "lucide-react";
+import { Download, Eye, FileText, Play } from "lucide-react";
 import { useContext, useState } from "react";
 import { ATTACHMENT_FILE_NODE } from "../../core/notes/bodyText";
 import { translate } from "../i18n/translate";
@@ -10,12 +10,22 @@ import { UserFacingError } from "../i18n/userFacingError";
 import { saveFile } from "../platform/saveFile";
 import { formatByteSize } from "../shared/formatByteSize";
 import { useAsyncAction } from "../shared/useAsyncAction";
-import { AttachmentReaderContext } from "./attachmentReader";
+import { AttachmentReaderContext, useAttachmentUrl } from "./attachmentReader";
 import { PdfPreview } from "./PdfPreview";
 
 const PDF_MIME_TYPE = "application/pdf";
+const AUDIO_MIME_PREFIX = "audio/";
 
 export type AttachmentFileAttributes = { attachmentId: string; fileName: string; mimeType: string; byteLength: number };
+
+// 添付した音声を、その場で再生する。開いたときに復号して、再生を始める。
+function AttachmentAudioPlayer({ attachmentId, mimeType }: { attachmentId: string; mimeType: string }) {
+  const audio = useAttachmentUrl(attachmentId, mimeType);
+  if (audio.state === "missing") {
+    return <div className="attachment-audio form-error" role="alert">{translate("editor.fileMissing")}</div>;
+  }
+  return audio.state === "ready" ? <audio className="attachment-audio" src={audio.url} controls autoPlay /> : null;
+}
 
 function AttachmentFileView({ node }: ReactNodeViewProps) {
   const attributes = node.attrs as AttachmentFileAttributes;
@@ -28,9 +38,11 @@ function AttachmentFileView({ node }: ReactNodeViewProps) {
     await saveFile({ suggestedName: attributes.fileName, parts: [bytes], mimeType: attributes.mimeType });
   });
   const isPdf = attributes.mimeType === PDF_MIME_TYPE;
+  const isAudio = attributes.mimeType.startsWith(AUDIO_MIME_PREFIX);
+  const [playerShown, setPlayerShown] = useState(false);
   const [previewShown, setPreviewShown] = useState(false);
   return (
-    <NodeViewWrapper className={`attachment-file${previewShown ? " with-preview" : ""}`} data-drag-handle>
+    <NodeViewWrapper className={`attachment-file${previewShown || playerShown ? " with-preview" : ""}`} data-drag-handle>
       <FileText size={20} className="attachment-file-icon" />
       <span className="attachment-file-name">{attributes.fileName}</span>
       <span className="attachment-file-size">{save.errorMessage ?? formatByteSize(attributes.byteLength)}</span>
@@ -44,7 +56,14 @@ function AttachmentFileView({ node }: ReactNodeViewProps) {
           <Eye size={16} />
         </button>
       )}
+      {isAudio && (
+        <button type="button" className={`icon-button${playerShown ? " on" : ""}`} aria-pressed={playerShown} aria-label={translate("editor.playAudio", { name: attributes.fileName })}
+          onClick={() => setPlayerShown(!playerShown)}>
+          <Play size={16} />
+        </button>
+      )}
       {isPdf && previewShown && <PdfPreview attachmentId={attributes.attachmentId} />}
+      {isAudio && playerShown && <AttachmentAudioPlayer attachmentId={attributes.attachmentId} mimeType={attributes.mimeType} />}
     </NodeViewWrapper>
   );
 }
