@@ -14,6 +14,7 @@ import { translate } from "../i18n/translate";
 import { AttachmentFile } from "./attachmentFileNode";
 import { AttachmentImage } from "./attachmentImageNode";
 import { NoteLink } from "./noteLinkNode";
+import { NoteQuery } from "./noteQueryNode";
 import { SearchHighlight } from "./searchHighlightExtension";
 import { SlashCommands } from "./slashCommandExtension";
 import { Callout } from "./calloutNode";
@@ -58,6 +59,7 @@ export function documentExtensions() {
     TextColor,
     Folding,
     Callout,
+    NoteQuery,
     AttachmentImage,
     AttachmentFile,
     NoteLink,

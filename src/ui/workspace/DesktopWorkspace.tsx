@@ -21,6 +21,7 @@ import { UpdateChip } from "../update/UpdateChip";
 import { NotebookDatabaseView } from "./NotebookDatabaseView";
 import { notebookIdOfDatabaseTab, SETTINGS_TAB } from "./useWorkspaceNavigation";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
+import { NoteQuerySourceContext } from "../editor/noteQuerySource";
 
 export function DesktopWorkspace({ session, vault, snapshot, navigation }: WorkspaceProps) {
   const { repository } = vault;
@@ -82,9 +83,11 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
         )}
         {activeNote && (
           <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, navigation.openNote)}>
-            <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, activeNote.id)}
+            <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
+              <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, activeNote.id)}
               repository={repository} isMobile={false}
               highlightedText={navigation.searchText} findRequest={navigation.findInNoteRequest} />
+            </NoteQuerySourceContext.Provider>
           </NoteLinkTargetsContext.Provider>
         )}
         {databaseNotebook && (

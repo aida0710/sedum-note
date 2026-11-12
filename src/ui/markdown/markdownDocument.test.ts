@@ -28,6 +28,13 @@ async function bodyFromMarkdown(markdown: string, context: MarkdownImportContext
 }
 
 describe("Markdown の取り込み", () => {
+  it("クエリのブロックは、言語が sedum-query のコードの囲みと往復する", async () => {
+    const body = await bodyFromMarkdown('```sedum-query\n{"tag":"旅行","searchText":"持ち物"}\n```\n', importContext({}));
+    const document = yXmlFragmentToProsemirrorJSON(body) as { content: Array<{ type: string; attrs?: Record<string, unknown> }> };
+    expect(document.content[0]).toMatchObject({ type: "noteQuery", attrs: { tag: "旅行", searchText: "持ち物" } });
+    expect(bodyToMarkdown(body, exportContext)).toContain('"tag":"旅行"');
+  });
+
   it("コールアウトは、先頭に種類を書いた引用（> [!warning]）と往復する。知らない種類は引用のまま残す", async () => {
     const body = await bodyFromMarkdown("> [!warning]\n> 火を止める\n\n> [!unknown]\n> そのまま\n", importContext({}));
     const document = yXmlFragmentToProsemirrorJSON(body) as { content: Array<{ type: string; attrs?: { kind?: string } }> };

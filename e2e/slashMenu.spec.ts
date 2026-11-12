@@ -14,7 +14,7 @@ test("「/」を打つとブロックの候補が出て、上下のキーと Ent
   await expect(slashMenu(page).getByRole("option")).toHaveText([
     "本文", "見出し 1", "見出し 2", "見出し 3", "見出し 4", "見出し 5", "見出し 6", "箇条書き", "番号付きリスト", "チェックリスト", "引用",
     "コールアウト: 情報", "コールアウト: ヒント", "コールアウト: 注意", "コールアウト: 警告", "コード", "表", "区切り線",
-    "画像を貼る", "ファイルを添付", "今日の日付", "今の日時", "メモへのリンク",
+    "画像を貼る", "ファイルを添付", "今日の日付", "今の日時", "クエリ（条件に合うメモの一覧）", "メモへのリンク",
   ]);
   await page.keyboard.press("ArrowDown");
   await expect(slashMenu(page).getByRole("option", { name: "見出し 1" })).toHaveAttribute("aria-selected", "true");
@@ -93,4 +93,30 @@ test("「/」からコールアウトを作れ、中に文字を書ける。別�
   await slashMenu(page).getByRole("option", { name: "コールアウト: 警告" }).click();
   await expect(callout).toHaveCount(1);
   await expect(callout).toHaveAttribute("data-callout", "danger");
+});
+
+test("クエリのブロックは、条件に合うメモの一覧を出し、条件を変えると一覧が変わる。押すとそのメモが開く", async ({ page }) => {
+  await openNewNote(page);
+  await page.getByPlaceholder("タイトル").fill("旅行の持ち物");
+  await page.locator(".ProseMirror").click();
+  await page.keyboard.type("パスポート #旅行");
+  await page.keyboard.press("Control+Alt+n");
+  await page.getByPlaceholder("タイトル").fill("買い物");
+  await page.locator(".ProseMirror").click();
+  await page.keyboard.type("牛乳");
+  await page.keyboard.press("Control+Alt+n");
+  await page.getByPlaceholder("タイトル").fill("まとめ");
+  await page.locator(".ProseMirror").click();
+  await page.keyboard.type("/くえり");
+  await page.keyboard.press("Enter");
+
+  const query = page.locator(".ProseMirror .note-query");
+  await expect(query.locator(".note-query-results .menu-item")).toHaveCount(3);
+  await query.getByRole("combobox", { name: "タグ" }).selectOption("旅行");
+  await expect(query.locator(".note-query-results .menu-item")).toHaveText(["旅行の持ち物"]);
+  await query.getByRole("combobox", { name: "タグ" }).selectOption("");
+  await query.getByRole("textbox", { name: "含まれる言葉" }).fill("牛乳");
+  await expect(query.locator(".note-query-results .menu-item")).toHaveText(["買い物"]);
+  await query.locator(".note-query-results .menu-item").click();
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("買い物");
 });
