@@ -81,14 +81,16 @@ export function ensureBlockId(element: Y.XmlElement): string {
 }
 
 // その ID を持つブロック。同じ ID のブロックが複数あれば（2 台が同じブロックを別々の場所へ動かしたとき）、
-// 本文で先に出てくる方。どのデバイスでも同じ方になる。
+// 本文で先に出てくる方。どのデバイスでも同じ方になる。リンクと埋め込みのノードも、指す先を同じ名前の属性で
+// 持つので、ブロックの種類だけを見る。
 export function findBlock(body: Y.XmlFragment, blockId: string): Y.XmlElement | null {
   const visit = (node: Y.XmlFragment | Y.XmlElement): Y.XmlElement | null => {
     for (const child of node.toArray()) {
       if (!(child instanceof Y.XmlElement)) {
         continue;
       }
-      const found = child.getAttribute(BLOCK_ID_ATTRIBUTE) === blockId ? child : visit(child);
+      const isTheBlock = LINKABLE_BLOCK_NODE_NAMES.includes(child.nodeName) && child.getAttribute(BLOCK_ID_ATTRIBUTE) === blockId;
+      const found = isTheBlock ? child : visit(child);
       if (found) {
         return found;
       }

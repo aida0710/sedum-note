@@ -102,6 +102,13 @@ button:disabled { cursor: default; opacity: .55; }
 .footnote-number:hover { background: var(--selected); }
 .footnote input { flex: 1; min-width: 0; height: 28px; border: 1px solid transparent; border-radius: 6px; padding: 0 8px; background: none; color: var(--text); }
 .footnote input:hover, .footnote input:focus { border-color: var(--line); }
+/* ブロックの埋め込み。左の線で、ほかのメモから来た中身だと分かるようにする。 */
+.block-embed { margin: 10px 0; padding: 2px 0 2px 12px; border-left: 3px solid var(--accent-soft); }
+.block-embed-source { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 12px; }
+.block-embed-source:hover { color: var(--accent); }
+.block-embed .ProseMirror { padding: 0; min-height: 0; }
+/* エディタが末尾に足す空の段落（リストなどのあとに打てるようにするもの）は、読むだけの埋め込みでは出さない。 */
+.block-embed .ProseMirror > p:last-child:has(> br.ProseMirror-trailingBreak:only-child) { display: none; }
 .embed { margin: 10px 0; }
 .embed-card { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
 .embed-url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12.5px; }

@@ -4,10 +4,11 @@
 //   写真       <img src="添付のパス">
 //   ファイル   <a href="添付のパス">名前</a>
 //   メモへのリンク  リンク先のメモのタイトル（文字だけ）
+//   ブロックの埋め込み  元のメモのタイトル（文字だけの段落）
 
 import { generateHTML, type JSONContent, type Node } from "@tiptap/core";
 import type * as Y from "yjs";
-import { ATTACHMENT_FILE_NODE, ATTACHMENT_IMAGE_NODE, NOTE_LINK_NODE } from "../../core/notes/bodyText";
+import { ATTACHMENT_FILE_NODE, ATTACHMENT_IMAGE_NODE, BLOCK_EMBED_NODE, NOTE_LINK_NODE } from "../../core/notes/bodyText";
 import { documentExtensions } from "../editor/editorExtensions";
 import { bodyToExportDocument, type BodyExportContext } from "./markdownDocument";
 
@@ -18,6 +19,7 @@ const htmlRenderers: Record<string, (attributes: Record<string, unknown>) => Htm
   [ATTACHMENT_IMAGE_NODE]: (attributes) => ["img", { src: String(attributes.exportPath), alt: String(attributes.fileName ?? "") }],
   [ATTACHMENT_FILE_NODE]: (attributes) => ["p", {}, ["a", { href: String(attributes.exportPath) }, String(attributes.fileName ?? "")]],
   [NOTE_LINK_NODE]: (attributes) => ["span", {}, String(attributes.exportTitle ?? "")],
+  [BLOCK_EMBED_NODE]: (attributes) => ["p", {}, String(attributes.exportTitle ?? "")],
 };
 
 function htmlExtensions() {

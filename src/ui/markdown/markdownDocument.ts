@@ -5,12 +5,13 @@
 //   ファイル   [名前](添付のパス) だけの段落
 //   メモへのリンク  [タイトル](sedum-note://note/<メモの ID>)。ブロックを指すなら、後ろに #<ブロックの ID>
 //   ブロックの ID   行の末尾の「 ^ID」（blockIdMarks.ts）
+//   ブロックの埋め込み  ![タイトル](sedum-note://note/<メモの ID>#<ブロックの ID>) だけの段落
 
 import { type JSONContent, Node } from "@tiptap/core";
 import { MarkdownManager } from "@tiptap/markdown";
 import { prosemirrorJSONToYXmlFragment, yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
 import type * as Y from "yjs";
-import { ATTACHMENT_FILE_NODE, ATTACHMENT_IMAGE_NODE, NOTE_LINK_NODE } from "../../core/notes/bodyText";
+import { ATTACHMENT_FILE_NODE, ATTACHMENT_IMAGE_NODE, BLOCK_EMBED_NODE, NOTE_LINK_NODE } from "../../core/notes/bodyText";
 import { isRandomId } from "../../core/crypto/randomId";
 import { isBlockId } from "../../core/notes/bodyBlocks";
 import { withBlockIdMarks, withImportedBlockIds } from "./blockIdMarks";
@@ -41,11 +42,28 @@ function escapeLinkLabel(label: string): string {
   return label.replace(/[\\[\]]/g, (character) => `\\${character}`);
 }
 
+// メモ（ブロックを指すなら、そのブロック）へのリンクの、Markdown での形。
+function noteLinkMarkdown(node: JSONContent): string {
+  const blockPart = isBlockId(node.attrs?.blockId) ? BLOCK_ID_SEPARATOR + node.attrs.blockId : "";
+  return `[${escapeLinkLabel(String(node.attrs?.exportTitle ?? ""))}](${NOTE_LINK_HREF_PREFIX}${node.attrs?.noteId}${blockPart})`;
+}
+
+// Markdown のリンク先が、このメモ帳にあるメモ（とブロック）を指していれば、その ID。違えば null。
+function noteReferenceOf(href: string, context: MarkdownImportContext): { noteId: string; blockId: string | null } | null {
+  if (!href.startsWith(NOTE_LINK_HREF_PREFIX)) {
+    return null;
+  }
+  const [noteId = "", blockId] = href.slice(NOTE_LINK_HREF_PREFIX.length).split(BLOCK_ID_SEPARATOR);
+  return isRandomId(noteId) && context.noteExists(noteId) ? { noteId, blockId: isBlockId(blockId) ? blockId : null } : null;
+}
+
 // 書き出すときだけ付ける属性（exportPath は添付のリンク先、exportTitle はリンク先のメモのタイトル）を読んで、Markdown の形にする。
 const markdownRenderers: Record<string, (node: JSONContent) => string> = {
   [ATTACHMENT_IMAGE_NODE]: (node) => `![${escapeLinkLabel(String(node.attrs?.fileName ?? ""))}](${node.attrs?.exportPath})`,
   [ATTACHMENT_FILE_NODE]: (node) => `[${escapeLinkLabel(String(node.attrs?.fileName ?? ""))}](${node.attrs?.exportPath})`,
-  [NOTE_LINK_NODE]: (node) => `[${escapeLinkLabel(String(node.attrs?.exportTitle ?? ""))}](${NOTE_LINK_HREF_PREFIX}${node.attrs?.noteId}${isBlockId(node.attrs?.blockId) ? BLOCK_ID_SEPARATOR + node.attrs.blockId : ""})`,
+  [NOTE_LINK_NODE]: noteLinkMarkdown,
+  // 埋め込みは、画像と同じ「!」付きのリンクで書く（ほかのメモの中身をその場に出す、という意味をそろえる）。
+  [BLOCK_EMBED_NODE]: (node) => `!${noteLinkMarkdown(node)}`,
 };
 
 let manager: MarkdownManager | null = null;
@@ -80,9 +98,9 @@ export function bodyToExportDocument(body: Y.XmlFragment, context: BodyExportCon
       const href = context.attachmentHref({ id: String(node.attrs?.attachmentId), fileName: String(node.attrs?.fileName ?? "") });
       return [{ ...node, attrs: { ...node.attrs, exportPath: href } }];
     }
-    if (node.type === NOTE_LINK_NODE) {
+    if (node.type === NOTE_LINK_NODE || node.type === BLOCK_EMBED_NODE) {
       const title = context.noteTitle(String(node.attrs?.noteId));
-      // リンク先が消えているリンクは、書き出すものが無い。
+      // 先のメモが消えているリンクと埋め込みは、書き出すものが無い。
       return title === null ? [] : [{ ...node, attrs: { ...node.attrs, exportTitle: title } }];
     }
     return [node];
@@ -173,6 +191,12 @@ async function replaceImportedNodes(node: JSONContent, context: MarkdownImportCo
 // 段落の中の画像と、添付へのリンクだけの段落を、添付のノード（ブロック）にする。前後の文字は別の段落に分ける。
 async function splitParagraphAtAttachments(paragraph: JSONContent, context: MarkdownImportContext): Promise<JSONContent[]> {
   const inlineNodes = paragraph.content ?? [];
+  // このメモ帳のブロックを指す画像だけの段落は、ブロックの埋め込み。
+  const onlyImageHref = inlineNodes.length === 1 && inlineNodes[0]?.type === IMPORTED_IMAGE_NODE ? String(inlineNodes[0].attrs?.href ?? "") : null;
+  const embedded = onlyImageHref === null ? null : noteReferenceOf(onlyImageHref, context);
+  if (embedded && embedded.blockId !== null) {
+    return [{ type: BLOCK_EMBED_NODE, attrs: embedded }];
+  }
   const onlyLinkHref = inlineNodes.length === 1 && inlineNodes[0] ? linkHrefOf(inlineNodes[0]) : null;
   if (onlyLinkHref !== null && mayPointToAttachment(onlyLinkHref)) {
     const attachment = await context.attachFile(decodeMarkdownPath(onlyLinkHref));
@@ -235,9 +259,9 @@ function replaceInlineNode(inlineNode: JSONContent, context: MarkdownImportConte
   }
   const href = linkHrefOf(inlineNode);
   if (href?.startsWith(NOTE_LINK_HREF_PREFIX)) {
-    const [noteId = "", blockId] = href.slice(NOTE_LINK_HREF_PREFIX.length).split(BLOCK_ID_SEPARATOR);
-    if (isRandomId(noteId) && context.noteExists(noteId)) {
-      return { type: NOTE_LINK_NODE, attrs: { noteId, blockId: isBlockId(blockId) ? blockId : null } };
+    const linked = noteReferenceOf(href, context);
+    if (linked) {
+      return { type: NOTE_LINK_NODE, attrs: linked };
     }
     // リンク先がこのメモ帳に無ければ、文字だけを残す。
     return { ...inlineNode, marks: inlineNode.marks?.filter((mark) => mark.type !== "link") };

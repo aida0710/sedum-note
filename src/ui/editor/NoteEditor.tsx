@@ -5,7 +5,7 @@ import { type Editor, EditorContent, type JSONContent, useEditor } from "@tiptap
 import { yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
 import { ChevronLeft, ListTree, MoreHorizontal, Star } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { bodyPlainText, NOTE_LINK_NODE, plainTextHashtags } from "../../core/notes/bodyText";
+import { bodyPlainText, BLOCK_EMBED_NODE, NOTE_LINK_NODE, plainTextHashtags } from "../../core/notes/bodyText";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
@@ -24,7 +24,7 @@ import { createEditorExtensions } from "./editorExtensions";
 import { NoteActionsMenu } from "./NoteActionsMenu";
 import { NoteHistoryDialog } from "./NoteHistoryDialog";
 import { NotePicker } from "./NotePicker";
-import { BlockLinkPicker } from "./BlockLinkPicker";
+import { BlockPicker } from "./BlockPicker";
 import { revealBlock } from "./blockIds";
 import { NoteOutline } from "./NoteOutline";
 import { NoteLinkTargetsContext } from "./noteLinkTargets";
@@ -60,7 +60,8 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
   const [title, setTitle] = useState(note.content.title);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [pickingNoteLink, setPickingNoteLink] = useState(false);
-  const [pickingBlockLink, setPickingBlockLink] = useState(false);
+  // ブロックを選んでいる途中なら、選んだあとに入れるもの（リンクか埋め込み）。
+  const [pickingBlockFor, setPickingBlockFor] = useState<"link" | "embed" | null>(null);
   const [pickingNoteToMerge, setPickingNoteToMerge] = useState(false);
   const [showingHistory, setShowingHistory] = useState(false);
   // 目次。PC では本文の横に出したままにでき（設定に覚える）、スマホではメニューで出す。
@@ -178,13 +179,21 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
 
   const insertNoteLink = (linkedNoteId: string, linkedBlockId: string | null = null) => {
     setPickingNoteLink(false);
-    setPickingBlockLink(false);
     editor?.chain().focus().insertContent({ type: NOTE_LINK_NODE, attrs: { noteId: linkedNoteId, blockId: linkedBlockId } }).run();
   };
   const askLink = () => dialogs.prompt({ message: translate("editor.linkPrompt"), initialValue: "https://" });
   const { pickImage, pickFile } = attachments;
   const pickNoteLink = () => setPickingNoteLink(true);
-  const pickBlockLink = () => setPickingBlockLink(true);
+  const pickBlockLink = () => setPickingBlockFor("link");
+  const pickBlockEmbed = () => setPickingBlockFor("embed");
+  const insertPickedBlock = (picked: { noteId: string; blockId: string }) => {
+    setPickingBlockFor(null);
+    if (pickingBlockFor === "link") {
+      insertNoteLink(picked.noteId, picked.blockId);
+    } else {
+      editor?.chain().focus().insertContent({ type: BLOCK_EMBED_NODE, attrs: picked }).run();
+    }
+  };
   const toolbarActions = {
     onPickImage: pickImage, onPickFile: pickFile, onAskLink: askLink, onPickNoteLink: pickNoteLink,
     // スマホでは、カメラを開いてその場で撮れる。
@@ -202,7 +211,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
   const templates = repository.notes()
     .filter((candidate) => candidate.content.isTemplate && candidate.content.trashedAt === null && candidate.id !== noteId)
     .map((template) => ({ id: template.id, title: template.content.title }));
-  slashMenuController.actions = { pickImage, pickFile, pickNoteLink, pickBlockLink, templates, insertTemplate };
+  slashMenuController.actions = { pickImage, pickFile, pickNoteLink, pickBlockLink, pickBlockEmbed, templates, insertTemplate };
 
   const actionError = attachments.errorMessage ?? audioRecorder.errorMessage ?? pasteMarkdown.errorMessage ?? exportNote.errorMessage ?? print.errorMessage;
   if (!editor) {
@@ -290,9 +299,9 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
         <NotePicker title={translate("editor.noteLinkPickerTitle")} candidates={otherNotes()}
           onPick={(pickedNoteId) => insertNoteLink(pickedNoteId)} onCancel={() => setPickingNoteLink(false)} />
       )}
-      {pickingBlockLink && (
-        <BlockLinkPicker notes={repository.notes().filter((candidate) => candidate.content.trashedAt === null)}
-          onPick={(link) => insertNoteLink(link.noteId, link.blockId)} onCancel={() => setPickingBlockLink(false)} />
+      {pickingBlockFor !== null && (
+        <BlockPicker notes={repository.notes().filter((candidate) => candidate.content.trashedAt === null)}
+          onPick={insertPickedBlock} onCancel={() => setPickingBlockFor(null)} />
       )}
       {pickingNoteToMerge && (
         <NotePicker title={translate("editor.mergeNotePickerTitle")} candidates={otherNotes()}

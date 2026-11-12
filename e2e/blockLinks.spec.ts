@@ -13,8 +13,8 @@ async function linkToSecondParagraph(page: Page): Promise<void> {
   await createNoteOnDesktop(page, "メモ");
   await page.keyboard.type("/ぶろっく");
   await page.keyboard.press("Enter");
-  await page.getByRole("dialog", { name: "リンクするブロックのあるメモを選ぶ" }).getByRole("button", { name: "計画" }).click();
-  const blockPicker = page.getByRole("dialog", { name: "「計画」の中の、リンクするブロックを選ぶ" });
+  await page.getByRole("dialog", { name: "ブロックのあるメモを選ぶ" }).getByRole("button", { name: "計画" }).click();
+  const blockPicker = page.getByRole("dialog", { name: "「計画」の中のブロックを選ぶ" });
   await expect(blockPicker.locator(".menu-item")).toHaveText(["出発は朝", "宿は駅前"]);
   await blockPicker.getByRole("button", { name: "宿は駅前" }).click();
   await expect(link(page)).toHaveText("計画 › 宿は駅前");
@@ -94,8 +94,8 @@ test("箇条書きの項目へリンクできる。折りたたんだ項目の�
   await createNoteOnDesktop(page, "メモ");
   await page.keyboard.type("/ぶろっく");
   await page.keyboard.press("Enter");
-  await page.getByRole("dialog", { name: "リンクするブロックのあるメモを選ぶ" }).getByRole("button", { name: "買い物" }).click();
-  await page.getByRole("dialog", { name: "「買い物」の中の、リンクするブロックを選ぶ" }).getByRole("button", { name: "にんじん" }).click();
+  await page.getByRole("dialog", { name: "ブロックのあるメモを選ぶ" }).getByRole("button", { name: "買い物" }).click();
+  await page.getByRole("dialog", { name: "「買い物」の中のブロックを選ぶ" }).getByRole("button", { name: "にんじん" }).click();
   await expect(link(page)).toHaveText("買い物 › にんじん");
 
   await page.getByRole("tab", { name: "買い物" }).click();
@@ -109,4 +109,18 @@ test("箇条書きの項目へリンクできる。折りたたんだ項目の�
   await page.keyboard.press("Enter");
   await expect(page.locator(".ProseMirror li li")).toHaveText(["", "にんじん"]);
   await expect(page.locator(".ProseMirror li[data-block-id]")).toHaveText("にんじん");
+});
+
+test("同じメモの中のブロックへもリンクできる。リンクを足しても、ブロックの ID は元のブロックに残る", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "議事録");
+  await page.keyboard.type("決定: 来週に延期");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("/ぶろっく");
+  await page.keyboard.press("Enter");
+  await page.getByRole("dialog", { name: "ブロックのあるメモを選ぶ" }).getByRole("button", { name: "議事録" }).click();
+  await page.getByRole("dialog", { name: "「議事録」の中のブロックを選ぶ" }).getByRole("button", { name: "決定: 来週に延期" }).click();
+  await expect(link(page)).toHaveText("議事録 › 決定: 来週に延期");
+  await link(page).click();
+  await expect(page.locator(".ProseMirror .revealed-block")).toHaveText("決定: 来週に延期");
 });

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { prosemirrorJSONToYXmlFragment, yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
 import * as Y from "yjs";
 import { linkableBlocks } from "../../core/notes/bodyBlocks";
-import { bodyAttachments, bodyPlainText } from "../../core/notes/bodyText";
+import { bodyAttachments, bodyLinkedNoteIds, bodyPlainText } from "../../core/notes/bodyText";
 import { documentSchema } from "../editor/documentSchema";
 import { appendMarkdownToBody } from "./appendMarkdown";
 import { bodyToMarkdown, type ImportedAttachment, type MarkdownImportContext, writeMarkdownToBody } from "./markdownDocument";
@@ -129,6 +129,16 @@ describe("ブロックの ID の印", () => {
     const body = await bodyFromMarkdown("先にある段落 ^1a-3c\n", importContext({}));
     await appendMarkdownToBody("足す段落 ^1a-3c\n", body, importContext({}));
     expect(blockIdsOf(body)).toEqual([["paragraph", "先にある段落", "1a-3c"], ["paragraph", "足す段落", null]]);
+  });
+
+  it("ブロックの埋め込みは、ブロックを指す「!」付きのリンクだけの段落と往復する。このメモ帳に無いメモを指すものは、リンクの文字にする", async () => {
+    const embed = `![リンク先のメモ](sedum-note://note/${NOTE_ID}#1a-3c)`;
+    const body = await bodyFromMarkdown(`前の段落\n\n${embed}\n`, importContext({}, [NOTE_ID]));
+    expect(body.toArray().map((node) => (node as Y.XmlElement).nodeName)).toEqual(["paragraph", "blockEmbed"]);
+    expect(bodyLinkedNoteIds(body)).toEqual([NOTE_ID]);
+    expect(bodyToMarkdown(body, exportContext).trim()).toBe(`前の段落\n\n${embed}`);
+    const unknown = await bodyFromMarkdown(`${embed}\n`, importContext({}));
+    expect(unknown.toArray().map((node) => (node as Y.XmlElement).nodeName)).toEqual(["paragraph"]);
   });
 
   it("ブロックを指すメモへのリンクは、リンク先の後ろの #ID と往復する", async () => {

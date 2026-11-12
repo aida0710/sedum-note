@@ -28,6 +28,7 @@ import { HEADING_LEVELS } from "./headingLevels";
 import { Highlight } from "./highlightMark";
 import { DateTimeShortcuts } from "./insertDateTime";
 import { BlockDragHandle } from "./blockDragHandle";
+import { BlockEmbed } from "./blockEmbedNode";
 import { BlockIds } from "./blockIds";
 import { ColoredTableCell, ColoredTableHeader } from "./tableCellBackground";
 import { TableRowFilterExtension } from "./tableRowFilter";
@@ -77,6 +78,7 @@ export function documentExtensions() {
     AttachmentImage,
     AttachmentFile,
     NoteLink,
+    BlockEmbed,
   ];
 }
 

@@ -15,13 +15,15 @@ type SearchablePickerProps = {
   title: string;
   // 選べるもの。並べたい順に渡す。
   choices: PickerChoice[];
+  // 絞り込みの欄に、打つ前に出しておく文。
+  searchPlaceholder: string;
   // 選べるものが無いときに出す文。
   emptyMessage: string;
   onPick: (choiceId: string) => void;
   onCancel: () => void;
 };
 
-export function SearchablePicker({ title, choices, emptyMessage, onPick, onCancel }: SearchablePickerProps) {
+export function SearchablePicker({ title, choices, searchPlaceholder, emptyMessage, onPick, onCancel }: SearchablePickerProps) {
   const [searchText, setSearchText] = useState("");
   const words = searchText.toLocaleLowerCase().split(/\s+/).filter((word) => word !== "");
   const listed = choices.filter((choice) => words.every((word) => choice.label.toLocaleLowerCase().includes(word))).slice(0, MAX_LISTED_CHOICES);
@@ -30,7 +32,7 @@ export function SearchablePicker({ title, choices, emptyMessage, onPick, onCance
       <p>{title}</p>
       <label className="sidebar-search">
         <Search size={14} />
-        <input autoFocus value={searchText} placeholder={translate("sidebar.searchPlaceholder")} onChange={(event) => setSearchText(event.target.value)} />
+        <input autoFocus value={searchText} placeholder={searchPlaceholder} onChange={(event) => setSearchText(event.target.value)} />
       </label>
       <div className="note-picker-list">
         {listed.length === 0 && <div className="tree-empty">{emptyMessage}</div>}

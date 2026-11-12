@@ -17,7 +17,7 @@ export class SlashMenuController {
   handleKey: ((event: KeyboardEvent) => boolean) | null = null;
   // 画面を開く操作。NoteEditor が描くたびに入れ直す。
   actions: SlashCommandActions = {
-    pickImage: () => undefined, pickFile: () => undefined, pickNoteLink: () => undefined, pickBlockLink: () => undefined, templates: [], insertTemplate: () => undefined,
+    pickImage: () => undefined, pickFile: () => undefined, pickNoteLink: () => undefined, pickBlockLink: () => undefined, pickBlockEmbed: () => undefined, templates: [], insertTemplate: () => undefined,
   };
 
   readonly state = (): SlashMenuState | null => this.#state;

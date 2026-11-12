@@ -19,11 +19,12 @@ const revealedBlockKey = new PluginKey<number | null>("revealedBlock");
 
 type BlockPosition = { position: number; node: ProseMirrorNode };
 
+// ID を持つブロック。リンクと埋め込みのノードも、指す先を同じ名前の属性で持つので、ブロックの種類だけを見る。
 function blocksWithId(doc: ProseMirrorNode): Array<BlockPosition & { blockId: string }> {
   const blocks: Array<BlockPosition & { blockId: string }> = [];
   doc.descendants((node, position) => {
     const blockId: unknown = node.attrs[BLOCK_ID_ATTRIBUTE];
-    if (typeof blockId === "string") {
+    if (typeof blockId === "string" && LINKABLE_BLOCK_NODE_NAMES.includes(node.type.name)) {
       blocks.push({ position, node, blockId });
     }
     return true;

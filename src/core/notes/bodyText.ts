@@ -12,6 +12,10 @@ export const ATTACHMENT_IMAGE_NODE = "attachmentImage";
 export const ATTACHMENT_FILE_NODE = "attachmentFile";
 // ほかのメモへのリンクのノード（src/ui/editor/noteLinkNode.tsx）。リンク先はメモの ID で持つ。
 export const NOTE_LINK_NODE = "noteLink";
+// ほかのメモのブロックの埋め込みのノード（src/ui/editor/blockEmbedNode.tsx）。元のメモを ID で持つ。
+export const BLOCK_EMBED_NODE = "blockEmbed";
+// ほかのメモを ID（属性 noteId）で指すノード。
+const NOTE_REFERENCE_NODE_NAMES = new Set([NOTE_LINK_NODE, BLOCK_EMBED_NODE]);
 const ATTACHMENT_NODE_NAMES = new Set([ATTACHMENT_IMAGE_NODE, ATTACHMENT_FILE_NODE]);
 
 type BodyNode = Y.XmlFragment | Y.XmlElement | Y.XmlText | Y.XmlHook;
@@ -73,11 +77,11 @@ export function bodyAttachments(body: Y.XmlFragment): AttachmentReference[] {
   return attachments;
 }
 
-// 本文の中の、ほかのメモへのリンクが指すメモの ID（重なりなし）。
+// 本文の中の、メモへのリンクと埋め込みが指すメモの ID（重なりなし）。
 export function bodyLinkedNoteIds(body: Y.XmlFragment): string[] {
   const noteIds = new Set<string>();
   const visit = (node: BodyNode) => {
-    if (node instanceof Y.XmlElement && node.nodeName === NOTE_LINK_NODE) {
+    if (node instanceof Y.XmlElement && NOTE_REFERENCE_NODE_NAMES.has(node.nodeName)) {
       const noteId = node.getAttribute("noteId");
       if (typeof noteId === "string") {
         noteIds.add(noteId);

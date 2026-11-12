@@ -65,6 +65,19 @@ describe("リンクの先にできるブロック", () => {
     }
   });
 
+  it("同じメモの中の、そのブロックを指すリンクは、ブロックとして数えない", () => {
+    const body = bodyOfNewDocument();
+    const linkToBlock = new Y.XmlElement("noteLink");
+    const paragraphWithLink = new Y.XmlElement("paragraph");
+    paragraphWithLink.insert(0, [linkToBlock]);
+    body.insert(0, [paragraphWithLink]);
+    appendParagraph(body, "リンクの先");
+    const target = linkableBlocks(body)[0]!.element;
+    const blockId = ensureBlockId(target);
+    linkToBlock.setAttribute(BLOCK_ID_ATTRIBUTE, blockId);
+    expect(findBlock(body, blockId)).toBe(target);
+  });
+
   it("同じ ID のブロックが 2 つあるときは、本文で先に出てくる方を返す", () => {
     const body = bodyOfNewDocument();
     appendParagraph(body, "先");

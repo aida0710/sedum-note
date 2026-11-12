@@ -17,5 +17,5 @@ export function NotePicker({ title, candidates, onPick, onCancel }: NotePickerPr
   const choices = [...candidates]
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
     .map((note) => ({ id: note.id, label: note.content.title || translate("sidebar.untitled") }));
-  return <SearchablePicker title={title} choices={choices} emptyMessage={translate("editor.noteLinkNone")} onPick={onPick} onCancel={onCancel} />;
+  return <SearchablePicker title={title} choices={choices} searchPlaceholder={translate("sidebar.searchPlaceholder")} emptyMessage={translate("editor.noteLinkNone")} onPick={onPick} onCancel={onCancel} />;
 }
