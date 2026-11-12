@@ -10,7 +10,7 @@ import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
-import { useMarkdownExport } from "../markdown/useMarkdownExport";
+import { useNoteFileExport } from "../markdown/useNoteFileExport";
 import { printPage } from "../platform/printPage";
 import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { useDialogs } from "../shared/DialogProvider";
@@ -23,7 +23,7 @@ import { FindBar } from "./FindBar";
 import { createEditorExtensions } from "./editorExtensions";
 import { NoteActionsMenu } from "./NoteActionsMenu";
 import { NoteHistoryDialog } from "./NoteHistoryDialog";
-import { NoteLinkPicker } from "./NoteLinkPicker";
+import { NotePicker } from "./NotePicker";
 import { NoteOutline } from "./NoteOutline";
 import { NoteLinkTargetsContext } from "./noteLinkTargets";
 import { insertPastedMarkdown, markdownInClipboard } from "./pastedMarkdown";
@@ -50,6 +50,7 @@ export function NoteEditor({ note, notebooks, repository, isMobile, onBack, high
   const [title, setTitle] = useState(note.content.title);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [pickingNoteLink, setPickingNoteLink] = useState(false);
+  const [pickingNoteToMerge, setPickingNoteToMerge] = useState(false);
   const [showingHistory, setShowingHistory] = useState(false);
   // 目次。PC では本文の横に出したままにでき（設定に覚える）、スマホではメニューで出す。
   const { showOutline } = useDevicePreferences();
@@ -95,7 +96,9 @@ export function NoteEditor({ note, notebooks, repository, isMobile, onBack, high
   attachments.editor.current = editor;
   editorOfPaste.current = editor;
 
-  const exportMarkdown = useMarkdownExport(repository);
+  const exportNote = useNoteFileExport(repository);
+  // リンク先や結合の相手に選べるメモ（ゴミ箱の外で、いま開いているメモ以外）。
+  const otherNotes = () => repository.notes().filter((candidate) => candidate.id !== noteId && candidate.content.trashedAt === null);
   const print = useAsyncAction(printPage);
   // ほかのデバイスがタイトルを変えたら、打っている最中でなければ表示を差し替える。
   useEffect(() => {
@@ -170,7 +173,7 @@ export function NoteEditor({ note, notebooks, repository, isMobile, onBack, high
     .map((template) => ({ id: template.id, title: template.content.title }));
   slashMenuController.actions = { pickImage, pickFile, pickNoteLink, templates, insertTemplate };
 
-  const actionError = attachments.errorMessage ?? pasteMarkdown.errorMessage ?? exportMarkdown.errorMessage ?? print.errorMessage;
+  const actionError = attachments.errorMessage ?? pasteMarkdown.errorMessage ?? exportNote.errorMessage ?? print.errorMessage;
   if (!editor) {
     return null;
   }
@@ -250,14 +253,21 @@ export function NoteEditor({ note, notebooks, repository, isMobile, onBack, high
       {attachments.fileInputs}
       <SlashMenu controller={slashMenuController} />
       {pickingNoteLink && (
-        <NoteLinkPicker candidates={repository.notes().filter((candidate) => candidate.id !== noteId && candidate.content.trashedAt === null)}
+        <NotePicker title={translate("editor.noteLinkPickerTitle")} candidates={otherNotes()}
           onPick={insertNoteLink} onCancel={() => setPickingNoteLink(false)} />
+      )}
+      {pickingNoteToMerge && (
+        <NotePicker title={translate("editor.mergeNotePickerTitle")} candidates={otherNotes()}
+          onPick={(pickedNoteId) => { setPickingNoteToMerge(false); void repository.mergeNoteInto(noteId, pickedNoteId); }}
+          onCancel={() => setPickingNoteToMerge(false)} />
       )}
       {menuAnchor && (
         <NoteActionsMenu anchor={menuAnchor} note={note} notebooks={notebooks} repository={repository}
           onFind={() => setFindBarOpen(true)}
           onPrint={() => void print.run(undefined)}
-          onShowHistory={() => setShowingHistory(true)} onExportMarkdown={() => void exportMarkdown.run([note])} onClose={() => setMenuAnchor(null)} />
+          onDuplicate={async () => openNote((await repository.duplicateNote(noteId, translate("editor.duplicateTitle", { title: note.content.title || translate("sidebar.untitled") }))).id)}
+          onMergeNote={() => setPickingNoteToMerge(true)}
+          onShowHistory={() => setShowingHistory(true)} onExport={(format) => void exportNote.run({ notes: [note], format })} onClose={() => setMenuAnchor(null)} />
       )}
       {showingHistory && (
         <NoteHistoryDialog note={note} repository={repository} onClose={() => setShowingHistory(false)}

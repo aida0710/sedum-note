@@ -101,3 +101,23 @@ test("スマホの幅では、ゴミ箱に入れた知らせが、下のメニ�
   expect(toast.y + toast.height).toBeLessThanOrEqual(bottomNavigation.y);
   expect(toast.x + toast.width <= newNoteButton.x || toast.y + toast.height <= newNoteButton.y).toBe(true);
 });
+
+test("メモを複製すると、同じ本文のコピーが開く。ほかのメモを結合すると、相手の本文が末尾に入り、相手はゴミ箱に入る", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "材料");
+  await page.keyboard.type("小麦粉");
+  await createNoteOnDesktop(page, "手順");
+  await page.keyboard.type("混ぜる");
+
+  await page.getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "複製" }).click();
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("「手順」のコピー");
+  await expect(page.locator(".ProseMirror")).toHaveText("混ぜる");
+
+  await page.getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "ほかのメモを結合" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "材料" }).click();
+  await expect(page.locator(".ProseMirror")).toHaveText("混ぜる材料小麦粉");
+  await expect(page.locator(".ProseMirror h2")).toHaveText("材料");
+  await expect(noteRow(page, "材料")).toHaveCount(0);
+});

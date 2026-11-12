@@ -4,8 +4,9 @@ import { useRef, useState } from "react";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { importMarkdownNotes, readImportSources } from "../markdown/markdownImport";
-import { useMarkdownExport } from "../markdown/useMarkdownExport";
+import { useNoteFileExport } from "../markdown/useNoteFileExport";
 import { useAsyncAction } from "../shared/useAsyncAction";
+import type { NoteFileFormat } from "../markdown/noteFileExport";
 
 export function MarkdownSection({ repository }: { repository: NoteRepository }) {
   const fileInput = useRef<HTMLInputElement>(null);
@@ -14,7 +15,8 @@ export function MarkdownSection({ repository }: { repository: NoteRepository }) 
     setImportedCount(null);
     setImportedCount((await importMarkdownNotes(repository, await readImportSources(files))).noteCount);
   });
-  const exportNotes = useMarkdownExport(repository);
+  const exportNotes = useNoteFileExport(repository);
+  const exportAllNotes = (format: NoteFileFormat) => void exportNotes.run({ notes: repository.notes().filter((note) => note.content.trashedAt === null), format });
   const errorMessage = importFiles.errorMessage ?? exportNotes.errorMessage;
   return (
     <section className="settings-section">
@@ -39,9 +41,14 @@ export function MarkdownSection({ repository }: { repository: NoteRepository }) 
         <button type="button" className="secondary-button" disabled={importFiles.busy} onClick={() => fileInput.current?.click()}>
           {translate("settings.markdownImport")}
         </button>
-        <button type="button" className="secondary-button" disabled={exportNotes.busy}
-          onClick={() => void exportNotes.run(repository.notes().filter((note) => note.content.trashedAt === null))}>
+        <button type="button" className="secondary-button" disabled={exportNotes.busy} onClick={() => exportAllNotes("markdown")}>
           {translate("settings.markdownExport")}
+        </button>
+        <button type="button" className="secondary-button" disabled={exportNotes.busy} onClick={() => exportAllNotes("html")}>
+          {translate("settings.htmlExport")}
+        </button>
+        <button type="button" className="secondary-button" disabled={exportNotes.busy} onClick={() => exportAllNotes("text")}>
+          {translate("settings.textExport")}
         </button>
       </div>
     </section>

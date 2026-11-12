@@ -33,11 +33,11 @@ function escapeLinkLabel(label: string): string {
   return label.replace(/[\\[\]]/g, (character) => `\\${character}`);
 }
 
-// 書き出すときだけ付ける属性（markdownPath は添付のリンク先、markdownTitle はリンク先のメモのタイトル）を読んで、Markdown の形にする。
+// 書き出すときだけ付ける属性（exportPath は添付のリンク先、exportTitle はリンク先のメモのタイトル）を読んで、Markdown の形にする。
 const markdownRenderers: Record<string, (node: JSONContent) => string> = {
-  [ATTACHMENT_IMAGE_NODE]: (node) => `![${escapeLinkLabel(String(node.attrs?.fileName ?? ""))}](${node.attrs?.markdownPath})`,
-  [ATTACHMENT_FILE_NODE]: (node) => `[${escapeLinkLabel(String(node.attrs?.fileName ?? ""))}](${node.attrs?.markdownPath})`,
-  [NOTE_LINK_NODE]: (node) => `[${escapeLinkLabel(String(node.attrs?.markdownTitle ?? ""))}](${NOTE_LINK_HREF_PREFIX}${node.attrs?.noteId})`,
+  [ATTACHMENT_IMAGE_NODE]: (node) => `![${escapeLinkLabel(String(node.attrs?.fileName ?? ""))}](${node.attrs?.exportPath})`,
+  [ATTACHMENT_FILE_NODE]: (node) => `[${escapeLinkLabel(String(node.attrs?.fileName ?? ""))}](${node.attrs?.exportPath})`,
+  [NOTE_LINK_NODE]: (node) => `[${escapeLinkLabel(String(node.attrs?.exportTitle ?? ""))}](${NOTE_LINK_HREF_PREFIX}${node.attrs?.noteId})`,
 };
 
 let manager: MarkdownManager | null = null;
@@ -57,30 +57,33 @@ function markdownManager(): MarkdownManager {
 // 添付を ID で指す書き方。ファイルに書き出さずに本文をやり取りするとき（MCP）に使う。
 export const ATTACHMENT_HREF_PREFIX = "sedum-note://attachment/";
 
-export type MarkdownExportContext = {
-  // 添付を指すリンク先（Markdown にそのまま書く形）。ファイルへ書き出すなら相対パス、MCP なら ID を指す URL。
+export type BodyExportContext = {
+  // 添付を指すリンク先（書き出すものにそのまま書く形）。ファイルへ書き出すなら相対パス、MCP なら ID を指す URL。
   attachmentHref: (attachment: { id: string; fileName: string }) => string;
   // リンク先のメモの今のタイトル。メモが無ければ null。
   noteTitle: (noteId: string) => string | null;
 };
 
-export function bodyToMarkdown(body: Y.XmlFragment, context: MarkdownExportContext): string {
+// 本文を、書き出し用の文書にする。添付にはリンク先（exportPath）、メモへのリンクにはリンク先のタイトル（exportTitle）を付ける。
+export function bodyToExportDocument(body: Y.XmlFragment, context: BodyExportContext): JSONContent {
   const document = yXmlFragmentToProsemirrorJSON(body) as JSONContent;
-  return markdownManager().serialize(mapNodes(document, (node) => {
+  return mapNodes(document, (node) => {
     if (node.type === ATTACHMENT_IMAGE_NODE || node.type === ATTACHMENT_FILE_NODE) {
       const href = context.attachmentHref({ id: String(node.attrs?.attachmentId), fileName: String(node.attrs?.fileName ?? "") });
-      return [{ ...node, attrs: { ...node.attrs, markdownPath: href } }];
+      return [{ ...node, attrs: { ...node.attrs, exportPath: href } }];
     }
     if (node.type === NOTE_LINK_NODE) {
       const title = context.noteTitle(String(node.attrs?.noteId));
       // リンク先が消えているリンクは、書き出すものが無い。
-      return title === null ? [] : [{ ...node, attrs: { ...node.attrs, markdownTitle: title } }];
-    }
-    if (node.type === "table") {
-      return [withoutMergedCells(node)];
+      return title === null ? [] : [{ ...node, attrs: { ...node.attrs, exportTitle: title } }];
     }
     return [node];
-  }));
+  });
+}
+
+export function bodyToMarkdown(body: Y.XmlFragment, context: BodyExportContext): string {
+  // Markdown の表は結合を表せないので、結合を解いてから書き出す。
+  return markdownManager().serialize(mapNodes(bodyToExportDocument(body, context), (node) => [node.type === "table" ? withoutMergedCells(node) : node]));
 }
 
 export type ImportedAttachment = { attachmentId: string; fileName: string; mimeType: string; byteLength: number };

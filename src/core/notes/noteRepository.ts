@@ -70,6 +70,9 @@ type LiveHolder = {
 type RemovedHolder = { state: "removed"; removedAt: string; attachmentIds: string[] };
 type Holder = LiveHolder | RemovedHolder;
 
+// 結合したメモのタイトルを入れる見出しの段。メモのタイトルの下に並ぶので、2 段目にする。
+const MERGED_NOTE_HEADING_LEVEL = 2;
+
 export class RecordNotFoundError extends Error {
   constructor(id: string) {
     super(`no record ${id}`);
@@ -209,6 +212,29 @@ export class NoteRepository {
       throw new RecordNotFoundError(templateId);
     }
     return this.#createNoteWithBodyOf(template.body, { title: template.content.title, ...changes });
+  }
+
+  // メモを複製する。本文とノートブックを引き継ぎ、添付は同じものを指す。
+  async duplicateNote(noteId: string, title: string): Promise<LiveNote> {
+    const source = this.note(noteId);
+    if (!source) {
+      throw new RecordNotFoundError(noteId);
+    }
+    return this.#createNoteWithBodyOf(source.body, { title, notebookIds: source.content.notebookIds, isTemplate: false });
+  }
+
+  // ほかのメモを、このメモに結合する。相手のタイトルを見出しにして本文を末尾に足し、相手はゴミ箱に入れる。
+  async mergeNoteInto(targetId: string, sourceId: string): Promise<void> {
+    const source = this.note(sourceId);
+    if (!source) {
+      throw new RecordNotFoundError(sourceId);
+    }
+    const targetBody = recordBody(this.#liveDocument(targetId, "note"));
+    const heading = new Y.XmlElement("heading");
+    heading.setAttribute("level", MERGED_NOTE_HEADING_LEVEL as never);
+    heading.insert(0, [new Y.XmlText(source.content.title)]);
+    targetBody.insert(targetBody.length, [heading, ...source.body.toArray().map((node) => node.clone() as Y.XmlElement)]);
+    await this.moveNoteToTrash(sourceId);
   }
 
   // 元の本文を写した、新しいメモを作る。

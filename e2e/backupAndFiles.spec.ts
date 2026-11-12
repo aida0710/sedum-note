@@ -139,3 +139,31 @@ test("Web 版で同期を使うときは、最初の画面でバケットの COR
   // 入れるのは、開いている Web 版の origin だけ（アプリは CORS の設定が要らない）。
   await expect(page.locator("details pre")).toContainText("http://127.0.0.1:5173");
 });
+
+test("メモを HTML とテキストで書き出せる。HTML は書式と添付へのリンクを保ち、テキストは文字だけになる", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByPlaceholder("タイトル").fill("書き出しのメモ");
+  await page.getByPlaceholder("タイトル").press("Enter");
+  await page.keyboard.type("## 持ち物");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("日焼け止め");
+
+  const exportAs = async (menuItem: string) => {
+    await page.getByRole("button", { name: "その他の操作" }).click();
+    await page.getByRole("menuitem", { name: menuItem }).click();
+    const download = page.waitForEvent("download");
+    await page.getByRole("dialog").getByRole("button", { name: "書き出す" }).click();
+    const exported = await download;
+    return { fileName: exported.suggestedFilename(), text: await readFile(await exported.path(), "utf8") };
+  };
+
+  const html = await exportAs("HTML で書き出す");
+  expect(html.fileName).toBe("書き出しのメモ.html");
+  expect(html.text).toContain("<h1>書き出しのメモ</h1>");
+  expect(html.text).toContain("<h2>持ち物</h2>");
+  expect(html.text).toContain("<p>日焼け止め</p>");
+
+  const text = await exportAs("テキストで書き出す");
+  expect(text.fileName).toBe("書き出しのメモ.txt");
+  expect(text.text).toBe("書き出しのメモ\n\n持ち物\n日焼け止め\n");
+});

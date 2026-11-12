@@ -1,4 +1,4 @@
-// リンクするメモを選ぶダイアログ。タイトルで絞り込める。
+// メモを 1 つ選ぶダイアログ（リンク先、結合するメモ）。タイトルで絞り込める。
 
 import { Search } from "lucide-react";
 import { useState } from "react";
@@ -9,14 +9,16 @@ import { ModalDialog } from "../shared/ModalDialog";
 // 一度に並べる件数。これより多いときは検索で絞ってもらう。
 const MAX_LISTED_NOTES = 50;
 
-type NoteLinkPickerProps = {
-  // リンク先にできるメモ（ゴミ箱の外で、いま開いているメモ以外）。
+type NotePickerProps = {
+  // 何のために選ぶかの説明。
+  title: string;
+  // 選べるメモ（ゴミ箱の外で、いま開いているメモ以外）。
   candidates: LiveNote[];
   onPick: (noteId: string) => void;
   onCancel: () => void;
 };
 
-export function NoteLinkPicker({ candidates, onPick, onCancel }: NoteLinkPickerProps) {
+export function NotePicker({ title, candidates, onPick, onCancel }: NotePickerProps) {
   const [searchText, setSearchText] = useState("");
   const words = searchText.toLocaleLowerCase().split(/\s+/).filter((word) => word !== "");
   const listed = candidates
@@ -24,8 +26,8 @@ export function NoteLinkPicker({ candidates, onPick, onCancel }: NoteLinkPickerP
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
     .slice(0, MAX_LISTED_NOTES);
   return (
-    <ModalDialog label={translate("editor.noteLinkPickerTitle")} className="note-picker" onClose={onCancel}>
-        <p>{translate("editor.noteLinkPickerTitle")}</p>
+    <ModalDialog label={title} className="note-picker" onClose={onCancel}>
+        <p>{title}</p>
         <label className="sidebar-search">
           <Search size={14} />
           <input autoFocus value={searchText} placeholder={translate("sidebar.searchPlaceholder")} onChange={(event) => setSearchText(event.target.value)} />

@@ -1,12 +1,19 @@
-// メモの「…」メニュー: ピン留め、ノートブックの付け外し、テンプレートにする、メモの中の検索、履歴、Markdown での書き出し、印刷、ゴミ箱。
+// メモの「…」メニュー: ピン留め、ノートブックの付け外し、テンプレートにする、複製、結合、メモの中の検索、履歴、ファイルへの書き出し、印刷、ゴミ箱。
 
-import { Check, FileDown, History, LayoutTemplate, Pin, PinOff, Printer, Search, Trash2 } from "lucide-react";
+import { Check, Copy, FileDown, History, Merge, LayoutTemplate, Pin, PinOff, Printer, Search, Trash2 } from "lucide-react";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
-import { translate } from "../i18n/translate";
+import { type MessageKey, translate } from "../i18n/translate";
+import type { NoteFileFormat } from "../markdown/noteFileExport";
 import { isPrintAvailable } from "../platform/printPage";
 import { PopupMenu } from "../shared/PopupMenu";
 import { useTrashWithUndo } from "../workspace/useTrashWithUndo";
+
+const EXPORT_FORMATS: Array<{ format: NoteFileFormat; label: MessageKey }> = [
+  { format: "markdown", label: "editor.exportMarkdown" },
+  { format: "html", label: "editor.exportHtml" },
+  { format: "text", label: "editor.exportText" },
+];
 
 type NoteActionsMenuProps = {
   anchor: HTMLElement;
@@ -15,12 +22,14 @@ type NoteActionsMenuProps = {
   repository: NoteRepository;
   onFind: () => void;
   onPrint: () => void;
+  onDuplicate: () => Promise<unknown>;
+  onMergeNote: () => void;
   onShowHistory: () => void;
-  onExportMarkdown: () => void;
+  onExport: (format: NoteFileFormat) => void;
   onClose: () => void;
 };
 
-export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onShowHistory, onExportMarkdown, onClose }: NoteActionsMenuProps) {
+export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onShowHistory, onExport, onClose }: NoteActionsMenuProps) {
   const { content } = note;
   const moveToTrash = useTrashWithUndo(repository);
   const toggleNotebook = (notebookId: string) => {
@@ -55,15 +64,25 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
       <button className="menu-item" role="menuitem" onClick={runAndClose(() => repository.updateNote(note.id, { isTemplate: !content.isTemplate, pinned: false }))}>
         <LayoutTemplate size={15} />{translate(content.isTemplate ? "editor.stopBeingTemplate" : "editor.makeTemplate")}
       </button>
+      <button className="menu-item" role="menuitem" onClick={runAndClose(onDuplicate)}>
+        <Copy size={15} />{translate("editor.duplicate")}
+      </button>
+      {content.trashedAt === null && (
+        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onMergeNote(); }}>
+          <Merge size={15} />{translate("editor.mergeNote")}
+        </button>
+      )}
       <button className="menu-item" role="menuitem" onClick={() => { onClose(); onFind(); }}>
         <Search size={15} />{translate("editor.find")}
       </button>
       <button className="menu-item" role="menuitem" onClick={() => { onClose(); onShowHistory(); }}>
         <History size={15} />{translate("editor.history")}
       </button>
-      <button className="menu-item" role="menuitem" onClick={() => { onClose(); onExportMarkdown(); }}>
-        <FileDown size={15} />{translate("editor.exportMarkdown")}
-      </button>
+      {EXPORT_FORMATS.map(({ format, label }) => (
+        <button key={format} className="menu-item" role="menuitem" onClick={() => { onClose(); onExport(format); }}>
+          <FileDown size={15} />{translate(label)}
+        </button>
+      ))}
       {isPrintAvailable() && (
         <button className="menu-item" role="menuitem" onClick={() => { onClose(); onPrint(); }}>
           <Printer size={15} />{translate("editor.print")}

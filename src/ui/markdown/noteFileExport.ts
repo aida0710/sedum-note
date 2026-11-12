@@ -1,19 +1,52 @@
-// メモを Markdown のファイルに書き出す。ノートブックはフォルダに、添付は attachments フォルダに置き、
-// 1 つの zip にまとめる。添付の無いメモ 1 件だけなら、.md のファイル 1 つにする。
+// メモをファイル（Markdown・HTML・テキスト）に書き出す。ノートブックはフォルダに、添付は attachments フォルダに置き、
+// 1 つの zip にまとめる。添付の無いメモ 1 件だけなら、そのファイル 1 つにする。
 // 書き出したものは暗号化されない（呼び出す画面が、書き出す前にそのことを確かめる）。
 
 import { zipSync, type Zippable } from "fflate";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { withFrontMatter } from "./frontMatter";
-import { bodyToMarkdown } from "./markdownDocument";
+import { bodyPlainText } from "../../core/notes/bodyText";
+import { bodyToHtml, noteAsHtmlFile } from "./htmlDocument";
+import { type BodyExportContext, bodyToMarkdown } from "./markdownDocument";
 import { encodeMarkdownPath, relativePath, safeFileName, UniquePaths } from "./markdownFileNames";
 
 const ATTACHMENTS_DIRECTORY = "attachments";
 // 添付（写真など）は既に圧縮されていることが多いので、zip では圧縮せずに入れる。
 const STORED_WITHOUT_COMPRESSION = { level: 0 } as const;
 
-export type MarkdownExport = {
+export type NoteFileFormat = "markdown" | "html" | "text";
+
+type NoteFileWriter = {
+  extension: string;
+  mimeType: string;
+  // テキストには添付を入れられないので、添付のファイルを一緒に書き出さない。
+  includesAttachments: boolean;
+  fileText: (note: LiveNote, context: BodyExportContext & { language: string }) => string;
+};
+
+const NOTE_FILE_WRITERS: Record<NoteFileFormat, NoteFileWriter> = {
+  markdown: {
+    extension: ".md",
+    mimeType: "text/markdown",
+    includesAttachments: true,
+    fileText: (note, context) => withFrontMatter({ title: note.content.title, created: note.content.createdAt, updated: note.updatedAt }, bodyToMarkdown(note.body, context)),
+  },
+  html: {
+    extension: ".html",
+    mimeType: "text/html",
+    includesAttachments: true,
+    fileText: (note, context) => noteAsHtmlFile({ title: note.content.title, bodyHtml: bodyToHtml(note.body, context), language: context.language }),
+  },
+  text: {
+    extension: ".txt",
+    mimeType: "text/plain",
+    includesAttachments: false,
+    fileText: (note) => `${note.content.title}\n\n${bodyPlainText(note.body)}\n`,
+  },
+};
+
+export type NoteFileExport = {
   suggestedName: string;
   mimeType: string;
   bytes: Uint8Array;
@@ -25,13 +58,17 @@ export type MarkdownExport = {
 type ExportNotesInput = {
   repository: NoteRepository;
   notes: LiveNote[];
+  format: NoteFileFormat;
+  // 書き出す HTML に書く言語（画面の言語）。
+  language: string;
   // タイトルの無いメモのファイル名。
   untitledName: string;
   // zip にするときのファイル名（拡張子なし）。
   archiveName: string;
 };
 
-export async function exportNotesAsMarkdown({ repository, notes, untitledName, archiveName }: ExportNotesInput): Promise<MarkdownExport> {
+export async function exportNotesAsFiles({ repository, notes, format, language, untitledName, archiveName }: ExportNotesInput): Promise<NoteFileExport> {
+  const writer = NOTE_FILE_WRITERS[format];
   const paths = new UniquePaths();
   const notebookDirectories = notebookDirectoryPaths(repository.notebooks());
   const attachmentPaths = new Map<string, string>();
@@ -41,8 +78,8 @@ export async function exportNotesAsMarkdown({ repository, notes, untitledName, a
 
   for (const note of notes) {
     const directory = note.content.notebookIds.map((notebookId) => notebookDirectories.get(notebookId)).find((path) => path !== undefined) ?? "";
-    const notePath = paths.claim(directory, safeFileName(note.content.title, untitledName), ".md");
-    for (const attachment of note.content.attachments) {
+    const notePath = paths.claim(directory, safeFileName(note.content.title, untitledName), writer.extension);
+    for (const attachment of writer.includesAttachments ? note.content.attachments : []) {
       if (attachmentPaths.has(attachment.id)) {
         continue;
       }
@@ -56,17 +93,17 @@ export async function exportNotesAsMarkdown({ repository, notes, untitledName, a
         files[attachmentPath] = [bytes, STORED_WITHOUT_COMPRESSION];
       }
     }
-    const markdown = bodyToMarkdown(note.body, {
+    files[notePath] = textEncoder.encode(writer.fileText(note, {
+      language,
       attachmentHref: ({ id }) => encodeMarkdownPath(relativePath(notePath, attachmentPaths.get(id) ?? ATTACHMENTS_DIRECTORY)),
       noteTitle: (noteId) => repository.note(noteId)?.content.title ?? null,
-    });
-    files[notePath] = textEncoder.encode(withFrontMatter({ title: note.content.title, created: note.content.createdAt, updated: note.updatedAt }, markdown));
+    }));
   }
 
   const filePaths = Object.keys(files);
   const onlyPath = filePaths.length === 1 ? filePaths[0] : undefined;
   if (onlyPath !== undefined) {
-    return { suggestedName: onlyPath, mimeType: "text/markdown", bytes: files[onlyPath] as Uint8Array, noteCount: notes.length, missingAttachmentCount };
+    return { suggestedName: onlyPath, mimeType: writer.mimeType, bytes: files[onlyPath] as Uint8Array, noteCount: notes.length, missingAttachmentCount };
   }
   return { suggestedName: `${archiveName}.zip`, mimeType: "application/zip", bytes: zipSync(files), noteCount: notes.length, missingAttachmentCount };
 }

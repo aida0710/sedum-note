@@ -5,13 +5,13 @@ import { appendAttachmentImage, appendParagraph } from "../../core/notes/bodyFix
 import { bodyPlainText } from "../../core/notes/bodyText";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { newTestRepository } from "../../core/notes/repositoryFixtures";
-import { exportNotesAsMarkdown } from "./markdownExport";
+import { exportNotesAsFiles } from "./noteFileExport";
 import { importMarkdownNotes, type ImportSourceFile } from "./markdownImport";
 
 const newRepository = async () => (await newTestRepository()).repository;
 
 const exportAll = (repository: NoteRepository) =>
-  exportNotesAsMarkdown({ repository, notes: repository.notes(), untitledName: "無題のメモ", archiveName: "export" });
+  exportNotesAsFiles({ repository, notes: repository.notes(), format: "markdown", language: "ja", untitledName: "無題のメモ", archiveName: "export" });
 
 function unzipToSources(zip: Uint8Array): ImportSourceFile[] {
   return Object.entries(unzipSync(zip)).map(([path, bytes]) => ({ path, bytes }));
