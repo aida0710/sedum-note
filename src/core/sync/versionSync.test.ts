@@ -36,11 +36,14 @@ async function twoDevices() {
     appendParagraph(device.repository.note(noteId)!.body, text);
     await device.repository.flush();
   };
-  return { store, laptop, phone, advance, writeLineAfterInterval };
+  // あとから同じ同期先に加わるデバイス。
+  const joinAnotherDevice = () => joinSyncedVault(environment(), { passphrase: PASSPHRASE, remoteConfig });
+  return { store, laptop, phone, advance, writeLineAfterInterval, joinAnotherDevice };
 }
 
 const sync = (device: UnlockedVault) => device.syncEngine!.syncOnce();
 const remoteVersionCount = async (store: MemoryObjectStore) => (await store.list(VERSIONS_PREFIX)).length;
+const uploadedVersionStates = async (device: UnlockedVault) => (await device.localStore.listVersionStates()).filter((version) => version.reason !== "sync");
 
 async function historyTexts(device: UnlockedVault, noteId: string): Promise<string[]> {
   await device.repository.downloadNoteVersions(noteId);
@@ -79,6 +82,57 @@ describe("履歴の同期", () => {
     expect(objects).toHaveLength(1);
     const body = new TextDecoder("latin1").decode((await store.get(objects[0]!.key))!.body);
     expect(body).not.toMatch(/secret|edit|capturedAt/);
+  });
+
+  it("同期先の名前には、メモと版の ID と暗号文だけを入れ、残した時刻は入れない", async () => {
+    const { store, laptop, writeLineAfterInterval } = await twoDevices();
+    const note = await laptop.repository.createNote({ title: "議事録" });
+    appendParagraph(note.body, "1 行目");
+    await laptop.repository.flush();
+    await writeLineAfterInterval(laptop, note.id, "2 行目");
+    await sync(laptop);
+    const [version] = await uploadedVersionStates(laptop);
+    const [object] = await store.list(VERSIONS_PREFIX);
+    expect(object!.key).toMatch(new RegExp(`^${VERSIONS_PREFIX}${note.id}/${version!.id}-[0-9a-f]+$`));
+    expect(object!.key).not.toContain(String(new Date(version!.capturedAt).getTime()));
+  });
+
+  it("送ったあと「送った」と書く前に止まった版は、次の同期で送り直さない", async () => {
+    const { store, laptop, writeLineAfterInterval } = await twoDevices();
+    const note = await laptop.repository.createNote({ title: "議事録" });
+    appendParagraph(note.body, "1 行目");
+    await laptop.repository.flush();
+    await writeLineAfterInterval(laptop, note.id, "2 行目");
+    await sync(laptop);
+    const [state] = await uploadedVersionStates(laptop);
+    const version = await laptop.localStore.getVersion(state!.id);
+    await laptop.localStore.putVersion({ ...version!, uploaded: false });
+    await sync(laptop);
+    expect(await remoteVersionCount(store)).toBe(1);
+  });
+
+  it("前の形の名前（残した時刻を平文で入れたもの）の履歴も読め、1 日に 1 回の見直しで今の形の名前に置き直す", async () => {
+    const { store, laptop, phone, advance, writeLineAfterInterval, joinAnotherDevice } = await twoDevices();
+    const note = await laptop.repository.createNote({ title: "議事録" });
+    appendParagraph(note.body, "1 行目");
+    await laptop.repository.flush();
+    await writeLineAfterInterval(laptop, note.id, "2 行目");
+    await sync(laptop);
+    const [version] = await uploadedVersionStates(laptop);
+    const [object] = await store.list(VERSIONS_PREFIX);
+    const legacyKey = `${VERSIONS_PREFIX}${note.id}/${new Date(version!.capturedAt).getTime()}-${version!.id}`;
+    await store.put(legacyKey, (await store.get(object!.key))!.body, { ifAbsent: true });
+    await store.delete(object!.key);
+
+    // 送った版を、同期先に無いものとして手元から消さない。
+    expect(await historyTexts(laptop, note.id)).toEqual(["1 行目"]);
+    advance(REMOTE_VERSION_SWEEP_INTERVAL_MILLISECONDS);
+    await sync(phone);
+    const keys = (await store.list(VERSIONS_PREFIX)).map((listed) => listed.key);
+    expect(keys).toHaveLength(1);
+    expect(keys[0]).toMatch(new RegExp(`^${VERSIONS_PREFIX}${note.id}/${version!.id}-[0-9a-f]+$`));
+    const tablet = await joinAnotherDevice();
+    expect(await historyTexts(tablet, note.id)).toEqual(["1 行目"]);
   });
 
   it("決めた数を超えた履歴は、同期先からも、ほかのデバイスからも消える", async () => {
