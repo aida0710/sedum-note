@@ -227,6 +227,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "editor.link": "Link",
   "editor.linkPrompt": "Link URL",
   "editor.noteLink": "Link to a note",
+  "editor.columns": "{count} columns",
   "editor.math": "Math",
   "editor.diagram": "Diagram (Mermaid)",
   "editor.diagramRendering": "Rendering the diagram…",

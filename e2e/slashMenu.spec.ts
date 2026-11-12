@@ -14,7 +14,7 @@ test("「/」を打つとブロックの候補が出て、上下のキーと Ent
   await expect(slashMenu(page).getByRole("option")).toHaveText([
     "本文", "見出し 1", "見出し 2", "見出し 3", "見出し 4", "見出し 5", "見出し 6", "箇条書き", "番号付きリスト", "チェックリスト", "引用",
     "コールアウト: 情報", "コールアウト: ヒント", "コールアウト: 注意", "コールアウト: 警告", "コード", "表", "区切り線",
-    "画像を貼る", "ファイルを添付", "今日の日付", "今の日時", "数式", "図（Mermaid）", "クエリ（条件に合うメモの一覧）", "メモへのリンク",
+    "画像を貼る", "ファイルを添付", "今日の日付", "今の日時", "2 段組み", "3 段組み", "数式", "図（Mermaid）", "クエリ（条件に合うメモの一覧）", "メモへのリンク",
   ]);
   await page.keyboard.press("ArrowDown");
   await expect(slashMenu(page).getByRole("option", { name: "見出し 1" })).toHaveAttribute("aria-selected", "true");
@@ -159,4 +159,24 @@ test("「/」から図を入れると Mermaid の図が出る。カーソルが�
   await page.keyboard.press("End");
   await page.keyboard.type(" --> C[かえた]");
   await expect(diagram).toContainText("かえた");
+});
+
+test("「/」から段組みを入れると、ブロックを横に並べて書ける。スマホの幅では縦に並ぶ", async ({ page }) => {
+  await openNewNote(page);
+  await page.keyboard.type("/だんぐみ");
+  await slashMenu(page).getByRole("option", { name: "2 段組み" }).click();
+  const columns = page.locator(".ProseMirror .column");
+  await expect(columns).toHaveCount(2);
+  await page.keyboard.type("左の段");
+  await columns.nth(1).click();
+  await page.keyboard.type("右の段");
+  await expect(columns).toHaveText(["左の段", "右の段"]);
+
+  const boxes = async () => Promise.all([columns.nth(0).boundingBox(), columns.nth(1).boundingBox()]);
+  const [left, right] = await boxes();
+  expect(right!.x).toBeGreaterThan(left!.x + left!.width - 1);
+  expect(Math.abs(right!.y - left!.y)).toBeLessThan(2);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => { const [top, bottom] = await boxes(); return bottom!.y - top!.y; }).toBeGreaterThan(10);
 });

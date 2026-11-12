@@ -225,6 +225,7 @@ export const japaneseMessages = {
   "editor.link": "リンク",
   "editor.linkPrompt": "リンク先の URL",
   "editor.noteLink": "メモへのリンク",
+  "editor.columns": "{count} 段組み",
   "editor.math": "数式",
   "editor.diagram": "図（Mermaid）",
   "editor.diagramRendering": "図を描いています…",

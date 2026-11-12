@@ -87,6 +87,9 @@ button:disabled { cursor: default; opacity: .55; }
 .block-drag-handle[hidden] { display: none; }
 .block-drag-handle::before { content: "⠿"; font-size: 13px; line-height: 1; }
 .block-drag-handle:hover { background: var(--selected); color: var(--text); }
+.ProseMirror .columns { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 16px; margin: 10px 0; }
+.ProseMirror .column { min-width: 0; border: 1px dashed transparent; border-radius: 6px; padding: 2px 6px; }
+.ProseMirror-focused .column { border-color: var(--line); }
 .backlinks { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); }
 .backlinks h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; }
 .sidebar-brand-actions { margin-left: auto; display: flex; gap: 2px; }
@@ -294,6 +297,8 @@ kbd { font: inherit; font-size: 12px; background: var(--tag); border: 1px solid 
 .note-history-preview { overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 .note-history-preview pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.7; }
 @media (max-width: 760px) {
+  /* スマホの幅では、段組みを縦に並べる。 */
+  .ProseMirror .columns { grid-auto-flow: row; }
   .note-history-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(90px, 30%) minmax(0, 1fr); }
 }
 .attachment-image { margin: 14px 0; border-radius: 10px; overflow: hidden; position: relative; background: var(--tag); min-height: 60px; }

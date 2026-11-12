@@ -20,6 +20,7 @@ import { NoteQuery } from "./noteQueryNode";
 import { SearchHighlight } from "./searchHighlightExtension";
 import { SlashCommands } from "./slashCommandExtension";
 import { Callout } from "./calloutNode";
+import { Column, Columns } from "./columnsNode";
 import { Folding } from "./folding";
 import { HEADING_LEVELS } from "./headingLevels";
 import { Highlight } from "./highlightMark";
@@ -65,6 +66,8 @@ export function documentExtensions() {
     NoteQuery,
     InlineMath,
     BlockMath,
+    Columns,
+    Column,
     AttachmentImage,
     AttachmentFile,
     NoteLink,

@@ -10,7 +10,8 @@
 // 5: コールアウトを足した。
 // 6: クエリのブロックを足した。
 // 7: 数式（行の中と、独立した行）を足した。
-export const BODY_SCHEMA_VERSION = 7;
+// 8: 段組みを足した。
+export const BODY_SCHEMA_VERSION = 8;
 
 export class AppUpdateRequiredError extends Error {
   constructor() {

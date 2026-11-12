@@ -2,7 +2,7 @@
 
 import type { Editor } from "@tiptap/react";
 import {
-  CalendarClock, CalendarDays, Code, FileSymlink, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, ImagePlus, Info, Lightbulb, ListFilter, OctagonAlert, Sigma, TriangleAlert, Workflow, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Minus, Paperclip, Pilcrow, Table, TextQuote,
+  CalendarClock, CalendarDays, Code, Columns2, FileSymlink, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, ImagePlus, Info, Lightbulb, ListFilter, OctagonAlert, Sigma, TriangleAlert, Workflow, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Minus, Paperclip, Pilcrow, Table, TextQuote,
 } from "lucide-react";
 import { translate } from "../i18n/translate";
 import { HEADING_LEVELS, type HeadingLevel } from "./headingLevels";
@@ -11,6 +11,7 @@ import { CALLOUT_KINDS } from "./calloutNode";
 import { NOTE_QUERY_NODE } from "./noteQueryNode";
 import { BLOCK_MATH_NODE } from "./mathNodes";
 import { MERMAID_LANGUAGE } from "./mermaidDiagrams";
+import { COLUMN_COUNTS } from "./columnsNode";
 
 // エディタの外の画面を開く操作（ファイルの選択、リンクするメモの選択）。NoteEditor が用意する。
 export type SlashCommandActions = {
@@ -69,6 +70,10 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "file", icon: Paperclip, name: () => translate("editor.file"), keywords: ["file", "attach", "tenpu", "てんぷ", "ふぁいる"], run: (_editor, actions) => actions.pickFile() },
   { id: "date", icon: CalendarDays, name: () => translate("editor.insertDate"), keywords: ["date", "today", "hizuke", "ひづけ", "きょう"], run: (editor) => insertCurrentDateTime(editor, "date") },
   { id: "dateTime", icon: CalendarClock, name: () => translate("editor.insertDateTime"), keywords: ["time", "now", "datetime", "nichiji", "にちじ", "じこく", "いま"], run: (editor) => insertCurrentDateTime(editor, "dateTime") },
+  ...COLUMN_COUNTS.map((columnCount): SlashCommand => ({
+    id: `columns:${columnCount}`, icon: Columns2, name: () => translate("editor.columns", { count: columnCount }), keywords: ["columns", "dangumi", "だんぐみ", "よこ"],
+    run: (editor) => editor.chain().focus().insertColumns(columnCount).run(),
+  })),
   { id: "math", icon: Sigma, name: () => translate("editor.math"), keywords: ["math", "latex", "formula", "suushiki", "すうしき"], run: (editor) => editor.chain().focus().insertContent({ type: BLOCK_MATH_NODE }).run() },
   {
     id: "diagram", icon: Workflow, name: () => translate("editor.diagram"), keywords: ["diagram", "mermaid", "chart", "zu", "ず", "ふろー"],

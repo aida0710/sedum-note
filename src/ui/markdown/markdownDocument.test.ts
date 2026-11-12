@@ -122,6 +122,16 @@ describe("Markdown の書き出し", () => {
   });
 });
 
+describe("段組みの Markdown での書き出し", () => {
+  it("段組みは、左の段から順に上から並べて書き出す", () => {
+    const body = new Y.Doc().getXmlFragment("body");
+    const column = (text: string) => ({ type: "column", content: [{ type: "paragraph", content: [{ type: "text", text }] }] });
+    prosemirrorJSONToYXmlFragment(documentSchema(), { type: "doc", content: [{ type: "columns", content: [column("左の段"), column("右の段")] }] }, body);
+    expect(bodyToMarkdown(body, exportContext)).toBe("左の段\n\n右の段");
+    expect(bodyPlainText(body)).toBe("左の段\n右の段");
+  });
+});
+
 describe("表の Markdown での書き出し", () => {
   const cell = (type: "tableHeader" | "tableCell", text: string, attrs: Record<string, unknown> = {}) =>
     ({ type, attrs, content: [{ type: "paragraph", content: text === "" ? [] : [{ type: "text", text }] }] });
