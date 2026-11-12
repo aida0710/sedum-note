@@ -689,6 +689,9 @@ export const englishMessages: Record<MessageKey, string> = {
   "mobile.bookmarked": "Bookmarks",
   "mobile.settings": "Settings",
   "mobile.all": "All",
+  "mobile.pullToSync": "Pull to sync",
+  "mobile.releaseToSync": "Release to sync",
+  "mobile.syncing": "Syncing…",
 
   "common.cancel": "Cancel",
   "common.save": "Save",

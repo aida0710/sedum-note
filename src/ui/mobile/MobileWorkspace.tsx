@@ -58,9 +58,8 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
       <div className="phone">
         <NoteLinkTargetsContext.Provider value={createNoteLinkTargets({ repository, navigation, concealedNoteIds })}>
           <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
-              <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, openNote.id)}
-                unlinkedMentions={findUnlinkedMentions(snapshot.summaries, openNote)}
-            repository={repository} isMobile onBack={goBack} />
+            <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, openNote.id)}
+              unlinkedMentions={findUnlinkedMentions(snapshot.summaries, openNote)} repository={repository} isMobile onBack={goBack} />
             </NoteQuerySourceContext.Provider>
         </NoteLinkTargetsContext.Provider>
         {aiChat.open && (
@@ -102,7 +101,8 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
       {(tab === "notes" || tab === "bookmarked") && (
         <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, { view, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNameOf: notebookNameLookup(snapshot.notebooks) })}
           notebooks={snapshot.notebooks.map((notebook) => ({ id: notebook.id, name: notebook.content.name }))}
-          view={view} showChips={tab === "notes"} navigation={navigation} onOpen={navigation.openNote} />
+          view={view} showChips={tab === "notes"} navigation={navigation} repository={repository} onOpen={navigation.openNote}
+          onPullToSync={session.syncStatus === null ? null : session.syncNow} />
       )}
       {(tab === "notes" || tab === "bookmarked") && (
         <button className="fab" aria-label={translate("sidebar.newNote")} onClick={() => void createNote()}><Plus size={26} /></button>

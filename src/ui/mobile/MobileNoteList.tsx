@@ -1,14 +1,19 @@
 // スマホのメモの一覧（検索・ノートブックの切り替え・要約とサムネイル）。
+// メモを左へ払うとゴミ箱に入れ、右へ払うとピン留めを付け外しする。同期先があれば、上から引いて離すと同期する。
 
-import { LockKeyhole, Pin, Search } from "lucide-react";
+import { LockKeyhole, Pin, PinOff, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useContext } from "react";
 import type { NoteSummary, NoteView } from "../../core/notes/noteQueries";
+import type { NoteRepository } from "../../core/notes/noteRepository";
 import { useAttachmentUrl } from "../editor/attachmentReader";
 import { translate } from "../i18n/translate";
 import { useNoteLockState } from "../session/noteLockState";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { formatShortDate } from "../shared/formatTime";
+import { useTrashWithUndo } from "../workspace/useTrashWithUndo";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
+import { type PullState, usePullToSync } from "./usePullToSync";
+import { useSwipeActions } from "./useSwipeActions";
 
 export function listTitle(view: NoteView, notebooks: WorkspaceProps["snapshot"]["notebooks"]): string {
   if (view.kind === "notebook") {
@@ -30,10 +35,16 @@ type NoteListProps = {
   view: NoteView;
   showChips: boolean;
   navigation: WorkspaceProps["navigation"];
+  repository: NoteRepository;
   onOpen: (noteId: string) => void;
+  // 引いて離したときに同期する。同期先が無ければ null（引けない）。
+  onPullToSync: (() => Promise<void>) | null;
 };
 
-export function NoteList({ title, summaries, notebooks, view, showChips, navigation, onOpen }: NoteListProps) {
+const PULL_MESSAGES = { idle: "mobile.pullToSync", pulling: "mobile.pullToSync", ready: "mobile.releaseToSync", syncing: "mobile.syncing" } as const satisfies Record<PullState, string>;
+
+export function NoteList({ title, summaries, notebooks, view, showChips, navigation, repository, onOpen, onPullToSync }: NoteListProps) {
+  const { scrollRef, indicatorRef, pullState } = usePullToSync(onPullToSync);
   return (
     <>
       <div className="phone-top"><h2>{title}</h2></div>
@@ -50,27 +61,49 @@ export function NoteList({ title, summaries, notebooks, view, showChips, navigat
           ))}
         </div>
       )}
-      <div className="phone-scroll">
-        {summaries.length === 0 && <div className="empty-state">{translate("sidebar.noNotes")}</div>}
-        {summaries.map((summary) => <NoteListItem key={summary.note.id} summary={summary} notebooks={notebooks} onOpen={onOpen} />)}
+      <div className="phone-list">
+        {onPullToSync && (
+          <div ref={indicatorRef} className="pull-to-sync" data-state={pullState} role="status">
+            <RefreshCw size={16} />{pullState === "idle" ? "" : translate(PULL_MESSAGES[pullState])}
+          </div>
+        )}
+        <div ref={scrollRef} className="phone-scroll">
+          {summaries.length === 0 && <div className="empty-state">{translate("sidebar.noNotes")}</div>}
+          {summaries.map((summary) => <NoteListItem key={summary.note.id} summary={summary} notebooks={notebooks} repository={repository} onOpen={onOpen} />)}
+        </div>
       </div>
     </>
   );
 }
 
-function NoteListItem({ summary, notebooks, onOpen }: { summary: NoteSummary; notebooks: NotebookChoice[]; onOpen: (noteId: string) => void }) {
+type NoteListItemProps = { summary: NoteSummary; notebooks: NotebookChoice[]; repository: NoteRepository; onOpen: (noteId: string) => void };
+
+function NoteListItem({ summary, notebooks, repository, onOpen }: NoteListItemProps) {
   const { note, plainText } = summary;
+  const { pinned, isTemplate, trashedAt } = note.content;
   const unsyncedIds = useContext(UnsyncedRecordsContext);
   const { lockedNoteIds } = useNoteLockState();
+  const moveToTrash = useTrashWithUndo(repository);
+  // ゴミ箱の中のメモは払えない。テンプレートはピン留めしない（テンプレートの一覧はピン留めで並べない）。
+  const swipe = useSwipeActions(trashedAt !== null ? {} : {
+    onSwipeLeft: () => void moveToTrash([note.id]),
+    onSwipeRight: isTemplate ? undefined : () => void repository.updateNote(note.id, { pinned: !pinned }),
+  });
   const firstImage = note.content.attachments.find((attachment) => attachment.mimeType.startsWith("image/")) ?? null;
   const thumbnail = useAttachmentUrl(firstImage?.id ?? null, firstImage?.mimeType);
   const notebookNames = notebooks.filter((notebook) => note.content.notebookIds.includes(notebook.id)).map((notebook) => notebook.name);
   return (
-    <button className="note-item" onClick={() => onOpen(note.id)}>
-      <h3>{unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}{note.content.pinned && <Pin size={13} className="pin" />}{lockedNoteIds.has(note.id) && <LockKeyhole size={13} className="lock-mark" aria-label={translate("lock.locked")} />}{note.content.title || translate("sidebar.untitled")}</h3>
-      {firstImage && thumbnail.state === "ready" && <img className="thumb" src={thumbnail.url} alt="" />}
-      <p>{plainText}</p>
-      <span className="meta">{[formatShortDate(note.updatedAt), ...notebookNames].join(" · ")}</span>
-    </button>
+    <div ref={swipe.rowRef} className="note-item-row">
+      <span className="swipe-action swipe-action-right" aria-hidden="true">
+        {pinned ? <PinOff size={16} /> : <Pin size={16} />}{translate(pinned ? "editor.unpin" : "editor.pin")}
+      </span>
+      <span className="swipe-action swipe-action-left" aria-hidden="true"><Trash2 size={16} />{translate("editor.moveToTrash")}</span>
+      <button ref={swipe.itemRef} className="note-item" {...swipe.handlers} onClick={() => onOpen(note.id)}>
+        <h3>{unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}{pinned && <Pin size={13} className="pin" />}{lockedNoteIds.has(note.id) && <LockKeyhole size={13} className="lock-mark" aria-label={translate("lock.locked")} />}{note.content.title || translate("sidebar.untitled")}</h3>
+        {firstImage && thumbnail.state === "ready" && <img className="thumb" src={thumbnail.url} alt="" />}
+        <p>{plainText}</p>
+        <span className="meta">{[formatShortDate(note.updatedAt), ...notebookNames].join(" · ")}</span>
+      </button>
+    </div>
   );
 }

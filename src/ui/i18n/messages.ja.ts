@@ -688,6 +688,9 @@ export const japaneseMessages = {
   "mobile.bookmarked": "お気に入り",
   "mobile.settings": "設定",
   "mobile.all": "すべて",
+  "mobile.pullToSync": "引いて同期",
+  "mobile.releaseToSync": "離すと同期します",
+  "mobile.syncing": "同期しています…",
 
   "common.cancel": "キャンセル",
   "common.save": "保存",
