@@ -1,6 +1,6 @@
 // 画面を撮る道具が使う見本のデータ（案C の試作と同じノートブックとメモ）を、新しい vault に入れる。
 //
-// 前提: `npx vite --host 127.0.0.1 --port 5173`。同期は使わない。
+// 前提: `npx vite --host 127.0.0.1 --port 5173`（別のポートなら、そのアドレスを baseUrl に渡す）。同期は使わない。
 
 import { PASSPHRASE } from "./checkDevices.mjs";
 
@@ -14,8 +14,8 @@ const NOTES = [
   { notebook: "旅行", title: "沖縄旅行の持ち物", body: "パスポートは不要。2日目にシュノーケルの予約あり（9:30 集合）。 #todo #沖縄" },
 ];
 
-export async function fillSampleWorkspace(page) {
-  await page.goto("http://127.0.0.1:5173/");
+export async function fillSampleWorkspace(page, baseUrl = "http://127.0.0.1:5173/") {
+  await page.goto(baseUrl);
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await page.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
   await page.getByRole("button", { name: "作成" }).click();
