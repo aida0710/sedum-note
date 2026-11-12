@@ -197,7 +197,11 @@ export async function verifyPassphrase(environment: VaultSessionEnvironment, pas
 
 export async function unlockLocalVault(environment: VaultSessionEnvironment, passphrase: string): Promise<UnlockedVault> {
   const document = await readLocalVaultDocument(environment.localStore);
-  const masterKey = await unlockVault(document, passphrase);
+  return reopenLocalVault(environment, await unlockVault(document, passphrase));
+}
+
+// もう開いてあるマスターキーで、手元の vault を開き直す（スペースを切り替えて戻ったとき。パスフレーズは聞かない）。
+export async function reopenLocalVault(environment: VaultSessionEnvironment, masterKey: CryptoKey): Promise<UnlockedVault> {
   const sealedRemoteConfig = await environment.localStore.readSetting<Uint8Array>("sealedRemoteConfig");
   const remoteConfig = sealedRemoteConfig
     ? (JSON.parse(textDecoder.decode(await open(masterKey, sealedRemoteConfig, REMOTE_CONFIG_BINDING))) as RemoteConfig)

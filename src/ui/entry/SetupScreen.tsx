@@ -6,6 +6,9 @@ import { useState } from "react";
 import { MIN_PASSPHRASE_LENGTH } from "../../core/crypto/passphraseKey";
 import type { SyncTargetChoice } from "../../core/vault/vaultSession";
 import { translate } from "../i18n/translate";
+import { spaceDisplayName } from "../session/spaceDisplayName";
+import { removeSpaceFromRegistry, useSpaceRegistry } from "../session/spaceRegistry";
+import { destroySpaceData } from "../session/spaceVaults";
 import type { VaultSession } from "../session/useVaultSession";
 import { PassphraseGenerator } from "../shared/PassphraseGenerator";
 import { useAsyncAction } from "../shared/useAsyncAction";
@@ -20,7 +23,14 @@ type SetupInput =
   | { mode: "start"; passphrase: string; syncTarget: SyncTargetChoice | null }
   | { mode: "restore"; passphrase: string; backupFile: File };
 
-export function SetupScreen({ session }: { session: VaultSession }) {
+export function SetupScreen({ session, spaceId }: { session: VaultSession; spaceId: string }) {
+  // 足したスペースの最初の設定か。パスフレーズは、ほかのスペースと同じものを入れる（確認の欄と、生成は出さない）。
+  const { spaces } = useSpaceRegistry();
+  const addedSpace = spaces.length > 1 ? spaces.find((space) => space.id === spaceId) ?? null : null;
+  const cancelAddedSpace = useAsyncAction(async () => {
+    await destroySpaceData(spaceId);
+    removeSpaceFromRegistry(spaceId);
+  });
   const [mode, setMode] = useState<SetupMode>("start");
   const [passphrase, setPassphrase] = useState("");
   const [passphraseConfirm, setPassphraseConfirm] = useState("");
@@ -50,7 +60,7 @@ export function SetupScreen({ session }: { session: VaultSession }) {
       void action.run({ mode, passphrase, backupFile });
       return;
     }
-    if (passphrase !== passphraseConfirm) {
+    if (addedSpace === null && passphrase !== passphraseConfirm) {
       setInputProblem(translate("setup.passphraseMismatch"));
       return;
     }
@@ -70,8 +80,8 @@ export function SetupScreen({ session }: { session: VaultSession }) {
   return (
     <div className="entry">
       <form className="entry-card" onKeyDown={preventSubmitByImeKey} onSubmit={submit}>
-        <h1><LockKeyhole size={20} />{translate("setup.title")}</h1>
-        <p className="description">{translate("setup.description")}</p>
+        <h1><LockKeyhole size={20} />{addedSpace ? translate("space.setupTitle", { name: spaceDisplayName(addedSpace) }) : translate("setup.title")}</h1>
+        <p className="description">{translate(addedSpace ? "space.setupDescription" : "setup.description")}</p>
         <div className="segmented" role="tablist">
           <button type="button" role="tab" aria-selected={mode === "start"} className={mode === "start" ? "on" : ""} onClick={() => setMode("start")}>{translate("setup.mode.start")}</button>
           <button type="button" role="tab" aria-selected={mode === "restore"} className={mode === "restore" ? "on" : ""} onClick={() => setMode("restore")}>{translate("setup.mode.restore")}</button>
@@ -85,17 +95,22 @@ export function SetupScreen({ session }: { session: VaultSession }) {
         <div className="field">
           <label htmlFor="setup-passphrase">{translate("setup.passphrase")}</label>
           <input id="setup-passphrase" type="password" value={passphrase} onChange={(event) => setPassphrase(event.target.value)} autoComplete="new-password" required />
-          {mode === "start" && <span className="hint">{translate("setup.passphraseHint", { minimum: MIN_PASSPHRASE_LENGTH })}</span>}
+          {mode === "start" && addedSpace === null && <span className="hint">{translate("setup.passphraseHint", { minimum: MIN_PASSPHRASE_LENGTH })}</span>}
+          {addedSpace !== null && <span className="hint">{translate("space.passphraseHint")}</span>}
           {joins && <span className="hint">{translate("setup.passphraseForThisDevice")}</span>}
           {mode === "restore" && <span className="hint">{translate("setup.backupPassphraseHint")}</span>}
         </div>
         {mode === "start" && (
           <>
-            <div className="field">
-              <label htmlFor="setup-passphrase-confirm">{translate("setup.passphraseConfirm")}</label>
-              <input id="setup-passphrase-confirm" type="password" value={passphraseConfirm} onChange={(event) => setPassphraseConfirm(event.target.value)} autoComplete="new-password" required />
-            </div>
-            <PassphraseGenerator passphrase={passphrase} onGenerate={(generated) => { setPassphrase(generated); setPassphraseConfirm(generated); }} />
+            {addedSpace === null && (
+              <>
+                <div className="field">
+                  <label htmlFor="setup-passphrase-confirm">{translate("setup.passphraseConfirm")}</label>
+                  <input id="setup-passphrase-confirm" type="password" value={passphraseConfirm} onChange={(event) => setPassphraseConfirm(event.target.value)} autoComplete="new-password" required />
+                </div>
+                <PassphraseGenerator passphrase={passphrase} onGenerate={(generated) => { setPassphrase(generated); setPassphraseConfirm(generated); }} />
+              </>
+            )}
             <div className="field">
               <label className="checkbox-line">
                 <input type="checkbox" checked={useSync} onChange={(event) => setUseSync(event.target.checked)} />
@@ -111,6 +126,11 @@ export function SetupScreen({ session }: { session: VaultSession }) {
         <div className="form-actions">
           {action.busy && <span className="hint">{translate("setup.working")}</span>}
           {usesSync && syncTargetForm.checked === null && !action.busy && <span className="hint">{translate("syncTarget.checkFirst")}</span>}
+          {addedSpace !== null && (
+            <button type="button" className="secondary-button" disabled={action.busy || cancelAddedSpace.busy} onClick={() => void cancelAddedSpace.run(undefined)}>
+              {translate("space.cancelAdding")}
+            </button>
+          )}
           <button className="primary-button" type="submit" disabled={action.busy || (usesSync && syncTargetForm.checked === null)}>
             {translate(mode === "restore" ? "setup.submitRestore" : joins ? "setup.submitJoin" : "setup.submitNew")}
           </button>

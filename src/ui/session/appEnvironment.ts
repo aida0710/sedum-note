@@ -5,13 +5,13 @@ import { createObjectStore } from "../../core/remote/createObjectStore";
 import { createCrossWindowWriteQueue, createRecordChangeChannel } from "../platform/crossWindowStorage";
 import { storageRequestSender } from "../platform/storageRequestSender";
 import type { VaultSessionEnvironment } from "../../core/vault/vaultSession";
+import { databaseNameOfSpace } from "./spaceRegistry";
 
-const LOCAL_DATABASE_NAME = "sedum-note";
-
-export function createAppEnvironment(): VaultSessionEnvironment {
+// スペース（spaceRegistry.ts）ごとに、手元の保存を分ける。
+export function createAppEnvironment(spaceId: string): VaultSessionEnvironment {
   const sendStorageRequest = storageRequestSender();
   return {
-    localStore: new IndexedDbLocalStore(LOCAL_DATABASE_NAME),
+    localStore: new IndexedDbLocalStore(databaseNameOfSpace(spaceId)),
     createObjectStore: (config) => createObjectStore(config, sendStorageRequest),
     createWriteQueue: createCrossWindowWriteQueue,
     createRecordChangeChannel,

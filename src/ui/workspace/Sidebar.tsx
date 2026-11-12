@@ -18,6 +18,9 @@ import { markNoteDropTarget } from "./noteDragState";
 import { moveFocusBetweenRows } from "./sidebarKeyboard";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
+import { SpaceSwitcher } from "./SpaceSwitcher";
+import { REMINDERS_TAB } from "./useWorkspaceNavigation";
+import { dueItemsOf } from "../../core/notes/dueItems";
 import { useDialogs } from "../shared/DialogProvider";
 import type { LiveSavedSearch } from "../../core/notes/noteRecords";
 
@@ -95,9 +98,6 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
           <button className="icon-button" aria-label={translate("shortcut.dailyNote")} title={translate("shortcut.dailyNote")} onClick={onOpenDailyNote}>
             <CalendarDays size={16} />
           </button>
-          <button className="icon-button" aria-label={translate("due.title")} title={translate("due.title")} onClick={onOpenReminders}>
-            <AlarmClock size={16} />
-          </button>
           <button className="icon-button" aria-label={translate("graph.title")} title={translate("graph.title")} onClick={onOpenGraph}>
             <Waypoints size={16} />
           </button>
@@ -109,6 +109,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
         </button>
         </span>
       </div>
+      <SpaceSwitcher />
       {searchOpen && (
         <label className="sidebar-search">
           <Search size={14} />
@@ -139,6 +140,15 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
             <ViewGroup view={{ kind: "all" }} icon={<FileText size={15} />} label={translate("sidebar.allNotes")} summaries={summaries} navigation={navigation} repository={repository}
               expandedByDefault={notebookTree.length === 0} />
             <ViewGroup view={{ kind: "bookmarked" }} icon={<Star size={15} />} label={translate("sidebar.bookmarked")} summaries={summaries} navigation={navigation} repository={repository} />
+            {/* 期限の一覧は、メモの並びではないので開け閉めは無い。押すとタブで開く。数は、済んでいない期限。 */}
+            <div className="nav-row">
+              <button className={`nav${navigation.activeTab === REMINDERS_TAB ? " active" : ""}`} onClick={onOpenReminders}>
+                <span className="disclosure" />
+                <AlarmClock size={15} />
+                <span className="nav-label">{translate("due.title")}</span>
+                <span className="count">{dueItemsOf(summaries).filter((item) => !item.done).length}</span>
+              </button>
+            </div>
             <div className="section-title">
               {translate("sidebar.notebooks")}
               <button className="icon-button" aria-label={translate("sidebar.newNotebook")} onClick={() => setAddingNotebook(true)}><Plus size={14} /></button>

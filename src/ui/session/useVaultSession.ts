@@ -7,12 +7,12 @@ import { AutoSync, type SyncStatus } from "../../core/sync/autoSync";
 import { exportSyncSetup } from "../../core/vault/syncSetupFile";
 import { checkSyncTarget, type SyncTargetCheck } from "../../core/vault/syncTarget";
 import {
-  changePassphrase,
   connectRemote,
   createNewVault,
   type DeviceDataSummary,
   joinExistingVault,
   readVaultState,
+  reopenLocalVault,
   replaceSyncKey,
   summarizeDeviceData,
   type SyncTargetChoice,
@@ -26,6 +26,7 @@ import { resetDevicePreferences, useDevicePreferences } from "../preferences/dev
 import { holdSyncDuty, onWindowSignal, sendWindowSignal } from "../platform/crossWindowStorage";
 import { createAppEnvironment } from "./appEnvironment";
 import { clearDueReminderRecords } from "./dueReminderRecords";
+import { changePassphraseOfAllSpaces, destroyOtherSpaces, forgetUnlockedSpaces, masterKeyOfUnlockedSpace, rememberUnlockedSpace, verifyPassphraseOfOtherSpaces } from "./spaceVaults";
 
 export type VaultPhase =
   | { phase: "loading" }
@@ -63,8 +64,9 @@ export type VaultSession = {
   wipeDeviceData: () => Promise<void>;
 };
 
-export function useVaultSession(): VaultSession {
-  const environment = useMemo(createAppEnvironment, []);
+// spaceId は、開くスペース（spaceRegistry.ts）。スペースを切り替えるときは、呼び出し側が、この hook ごと作り直す。
+export function useVaultSession(spaceId: string): VaultSession {
+  const environment = useMemo(() => createAppEnvironment(spaceId), [spaceId]);
   const [state, setState] = useState<VaultPhase>({ phase: "loading" });
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [generatedSyncKey, setGeneratedSyncKey] = useState<string | null>(null);
@@ -75,10 +77,16 @@ export function useVaultSession(): VaultSession {
   const autoSyncRef = useRef<AutoSync | null>(null);
 
   useEffect(() => {
-    void readVaultState(environment.localStore).then((vaultState) =>
-      setState({ phase: vaultState === "absent" ? "absent" : "locked" }),
-    );
-  }, [environment]);
+    void (async () => {
+      if (await readVaultState(environment.localStore) === "absent") {
+        setState({ phase: "absent" });
+        return;
+      }
+      // このスペースを、ロックする前にもう解除してあれば、パスフレーズを聞かずに開き直す。
+      const masterKey = masterKeyOfUnlockedSpace(spaceId);
+      setState(masterKey === null ? { phase: "locked" } : { phase: "unlocked", vault: await reopenLocalVault(environment, masterKey) });
+    })();
+  }, [environment, spaceId]);
 
   const vault = state.phase === "unlocked" ? state.vault : null;
 
@@ -139,6 +147,7 @@ export function useVaultSession(): VaultSession {
       window.location.reload();
       return;
     }
+    forgetUnlockedSpaces();
     if (vault) {
       // このウィンドウでまだ保存していない入力を書いてから、ロックする。
       void vault.repository.flush().then(() => {
@@ -148,7 +157,10 @@ export function useVaultSession(): VaultSession {
     }
   }), [vault]);
 
-  const enter = useCallback((unlocked: UnlockedVault) => setState({ phase: "unlocked", vault: unlocked }), []);
+  const enter = useCallback((unlocked: UnlockedVault) => {
+    rememberUnlockedSpace(spaceId, unlocked.masterKey);
+    setState({ phase: "unlocked", vault: unlocked });
+  }, [spaceId]);
   const enterWithSyncKey = useCallback((entry: VaultEntry) => {
     setGeneratedSyncKey(entry.generatedSyncKey);
     enter(entry.unlocked);
@@ -160,6 +172,8 @@ export function useVaultSession(): VaultSession {
     generatedSyncKey,
     dismissGeneratedSyncKey: () => setGeneratedSyncKey(null),
     startVault: async ({ passphrase, syncTarget }) => {
+      // パスフレーズは、このデバイスで共通。ほかのスペースがあれば、そのパスフレーズと同じであることを確かめる。
+      await verifyPassphraseOfOtherSpaces(spaceId, passphrase);
       const joins = syncTarget?.inspected.state === "existing";
       enterWithSyncKey(joins
         ? await joinExistingVault(environment, { passphrase, syncTarget })
@@ -171,6 +185,7 @@ export function useVaultSession(): VaultSession {
       await vault?.repository.flush();
       // 同じメモを開いている、ほかのウィンドウ（別のウィンドウ、ほかのタブ）もロックする。
       sendWindowSignal("lock");
+      forgetUnlockedSpaces();
       setGeneratedSyncKey(null);
       setState({ phase: "locked" });
     },
@@ -192,7 +207,7 @@ export function useVaultSession(): VaultSession {
       }
       return exportSyncSetup(environment, vault);
     },
-    changePassphrase: (passphrases) => changePassphrase(environment, passphrases),
+    changePassphrase: changePassphraseOfAllSpaces,
     exportBackup: () => {
       if (!vault) {
         throw new Error("the vault is locked");
@@ -200,6 +215,8 @@ export function useVaultSession(): VaultSession {
       return exportBackup(environment.localStore, vault.repository, new Date());
     },
     restoreBackup: async ({ file, passphrase }) => {
+      // バックアップを戻すと、このスペースのパスフレーズは、バックアップのパスフレーズになる。ほかのスペースと同じものだけを受け付ける。
+      await verifyPassphraseOfOtherSpaces(spaceId, passphrase);
       await restoreBackup(environment.localStore, file, passphrase);
       enter(await unlockLocalVault(environment, passphrase));
     },
@@ -207,6 +224,7 @@ export function useVaultSession(): VaultSession {
     wipeDeviceData: async () => {
       autoSyncRef.current?.stop();
       await wipeDeviceData(environment.localStore, vault);
+      await destroyOtherSpaces(spaceId);
       sendWindowSignal("wiped");
       resetDevicePreferences();
       await clearDueReminderRecords();

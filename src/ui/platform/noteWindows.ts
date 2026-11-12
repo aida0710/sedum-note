@@ -6,6 +6,8 @@ import { isRandomId, newRandomId } from "../../core/crypto/randomId";
 import { isAndroidApp, isRunningInTauri } from "./runtime";
 
 const NOTE_PARAMETER = "note";
+// 別のウィンドウが開くメモの、スペース（ui/session/spaceRegistry.ts）。
+const SPACE_PARAMETER = "space";
 // 別のウィンドウの最初の大きさ（px）。スマホの組み方に切り替わらない幅（760px より広い）にする。
 const NOTE_WINDOW_SIZE = { width: 860, height: 820 };
 // アプリのウィンドウの名前の先頭。この名前のウィンドウに、画面の権限を与えてある（src-tauri/capabilities/default.json）。
@@ -17,13 +19,19 @@ export function noteIdOfThisWindow(): string | null {
   return noteId !== null && isRandomId(noteId) ? noteId : null;
 }
 
+// このウィンドウが、メモを 1 つだけ開く別のウィンドウなら、そのメモのスペースの ID。ふつうのウィンドウなら null。
+export function spaceIdOfThisWindow(): string | null {
+  const parameters = new URLSearchParams(window.location.search);
+  return noteIdOfThisWindow() === null ? null : parameters.get(SPACE_PARAMETER);
+}
+
 // メモを別のウィンドウで開けるか（Android のアプリは、ウィンドウが 1 つだけ）。
 export function canOpenNoteWindows(): boolean {
   return !isAndroidApp();
 }
 
-export async function openNoteInNewWindow(noteId: string, title: string): Promise<void> {
-  const query = `?${NOTE_PARAMETER}=${noteId}`;
+export async function openNoteInNewWindow({ noteId, spaceId, title }: { noteId: string; spaceId: string; title: string }): Promise<void> {
+  const query = `?${NOTE_PARAMETER}=${noteId}&${SPACE_PARAMETER}=${encodeURIComponent(spaceId)}`;
   if (!isRunningInTauri()) {
     window.open(`${window.location.pathname}${query}`, "_blank", `popup,width=${NOTE_WINDOW_SIZE.width},height=${NOTE_WINDOW_SIZE.height}`);
     return;

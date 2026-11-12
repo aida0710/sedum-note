@@ -207,7 +207,8 @@ button:disabled { cursor: default; opacity: .55; }
 /* 列の右の端。つまんで幅を変える。 */
 .sidebar-resize-handle { position: absolute; top: 0; bottom: 0; right: -3px; width: 6px; cursor: col-resize; z-index: 5; touch-action: none; }
 .sidebar-resize-handle:hover, .sidebar-resize-handle:active { background: color-mix(in srgb, var(--accent) 40%, transparent); }
-.sidebar-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; padding: 4px 8px 12px; }
+.sidebar-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; padding: 4px 8px 12px; white-space: nowrap; }
+.sidebar-brand > svg { flex: none; }
 .sidebar-brand .icon-button { margin-left: auto; }
 .sidebar-search { display: flex; align-items: center; gap: 8px; height: var(--control-height); border-radius: var(--radius-control); background: var(--panel); border: 1px solid var(--line); padding: 0 10px; margin-bottom: 8px; color: var(--muted); }
 .sidebar-search input { border: 0; outline: 0; background: none; flex: 1; min-width: 0; color: var(--text); }
@@ -307,6 +308,16 @@ button:disabled { cursor: default; opacity: .55; }
 .document-meta .character-count { margin-left: auto; }
 .document-meta .updated { margin-left: 12px; }
 .chip { background: var(--tag); border-radius: 999px; padding: 2px 9px; font-size: var(--font-size-small); color: var(--text); display: inline-flex; align-items: center; gap: 5px; }
+/* スペース。左の列の切り替えと、設定の一覧。 */
+.space-switcher { width: 100%; min-height: 30px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 10px; border: 1px solid var(--line); border-radius: var(--radius-control); color: var(--text); font-size: var(--font-size-small); text-align: left; }
+.space-switcher:hover { background: var(--selected); }
+.space-switcher .nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.space-switcher svg { flex: none; color: var(--muted); }
+.space-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.space-list li { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.space-list .space-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.space-list .space-name .hint { color: var(--muted); font-size: var(--font-size-small); }
+
 /* 期限。本文の中の期限の印、メモの期限のチップ、期限の一覧。 */
 .due-mark { color: var(--accent); white-space: nowrap; }
 /* 絵文字の字は幅を持たせず、代わりに時計のアイコン（lucide の alarm-clock）を、文字の色で描く。 */

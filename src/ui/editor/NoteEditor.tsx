@@ -13,6 +13,7 @@ import { isCursorInTaskItem, setTaskDueAtCursor, taskDueAtCursor } from "./dueMa
 import { DueDateDialog } from "../shared/DueDateDialog";
 import { formatDueTime } from "../shared/formatTime";
 import { canOpenNoteWindows, openNoteInNewWindow } from "../platform/noteWindows";
+import { readSpaceRegistry } from "../session/spaceRegistry";
 import { useNoteLockState } from "../session/noteLockState";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
@@ -169,7 +170,9 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   const { concealedNoteIds } = useNoteLockState();
   const isRevealed = (candidate: LiveNote) => !concealedNoteIds.has(candidate.id);
   const print = useAsyncAction(printPage);
-  const openInNewWindow = useAsyncAction(() => openNoteInNewWindow(noteId, note.content.title || translate("sidebar.untitled")));
+  const openInNewWindow = useAsyncAction(() => openNoteInNewWindow({
+    noteId, spaceId: readSpaceRegistry().activeSpaceId, title: note.content.title || translate("sidebar.untitled"),
+  }));
   // ほかのデバイスがタイトルを変えたら、打っている最中でなければ表示を差し替える。
   useEffect(() => {
     if (document.activeElement !== titleInput.current) {

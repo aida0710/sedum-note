@@ -21,7 +21,8 @@ import { useTrashRetention } from "./session/useTrashRetention";
 import { useDueReminders } from "./session/useDueReminders";
 import { applyResidentAppSetting } from "./platform/residentApp";
 import { canStayResident } from "./platform/runtime";
-import { noteIdOfThisWindow, setWindowTitle } from "./platform/noteWindows";
+import { noteIdOfThisWindow, setWindowTitle, spaceIdOfThisWindow } from "./platform/noteWindows";
+import { useSpaceRegistry } from "./session/spaceRegistry";
 import { NoteLockStateContext, useSnapshotWithLocks } from "./session/noteLockState";
 import { PassphraseConfirmProvider } from "./session/PassphraseConfirmProvider";
 import { useVaultSession, type VaultSession } from "./session/useVaultSession";
@@ -39,7 +40,10 @@ import { AiChatSessionProvider } from "./ai/aiChatSession";
 const McpGatewayProvider = __INCLUDES_MCP__ && isRunningInTauri() ? lazy(() => import("./mcp/McpGatewayProvider")) : null;
 
 export function App() {
-  const session = useVaultSession();
+  // 開くスペース。メモを 1 つだけ開く別のウィンドウは、開いたときのスペースのまま（ほかのウィンドウで切り替えても変わらない）。
+  const { activeSpaceId } = useSpaceRegistry();
+  const [windowSpaceId] = useState(spaceIdOfThisWindow);
+  const spaceId = windowSpaceId ?? activeSpaceId;
   // 言語を変えたら、ここから下を描き直して文言を入れ替える。
   const { language, editorFontSize, sidebarWidth, stayResident } = useDevicePreferences();
   // 常駐の設定は、ロックを解除する前から効かせる（言語を変えたら、アイコンのメニューの文言も入れ替える）。
@@ -53,19 +57,25 @@ export function App() {
   }, [language]);
   const theme = useThemeInUse();
   useEffect(() => applyAppearance({ theme, editorFontSize, sidebarWidth }), [theme, editorFontSize, sidebarWidth]);
-  // 知らせは、画面の段階（ロック中・解除中など）が変わったら捨てる。ロックの直前に出た「元に戻す」をロックの画面に残すと、
-  // ロックで手放したメモの入れ物（復号した本文とマスターキー）を使って書き込めてしまう。
-  return <DialogProvider><ToastProvider key={session.state.phase}><ScreenForPhase session={session} /></ToastProvider></DialogProvider>;
+  // スペースを切り替えたら、そのスペースの画面を最初から作り直す（前のスペースのメモを、メモリから手放す）。
+  return <DialogProvider><SpaceScreen key={spaceId} spaceId={spaceId} /></DialogProvider>;
 }
 
-function ScreenForPhase({ session }: { session: VaultSession }) {
+function SpaceScreen({ spaceId }: { spaceId: string }) {
+  const session = useVaultSession(spaceId);
+  // 知らせは、画面の段階（ロック中・解除中など）が変わったら捨てる。ロックの直前に出た「元に戻す」をロックの画面に残すと、
+  // ロックで手放したメモの入れ物（復号した本文とマスターキー）を使って書き込めてしまう。
+  return <ToastProvider key={session.state.phase}><ScreenForPhase session={session} spaceId={spaceId} /></ToastProvider>;
+}
+
+function ScreenForPhase({ session, spaceId }: { session: VaultSession; spaceId: string }) {
   switch (session.state.phase) {
     case "loading":
       return null;
     case "absent":
-      return <SetupScreen session={session} />;
+      return <SetupScreen session={session} spaceId={spaceId} />;
     case "locked":
-      return <UnlockScreen session={session} />;
+      return <UnlockScreen session={session} spaceId={spaceId} />;
     case "unlocked":
       return <UnlockedApp key={session.state.vault.syncEngine ? "synced" : "local"} session={session} vault={session.state.vault} />;
   }

@@ -1,13 +1,16 @@
 import { LockKeyhole } from "lucide-react";
 import { useState } from "react";
 import { translate } from "../i18n/translate";
+import { spaceDisplayName } from "../session/spaceDisplayName";
+import { selectSpace, useSpaceRegistry } from "../session/spaceRegistry";
 import type { VaultSession } from "../session/useVaultSession";
 import { WipeDeviceDataButton } from "../session/WipeDeviceDataButton";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 
-export function UnlockScreen({ session }: { session: VaultSession }) {
+export function UnlockScreen({ session, spaceId }: { session: VaultSession; spaceId: string }) {
+  const { spaces } = useSpaceRegistry();
   const [passphrase, setPassphrase] = useState("");
   const action = useAsyncAction(session.unlock);
   const { customCss, customCssEnabled } = useDevicePreferences();
@@ -16,6 +19,14 @@ export function UnlockScreen({ session }: { session: VaultSession }) {
       <form className="entry-card" onKeyDown={preventSubmitByImeKey} onSubmit={(event) => { event.preventDefault(); void action.run(passphrase); }}>
         <h1><LockKeyhole size={20} />{translate("unlock.title")}</h1>
         <p className="description">{translate("unlock.description")}</p>
+        {spaces.length > 1 && (
+          <div className="field">
+            <label htmlFor="unlock-space">{translate("space.label")}</label>
+            <select id="unlock-space" value={spaceId} onChange={(event) => selectSpace(event.target.value)}>
+              {spaces.map((space) => <option key={space.id} value={space.id}>{spaceDisplayName(space)}</option>)}
+            </select>
+          </div>
+        )}
         <div className="field">
           <label htmlFor="unlock-passphrase">{translate("setup.passphrase")}</label>
           <input id="unlock-passphrase" type="password" value={passphrase} onChange={(event) => setPassphrase(event.target.value)} autoComplete="current-password" autoFocus required />
