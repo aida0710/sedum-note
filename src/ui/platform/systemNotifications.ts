@@ -47,7 +47,8 @@ export async function replaceScheduledNotifications(notifications: ScheduledNoti
   const { cancelAll, Schedule, sendNotification } = await import("@tauri-apps/plugin-notification");
   await cancelAll();
   for (const { id, title, body, at } of notifications) {
-    // 3 つ目の引数は、端末が省電力で休んでいる間も出すかどうか。
-    sendNotification({ id, title, body, schedule: Schedule.at(at, false, true) });
+    // 本文は largeBody にも入れる。Android のプラグインは、largeBody が無いと行の一覧（空）の形にするので、
+    // 通知を広げたときに本文が出ない。Schedule.at の 3 つ目の引数は、端末が省電力で休んでいる間も出すかどうか。
+    sendNotification({ id, title, body, largeBody: body, schedule: Schedule.at(at, false, true) });
   }
 }
