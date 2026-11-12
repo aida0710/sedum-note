@@ -124,6 +124,16 @@ button:disabled { cursor: default; opacity: .55; }
 .ProseMirror h1 { font-size: 1.52em; margin: 20px 0 6px; }
 .ProseMirror h2 { font-size: 1.17em; margin: 18px 0 6px; }
 .ProseMirror h3 { font-size: 1.03em; margin: 14px 0 4px; }
+.ProseMirror li, .ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { position: relative; }
+.ProseMirror .fold-toggle { position: absolute; left: -34px; top: 0.4em; width: 16px; height: 1.3em; display: grid; place-items: center; color: var(--muted); opacity: 0; font-size: 10px; line-height: 1; }
+.ProseMirror .fold-toggle::before { content: "▼"; }
+.ProseMirror .fold-toggle.collapsed { opacity: 1; }
+.ProseMirror .fold-toggle.collapsed::before { content: "▶"; }
+.ProseMirror li:hover > .fold-toggle, .ProseMirror li:hover > div > .fold-toggle, .ProseMirror h1:hover > .fold-toggle, .ProseMirror h2:hover > .fold-toggle, .ProseMirror h3:hover > .fold-toggle,
+.ProseMirror h4:hover > .fold-toggle, .ProseMirror h5:hover > .fold-toggle, .ProseMirror h6:hover > .fold-toggle { opacity: 1; }
+.ProseMirror h1 > .fold-toggle, .ProseMirror h2 > .fold-toggle, .ProseMirror h3 > .fold-toggle, .ProseMirror h4 > .fold-toggle, .ProseMirror h5 > .fold-toggle, .ProseMirror h6 > .fold-toggle { left: -20px; top: 0; height: 100%; }
+.ProseMirror li.collapsed-item > ul, .ProseMirror li.collapsed-item > ol, .ProseMirror li.collapsed-item > div > ul, .ProseMirror li.collapsed-item > div > ol { display: none; }
+.ProseMirror .folded-block { display: none; }
 .ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { font-size: 1em; margin: 12px 0 4px; }
 .ProseMirror h5 { color: var(--muted); }
 .ProseMirror h6 { color: var(--muted); font-weight: 600; }

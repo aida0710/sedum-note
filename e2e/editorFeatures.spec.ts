@@ -457,3 +457,32 @@ test("表の行を、列に含まれる言葉でフィルターできる。隠�
   await chooseTableAction(page, "フィルターを解除");
   await expect(page.locator(".ProseMirror tr:visible")).toHaveCount(4);
 });
+
+test("子の項目を持つ箇条書きと、見出しを折りたためる。折りたたんでも中身は消えず、開くと戻る", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "折りたたみのメモ");
+  await page.locator(".ProseMirror").click();
+  await pasteText(page, { "text/plain": "## 買い物\n\n- 野菜\n  - にんじん\n  - 玉ねぎ\n- 果物\n\n段落\n\n## 次の見出し\n\n残る段落\n" });
+  const body = page.locator(".ProseMirror");
+  await expect(body.getByText("にんじん")).toBeVisible();
+
+  // 子の項目を持つ項目にだけ、開け閉めの印が出る。
+  const vegetables = body.locator("li", { hasText: "野菜" }).first();
+  await expect(body.locator("li .fold-toggle")).toHaveCount(1);
+  await vegetables.hover();
+  await vegetables.locator(".fold-toggle").first().click();
+  await expect(body.getByText("にんじん")).toBeHidden();
+  await expect(body.getByText("果物")).toBeVisible();
+  await vegetables.locator(".fold-toggle").first().click();
+  await expect(body.getByText("にんじん")).toBeVisible();
+
+  // 見出しを折りたたむと、次の同じ段の見出しまでが隠れる。
+  const shopping = body.locator("h2", { hasText: "買い物" });
+  await shopping.hover();
+  await shopping.locator(".fold-toggle").click();
+  await expect(body.getByText("野菜")).toBeHidden();
+  await expect(body.getByText("段落", { exact: true })).toBeHidden();
+  await expect(body.getByText("次の見出し")).toBeVisible();
+  await expect(body.getByText("残る段落")).toBeVisible();
+  await expect(shopping.locator(".fold-toggle")).toHaveAttribute("aria-expanded", "false");
+});

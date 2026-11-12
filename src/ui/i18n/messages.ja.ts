@@ -265,6 +265,8 @@ export const japaneseMessages = {
   "editor.newFromTemplate": "このテンプレートから新しいメモを作る",
   "editor.templateNamed": "テンプレート: {title}",
   "editor.outline": "目次",
+  "editor.fold": "折りたたむ",
+  "editor.unfold": "開く",
   "editor.outlineEmpty": "見出しがありません",
   "editor.outlineUntitledHeading": "（文字の無い見出し）",
   "editor.print": "印刷・PDF で保存",

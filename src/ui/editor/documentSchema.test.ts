@@ -6,8 +6,8 @@ import { documentSchema } from "./documentSchema";
 // この試験が落ちたら、一覧を直すだけでなく BODY_SCHEMA_VERSION（core/notes/bodySchema.ts）を 1 つ上げる。
 // 上げると、古い版のアプリは更新するまで同期を止める。
 describe("本文の形", () => {
-  it("ノードと書式の名前が、本文の形の版 3 のときのまま変わっていない", () => {
-    expect(BODY_SCHEMA_VERSION).toBe(3);
+  it("ノードと書式の名前が、本文の形の版 4 のときのまま変わっていない", () => {
+    expect(BODY_SCHEMA_VERSION).toBe(4);
     const schema = documentSchema();
     expect(Object.keys(schema.nodes).sort()).toEqual([
       "attachmentFile", "attachmentImage", "blockquote", "bulletList", "codeBlock", "doc", "hardBreak", "heading", "horizontalRule",

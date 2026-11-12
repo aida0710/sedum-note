@@ -16,6 +16,7 @@ import { AttachmentImage } from "./attachmentImageNode";
 import { NoteLink } from "./noteLinkNode";
 import { SearchHighlight } from "./searchHighlightExtension";
 import { SlashCommands } from "./slashCommandExtension";
+import { Folding } from "./folding";
 import { HEADING_LEVELS } from "./headingLevels";
 import { Highlight } from "./highlightMark";
 import { DateTimeShortcuts } from "./insertDateTime";
@@ -54,6 +55,7 @@ export function documentExtensions() {
     ColoredTableHeader,
     Highlight,
     TextColor,
+    Folding,
     AttachmentImage,
     AttachmentFile,
     NoteLink,

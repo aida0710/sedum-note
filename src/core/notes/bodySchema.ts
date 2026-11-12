@@ -6,7 +6,8 @@
 
 // 2: 見出しを 6 段までにした。
 // 3: ハイライト、文字色、表のセルの背景色を足した。
-export const BODY_SCHEMA_VERSION = 3;
+// 4: 箇条書きの項目と見出しに、折りたたみの属性を足した。
+export const BODY_SCHEMA_VERSION = 4;
 
 export class AppUpdateRequiredError extends Error {
   constructor() {
