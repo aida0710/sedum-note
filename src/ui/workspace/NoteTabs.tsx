@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
-import { notebookIdOfDatabaseTab, SETTINGS_TAB, type WorkspaceNavigation } from "./useWorkspaceNavigation";
+import { GRAPH_TAB, notebookIdOfDatabaseTab, SETTINGS_TAB, type WorkspaceNavigation } from "./useWorkspaceNavigation";
 
 // タブのドラッグのデータの種類。メモのドラッグ（左の列）と区別する。
 const TAB_DRAG_TYPE = "application/x-sedum-note-tab";
@@ -18,7 +18,9 @@ export function NoteTabs({ navigation, repository }: { navigation: WorkspaceNavi
         const databaseNotebookId = notebookIdOfDatabaseTab(tabId);
         const label = tabId === SETTINGS_TAB
           ? translate("settings.title")
-          : databaseNotebookId !== null
+          : tabId === GRAPH_TAB
+            ? translate("graph.title")
+            : databaseNotebookId !== null
             ? repository.notebooks().find((notebook) => notebook.id === databaseNotebookId)?.content.name ?? ""
             : repository.note(tabId)?.content.title || translate("sidebar.untitled");
         const isOn = navigation.activeTab === tabId;
@@ -27,7 +29,7 @@ export function NoteTabs({ navigation, repository }: { navigation: WorkspaceNavi
             draggable onDragStart={(event) => event.dataTransfer.setData(TAB_DRAG_TYPE, tabId)}
             onDragOver={(event) => event.dataTransfer.types.includes(TAB_DRAG_TYPE) && event.preventDefault()}
             onDrop={(event) => navigation.moveTab(event.dataTransfer.getData(TAB_DRAG_TYPE), tabId)}
-            onClick={() => (tabId === SETTINGS_TAB ? navigation.openSettings() : navigation.openNote(tabId))}
+            onClick={() => navigation.openTab(tabId)}
             onAuxClick={(event) => event.button === 1 && navigation.closeTab(tabId)}>
             <span className="tab-label">{label}</span>
             <button className="tab-close" aria-label={translate("editor.closeTab")}

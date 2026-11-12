@@ -465,6 +465,8 @@ export const englishMessages: Record<MessageKey, string> = {
   "palette.title": "Command palette",
   "palette.placeholder": "Search notes by title. Start with > to search commands",
   "palette.noResults": "No matches",
+  "graph.title": "Graph view",
+  "graph.summary": "{notes} notes, {links} links",
   "shortcut.newNote": "New note",
   "shortcut.dailyNote": "Today's note (daily note)",
   "shortcut.focusMode": "Focus mode",

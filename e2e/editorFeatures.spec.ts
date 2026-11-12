@@ -511,3 +511,22 @@ test("ブロックにマウスを乗せると出る持ち手をドラッグす�
   await page.mouse.up();
   await expect(paragraphs).toHaveText(["3 つ目", "1 つ目", "2 つ目"]);
 });
+
+test("グラフ表示は、メモを点、メモ同士のリンクを線にして出し、点を押すとそのメモを開く", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "リンク先");
+  await newNote(page, "つながりの無いメモ");
+  await newNote(page, "リンク元");
+  await page.getByRole("button", { name: "メモへのリンク" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "リンク先" }).click();
+  await expect(page.locator(".ProseMirror .note-link button")).toHaveText("リンク先");
+
+  await page.getByRole("button", { name: "グラフ表示" }).click();
+  const graph = page.locator(".note-graph");
+  await expect(graph).toContainText("メモ 3 件、リンク 1 本");
+  await expect(graph.locator(".note-graph-node")).toHaveCount(3);
+  await expect(graph.locator(".note-graph-edge")).toHaveCount(1);
+  await graph.getByRole("button", { name: "リンク先" }).click();
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("リンク先");
+  await expect(page.getByRole("tab", { name: "グラフ表示" })).toHaveCount(1);
+});

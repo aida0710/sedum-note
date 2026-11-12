@@ -5,6 +5,8 @@ import type { NoteView } from "../../core/notes/noteQueries";
 
 // 設定はメモと同じくタブで開く。メモの ID（16 進）と重ならない名前にする。
 export const SETTINGS_TAB = "settings";
+// グラフ表示もタブで開く。
+export const GRAPH_TAB = "graph";
 
 // ノートブックのデータベース表示もタブで開く。タブの ID は、この先頭にノートブックの ID を続ける。
 const DATABASE_TAB_PREFIX = "database:";

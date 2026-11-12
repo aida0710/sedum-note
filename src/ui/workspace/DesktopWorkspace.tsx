@@ -19,13 +19,15 @@ import { KEYBOARD_SHORTCUTS, type ShortcutId, useKeyboardShortcuts } from "./key
 import { shortcutText } from "../shared/shortcutKeys";
 import { UpdateChip } from "../update/UpdateChip";
 import { NotebookDatabaseView } from "./NotebookDatabaseView";
-import { notebookIdOfDatabaseTab, SETTINGS_TAB } from "./useWorkspaceNavigation";
+import { NoteGraphView } from "./NoteGraphView";
+import { GRAPH_TAB, notebookIdOfDatabaseTab, SETTINGS_TAB } from "./useWorkspaceNavigation";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
 import { NoteQuerySourceContext } from "../editor/noteQuerySource";
 
 export function DesktopWorkspace({ session, vault, snapshot, navigation }: WorkspaceProps) {
   const { repository } = vault;
-  const activeNote = navigation.activeTab && navigation.activeTab !== SETTINGS_TAB ? repository.note(navigation.activeTab) : undefined;
+  const showsGraph = navigation.activeTab === GRAPH_TAB;
+  const activeNote = navigation.activeTab && navigation.activeTab !== SETTINGS_TAB && !showsGraph ? repository.note(navigation.activeTab) : undefined;
   const databaseNotebook = snapshot.notebooks.find((notebook) => notebook.id === notebookIdOfDatabaseTab(navigation.activeTab));
   const createNote = async () => navigation.openNote((await createNoteInView(repository, navigation.view)).id);
   const openDailyNote = async () => {
@@ -55,6 +57,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
     previousTab: () => openNeighborTab(-1),
     closeTab: () => navigation.activeTab && navigation.closeTab(navigation.activeTab),
     openSettings: navigation.openSettings,
+    graph: () => navigation.openTab(GRAPH_TAB),
     dailyNote: () => void openDailyNote(),
     focusMode: () => setFocusMode((on) => !on),
     typewriterMode: () => updateDevicePreferences({ typewriterMode: !readDevicePreferences().typewriterMode }),
@@ -70,7 +73,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
           onClick={() => setFocusMode(false)}><Minimize2 size={16} /></button>
       )}
       <Sidebar snapshot={snapshot} repository={repository} navigation={navigation} onCreateNote={() => void createNote()}
-        onOpenDailyNote={() => void openDailyNote()} onEnterFocusMode={() => setFocusMode(true)}
+        onOpenDailyNote={() => void openDailyNote()} onEnterFocusMode={() => setFocusMode(true)} onOpenGraph={() => navigation.openTab(GRAPH_TAB)}
         footer={<><UpdateChip onOpenSettings={navigation.openSettings} /><SyncStatusLine status={session.syncStatus} onOpenSettings={navigation.openSettings} /></>} />
       {paletteOpen && (
         <CommandPalette notes={snapshot.notes.filter((note) => note.content.trashedAt === null)} commands={paletteCommands}
@@ -94,7 +97,8 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
           <NotebookDatabaseView notebook={databaseNotebook} repository={repository} onOpenNote={navigation.openNote}
             notes={snapshot.notes.filter((note) => note.content.notebookIds.includes(databaseNotebook.id) && note.content.trashedAt === null && !note.content.isTemplate)} />
         )}
-        {!activeNote && !databaseNotebook && navigation.activeTab !== SETTINGS_TAB && <div className="empty-state">{translate("editor.empty")}</div>}
+        {showsGraph && <NoteGraphView summaries={snapshot.summaries} onOpenNote={navigation.openNote} />}
+        {!activeNote && !databaseNotebook && !showsGraph && navigation.activeTab !== SETTINGS_TAB && <div className="empty-state">{translate("editor.empty")}</div>}
       </main>
     </div>
   );

@@ -464,6 +464,8 @@ export const japaneseMessages = {
   "palette.title": "コマンドパレット",
   "palette.placeholder": "メモの題で探す。「>」で始めると操作を探す",
   "palette.noResults": "当たるものがありません",
+  "graph.title": "グラフ表示",
+  "graph.summary": "メモ {notes} 件、リンク {links} 本",
   "shortcut.newNote": "新しいメモ",
   "shortcut.dailyNote": "今日のメモ（デイリーノート）",
   "shortcut.focusMode": "フォーカスモード",

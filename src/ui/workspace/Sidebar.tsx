@@ -1,7 +1,7 @@
 // 案C の左の列: 一覧（すべて・お気に入り・ノートブック・タグ・ゴミ箱）を木にして、
 // 開いた所にメモを並べる。
 
-import { Bookmark, CalendarDays, FileText, Hash, LayoutTemplate, Maximize2, Plus, Search, Star, Trash2, X } from "lucide-react";
+import { Bookmark, CalendarDays, FileText, Hash, LayoutTemplate, Maximize2, Plus, Search, Star, Trash2, Waypoints, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { buildNotebookTree, countTags, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
@@ -25,10 +25,11 @@ type SidebarProps = {
   onCreateNote: () => void;
   onOpenDailyNote: () => void;
   onEnterFocusMode: () => void;
+  onOpenGraph: () => void;
   footer: ReactNode;
 };
 
-export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpenDailyNote, onEnterFocusMode, footer }: SidebarProps) {
+export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpenDailyNote, onEnterFocusMode, onOpenGraph, footer }: SidebarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [addingNotebook, setAddingNotebook] = useState(false);
   const { summaries } = snapshot;
@@ -89,6 +90,9 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
         <span className="sidebar-brand-actions">
           <button className="icon-button" aria-label={translate("shortcut.dailyNote")} title={translate("shortcut.dailyNote")} onClick={onOpenDailyNote}>
             <CalendarDays size={16} />
+          </button>
+          <button className="icon-button" aria-label={translate("graph.title")} title={translate("graph.title")} onClick={onOpenGraph}>
+            <Waypoints size={16} />
           </button>
           <button className="icon-button" aria-label={translate("shortcut.focusMode")} title={translate("shortcut.focusMode")} onClick={onEnterFocusMode}>
             <Maximize2 size={16} />
