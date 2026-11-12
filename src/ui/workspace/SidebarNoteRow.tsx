@@ -89,7 +89,7 @@ export function SidebarNoteRow({ note, view, listedNoteIds, paddingLeft, navigat
   return (
     <div className={`nav-row${isDragged ? " dragging" : ""}`} onContextMenu={(event) => { event.preventDefault(); setMenuAnchor(event.currentTarget); }}>
       <button className={rowClassName} style={{ paddingLeft }} aria-pressed={selection.noteIds.length > 0 ? isSelected : undefined}
-        draggable={!isConcealed} onDragStart={(event) => startNoteDrag(event, { noteId: note.id, title, fromView: view })}
+        draggable={!isConcealed} onDragStart={(event) => startNoteDrag(event, { noteId: note.id, title, fromView: view, concealedNoteIds })}
         onClick={selectOrOpen} onDoubleClick={() => setRenaming(true)} onKeyDown={(event) => {
           focusViewRowOfNote(event, viewKey(view));
           if (event.key === "Escape") {

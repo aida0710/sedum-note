@@ -11,12 +11,18 @@ import { beginNoteDragState, type DraggedNoteState, endNoteDragState } from "./n
 import { readNoteSelection, resetNoteSelection } from "./noteSelection";
 import { viewKey } from "./useWorkspaceNavigation";
 
-type NoteDragInput = { noteId: string; title: string; fromView: NoteView };
+type NoteDragInput = {
+  noteId: string;
+  title: string;
+  fromView: NoteView;
+  // ロックで中身を隠しているメモ。ドラッグでは動かさない（ロックしたノートブックの外へ出すと、確認なしで開けてしまう）。
+  concealedNoteIds: ReadonlySet<string>;
+};
 
-export function startNoteDrag(event: React.DragEvent, { noteId, title, fromView }: NoteDragInput): void {
+export function startNoteDrag(event: React.DragEvent, { noteId, title, fromView, concealedNoteIds }: NoteDragInput): void {
   const selectedIds = readNoteSelection().noteIds;
-  // 選んでいないメモをドラッグしたら、そのメモだけを運ぶ。
-  const noteIds = selectedIds.includes(noteId) ? selectedIds : [noteId];
+  // 選んでいないメモをドラッグしたら、そのメモだけを運ぶ。選んだメモをまとめて運ぶときも、隠しているメモは置いていく。
+  const noteIds = selectedIds.includes(noteId) ? selectedIds.filter((selectedId) => !concealedNoteIds.has(selectedId)) : [noteId];
   const dragged: DraggedNotes = { noteIds, fromNotebookId: fromView.kind === "notebook" ? fromView.notebookId : null };
   writeDraggedNotes(event.dataTransfer, dragged);
   showDragPreview(event, noteIds.length === 1 ? title : translate("sidebar.draggedNotes", { count: noteIds.length }));
