@@ -286,6 +286,12 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
     },
     { name: "graph", open: async (page) => { await page.keyboard.press("Control+Alt+G"); await page.waitForTimeout(800); } },
     {
+      // AI を有効にしていない間の案内が出る。
+      name: "ai-chat",
+      open: async (page) => { await openRichNote(page); await page.keyboard.press("Control+Alt+A"); await page.locator(".ai-chat").waitFor(); },
+      close: async (page) => { await page.keyboard.press("Control+Alt+A"); },
+    },
+    {
       name: "sidebar-search",
       open: async (page) => {
         await page.locator(".sidebar").getByRole("button", { name: "検索", exact: true }).click();
