@@ -33,6 +33,7 @@ import {
   REMOTE_ORIGIN,
   writeField,
 } from "./recordDocument";
+import { replaceTemplateVariablesInBody, replaceTemplateVariablesInText, type TemplateTimeValues, type TemplateVariableValues } from "./templateVariables";
 
 // 最初の変更からこれだけ待って、その間の変更をまとめて手元に保存する。暗号化と書き込みは
 // 非同期なので、アプリを閉じる瞬間には書き切れない。打ってすぐ閉じても失うのがこの時間の分で
@@ -66,6 +67,13 @@ export type NoteChanges = Partial<{
   dueAt: string | null;
   pageAlignment: PageAlignment | null;
 }>;
+
+export type TemplateNoteInput = {
+  templateId: string;
+  // テンプレートの変数 @date・@time・@datetime の値。言語と設定に合わせた文字を、呼び出し側が作って渡す。
+  timeValues: TemplateTimeValues;
+  changes?: NoteChanges;
+};
 
 // local は、このデバイスで変えたもの（同期で送る必要がある）。stored は、手元の保存や
 // 同期から読み直したもの。
@@ -244,12 +252,15 @@ export class NoteRepository {
   }
 
   // テンプレートと同じ本文の、新しいメモを作る。テンプレートは変えない。
-  async createNoteFromTemplate(templateId: string, changes: NoteChanges = {}): Promise<LiveNote> {
+  // 題と本文のテンプレートの変数（@date など）は、渡された日時と、できあがるメモの題に置き換える。
+  // 題は changes.title、無ければテンプレートの題の変数を置き換えたもの。題の中の @title は置き換えない（題そのものなので）。
+  async createNoteFromTemplate({ templateId, timeValues, changes = {} }: TemplateNoteInput): Promise<LiveNote> {
     const template = this.note(templateId);
     if (!template) {
       throw new RecordNotFoundError(templateId);
     }
-    return this.#createNoteWithBodyOf(template.body, { title: template.content.title, pageAlignment: template.content.pageAlignment, ...changes });
+    const title = changes.title ?? replaceTemplateVariablesInText(template.content.title, timeValues);
+    return this.#createNoteWithBodyOf(template.body, { pageAlignment: template.content.pageAlignment, ...changes, title }, { ...timeValues, title });
   }
 
   // メモを複製する。本文とノートブックを引き継ぎ、添付は同じものを指す。
@@ -281,11 +292,15 @@ export class NoteRepository {
     await this.moveNoteToTrash(sourceId);
   }
 
-  // 元の本文を写した、新しいメモを作る。
-  async #createNoteWithBodyOf(sourceBody: Y.XmlFragment, changes: NoteChanges): Promise<LiveNote> {
+  // 元の本文を写した、新しいメモを作る。variableValues を渡すと、写した本文のテンプレートの変数を置き換える
+  // （元の本文は変えない）。写してから await を挟まずに置き換えるので、手元へ保存するのは置き換えたあとの本文になる。
+  async #createNoteWithBodyOf(sourceBody: Y.XmlFragment, changes: NoteChanges, variableValues: TemplateVariableValues | null = null): Promise<LiveNote> {
     const id = newRandomId();
     const doc = this.#newDocument(id, "note");
     recordBody(doc).insert(0, sourceBody.toArray().map((node) => node.clone() as Y.XmlElement));
+    if (variableValues !== null) {
+      replaceTemplateVariablesInBody(recordBody(doc), variableValues);
+    }
     this.#writeNoteChanges(doc, { title: "", pinned: false, bookmarked: false, trashedAt: null, notebookIds: [], ...changes });
     await this.flush();
     return this.note(id)!;

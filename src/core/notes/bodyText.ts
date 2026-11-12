@@ -17,8 +17,26 @@ export const BLOCK_EMBED_NODE = "blockEmbed";
 // ほかのメモを ID（属性 noteId）で指すノード。
 const NOTE_REFERENCE_NODE_NAMES = new Set([NOTE_LINK_NODE, BLOCK_EMBED_NODE]);
 const ATTACHMENT_NODE_NAMES = new Set([ATTACHMENT_IMAGE_NODE, ATTACHMENT_FILE_NODE]);
+// コードのブロックのノードと、行の中のコードの書式（Tiptap の名前）。
+export const CODE_BLOCK_NODE = "codeBlock";
+export const CODE_MARK = "code";
 
 type BodyNode = Y.XmlFragment | Y.XmlElement | Y.XmlText | Y.XmlHook;
+
+// Y.XmlText の toDelta の 1 つ分。attributes は書式（太字など）で、Tiptap の書式の名前をキーに持つ。
+export type TextOperation = { insert: string; attributes?: Record<string, unknown> };
+
+// 本文の中の文字のまとまり（Y.XmlText）のうち、コードのブロックの外にあるもの。
+// 行の中のコードの書式は、まとまりの中の書式なので、ここでは除かない。
+export function* textsOutsideCodeBlocks(node: Y.XmlFragment | Y.XmlElement): Generator<Y.XmlText> {
+  for (const child of node.toArray()) {
+    if (child instanceof Y.XmlText) {
+      yield child;
+    } else if (child instanceof Y.XmlElement && child.nodeName !== CODE_BLOCK_NODE) {
+      yield* textsOutsideCodeBlocks(child);
+    }
+  }
+}
 
 export function bodyPlainText(body: Y.XmlFragment): string {
   const parts: string[] = [];

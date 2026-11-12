@@ -312,6 +312,37 @@ test("メモをテンプレートにすると「テンプレート」に並び�
   await expect(page.locator(".ProseMirror h2")).toHaveText("決まったこと");
 });
 
+test("テンプレートの @date・@time・@title は、新しいメモを作るときと「/」で入れるときに、その時の値に置き換わる。テンプレートは変わらない", async ({ page }) => {
+  // デイリーノートの題の形式（既定は 2026-11-13 の形）に合わせて入る。
+  await page.clock.install({ time: new Date(2026, 10, 13, 9, 5) });
+  await startLocalVault(page);
+  await newNote(page, "@date の日報");
+  await page.keyboard.type("## @title");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("作成 @time、連絡先 foo@date.example");
+  await page.getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "テンプレートにする" }).click();
+  await expect(page.getByText("@date（日付）・@time（時刻）")).toBeVisible();
+
+  await page.getByRole("button", { name: "このテンプレートから新しいメモを作る" }).click();
+  await expect(page.getByRole("tab")).toHaveCount(2);
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("2026-11-13 の日報");
+  await expect(page.locator(".ProseMirror h2")).toHaveText("2026-11-13 の日報");
+  await expect(page.locator(".ProseMirror p", { hasText: "作成" })).toHaveText("作成 09:05、連絡先 foo@date.example");
+
+  // 「/」で入れるときは、@title は入れる先のメモの題になる。
+  await newNote(page, "週次の振り返り");
+  await page.keyboard.type("/日報");
+  await expect(page.getByRole("listbox", { name: "ブロックの種類" }).getByRole("option")).toHaveText(["テンプレート: @date の日報"]);
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".ProseMirror h2")).toHaveText("週次の振り返り");
+  await expect(page.locator(".ProseMirror p", { hasText: "作成" })).toHaveText("作成 09:05、連絡先 foo@date.example");
+
+  await page.getByRole("tab", { name: "@date の日報" }).click();
+  await expect(page.locator(".ProseMirror h2")).toHaveText("@title");
+  await expect(page.locator(".ProseMirror p", { hasText: "作成" })).toHaveText("作成 @time、連絡先 foo@date.example");
+});
+
 async function pasteText(page: Page, contents: Record<string, string>): Promise<void> {
   await page.locator(".ProseMirror").evaluate((editor, clipboardContents) => {
     const transfer = new DataTransfer();

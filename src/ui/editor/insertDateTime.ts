@@ -4,14 +4,14 @@ import { Extension } from "@tiptap/core";
 import type { Editor } from "@tiptap/react";
 import { languageInUse } from "../i18n/languageInUse";
 import type { MessageKey } from "../i18n/translate";
+import { formatLongDate, formatLongDateTime } from "../shared/formatTime";
 import { editorKeymapName, type ShortcutKeys } from "../shared/shortcutKeys";
 
 export type InsertedDateTime = "date" | "dateTime";
 
 // 画面の言語の、年まで入った書き方にする（例: 2026年11月12日、November 12, 2026）。
 export function currentDateTimeText(kind: InsertedDateTime, now: Date = new Date()): string {
-  const timeStyle = kind === "dateTime" ? { timeStyle: "short" as const } : {};
-  return new Intl.DateTimeFormat(languageInUse(), { dateStyle: "long", ...timeStyle }).format(now);
+  return kind === "dateTime" ? formatLongDateTime(now, languageInUse()) : formatLongDate(now, languageInUse());
 }
 
 export function insertCurrentDateTime(editor: Editor, kind: InsertedDateTime): boolean {

@@ -2,17 +2,14 @@
 
 import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
+import { formatIsoDate, formatLongDate } from "../shared/formatTime";
 
 export const DAILY_NOTE_TITLE_FORMATS = ["iso", "long"] as const;
 export type DailyNoteTitleFormat = (typeof DAILY_NOTE_TITLE_FORMATS)[number];
 
 // iso は 2026-11-12（並べ替えても日付の順になる）、long は画面の言語の書き方（2026年11月12日）。
 export function dailyNoteTitle(format: DailyNoteTitleFormat, now: Date, language: string): string {
-  if (format === "long") {
-    return new Intl.DateTimeFormat(language, { dateStyle: "long" }).format(now);
-  }
-  const twoDigits = (value: number) => String(value).padStart(2, "0");
-  return `${now.getFullYear()}-${twoDigits(now.getMonth() + 1)}-${twoDigits(now.getDate())}`;
+  return format === "long" ? formatLongDate(now, language) : formatIsoDate(now);
 }
 
 type DailyNoteInput = {

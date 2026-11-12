@@ -1,4 +1,5 @@
 // 設定: デイリーノート（その日のメモ）の題の形式と、新しく作るときに入れるノートブック。このデバイスだけの設定。
+// 題の形式は、テンプレートの変数（@date など）の形式にも使う（editor/templateTimeValues.ts）。
 
 import type { LiveNotebook } from "../../core/notes/noteRecords";
 import { languageInUse } from "../i18n/languageInUse";
@@ -21,6 +22,7 @@ export function DailyNoteSection({ notebooks }: { notebooks: LiveNotebook[] }) {
           onChange={(event) => updateDevicePreferences({ dailyNoteTitleFormat: event.target.value as DailyNoteTitleFormat })}>
           {DAILY_NOTE_TITLE_FORMATS.map((format) => <option key={format} value={format}>{dailyNoteTitle(format, today, languageInUse())}</option>)}
         </select>
+        <span className="hint">{translate("settings.dailyNoteTitleFormatHint")}</span>
       </div>
       <div className="field">
         <label htmlFor="daily-note-notebook">{translate("settings.dailyNoteNotebook")}</label>

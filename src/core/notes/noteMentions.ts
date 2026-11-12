@@ -2,16 +2,13 @@
 // バックリンクの欄の下に並べ、押すとその文字をリンクに置き換える。
 
 import * as Y from "yjs";
-import { NOTE_LINK_NODE } from "./bodyText";
+import { CODE_MARK, NOTE_LINK_NODE, type TextOperation, textsOutsideCodeBlocks } from "./bodyText";
 import type { NoteSummary } from "./noteQueries";
 import type { LiveNote } from "./noteRecords";
 import { excerptAt } from "./textExcerpt";
 
 // これより短い題は、ほかの言葉の一部に当たりやすいので探さない（1 文字の題など）。
 const MIN_MENTIONED_TITLE_LENGTH = 2;
-// リンクに置き換えない所。コードの中の文字は、題と同じでも別の意味で書いていることが多い。
-const CODE_BLOCK_NODE = "codeBlock";
-const CODE_MARK = "code";
 
 export type UnlinkedMention = { note: LiveNote; excerpt: string };
 
@@ -44,7 +41,6 @@ export function findUnlinkedMentions(summaries: NoteSummary[], target: LiveNote)
     .sort((left, right) => right.note.updatedAt.localeCompare(left.note.updatedAt));
 }
 
-type TextOperation = { insert: string; attributes?: Record<string, unknown> };
 type MentionLink = { title: string; noteId: string };
 
 // 本文の中で最初に見つかった題の文字を、noteId へのリンクに置き換える。置き換えられる所が無ければ false。
@@ -70,16 +66,7 @@ export function linkFirstMention(body: Y.XmlFragment, { title, noteId }: Mention
   return false;
 }
 
-function* textsOutsideCodeBlocks(node: Y.XmlFragment | Y.XmlElement): Generator<Y.XmlText> {
-  for (const child of node.toArray()) {
-    if (child instanceof Y.XmlText) {
-      yield child;
-    } else if (child instanceof Y.XmlElement && child.nodeName !== CODE_BLOCK_NODE) {
-      yield* textsOutsideCodeBlocks(child);
-    }
-  }
-}
-
+// コードの中の文字はリンクに置き換えない。題と同じでも、別の意味で書いていることが多い。
 function firstMatchOutsideCode(operations: TextOperation[], pattern: RegExp): { index: number; length: number } | null {
   const fullText = operations.map((operation) => operation.insert).join("");
   pattern.lastIndex = 0;

@@ -9,6 +9,7 @@ import { bodyPlainText, BLOCK_EMBED_NODE, NOTE_LINK_NODE, plainTextHashtags } fr
 import type { UnlinkedMention } from "../../core/notes/noteMentions";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
+import { replaceTemplateVariablesInNodes } from "../../core/notes/templateVariables";
 import { isCursorInTaskItem, setTaskDueAtCursor, taskDueAtCursor } from "./dueMarks";
 import { DueDateDialog } from "../shared/DueDateDialog";
 import { formatDueTime } from "../shared/formatTime";
@@ -38,6 +39,8 @@ import { NotePicker } from "./NotePicker";
 import { BlockPicker } from "./BlockPicker";
 import { deleteCapturedPhotos } from "../platform/capturedPhotos";
 import { DocumentScanDialog } from "./DocumentScanDialog";
+import { TemplateBanner } from "./TemplateBanner";
+import { currentTemplateTimeValues } from "./templateTimeValues";
 import { zoomIntoCursor, zoomTargetAtCursor } from "./zoom";
 import { useRememberedNoteView } from "./rememberedNoteView";
 import { insertDroppedNoteLink } from "./droppedNoteLink";
@@ -269,11 +272,13 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
     onToggleRecording: isAudioRecordingAvailable() ? audioRecorder.toggle : undefined,
     recording: audioRecorder.recording,
   };
-  // テンプレートの本文を、カーソルの所に入れる。
+  // テンプレートの本文を、カーソルの所に入れる。変数（@date など）は今の日時と、このメモの題に置き換える。
   const insertTemplate = (templateId: string) => {
     const template = repository.note(templateId);
     if (template && editor) {
-      editor.chain().focus().insertContent((yXmlFragmentToProsemirrorJSON(template.body) as JSONContent).content ?? []).run();
+      const templateContent = (yXmlFragmentToProsemirrorJSON(template.body) as JSONContent).content ?? [];
+      const variableValues = { ...currentTemplateTimeValues(), title: note.content.title };
+      editor.chain().focus().insertContent(replaceTemplateVariablesInNodes(templateContent, variableValues)).run();
     }
   };
   const templates = repository.notes()
@@ -314,16 +319,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
               </span>
             </div>
           )}
-          {note.content.isTemplate && !inTrash && (
-            <div className="trash-banner">
-              {translate("editor.isTemplate")}
-              <span className="actions">
-                <button className="secondary-button" onClick={async () => openNote((await repository.createNoteFromTemplate(noteId, { isTemplate: false })).id)}>
-                  {translate("editor.newFromTemplate")}
-                </button>
-              </span>
-            </div>
-          )}
+          {note.content.isTemplate && !inTrash && <TemplateBanner templateId={noteId} repository={repository} onOpenNote={openNote} />}
           {actionError && <div className="form-error" role="alert">{actionError}</div>}
           <div className="document-meta">
             {noteNotebooks.map((notebook) => (

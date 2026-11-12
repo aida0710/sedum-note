@@ -375,6 +375,10 @@ button:disabled { cursor: default; opacity: .55; }
 .title-input::placeholder { color: var(--muted); opacity: .6; }
 .trash-banner { background: var(--tag); border-radius: var(--radius-control); padding: 8px 12px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; color: var(--muted); }
 .trash-banner .actions { margin-left: auto; display: flex; gap: 6px; }
+/* 案内の文が長いので、狭い画面ではボタンを下の行へ送る。 */
+.template-banner { flex-wrap: wrap; }
+.template-banner-text { flex: 1 1 240px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.template-banner .hint { font-size: var(--font-size-small); line-height: 1.6; }
 .empty-state { margin: auto; color: var(--muted); text-align: center; padding: 40px; }
 
 /* Tiptap の本文 */
