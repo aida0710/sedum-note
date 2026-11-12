@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { DEV_SERVER_PORT, PAGE_ORIGIN } from "./e2e/devServer";
 
 // 画面の試験。S3 互換サーバー（integration/s3-up.sh）を先に起動しておく。
 // macOS のアプリは WebKit（WKWebView）で動くので、CI では WebKit でも流す。
@@ -15,6 +16,6 @@ export default defineConfig({
   // 作成やロック解除の直後の表示を待ち切れないことがある。
   expect: { timeout: 15_000 },
   projects,
-  use: { baseURL: "http://127.0.0.1:5173", locale: "ja-JP" },
-  webServer: { command: "npx vite --host 127.0.0.1 --port 5173 --strictPort", url: "http://127.0.0.1:5173", reuseExistingServer: true },
+  use: { baseURL: PAGE_ORIGIN, locale: "ja-JP" },
+  webServer: { command: `npx vite --host 127.0.0.1 --port ${DEV_SERVER_PORT} --strictPort`, url: PAGE_ORIGIN, reuseExistingServer: true },
 });

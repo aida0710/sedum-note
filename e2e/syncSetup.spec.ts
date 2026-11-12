@@ -7,9 +7,8 @@ import { writeRemoteVault } from "../src/core/vault/remoteVault";
 import { createVault } from "../src/core/vault/vaultDocument";
 import { corsRuleJson } from "../src/ui/settings/corsRule";
 import { createNoteOnDesktop, DESKTOP_VIEWPORT, fillRemoteConfigFields, fillSyncTarget, openSyncedDevice, PASSPHRASE, PHONE_VIEWPORT, startLocalVault, SYNC_KEY } from "./devices";
+import { PAGE_ORIGIN } from "./devServer";
 
-// 画面の試験の開発サーバーの origin（playwright.config.ts の baseURL）。
-const PAGE_ORIGIN = "http://127.0.0.1:5173";
 // 2 台目のデバイスのパスフレーズ。デバイスごとに違ってよいことを確かめるために、1 台目と変える。
 const SECOND_DEVICE_PASSPHRASE = "another device passphrase";
 const GENERATED_KEY_PATTERN = /^([0-9A-Z]{4}-){5}[0-9A-Z]{4}$/;

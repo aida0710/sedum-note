@@ -3,9 +3,8 @@ import { type CorsRule, newTestRemoteConfigWithCors } from "../integration/testS
 import type { RemoteConfig } from "../src/core/remote/remoteConfig";
 import { corsRuleJson } from "../src/ui/settings/corsRule";
 import { fillSyncTarget, startSyncedVault } from "./devices";
+import { PAGE_ORIGIN } from "./devServer";
 
-// 画面の試験の開発サーバーの origin（playwright.config.ts の baseURL）。
-const PAGE_ORIGIN = "http://127.0.0.1:5173";
 
 // 同期先を入れて「接続を確認」を押す。CORS で断られると、ここで分かる。
 async function checkSyncTarget(page: Page, config: RemoteConfig): Promise<void> {
