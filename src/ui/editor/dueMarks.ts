@@ -5,7 +5,7 @@ import { type Editor, Extension } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { type EditorState, Plugin } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import { dueMarkText, findDueMark } from "../../core/notes/dueTimes";
+import { DUE_MARK, dueMarkText, findDueMark } from "../../core/notes/dueTimes";
 
 // 文字でないノード（メモへのリンクなど）を、位置の数え方が合うように 1 文字として読む。
 const INLINE_NODE_PLACEHOLDER = "￼";
@@ -22,7 +22,10 @@ function dueMarkDecorations(doc: ProseMirrorNode): DecorationSet {
     }
     const mark = findDueMark(lineText(node));
     if (mark) {
-      decorations.push(Decoration.inline(position + 1 + mark.start, position + 1 + mark.end, { class: "due-mark" }));
+      const start = position + 1 + mark.start;
+      decorations.push(Decoration.inline(start, position + 1 + mark.end, { class: "due-mark" }));
+      // 印の絵文字は、絵文字のフォントが無い環境では四角になる。文字は残したまま隠して、同じ場所にアイコンを描く。
+      decorations.push(Decoration.inline(start, start + DUE_MARK.length, { class: "due-mark-icon" }));
     }
     return false;
   });

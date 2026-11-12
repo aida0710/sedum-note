@@ -304,7 +304,12 @@ button:disabled { cursor: default; opacity: .55; }
 .document-meta .updated { margin-left: 12px; }
 .chip { background: var(--tag); border-radius: 999px; padding: 2px 9px; font-size: var(--font-size-small); color: var(--text); display: inline-flex; align-items: center; gap: 5px; }
 /* 期限。本文の中の期限の印、メモの期限のチップ、期限の一覧。 */
-.due-mark { background: var(--tag); border-radius: var(--radius-inline); padding: 1px 4px; white-space: nowrap; }
+.due-mark { color: var(--accent); white-space: nowrap; }
+/* 絵文字の字は幅を持たせず、代わりに時計のアイコン（lucide の alarm-clock）を、文字の色で描く。 */
+.due-mark-icon { font-size: 0; }
+.due-mark-icon::before { content: ""; display: inline-block; width: 14px; height: 14px; margin-right: 3px; vertical-align: -2px; background: currentColor;
+  -webkit-mask: var(--due-mark-icon) center / contain no-repeat; mask: var(--due-mark-icon) center / contain no-repeat;
+  --due-mark-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='8'/%3E%3Cpath d='M12 9v4l2 2'/%3E%3Cpath d='M5 3 2 6'/%3E%3Cpath d='m22 6-3-3'/%3E%3Cpath d='M6.38 18.7 4 21'/%3E%3Cpath d='M17.64 18.67 20 21'/%3E%3C/svg%3E"); }
 .chip.due-chip { cursor: pointer; }
 .chip.due-chip:hover:not(:disabled) { color: var(--accent); }
 .reminders-view { width: min(760px, 100%); margin: 0 auto; padding: 28px 24px 60px; display: flex; flex-direction: column; gap: 18px; }
@@ -312,7 +317,7 @@ button:disabled { cursor: default; opacity: .55; }
 .reminders-header h1 { font-size: var(--font-size-title); flex: 1; }
 .reminders-group h2 { font-size: var(--font-size-small); color: var(--muted); display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px; }
 .reminders-group.overdue h2 { color: var(--danger); }
-.reminders-group ul { list-style: none; display: flex; flex-direction: column; }
+.reminders-group ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .reminder-row { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-bottom: 1px solid var(--line); }
 .reminder-row .reminder-note-mark { color: var(--muted); flex: none; }
 .reminder-row input[type="checkbox"] { flex: none; }
