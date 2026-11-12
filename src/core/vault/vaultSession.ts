@@ -11,7 +11,8 @@ import { open, seal } from "../crypto/sealedBox";
 import type { LocalStore } from "../local/localStore";
 import { SerialQueue, type WriteQueue } from "../local/serialQueue";
 import type { RecordChangeChannel } from "../notes/recordChangeChannel";
-import { BODY_SCHEMA_VERSION, ensureBodySchemaSupported } from "../notes/bodySchema";
+import { DATA_FORMAT_VERSION, ensureDataFormatSupported } from "../format/dataFormat";
+import { migrationsBetween } from "../format/dataFormatMigrations";
 import { NoteRepository } from "../notes/noteRepository";
 import { ensureConditionalWrites } from "../remote/conditionalWriteCheck";
 import type { ObjectStore } from "../remote/objectStore";
@@ -44,8 +45,8 @@ export class VaultNotFoundError extends Error {
 export type VaultSessionEnvironment = {
   localStore: LocalStore;
   createObjectStore: (config: RemoteConfig) => ObjectStore;
-  // このアプリが扱える本文の形の版。指定しなければ BODY_SCHEMA_VERSION。試験で新しいアプリを模すのに使う。
-  bodySchemaVersion?: number;
+  // このアプリが扱えるデータの形の版。指定しなければ DATA_FORMAT_VERSION。試験で新しいアプリを模すのに使う。
+  dataFormatVersion?: number;
   // 新しく作る vault の、パスフレーズからキーを導出する重さ。指定しなければ製品の値（64 MiB）。
   // 試験では軽くする（何十回も導出するので、製品の値だと CI で時間切れになる）。
   kdfCost?: Omit<Argon2idParameters, "salt">;
@@ -55,6 +56,9 @@ export type VaultSessionEnvironment = {
   // 1 つずつ流す順番待ちと、書いた記録をほかのウィンドウへ知らせる通り道（どちらも、その vault の中だけで働く）。
   createWriteQueue?: (vaultId: string) => WriteQueue;
   createRecordChangeChannel?: (vaultId: string) => RecordChangeChannel;
+  // 手元のデータを新しい形にしたあとで呼ぶ。同じ手元の保存を開いている、古い版のアプリのウィンドウ（Web 版の開いたままの
+  // タブ）に知らせ、古い形で書き続けないようにする。
+  announceDataFormat?: (version: number) => void;
 };
 
 export type UnlockedVault = {
@@ -122,7 +126,10 @@ export async function createNewVault(
   environment: VaultSessionEnvironment,
   input: { passphrase: string; syncTarget: SyncTargetChoice | null },
 ): Promise<VaultEntry> {
-  const { document, masterKey } = await createVault(input.passphrase, environment.kdfCost);
+  const created = await createVault(input.passphrase, environment.kdfCost);
+  // このアプリが扱う版で作る（試験で、古い版や新しい版のアプリを模すときも、その版で作る）。
+  const document: VaultDocument = { ...created.document, bodySchema: environment.dataFormatVersion ?? DATA_FORMAT_VERSION };
+  const { masterKey } = created;
   let generatedSyncKey: string | null = null;
   if (input.syncTarget) {
     if (input.syncTarget.inspected.state !== "empty") {
@@ -182,7 +189,7 @@ export async function joinExistingVault(
     throw new SyncTargetChangedError();
   }
   // 手元に何も書かないうちに確かめる（書いてから断ると、開けない vault が手元に残る）。
-  ensureBodySchemaSupported(stored.document.bodySchema, environment.bodySchemaVersion ?? BODY_SCHEMA_VERSION);
+  ensureDataFormatSupported(stored.document.bodySchema, environment.dataFormatVersion ?? DATA_FORMAT_VERSION);
   const document = await rewrapVault(stored.document, syncKey, { secret: input.passphrase, wrapping: "passphrase" });
   const masterKey = await unlockVault(document, input.passphrase);
   await saveVaultLocally(environment.localStore, { document, masterKey, remoteConfig });
@@ -228,8 +235,10 @@ async function assembleUnlockedVault(
   remoteConfig: RemoteConfig | null,
 ): Promise<UnlockedVault> {
   const { localStore } = environment;
-  const bodySchemaVersion = environment.bodySchemaVersion ?? BODY_SCHEMA_VERSION;
-  const { vaultId } = await adoptBodySchema(localStore, bodySchemaVersion);
+  const dataFormatVersion = environment.dataFormatVersion ?? DATA_FORMAT_VERSION;
+  const { vaultId, bodySchema: storedDataFormat } = await readLocalVaultDocument(localStore);
+  // メモを読む前に確かめる。このアプリより新しい形なら開かない（開くと、エディタが知らないノードを消す）。
+  ensureDataFormatSupported(storedDataFormat, dataFormatVersion);
   const deviceId = (await localStore.readSetting<string>("deviceId")) ?? newRandomId();
   // 添付の取得は同期の部品が行い、同期の部品は記録の書き込みに repository を使う。
   // 互いを使うので、repository を先に作り、添付の取得はあとから作る syncEngine へ回す。
@@ -245,21 +254,31 @@ async function assembleUnlockedVault(
     now: environment.now,
   });
   if (remoteConfig) {
-    syncEngine = new SyncEngine({ localStore, objectStore: environment.createObjectStore(remoteConfig), repository, bodySchemaVersion, masterKey, now: environment.now });
+    syncEngine = new SyncEngine({ localStore, objectStore: environment.createObjectStore(remoteConfig), repository, dataFormatVersion, masterKey, now: environment.now });
   }
   await repository.load();
+  if (storedDataFormat < dataFormatVersion) {
+    await migrateLocalDataFormat(environment, { repository, storedDataFormat, dataFormatVersion });
+  }
   return { vaultId, masterKey, localStore, repository, syncEngine, remoteConfig };
 }
 
-// メモを開く前に、手元の vault の本文の形の版を確かめる。このアプリより新しければ開かない
-// （開くと、エディタが知らないノードを消す）。古ければ、このアプリの版に引き上げる。
-async function adoptBodySchema(localStore: LocalStore, bodySchemaVersion: number): Promise<VaultDocument> {
-  const document = await readLocalVaultDocument(localStore);
-  ensureBodySchemaSupported(document.bodySchema, bodySchemaVersion);
-  if (document.bodySchema < bodySchemaVersion) {
-    await localStore.writeSetting("vault", { ...document, bodySchema: bodySchemaVersion });
+type LocalDataFormatMigration = { repository: NoteRepository; storedDataFormat: number; dataFormatVersion: number };
+
+// 手元の記録を、このアプリのデータの形にしてから、手元の vault の版を引き上げる（手順は format/dataFormatMigrations.ts）。
+// 全部の手順が済んでから版を書くので、途中で止まっても、次の解除でもう一度流れる。
+// 同期先の vault.json は、次の同期の始めに引き上げる（引き上げてから、書き換えた記録を送る）。
+async function migrateLocalDataFormat(environment: VaultSessionEnvironment, migration: LocalDataFormatMigration): Promise<void> {
+  const { repository, storedDataFormat, dataFormatVersion } = migration;
+  for (const step of migrationsBetween(storedDataFormat, dataFormatVersion)) {
+    await repository.migrateRecords(step.migrateRecord);
   }
-  return document;
+  // 手順の間に、ほかのウィンドウの同期が版を引き上げているかもしれないので、読み直してから書く。
+  const document = await readLocalVaultDocument(environment.localStore);
+  if (document.bodySchema < dataFormatVersion) {
+    await environment.localStore.writeSetting("vault", { ...document, bodySchema: dataFormatVersion });
+  }
+  environment.announceDataFormat?.(dataFormatVersion);
 }
 
 // ロック解除中に同期先を設定する（または付け替える）。空の同期先なら vault.json を置き、既存の同期先なら
@@ -345,7 +364,7 @@ export async function replaceSyncKey(
   const syncKey = input.syncKey ?? newGeneratedPassphrase();
   const rewrapped = await rewrapVault(document, input.passphrase, { secret: syncKey, wrapping: "syncKey" });
   try {
-    // 本文の形の版は、同期先の値を保つ（手元より新しいことがある）。
+    // データの形の版は、同期先の値を保つ（手元より新しいことがある）。
     await writeRemoteVault(objectStore, { ...rewrapped, bodySchema: existing.document.bodySchema }, { ifMatch: existing.etag });
   } catch (error) {
     throw error instanceof PreconditionFailedError ? new SyncTargetChangedError() : error;

@@ -2,7 +2,7 @@
 
 import { InvalidBackupError } from "../../core/backup/backupFile";
 import { MIN_PASSPHRASE_LENGTH } from "../../core/crypto/passphraseKey";
-import { AppUpdateRequiredError } from "../../core/notes/bodySchema";
+import { AppUpdateRequiredError } from "../../core/format/dataFormat";
 import { ObjectStoreError } from "../../core/remote/objectStore";
 import { VaultReplacedError } from "../../core/sync/syncEngine";
 import { OutdatedSyncTargetError } from "../../core/vault/remoteVault";

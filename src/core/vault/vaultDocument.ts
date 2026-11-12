@@ -17,7 +17,7 @@ import {
   newArgon2idParameters,
 } from "../crypto/passphraseKey";
 import { isRandomId, newRandomId } from "../crypto/randomId";
-import { BODY_SCHEMA_VERSION } from "../notes/bodySchema";
+import { DATA_FORMAT_VERSION } from "../format/dataFormat";
 import { importAesKey, open, seal, SealedBoxError } from "../crypto/sealedBox";
 
 const VAULT_FORMAT = "sedum-note-vault";
@@ -38,7 +38,7 @@ export type VaultDocument = {
   vaultId: string;
   kdf: Argon2idParameters;
   wrappedMasterKey: string;
-  // この vault のメモが使っている本文の形の版（notes/bodySchema.ts）。
+  // この vault のメモが使っているデータの形の版（format/dataFormat.ts）。
   bodySchema: number;
 };
 
@@ -115,7 +115,7 @@ export async function createVault(
   const rawMasterKey = newRawMasterKey();
   try {
     const document = await wrapMasterKey({
-      rawMasterKey, secret: passphrase, wrapping: "passphrase", vaultId: newRandomId(), kdfCost, bodySchema: BODY_SCHEMA_VERSION,
+      rawMasterKey, secret: passphrase, wrapping: "passphrase", vaultId: newRandomId(), kdfCost, bodySchema: DATA_FORMAT_VERSION,
     });
     return { document, masterKey: await importMasterKey(rawMasterKey) };
   } finally {

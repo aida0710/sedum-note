@@ -2,7 +2,7 @@
 
 import { IndexedDbLocalStore } from "../../core/local/indexedDbLocalStore";
 import { createObjectStore } from "../../core/remote/createObjectStore";
-import { createCrossWindowWriteQueue, createRecordChangeChannel } from "../platform/crossWindowStorage";
+import { createCrossWindowWriteQueue, createRecordChangeChannel, sendWindowSignal } from "../platform/crossWindowStorage";
 import { storageRequestSender } from "../platform/storageRequestSender";
 import type { VaultSessionEnvironment } from "../../core/vault/vaultSession";
 import { databaseNameOfSpace } from "./spaceRegistry";
@@ -15,5 +15,6 @@ export function createAppEnvironment(spaceId: string): VaultSessionEnvironment {
     createObjectStore: (config) => createObjectStore(config, sendStorageRequest),
     createWriteQueue: createCrossWindowWriteQueue,
     createRecordChangeChannel,
+    announceDataFormat: (version) => sendWindowSignal({ kind: "dataFormatAdopted", version }),
   };
 }

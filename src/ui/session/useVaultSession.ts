@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type BackupExport, exportBackup, restoreBackup } from "../../core/backup/vaultBackup";
+import { DATA_FORMAT_VERSION } from "../../core/format/dataFormat";
 import type { RemoteConfig } from "../../core/remote/remoteConfig";
 import { AutoSync, type SyncStatus } from "../../core/sync/autoSync";
 import { exportSyncSetup } from "../../core/vault/syncSetupFile";
@@ -160,9 +161,17 @@ export function useVaultSession(spaceId: string): VaultSession {
 
   // ほかのウィンドウでロックしたら、このウィンドウもロックする。ほかのウィンドウがデータを消したら、最初の画面から始め直す
   // （ロックしたままのウィンドウも）。
+  // 新しい版のアプリ（Web 版を開き直したタブなど）が手元のデータを新しい形にしたら、このウィンドウの入力を書いてから
+  // 読み込み直し、新しい版のアプリで開き直す。古い版のままだと、古い形で書き続けてしまう。
   useEffect(() => onWindowSignal((signal) => {
     if (signal === "wiped") {
       window.location.reload();
+      return;
+    }
+    if (typeof signal === "object") {
+      if (signal.version > DATA_FORMAT_VERSION) {
+        void (vault?.repository.flush() ?? Promise.resolve()).finally(() => window.location.reload());
+      }
       return;
     }
     forgetUnlockedSpaces();

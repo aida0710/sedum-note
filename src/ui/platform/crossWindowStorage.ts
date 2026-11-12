@@ -42,8 +42,17 @@ export function createRecordChangeChannel(vaultId: string): RecordChangeChannel 
 }
 
 // このアプリを開いているウィンドウ全部に伝える合図。lock は「ロックした」、wiped は「このデバイスのデータを消した」。
+// dataFormatAdopted は「手元のデータを、この版のデータの形にした」（core/format/dataFormat.ts）。
 // データを消すのは、ロックしたままのウィンドウからもできるので、vault ごとには分けない。
-export type WindowSignal = "lock" | "wiped";
+export type WindowSignal = "lock" | "wiped" | { kind: "dataFormatAdopted"; version: number };
+
+function isWindowSignal(value: unknown): value is WindowSignal {
+  if (value === "lock" || value === "wiped") {
+    return true;
+  }
+  const candidate = value as { kind?: unknown; version?: unknown } | null;
+  return typeof candidate === "object" && candidate !== null && candidate.kind === "dataFormatAdopted" && Number.isInteger(candidate.version);
+}
 
 const WINDOW_SIGNAL_CHANNEL_NAME = "sedum-note:windows";
 
@@ -58,7 +67,7 @@ export function sendWindowSignal(signal: WindowSignal): void {
 export function onWindowSignal(listener: (signal: WindowSignal) => void): () => void {
   const channel = new BroadcastChannel(WINDOW_SIGNAL_CHANNEL_NAME);
   channel.addEventListener("message", (event: MessageEvent<unknown>) => {
-    if (event.data === "lock" || event.data === "wiped") {
+    if (isWindowSignal(event.data)) {
       listener(event.data);
     }
   });

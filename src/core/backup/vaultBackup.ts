@@ -3,7 +3,7 @@
 import { newRandomId } from "../crypto/randomId";
 import type { LocalStore } from "../local/localStore";
 import type { NoteRepository } from "../notes/noteRepository";
-import { BODY_SCHEMA_VERSION, ensureBodySchemaSupported } from "../notes/bodySchema";
+import { DATA_FORMAT_VERSION, ensureDataFormatSupported } from "../format/dataFormat";
 import { unlockVault, type VaultDocument } from "../vault/vaultDocument";
 import { type BackupEntry, decodeBackup, encodeBackup } from "./backupFile";
 
@@ -50,7 +50,7 @@ export async function restoreBackup(localStore: LocalStore, file: Uint8Array, pa
   const contents = decodeBackup(file);
   await unlockVault(contents.vault, passphrase);
   // 手元に書く前に確かめる（新しいアプリのバックアップを書いてから断ると、開けない vault が残る）。
-  ensureBodySchemaSupported(contents.vault.bodySchema, BODY_SCHEMA_VERSION);
+  ensureDataFormatSupported(contents.vault.bodySchema, DATA_FORMAT_VERSION);
   await localStore.clearEverything();
   await localStore.writeSetting("vault", contents.vault);
   // 項目の書き込みはデバイスの ID ごとに持つので、このデバイスの ID をここで決めて保存する。

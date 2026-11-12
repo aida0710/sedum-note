@@ -2,9 +2,9 @@ import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { newRandomId } from "../crypto/randomId";
 import { IndexedDbLocalStore } from "../local/indexedDbLocalStore";
-import { AppUpdateRequiredError } from "../notes/bodySchema";
+import { AppUpdateRequiredError, DATA_FORMAT_VERSION } from "../format/dataFormat";
 import { MemoryObjectStore } from "../remote/memoryObjectStore";
-import { type ObjectStore, ObjectStoreError } from "../remote/objectStore";
+import { type ObjectStore, ObjectStoreError, type StoredObject } from "../remote/objectStore";
 import type { RemoteConfig, S3RemoteConfig } from "../remote/remoteConfig";
 import { OutdatedSyncTargetError, readRemoteVault, writeRemoteVault } from "./remoteVault";
 import { checkSyncTarget, findVaultFolders, inspectSyncTarget, SyncTargetChangedError, SyncTargetIncompleteError } from "./syncTarget";
@@ -23,10 +23,9 @@ import {
   wipeDeviceData,
 } from "./vaultSession";
 import { connectSyncedRemote, createLocalVault, createSyncedVault, joinSyncedVault, TEST_KDF_COST, TEST_SYNC_KEY } from "./vaultTestDevices";
-import { BODY_SCHEMA_VERSION } from "../notes/bodySchema";
 
 // 試験の中の「新しいアプリ」が持つ版。今のアプリの版より 1 つ先。
-const NEWER_BODY_SCHEMA_VERSION = BODY_SCHEMA_VERSION + 1;
+const NEWER_DATA_FORMAT_VERSION = DATA_FORMAT_VERSION + 1;
 
 const remoteConfig: S3RemoteConfig = { endpoint: "https://s3.example.com", bucket: "notes", region: "auto", prefix: "", accessKeyId: "k", secretAccessKey: "s" };
 // この試験の同期先は、どれも S3 互換ストレージの設定。
@@ -37,8 +36,8 @@ function environment(store: MemoryObjectStore, sameDevice?: VaultSessionEnvironm
   return { localStore: sameDevice?.localStore ?? new IndexedDbLocalStore(`vault-${newRandomId()}`), createObjectStore: () => store, kdfCost: TEST_KDF_COST };
 }
 
-describe("本文の形の版", () => {
-  const newerApp = (store: MemoryObjectStore): VaultSessionEnvironment => ({ ...environment(store), bodySchemaVersion: NEWER_BODY_SCHEMA_VERSION });
+describe("データの形の版", () => {
+  const newerApp = (store: MemoryObjectStore): VaultSessionEnvironment => ({ ...environment(store), dataFormatVersion: NEWER_DATA_FORMAT_VERSION });
 
   it("新しいアプリが同期すると、古いアプリは同期を止めて更新を求める。手元のメモは開けるまま", async () => {
     const store = new MemoryObjectStore();
@@ -58,7 +57,7 @@ describe("本文の形の版", () => {
   it("新しいアプリで作ったバックアップや手元のデータは、古いアプリでは開かない", async () => {
     const store = new MemoryObjectStore();
     const shared = environment(store);
-    await createLocalVault({ ...shared, bodySchemaVersion: NEWER_BODY_SCHEMA_VERSION }, "correct horse battery");
+    await createLocalVault({ ...shared, dataFormatVersion: NEWER_DATA_FORMAT_VERSION }, "correct horse battery");
     await expect(unlockLocalVault(shared, "correct horse battery")).rejects.toBeInstanceOf(AppUpdateRequiredError);
   });
 
@@ -73,6 +72,89 @@ describe("本文の形の版", () => {
     await expect(joinSyncedVault(oldEnvironment, { passphrase: "another long passphrase", remoteConfig })).rejects.toBeInstanceOf(AppUpdateRequiredError);
     // 断った参加は、手元に開けない vault を残さない。
     expect(await readVaultState(oldEnvironment.localStore)).toBe("absent");
+  });
+});
+
+// y-tiptap 3.0.x が文書に書いた、カーソルの位置を移す記録の名前（format/dataFormatMigrations.ts）。
+const LEGACY_POSITION_MIGRATIONS = "__tiptap_position_migrations:default";
+
+// 記録を取ってくるたびに onRecordFetched を呼ぶ同期先（取ってくる途中で、ほかのデバイスが何かした状況を作る）。
+function storeWatchingRecordFetches(store: MemoryObjectStore, onRecordFetched: () => Promise<void>): ObjectStore {
+  return {
+    list: (prefix) => store.list(prefix),
+    hasObjectsUnder: (prefix) => store.hasObjectsUnder(prefix),
+    listFolders: (prefix, maxCount) => store.listFolders(prefix, maxCount),
+    get: async (key): Promise<StoredObject | null> => {
+      const stored = await store.get(key);
+      if (key.startsWith("records/")) {
+        await onRecordFetched();
+      }
+      return stored;
+    },
+    put: (key, body, condition) => store.put(key, body, condition),
+    delete: (key) => store.delete(key),
+  };
+}
+
+describe("データの形の移し替え", () => {
+  it("古い版の手元のデータを開くと、記録を新しい形にしてから版を引き上げる。更新日時と履歴は変わらない", async () => {
+    const store = new MemoryObjectStore();
+    const olderApp = { ...environment(store), dataFormatVersion: DATA_FORMAT_VERSION - 1 };
+    const older = await createLocalVault(olderApp, "correct horse battery");
+    const note = await older.repository.createNote({ title: "古い版で書いたメモ" });
+    older.repository.note(note.id)!.body.doc!.getMap(LEGACY_POSITION_MIGRATIONS).set("position", "moved");
+    await older.repository.flush();
+    const updatedAtBefore = older.repository.note(note.id)!.updatedAt;
+    const versionCountBefore = (await older.repository.noteVersions(note.id)).length;
+    older.repository.release();
+
+    const announced: number[] = [];
+    const updatedApp = { ...environment(store, olderApp), announceDataFormat: (version: number) => announced.push(version) };
+    const updated = await unlockLocalVault(updatedApp, "correct horse battery");
+
+    const migratedNote = updated.repository.note(note.id)!;
+    expect(migratedNote.body.doc!.getMap(LEGACY_POSITION_MIGRATIONS).size).toBe(0);
+    expect(migratedNote.content.title).toBe("古い版で書いたメモ");
+    expect(migratedNote.updatedAt).toBe(updatedAtBefore);
+    expect(await updated.repository.noteVersions(note.id)).toHaveLength(versionCountBefore);
+    expect((await updatedApp.localStore.readSetting<VaultDocument>("vault"))!.bodySchema).toBe(DATA_FORMAT_VERSION);
+    expect(announced).toEqual([DATA_FORMAT_VERSION]);
+    // 書き換えた記録は、手元に保存してある（読み直しても消えている）。
+    updated.repository.release();
+    const reopened = await unlockLocalVault(environment(store, olderApp), "correct horse battery");
+    expect(reopened.repository.note(note.id)!.body.doc!.getMap(LEGACY_POSITION_MIGRATIONS).size).toBe(0);
+  });
+
+  it("版の揃った手元のデータを開いても、移し替えは流れず、ほかのウィンドウにも知らせない", async () => {
+    const store = new MemoryObjectStore();
+    const announced: number[] = [];
+    const app = { ...environment(store), announceDataFormat: (version: number) => announced.push(version) };
+    await createLocalVault(app, "correct horse battery");
+    await unlockLocalVault(app, "correct horse battery");
+    expect(announced).toEqual([]);
+  });
+
+  it("記録を取ってくる間に、新しい版のアプリが同期先の版を引き上げたら、取ってきた記録を入れずに止まる", async () => {
+    const store = new MemoryObjectStore();
+    let raiseVersionOnNextFetch = false;
+    const watchedStore = storeWatchingRecordFetches(store, async () => {
+      if (!raiseVersionOnNextFetch) {
+        return;
+      }
+      raiseVersionOnNextFetch = false;
+      // 新しい版のアプリが、版を引き上げてから新しい形の記録を送った状況。
+      const stored = (await readRemoteVault(store))!;
+      await writeRemoteVault(store, { ...stored.document, bodySchema: NEWER_DATA_FORMAT_VERSION }, { ifMatch: stored.etag });
+    });
+    const reader = await createSyncedVault({ ...environment(store), createObjectStore: () => watchedStore }, { passphrase: "correct horse battery", remoteConfig });
+    await reader.syncEngine!.syncOnce();
+    const writer = await joinSyncedVault(environment(store), { passphrase: "correct horse battery", remoteConfig });
+    await writer.repository.createNote({ title: "取ってくる途中で届いたメモ" });
+    await writer.syncEngine!.syncOnce();
+
+    raiseVersionOnNextFetch = true;
+    await expect(reader.syncEngine!.syncOnce()).rejects.toBeInstanceOf(AppUpdateRequiredError);
+    expect(reader.repository.notes()).toEqual([]);
   });
 });
 

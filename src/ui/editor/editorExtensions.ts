@@ -1,6 +1,6 @@
 // エディタに入れる機能。保存する文書の形（Yjs の XmlFragment の中のノード名）はこの組み合わせで
 // 決まるので、機能を外すと、その形を使った既存のメモが読めなくなる。機能を足したら、
-// 足す前のアプリがそのノードを消さないよう、BODY_SCHEMA_VERSION（core/notes/bodySchema.ts）を上げる。
+// 足す前のアプリがそのノードを消さないよう、DATA_FORMAT_VERSION（core/format/dataFormat.ts）を上げる。
 
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import Collaboration from "@tiptap/extension-collaboration";

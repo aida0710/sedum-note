@@ -74,6 +74,8 @@ export type RepositoryChangeOrigin = "local" | "stored";
 // ほかのウィンドウが手元の保存に書いた中身を、開いている文書へマージするときの origin。このウィンドウの編集ではないので、
 // 保存の予約はしない（書いたのは相手のウィンドウ）。
 const OTHER_WINDOW_ORIGIN = "otherWindow";
+// データの形の移し替え（format/dataFormatMigrations.ts）で書き換えた変更。利用者の編集ではないので、更新日時を変えず、履歴も残さない。
+const MIGRATION_ORIGIN = "dataFormatMigration";
 
 type LiveHolder = {
   state: "live";
@@ -134,6 +136,16 @@ export class NoteRepository {
       }
     }
     this.#notify("stored");
+  }
+
+  // データの形の移し替えの手順を、読み込んだ全部の記録に流し、変わった記録を手元に書く（送る記録にもなる）。
+  async migrateRecords(migrateRecord: (doc: Y.Doc) => void): Promise<void> {
+    for (const holder of this.#holders.values()) {
+      if (holder.state === "live") {
+        holder.doc.transact(() => migrateRecord(holder.doc), MIGRATION_ORIGIN);
+      }
+    }
+    await this.flush();
   }
 
   subscribe(listener: (origin: RepositoryChangeOrigin) => void): () => void {
@@ -542,7 +554,7 @@ export class NoteRepository {
       if (origin === OTHER_WINDOW_ORIGIN) {
         return;
       }
-      if (origin !== FIELD_ORIGIN) {
+      if (origin !== FIELD_ORIGIN && origin !== MIGRATION_ORIGIN) {
         holder.bodyEdited = true;
       }
       if (this.#closed) {
