@@ -1,4 +1,4 @@
-// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか、デイリーノートの作り方、タイプライターモード）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか、デイリーノートの作り方、タイプライターモード、カスタム CSS）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
@@ -44,6 +44,9 @@ export type DevicePreferences = {
   dailyNoteNotebookId: string | null;
   // 打っている行を、本文の領域の中央に保つか。
   typewriterMode: boolean;
+  // 自分で書いた CSS と、それを当てるか。
+  customCss: string;
+  customCssEnabled: boolean;
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
@@ -61,6 +64,8 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   dailyNoteTitleFormat: "iso",
   dailyNoteNotebookId: null,
   typewriterMode: false,
+  customCss: "",
+  customCssEnabled: true,
 };
 
 let current: DevicePreferences | null = null;
@@ -130,6 +135,8 @@ function validPreferences(stored: unknown): DevicePreferences {
     dailyNoteTitleFormat: DAILY_NOTE_TITLE_FORMATS.find((format) => format === candidate.dailyNoteTitleFormat) ?? DEFAULT_DEVICE_PREFERENCES.dailyNoteTitleFormat,
     dailyNoteNotebookId: typeof candidate.dailyNoteNotebookId === "string" ? candidate.dailyNoteNotebookId : DEFAULT_DEVICE_PREFERENCES.dailyNoteNotebookId,
     typewriterMode: typeof candidate.typewriterMode === "boolean" ? candidate.typewriterMode : DEFAULT_DEVICE_PREFERENCES.typewriterMode,
+    customCss: typeof candidate.customCss === "string" ? candidate.customCss : DEFAULT_DEVICE_PREFERENCES.customCss,
+    customCssEnabled: typeof candidate.customCssEnabled === "boolean" ? candidate.customCssEnabled : DEFAULT_DEVICE_PREFERENCES.customCssEnabled,
     sidebarWidth: clampSidebarWidth(typeof candidate.sidebarWidth === "number" ? candidate.sidebarWidth : DEFAULT_DEVICE_PREFERENCES.sidebarWidth),
   };
 }

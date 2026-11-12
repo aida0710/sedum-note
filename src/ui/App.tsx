@@ -22,6 +22,7 @@ import { MOBILE_LAYOUT_QUERY, useMediaQuery } from "./shared/useMediaQuery";
 import { DesktopWorkspace } from "./workspace/DesktopWorkspace";
 import { useWorkspaceNavigation } from "./workspace/useWorkspaceNavigation";
 import type { UnlockedVault } from "../core/vault/vaultSession";
+import { applyCustomCss } from "./theme/customCss";
 
 // MCP は PC 版（デスクトップのアプリ）にだけ同梱する。__INCLUDES_MCP__ はビルドのときに決まる定数なので、
 // Web 版と Android のアプリのビルドでは、この読み込みごと取り除かれ、MCP のコードはファイルに入らない。
@@ -58,6 +59,12 @@ const NO_UNSYNCED_RECORDS: ReadonlySet<string> = new Set();
 
 function UnlockedApp({ session, vault }: { session: VaultSession; vault: UnlockedVault }) {
   const snapshot = useRepositorySnapshot(vault.repository);
+  const { customCss, customCssEnabled } = useDevicePreferences();
+  // カスタム CSS は、ロックを解除している間だけ当てる（ロックしたら外す）。
+  useEffect(() => {
+    applyCustomCss(customCssEnabled ? customCss : "");
+    return () => applyCustomCss("");
+  }, [customCss, customCssEnabled]);
   const navigation = useWorkspaceNavigation();
   const isMobile = useMediaQuery(MOBILE_LAYOUT_QUERY);
   useLaunchRequests(vault.repository, navigation.openNote);

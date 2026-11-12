@@ -20,6 +20,7 @@ import { TrashSection } from "./TrashSection";
 import { UpdateSection } from "./UpdateSection";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 import { DailyNoteSection } from "./DailyNoteSection";
+import { CustomCssSection } from "./CustomCssSection";
 
 type SettingsPanelProps = {
   session: VaultSession;
@@ -41,6 +42,7 @@ export function SettingsPanel({ session, vault, unreadableCount, isMobile }: Set
         <DisplaySection />
         <DailyNoteSection notebooks={repository.notebooks()} />
         <ThemeSection />
+        <CustomCssSection />
         <SyncSection session={session} vault={vault} />
         <BackupSection session={session} />
         <MarkdownSection repository={repository} />

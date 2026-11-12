@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { startLocalVault } from "./devices";
+import { PASSPHRASE, startLocalVault } from "./devices";
 
 async function openSettingsOfNewVault(page: Page): Promise<void> {
   await startLocalVault(page);
@@ -53,4 +53,22 @@ test("本文の文字の大きさを変えると、エディタの文字が大�
   await page.getByLabel("本文の文字の大きさ").selectOption("large");
   await page.getByRole("button", { name: "新しいメモ" }).click();
   await expect(page.locator(".ProseMirror")).toHaveCSS("font-size", "16.5px");
+});
+
+test("カスタム CSS は、ロックを解除している間だけ当たり、ロック解除の画面でオフにできる", async ({ page }) => {
+  await openSettingsOfNewVault(page);
+  await page.getByRole("textbox", { name: "カスタム CSS" }).fill(".settings h1 { letter-spacing: 7px; }");
+  await page.getByRole("button", { name: "適用" }).click();
+  const headingSpacing = () => page.getByRole("heading", { name: "設定", exact: true }).evaluate((heading) => getComputedStyle(heading).letterSpacing);
+  await expect.poll(headingSpacing).toBe("7px");
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "ロックを解除" })).toBeVisible();
+  expect(await page.locator("#sedum-note-custom-css").count()).toBe(0);
+  await page.getByLabel("カスタム CSS をオフにして開く").click();
+  await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
+  await page.getByRole("button", { name: "解除" }).click();
+  await page.getByRole("button", { name: /同期は未設定/ }).click();
+  await expect.poll(headingSpacing).not.toBe("7px");
+  await expect(page.getByRole("checkbox", { name: "カスタム CSS を当てる" })).not.toBeChecked();
 });

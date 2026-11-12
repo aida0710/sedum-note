@@ -5,10 +5,12 @@ import type { VaultSession } from "../session/useVaultSession";
 import { WipeDeviceDataButton } from "../session/WipeDeviceDataButton";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
+import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 
 export function UnlockScreen({ session }: { session: VaultSession }) {
   const [passphrase, setPassphrase] = useState("");
   const action = useAsyncAction(session.unlock);
+  const { customCss, customCssEnabled } = useDevicePreferences();
   return (
     <div className="entry">
       <form className="entry-card" onKeyDown={preventSubmitByImeKey} onSubmit={(event) => { event.preventDefault(); void action.run(passphrase); }}>
@@ -23,6 +25,12 @@ export function UnlockScreen({ session }: { session: VaultSession }) {
           {action.busy && <span className="hint">{translate("unlock.working")}</span>}
           <button className="primary-button" type="submit" disabled={action.busy}>{translate("unlock.submit")}</button>
         </div>
+        {customCssEnabled && customCss.trim() !== "" && (
+          <label className="checkbox-line">
+            <input type="checkbox" checked={false} onChange={() => updateDevicePreferences({ customCssEnabled: false })} />
+            {translate("unlock.turnOffCustomCss")}
+          </label>
+        )}
         <details>
           <summary>{translate("wipe.forgotPassphrase")}</summary>
           <p className="description">{translate("wipe.forgotPassphraseDescription")}</p>
