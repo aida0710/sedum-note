@@ -358,7 +358,7 @@ test("表の列の揃え方を選ぶと、その列の全部のセルが揃う",
   await chooseTableAction(page, "表を挿入");
   await page.locator(".ProseMirror td").nth(1).click();
   await page.getByRole("button", { name: "表", exact: true }).click();
-  await page.getByRole("menuitemcheckbox", { name: "列を右揃え" }).click();
+  await page.getByRole("button", { name: "列を右揃え" }).click();
 
   const alignments = await page.evaluate(() =>
     [...document.querySelectorAll(".ProseMirror table tr")].map((row) => [...row.children].map((cell) => (cell as HTMLElement).style.textAlign)));
@@ -379,4 +379,31 @@ test("表の列の境目をドラッグすると、列の幅が変わる", async
   await page.mouse.up();
   await expect.poll(async () => (await firstHeader.boundingBox())!.width).toBeGreaterThan(widthBefore + 80);
   await expect(firstHeader).toHaveAttribute("colwidth", /\d+/);
+});
+
+test("選んだ文字にハイライトと文字色を付け、色なしで外せる。表のセルには背景色を付けられる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "色のメモ");
+  await page.locator(".ProseMirror").click();
+  await page.keyboard.type("大事な文字");
+  await page.keyboard.press("ControlOrMeta+a");
+
+  await page.getByRole("button", { name: "ハイライト" }).click();
+  await page.getByRole("button", { name: "緑" }).click();
+  await expect(page.locator('.ProseMirror mark[data-color="green"]')).toHaveText("大事な文字");
+  await page.getByRole("button", { name: "文字色" }).click();
+  await page.getByRole("button", { name: "赤" }).click();
+  await expect(page.locator('.ProseMirror [data-text-color="red"]')).toHaveText("大事な文字");
+
+  await page.getByRole("button", { name: "ハイライト" }).click();
+  await page.getByRole("button", { name: "色なし" }).click();
+  await expect(page.locator(".ProseMirror mark")).toHaveCount(0);
+  await expect(page.locator('.ProseMirror [data-text-color="red"]')).toHaveText("大事な文字");
+
+  await page.keyboard.press("End");
+  await chooseTableAction(page, "表を挿入");
+  await firstBodyCell(page).click();
+  await page.getByRole("button", { name: "表", exact: true }).click();
+  await page.getByRole("button", { name: "青" }).click();
+  await expect(page.locator('.ProseMirror td[data-background-color="blue"]')).toHaveCount(1);
 });

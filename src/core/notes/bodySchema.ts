@@ -5,7 +5,8 @@
 // 自分の方が新しければ、vault.json の版を引き上げる（以後、古いアプリは更新するまで止まる）。
 
 // 2: 見出しを 6 段までにした。
-export const BODY_SCHEMA_VERSION = 2;
+// 3: ハイライト、文字色、表のセルの背景色を足した。
+export const BODY_SCHEMA_VERSION = 3;
 
 export class AppUpdateRequiredError extends Error {
   constructor() {

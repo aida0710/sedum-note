@@ -17,8 +17,11 @@ import { NoteLink } from "./noteLinkNode";
 import { SearchHighlight } from "./searchHighlightExtension";
 import { SlashCommands } from "./slashCommandExtension";
 import { HEADING_LEVELS } from "./headingLevels";
+import { Highlight } from "./highlightMark";
 import { DateTimeShortcuts } from "./insertDateTime";
+import { ColoredTableCell, ColoredTableHeader } from "./tableCellBackground";
 import { TableShortcuts } from "./tableShortcuts";
+import { TextColor } from "./textColorMark";
 import type { SlashMenuController } from "./slashMenuController";
 
 // よく使われる言語（highlight.js の common の組）だけを入れる。言語の指定が無いコードは中身から推す。
@@ -42,7 +45,12 @@ export function documentExtensions() {
     TaskItem.configure({ nested: true }),
     CodeBlockLowlight.configure({ lowlight: codeHighlighter }),
     // 列の境目をドラッグして幅を変えられる。スマホの幅では表が画面をはみ出すので、包んだ要素（tableWrapper）の中で横に送る。
-    TableKit.configure({ table: { resizable: true, renderWrapper: true, cellMinWidth: TABLE_CELL_MIN_WIDTH } }),
+    // セルは、背景色を持てるもの（ColoredTableCell・ColoredTableHeader）に置き換える。ノード名は同じ。
+    TableKit.configure({ table: { resizable: true, renderWrapper: true, cellMinWidth: TABLE_CELL_MIN_WIDTH }, tableCell: false, tableHeader: false }),
+    ColoredTableCell,
+    ColoredTableHeader,
+    Highlight,
+    TextColor,
     AttachmentImage,
     AttachmentFile,
     NoteLink,

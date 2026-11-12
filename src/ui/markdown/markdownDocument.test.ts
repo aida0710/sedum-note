@@ -28,6 +28,18 @@ async function bodyFromMarkdown(markdown: string, context: MarkdownImportContext
 }
 
 describe("Markdown の取り込み", () => {
+  it("ハイライトは ==文字== と往復し、文字色は Markdown では落ちて文字だけが残る", async () => {
+    const body = await bodyFromMarkdown("ここが ==大事== です\n", importContext({}));
+    expect(bodyToMarkdown(body, exportContext)).toBe("ここが ==大事== です");
+
+    const colored = new Y.Doc().getXmlFragment("body");
+    const text = (value: string, marks: object[] = []) => ({ type: "text", text: value, marks });
+    prosemirrorJSONToYXmlFragment(documentSchema(), { type: "doc", content: [{ type: "paragraph", content: [
+      text("赤い", [{ type: "textColor", attrs: { color: "red" } }]), text("文字"),
+    ] }] }, colored);
+    expect(bodyToMarkdown(colored, exportContext)).toBe("赤い文字");
+  });
+
   it("見出しは 6 段目まで、段を保って往復する", async () => {
     const body = await bodyFromMarkdown("#### 4 段目\n\n###### 6 段目\n", importContext({}));
     expect(bodyToMarkdown(body, exportContext)).toBe("#### 4 段目\n\n###### 6 段目");

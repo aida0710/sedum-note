@@ -1,9 +1,11 @@
 // 本文の書式・表・リンクと、写真・ファイルを添付するボタン。PC では本文の上、スマホでは画面の下に出す。
 
 import { type Editor, useEditorState } from "@tiptap/react";
-import { Bold, Camera, Code, FileSymlink, Heading, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, Paperclip, Underline } from "lucide-react";
+import { Baseline, Bold, Camera, Code, FileSymlink, Heading, Highlighter, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, Paperclip, Underline } from "lucide-react";
 import type { ReactNode } from "react";
 import { translate, type MessageKey } from "../i18n/translate";
+import { ColorMenu } from "./ColorMenu";
+import type { EditorColorName } from "./editorColors";
 import { TableMenu } from "./TableMenu";
 
 type EditorToolbarProps = {
@@ -36,6 +38,8 @@ export function EditorToolbar({ editor, onPickImage, onPickFile, onCapturePhoto,
       link: current.isActive("link"),
       codeBlock: current.isActive("codeBlock"),
       table: current.isActive("table"),
+      highlightColor: (current.getAttributes("highlight").color ?? null) as EditorColorName | null,
+      textColor: (current.getAttributes("textColor").color ?? null) as EditorColorName | null,
     }),
   });
 
@@ -63,6 +67,10 @@ export function EditorToolbar({ editor, onPickImage, onPickFile, onCapturePhoto,
       {tool("editor.bold", active.bold, () => editor.chain().focus().toggleBold().run(), <Bold size={ICON_SIZE} />)}
       {tool("editor.italic", active.italic, () => editor.chain().focus().toggleItalic().run(), <Italic size={ICON_SIZE} />)}
       {tool("editor.underline", active.underline, () => editor.chain().focus().toggleUnderline().run(), <Underline size={ICON_SIZE} />)}
+      <ColorMenu label="editor.highlight" icon={<Highlighter size={ICON_SIZE} />} appearance="background" selected={active.highlightColor}
+        onChoose={(colorName) => (colorName ? editor.chain().focus().setHighlight(colorName).run() : editor.chain().focus().unsetHighlight().run())} />
+      <ColorMenu label="editor.textColor" icon={<Baseline size={ICON_SIZE} />} appearance="text" selected={active.textColor}
+        onChoose={(colorName) => (colorName ? editor.chain().focus().setTextColor(colorName).run() : editor.chain().focus().unsetTextColor().run())} />
       <span className="tool-separator" />
       {tool("editor.bulletList", active.bulletList, () => editor.chain().focus().toggleBulletList().run(), <List size={ICON_SIZE} />)}
       {tool("editor.orderedList", active.orderedList, () => editor.chain().focus().toggleOrderedList().run(), <ListOrdered size={ICON_SIZE} />)}

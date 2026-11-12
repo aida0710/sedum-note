@@ -160,6 +160,10 @@ button:disabled { cursor: default; opacity: .55; }
 .choice { min-width: 32px; height: 32px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); display: grid; place-items: center; color: var(--text); }
 .choice.swatch { width: 32px; padding: 0; border-color: transparent; }
 .choice.on { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent); }
+.color-choices { padding: 6px; max-width: 300px; }
+.table-menu-choices { padding: 4px 6px; }
+.color-choices .choice.swatch { width: 26px; height: 26px; min-width: 26px; color: var(--muted); border-color: var(--line); }
+.ProseMirror mark { color: inherit; border-radius: 3px; padding: 0 1px; }
 .search-match { background: color-mix(in srgb, var(--bookmark) 35%, transparent); border-radius: 2px; }
 .search-match.active { background: var(--bookmark); color: #16181c; }
 .find-bar { display: flex; flex-direction: column; gap: 4px; padding: 6px 14px; border-bottom: 1px solid var(--line); flex: none; }
