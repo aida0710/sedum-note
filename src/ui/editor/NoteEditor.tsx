@@ -154,7 +154,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
       revealBlock(editor, blockToReveal.blockId);
     }
   }, [editor, noteId, blockToReveal]);
-  useRememberedNoteView({ noteId, editor, scrollContainer: documentScroll, skipRestore: blockToReveal?.noteId === noteId });
+  useRememberedNoteView({ noteId, editor, scrollContainer: documentScroll, skipRestore: blockToReveal?.noteId === noteId, isOutline });
 
   const exportNote = useNoteFileExport(repository);
   // リンク先や結合の相手に選べるメモ（ゴミ箱の外で、いま開いているメモ以外）。
