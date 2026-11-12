@@ -215,6 +215,8 @@ kbd { font: inherit; font-size: 12px; background: var(--tag); border: 1px solid 
 .tab[draggable="true"] { cursor: grab; }
 .note-picker { width: min(480px, 100%); max-height: min(560px, 90%); }
 .note-picker .sidebar-search { margin-bottom: 0; flex: none; }
+.command-palette .menu-item.on { background: var(--selected); }
+.command-palette kbd { margin-left: auto; color: var(--muted); font-size: 11px; }
 .note-picker-list { overflow-y: auto; min-height: 80px; display: flex; flex-direction: column; }
 .note-history { width: min(760px, 100%); max-height: min(620px, 92%); }
 .note-history-title { font-weight: 700; font-size: 15px; }

@@ -6,9 +6,10 @@ import type { MessageKey } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { isApplePlatform, type ShortcutKeys } from "../shared/shortcutKeys";
 
-export type ShortcutId = "newNote" | "dailyNote" | "searchNotes" | "findInNote" | "nextTab" | "previousTab" | "closeTab" | "openSettings" | "focusMode" | "typewriterMode";
+export type ShortcutId = "commandPalette" | "newNote" | "dailyNote" | "searchNotes" | "findInNote" | "nextTab" | "previousTab" | "closeTab" | "openSettings" | "focusMode" | "typewriterMode";
 
 export const KEYBOARD_SHORTCUTS: Array<{ id: ShortcutId; label: MessageKey; keys: ShortcutKeys }> = [
+  { id: "commandPalette", label: "shortcut.commandPalette", keys: { key: "k", alt: true } },
   { id: "newNote", label: "shortcut.newNote", keys: { key: "n", alt: true } },
   { id: "dailyNote", label: "shortcut.dailyNote", keys: { key: "j", alt: true } },
   { id: "searchNotes", label: "shortcut.searchNotes", keys: { key: "f", shift: true } },

@@ -14,7 +14,9 @@ import { NoteTabs } from "./NoteTabs";
 import { Sidebar } from "./Sidebar";
 import { SyncStatusLine } from "./SyncStatusLine";
 import { createNoteInView } from "./createNoteInView";
-import { useKeyboardShortcuts } from "./keyboardShortcuts";
+import { CommandPalette } from "./CommandPalette";
+import { KEYBOARD_SHORTCUTS, type ShortcutId, useKeyboardShortcuts } from "./keyboardShortcuts";
+import { shortcutText } from "../shared/shortcutKeys";
 import { UpdateChip } from "../update/UpdateChip";
 import { SETTINGS_TAB } from "./useWorkspaceNavigation";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
@@ -40,7 +42,9 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
       navigation.openNote(neighbor);
     }
   };
-  useKeyboardShortcuts({
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const shortcutHandlers: Record<ShortcutId, () => void> = {
+    commandPalette: () => setPaletteOpen(true),
     newNote: () => void createNote(),
     searchNotes: navigation.requestSearchFocus,
     findInNote: navigation.requestFindInNote,
@@ -51,7 +55,11 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
     dailyNote: () => void openDailyNote(),
     focusMode: () => setFocusMode((on) => !on),
     typewriterMode: () => updateDevicePreferences({ typewriterMode: !readDevicePreferences().typewriterMode }),
-  });
+  };
+  useKeyboardShortcuts(shortcutHandlers);
+  // コマンドパレットに並べる操作。ショートカットの一覧と同じもの（パレットを開く操作は除く）。
+  const paletteCommands = KEYBOARD_SHORTCUTS.filter((shortcut) => shortcut.id !== "commandPalette")
+    .map((shortcut) => ({ id: shortcut.id, label: translate(shortcut.label), shortcut: shortcutText(shortcut.keys), run: shortcutHandlers[shortcut.id] }));
   return (
     <div className={`workspace${focusMode ? " focus-mode" : ""}${typewriterMode ? " typewriter-mode" : ""}`}>
       {focusMode && (
@@ -61,6 +69,10 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
       <Sidebar snapshot={snapshot} repository={repository} navigation={navigation} onCreateNote={() => void createNote()}
         onOpenDailyNote={() => void openDailyNote()} onEnterFocusMode={() => setFocusMode(true)}
         footer={<><UpdateChip onOpenSettings={navigation.openSettings} /><SyncStatusLine status={session.syncStatus} onOpenSettings={navigation.openSettings} /></>} />
+      {paletteOpen && (
+        <CommandPalette notes={snapshot.notes.filter((note) => note.content.trashedAt === null)} commands={paletteCommands}
+          onOpenNote={navigation.openNote} onClose={() => setPaletteOpen(false)} />
+      )}
       <main className="main">
         <NoteTabs navigation={navigation} repository={repository} />
         {navigation.activeTab === SETTINGS_TAB && (

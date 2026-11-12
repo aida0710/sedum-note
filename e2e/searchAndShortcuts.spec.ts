@@ -157,3 +157,22 @@ test("タイプライターモードでは、打っている行が本文の領�
   });
   expect(offsetFromCenter).toBeLessThan(40);
 });
+
+test("コマンドパレットで、メモを題で探して開ける。「>」で始めると操作を探して実行できる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "会議の記録", "");
+  await newNote(page, "買い物リスト", "");
+  await page.keyboard.press("Control+Alt+k");
+  const palette = page.getByRole("dialog", { name: "コマンドパレット" });
+  await palette.getByRole("combobox").fill("会議");
+  await expect(palette.getByRole("option")).toHaveText(["会議の記録"]);
+  await page.keyboard.press("Enter");
+  await expect(palette).toHaveCount(0);
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("会議の記録");
+
+  await page.keyboard.press("Control+Alt+k");
+  await palette.getByRole("combobox").fill(">フォーカス");
+  await expect(palette.getByRole("option")).toContainText(["フォーカスモード"]);
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".sidebar")).toBeHidden();
+});
