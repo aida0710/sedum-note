@@ -124,6 +124,16 @@ test("メモへのリンクは、リンク先の今のタイトルを出し、�
   await expect(link).toBeDisabled();
 });
 
+test("メニューから開いたダイアログも、Escape で閉じられる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "履歴を見るメモ");
+  await page.locator(".editor-bar").getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "履歴" }).click();
+  await expect(page.getByRole("dialog", { name: "履歴" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "履歴" })).toBeHidden();
+});
+
 test("履歴から、書き直す前の状態を別のメモとして復元できる", async ({ page }) => {
   await page.clock.install({ time: new Date("2026-11-11T09:00:00+09:00") });
   await startLocalVault(page);
