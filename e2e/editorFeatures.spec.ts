@@ -157,6 +157,25 @@ test("本文の配置は、メモの「…」でメモごとに選べ、既定�
   await expect(documentColumn).toHaveClass(/align-left/);
 });
 
+test("タブを切り替えて戻ると、本文のスクロール位置とカーソルの位置が元に戻る", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "長いメモ");
+  for (let line = 1; line <= 60; line += 1) {
+    await page.keyboard.type(`${line} 行目`);
+    await page.keyboard.press("Enter");
+  }
+  await page.locator(".ProseMirror p", { hasText: /^40 行目$/ }).click();
+  await page.keyboard.press("End");
+  const scroll = page.locator(".document-scroll");
+  await scroll.evaluate((element) => { element.scrollTop = 600; });
+  await newNote(page, "別のメモ");
+
+  await page.getByRole("tab", { name: "長いメモ" }).click();
+  await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(550);
+  await page.keyboard.type("（ここ）");
+  await expect(page.locator(".ProseMirror p", { hasText: "（ここ）" })).toHaveText("40 行目（ここ）");
+});
+
 test("メニューから開いたダイアログも、Escape で閉じられる", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "履歴を見るメモ");

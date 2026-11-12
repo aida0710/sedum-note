@@ -29,6 +29,7 @@ import { BlockPicker } from "./BlockPicker";
 import { deleteCapturedPhotos } from "../platform/capturedPhotos";
 import { DocumentScanDialog } from "./DocumentScanDialog";
 import { zoomIntoCursor, zoomTargetAtCursor } from "./zoom";
+import { useRememberedNoteView } from "./rememberedNoteView";
 import { NoteZoomBar } from "./NoteZoomBar";
 import { convertBodyToOutline } from "./outlineConversion";
 import { revealBlock } from "./blockIds";
@@ -82,6 +83,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
   const outlineShown = isMobile ? outlineAnchor !== null : showOutline;
   const { openNote, blockToReveal } = useContext(NoteLinkTargetsContext);
   const titleInput = useRef<HTMLInputElement>(null);
+  const documentScroll = useRef<HTMLDivElement>(null);
   const dialogs = useDialogs();
   const attachments = useNoteAttachments(repository);
   // 録った音は、ほかのファイルと同じように添付する。
@@ -148,6 +150,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
       revealBlock(editor, blockToReveal.blockId);
     }
   }, [editor, noteId, blockToReveal]);
+  useRememberedNoteView({ noteId, editor, scrollContainer: documentScroll, skipRestore: blockToReveal?.noteId === noteId });
 
   const exportNote = useNoteFileExport(repository);
   // リンク先や結合の相手に選べるメモ（ゴミ箱の外で、いま開いているメモ以外）。
@@ -256,7 +259,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
       )}
       {findBarOpen && <FindBar editor={editor} request={findRequest} onClose={() => setFindBarOpen(false)} />}
       <div className="document-area">
-      <div className="document-scroll">
+      <div className="document-scroll" ref={documentScroll}>
         <div className={`document align-${note.content.pageAlignment ?? defaultPageAlignment}`}>
           {inTrash && (
             <div className="trash-banner">
