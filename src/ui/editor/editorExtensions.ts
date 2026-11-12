@@ -20,6 +20,7 @@ import { HEADING_LEVELS } from "./headingLevels";
 import { Highlight } from "./highlightMark";
 import { DateTimeShortcuts } from "./insertDateTime";
 import { ColoredTableCell, ColoredTableHeader } from "./tableCellBackground";
+import { TableRowFilterExtension } from "./tableRowFilter";
 import { TableShortcuts } from "./tableShortcuts";
 import { TextColor } from "./textColorMark";
 import { TypewriterScroll } from "./typewriterScroll";
@@ -64,6 +65,7 @@ export function createEditorExtensions(body: Y.XmlFragment, slashMenuController:
     ...documentExtensions(),
     SlashCommands.configure({ controller: slashMenuController }),
     TableShortcuts,
+    TableRowFilterExtension,
     DateTimeShortcuts,
     TypewriterScroll.configure({ isEnabled: () => readDevicePreferences().typewriterMode, scrollContainerSelector: ".document-scroll" }),
     SearchHighlight,

@@ -414,3 +414,46 @@ test("選んだ文字にハイライトと文字色を付け、色なしで外�
   await page.getByRole("button", { name: "青" }).click();
   await expect(page.locator('.ProseMirror td[data-background-color="blue"]')).toHaveCount(1);
 });
+
+async function pasteTable(page: Page, markdown: string): Promise<void> {
+  await page.locator(".ProseMirror").click();
+  await pasteText(page, { "text/plain": markdown });
+  await expect(page.locator(".ProseMirror table")).toHaveCount(1);
+}
+
+const PRICE_TABLE = "| 品目 | 金額 |\n|---|---|\n| ペン | 800 |\n| 紙 | 50 |\n| ノート | 1200 |\n";
+
+test("表の行と列を隣と入れ替えられる。列の値で行をソートでき、ヘッダーの行は動かない", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "並べ替えのメモ");
+  await pasteTable(page, PRICE_TABLE);
+
+  await page.locator(".ProseMirror td", { hasText: "紙" }).click();
+  await chooseTableAction(page, "行を上へ移動");
+  expect(await tableShape(page)).toEqual([["品目", "金額"], ["紙", "50"], ["ペン", "800"], ["ノート", "1200"]]);
+  await page.locator(".ProseMirror td", { hasText: "紙" }).click();
+  await chooseTableAction(page, "列を右へ移動");
+  expect(await tableShape(page)).toEqual([["金額", "品目"], ["50", "紙"], ["800", "ペン"], ["1200", "ノート"]]);
+
+  await page.locator(".ProseMirror td", { hasText: "800" }).click();
+  await chooseTableAction(page, "この列で降順にソート");
+  expect(await tableShape(page)).toEqual([["金額", "品目"], ["1200", "ノート"], ["800", "ペン"], ["50", "紙"]]);
+});
+
+test("表の行を、列に含まれる言葉でフィルターできる。隠れた行は消えず、解除すると戻る", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "フィルターのメモ");
+  await pasteTable(page, PRICE_TABLE);
+
+  await page.locator(".ProseMirror td", { hasText: "ペン" }).click();
+  await chooseTableAction(page, "この列で行をフィルター");
+  await page.getByRole("dialog").getByRole("textbox").fill("ノ");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".ProseMirror tr:visible")).toHaveCount(2);
+  await expect(page.locator(".ProseMirror tr")).toHaveCount(4);
+  await expect(page.locator(".ProseMirror table.rows-filtered, .ProseMirror .rows-filtered")).toHaveCount(1);
+
+  await page.locator(".ProseMirror td", { hasText: "ノート" }).click();
+  await chooseTableAction(page, "フィルターを解除");
+  await expect(page.locator(".ProseMirror tr:visible")).toHaveCount(4);
+});

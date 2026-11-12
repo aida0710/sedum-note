@@ -1,4 +1,4 @@
-// ツールバーの表のメニュー。表の外では表の挿入、表の中では行・列の追加と削除、セルの結合、ヘッダー、列の揃え方を出す。
+// ツールバーの表のメニュー。表の外では表の挿入、表の中では行・列の追加・移動・削除、ソートとフィルター、セルの結合、ヘッダー、列の揃え方、背景色を出す。
 
 import type { Editor } from "@tiptap/react";
 import { AlignCenter, AlignLeft, AlignRight, type LucideIcon, Table } from "lucide-react";
@@ -10,6 +10,9 @@ import { isEditorColorName } from "./editorColors";
 import { NEW_TABLE_SIZE } from "./slashCommands";
 import { type ColumnAlignment, columnAlignmentAtSelection, setColumnAlignment } from "./tableColumnAlignment";
 import { tableHeadersAtSelection } from "./tableHeaders";
+import { tableRowFilterKey } from "./tableRowFilter";
+import { canSortRows, moveRowOrColumn, sortRowsByColumn } from "./tableRowOrder";
+import { useDialogs } from "../shared/DialogProvider";
 
 type TableMenuProps = { editor: Editor; insideTable: boolean; iconSize: number };
 
@@ -32,6 +35,16 @@ export function TableMenu({ editor, insideTable, iconSize }: TableMenuProps) {
     </button>
   );
   const commands = () => editor.chain().focus();
+  const dialogs = useDialogs();
+  const rowFilter = tableRowFilterKey.getState(editor.state) ?? null;
+  const askRowFilter = async () => {
+    const text = await dialogs.prompt({ message: translate("editor.table.filterRowsPrompt"), initialValue: rowFilter?.text ?? "" });
+    if (text !== null && text.trim() !== "") {
+      editor.chain().focus().filterTableRows(text).run();
+    } else if (text !== null) {
+      editor.commands.clearTableRowFilter();
+    }
+  };
   // メニューを開いた時点の表の状態。押すとメニューを閉じるので、開いている間は変わらない。
   const headers = tableHeadersAtSelection(editor);
   const columnAlignment = columnAlignmentAtSelection(editor);
@@ -54,6 +67,16 @@ export function TableMenu({ editor, insideTable, iconSize }: TableMenuProps) {
               {item("editor.table.addRowAfter", () => commands().addRowAfter().run())}
               {item("editor.table.addColumnBefore", () => commands().addColumnBefore().run())}
               {item("editor.table.addColumnAfter", () => commands().addColumnAfter().run())}
+              <div className="menu-separator" />
+              {item("editor.table.moveRowUp", () => moveRowOrColumn(editor, "up"))}
+              {item("editor.table.moveRowDown", () => moveRowOrColumn(editor, "down"))}
+              {item("editor.table.moveColumnLeft", () => moveRowOrColumn(editor, "left"))}
+              {item("editor.table.moveColumnRight", () => moveRowOrColumn(editor, "right"))}
+              <div className="menu-separator" />
+              {item("editor.table.sortAscending", () => sortRowsByColumn(editor, "ascending"), { disabled: !canSortRows(editor) })}
+              {item("editor.table.sortDescending", () => sortRowsByColumn(editor, "descending"), { disabled: !canSortRows(editor) })}
+              {item("editor.table.filterRows", () => void askRowFilter())}
+              {rowFilter !== null && item("editor.table.clearRowFilter", () => editor.commands.clearTableRowFilter())}
               <div className="menu-separator" />
               {item("editor.table.mergeCells", () => commands().mergeCells().run(), { disabled: !editor.can().mergeCells() })}
               {item("editor.table.splitCell", () => commands().splitCell().run(), { disabled: !editor.can().splitCell() })}
