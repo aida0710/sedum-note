@@ -130,6 +130,13 @@ button:disabled { cursor: default; opacity: .55; }
 .block-embed .ProseMirror { padding: 0; min-height: 0; }
 /* エディタが末尾に足す空の段落（リストなどのあとに打てるようにするもの）は、読むだけの埋め込みでは出さない。 */
 .block-embed .ProseMirror > p:last-child:has(> br.ProseMirror-trailingBreak:only-child) { display: none; }
+/* 書類のスキャン。写真の上に、四隅の印と、囲んだ範囲の線を重ねる。 */
+.document-scan { width: min(720px, 100%); max-height: 94%; }
+.document-scan-photo { position: relative; min-height: 0; overflow: auto; }
+.document-scan-photo canvas { display: block; width: 100%; height: auto; }
+.document-scan-photo svg { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+.document-scan-photo polygon { fill: color-mix(in srgb, var(--accent) 18%, transparent); stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.document-scan-photo circle { fill: var(--accent); stroke: var(--panel); stroke-width: 2; vector-effect: non-scaling-stroke; cursor: grab; }
 /* 手書き・図形。線は文字の色（か選んだ色）で出るので、ライトでもダークでも見える。 */
 .drawing { margin: 10px 0; }
 .drawing-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 4px; }

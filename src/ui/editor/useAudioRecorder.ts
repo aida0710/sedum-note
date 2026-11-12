@@ -1,5 +1,6 @@
 // アプリの中での録音。マイクの音を録って、止めたときに音声のファイルとして渡す（渡した先で、メモに添付する）。
 
+import { timestampedFileName } from "../shared/timestampedFileName";
 import { useEffect, useRef, useState } from "react";
 import { translate } from "../i18n/translate";
 import { UserFacingError } from "../i18n/userFacingError";
@@ -20,14 +21,6 @@ export function isAudioRecordingAvailable(): boolean {
 // 録音の形式の拡張子。ブラウザごとに録れる形式が違う（Chromium は WebM、WebKit は MP4）。
 function audioFileExtension(mimeType: string): string {
   return mimeType.includes("mp4") ? "m4a" : mimeType.includes("ogg") ? "ogg" : "webm";
-}
-
-// 例: 録音 2026-11-12 15.04.webm（ファイル名に使えない「:」を避ける）。
-function recordingFileName(startedAt: Date, mimeType: string): string {
-  const twoDigits = (value: number) => String(value).padStart(2, "0");
-  const date = `${startedAt.getFullYear()}-${twoDigits(startedAt.getMonth() + 1)}-${twoDigits(startedAt.getDate())}`;
-  const time = `${twoDigits(startedAt.getHours())}.${twoDigits(startedAt.getMinutes())}`;
-  return `${translate("editor.recordingFileName")} ${date} ${time}.${audioFileExtension(mimeType)}`;
 }
 
 export function useAudioRecorder(onRecorded: (file: File) => void): AudioRecorder {
@@ -56,7 +49,8 @@ export function useAudioRecorder(onRecorded: (file: File) => void): AudioRecorde
       const mimeType = mediaRecorder.mimeType || chunks[0]?.type || "audio/webm";
       // 形式の細かい指定（;codecs=opus など）は、添付の種類には入れない。
       const baseMimeType = mimeType.split(";")[0] ?? mimeType;
-      onRecorded(new File(chunks, recordingFileName(startedAt, baseMimeType), { type: baseMimeType }));
+      const fileName = timestampedFileName({ label: translate("editor.recordingFileName"), createdAt: startedAt, extension: audioFileExtension(baseMimeType) });
+      onRecorded(new File(chunks, fileName, { type: baseMimeType }));
     });
     mediaRecorder.start();
     recorder.current = mediaRecorder;

@@ -25,6 +25,8 @@ import { NoteActionsMenu } from "./NoteActionsMenu";
 import { NoteHistoryDialog } from "./NoteHistoryDialog";
 import { NotePicker } from "./NotePicker";
 import { BlockPicker } from "./BlockPicker";
+import { deleteCapturedPhotos } from "../platform/capturedPhotos";
+import { DocumentScanDialog } from "./DocumentScanDialog";
 import { isCursorInListItem, zoomIntoItemAtCursor } from "./listZoom";
 import { NoteZoomBar } from "./NoteZoomBar";
 import { convertBodyToOutline } from "./outlineConversion";
@@ -66,6 +68,9 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
   const [title, setTitle] = useState(note.content.title);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [pickingNoteLink, setPickingNoteLink] = useState(false);
+  // 書類のスキャンで、撮った（か選んだ）写真。四隅を合わせている間だけ持つ。
+  const [photoToScan, setPhotoToScan] = useState<File | null>(null);
+  const scanInput = useRef<HTMLInputElement>(null);
   // ブロックを選んでいる途中なら、選んだあとに入れるもの（リンクか埋め込み）。
   const [pickingBlockFor, setPickingBlockFor] = useState<"link" | "embed" | null>(null);
   const [pickingNoteToMerge, setPickingNoteToMerge] = useState(false);
@@ -230,7 +235,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
   const templates = repository.notes()
     .filter((candidate) => candidate.content.isTemplate && candidate.content.trashedAt === null && candidate.id !== noteId)
     .map((template) => ({ id: template.id, title: template.content.title }));
-  slashMenuController.actions = { pickImage, pickFile, pickNoteLink, pickBlockLink, pickBlockEmbed, templates, insertTemplate };
+  slashMenuController.actions = { pickImage, pickFile, pickNoteLink, pickBlockLink, pickBlockEmbed, scanDocument: () => scanInput.current?.click(), templates, insertTemplate };
 
   const actionError = attachments.errorMessage ?? audioRecorder.errorMessage ?? pasteMarkdown.errorMessage ?? exportNote.errorMessage ?? print.errorMessage;
   if (!editor) {
@@ -314,6 +319,14 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
       )}
       {isMobile && !inTrash && <EditorToolbar editor={editor} {...toolbarActions} />}
       {attachments.fileInputs}
+      {/* スマホではカメラが開き、PC では写真のファイルを選ぶ。 */}
+      <input ref={scanInput} type="file" accept="image/*" capture="environment" hidden aria-label={translate("editor.scan")}
+        onChange={(event) => { setPhotoToScan(event.target.files?.[0] ?? null); event.target.value = ""; }} />
+      {photoToScan && (
+        // Android のカメラで撮った写真は、暗号化されない一時ファイルで届く。やめたときも消す（貼ったときは、添付の処理が消す）。
+        <DocumentScanDialog photo={photoToScan} onCancel={() => { setPhotoToScan(null); deleteCapturedPhotos(); }}
+          onScanned={(straightened) => { setPhotoToScan(null); attachments.takeFiles([straightened]); }} />
+      )}
       <SlashMenu controller={slashMenuController} />
       {pickingNoteLink && (
         <NotePicker title={translate("editor.noteLinkPickerTitle")} candidates={otherNotes()}
