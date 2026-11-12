@@ -35,6 +35,7 @@ import { NoteCharacterCount } from "./NoteCharacterCount";
 import { NoteBacklinks } from "./NoteBacklinks";
 import { NoteProperties } from "./NoteProperties";
 import { propertiesOfNote } from "../../core/notes/noteProperties";
+import { NoteFootnotes } from "./NoteFootnotes";
 
 type NoteEditorProps = {
   note: LiveNote;
@@ -246,6 +247,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
             }} />
           <NoteProperties note={note} properties={propertiesOfNote(note, notebooks)} repository={repository} readOnly={inTrash} />
           <EditorContent editor={editor} />
+          <NoteFootnotes editor={editor} />
           <NoteBacklinks backlinks={backlinks} onOpenNote={openNote} />
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 import type { Editor } from "@tiptap/react";
 import {
-  CalendarClock, CalendarDays, Code, Columns2, FileSymlink, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, ImagePlus, Info, Lightbulb, ListFilter, OctagonAlert, Sigma, TriangleAlert, Workflow, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Minus, Paperclip, Pilcrow, Table, TextQuote,
+  CalendarClock, CalendarDays, Code, Columns2, FileSymlink, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, ImagePlus, Info, Lightbulb, ListFilter, OctagonAlert, Sigma, Superscript, TriangleAlert, Workflow, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Minus, Paperclip, Pilcrow, Table, TextQuote,
 } from "lucide-react";
 import { translate } from "../i18n/translate";
 import { HEADING_LEVELS, type HeadingLevel } from "./headingLevels";
@@ -74,6 +74,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     id: `columns:${columnCount}`, icon: Columns2, name: () => translate("editor.columns", { count: columnCount }), keywords: ["columns", "dangumi", "だんぐみ", "よこ"],
     run: (editor) => editor.chain().focus().insertColumns(columnCount).run(),
   })),
+  { id: "footnote", icon: Superscript, name: () => translate("editor.footnote"), keywords: ["footnote", "note", "kyakuchuu", "きゃくちゅう", "ちゅう"], run: (editor) => editor.chain().focus().insertFootnote().run() },
   { id: "math", icon: Sigma, name: () => translate("editor.math"), keywords: ["math", "latex", "formula", "suushiki", "すうしき"], run: (editor) => editor.chain().focus().insertContent({ type: BLOCK_MATH_NODE }).run() },
   {
     id: "diagram", icon: Workflow, name: () => translate("editor.diagram"), keywords: ["diagram", "mermaid", "chart", "zu", "ず", "ふろー"],

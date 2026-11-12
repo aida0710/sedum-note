@@ -22,6 +22,7 @@ import { SlashCommands } from "./slashCommandExtension";
 import { Callout } from "./calloutNode";
 import { Column, Columns } from "./columnsNode";
 import { Folding } from "./folding";
+import { FootnoteReference } from "./footnoteNode";
 import { HEADING_LEVELS } from "./headingLevels";
 import { Highlight } from "./highlightMark";
 import { DateTimeShortcuts } from "./insertDateTime";
@@ -68,6 +69,7 @@ export function documentExtensions() {
     BlockMath,
     Columns,
     Column,
+    FootnoteReference,
     AttachmentImage,
     AttachmentFile,
     NoteLink,

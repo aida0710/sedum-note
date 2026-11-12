@@ -17,6 +17,7 @@ import { decodeMarkdownPath } from "./markdownFileNames";
 import { withoutMergedCells } from "./unmergedTable";
 import { calloutFromBlockquote } from "../editor/calloutNode";
 import { noteQueryFromCodeBlock } from "../editor/noteQueryNode";
+import { ImportedFootnoteDefinition, withFootnoteNumbers, withImportedFootnoteTexts } from "../editor/footnoteNode";
 
 const NOTE_LINK_HREF_PREFIX = "sedum-note://note/";
 // Markdown の画像を読んだ直後の仮のノード。添付にするかリンクにするかを決めて、本文に入る前に置き換える。
@@ -51,7 +52,7 @@ function markdownManager(): MarkdownManager {
       const renderMarkdown = markdownRenderers[extension.name];
       return renderMarkdown ? (extension as Node).extend({ renderMarkdown }) : extension;
     });
-    manager = new MarkdownManager({ extensions: [...withRenderers, ImportedMarkdownImage] });
+    manager = new MarkdownManager({ extensions: [...withRenderers, ImportedMarkdownImage, ImportedFootnoteDefinition] });
   }
   return manager;
 }
@@ -84,8 +85,12 @@ export function bodyToExportDocument(body: Y.XmlFragment, context: BodyExportCon
 }
 
 export function bodyToMarkdown(body: Y.XmlFragment, context: BodyExportContext): string {
+  // 脚注は、印に出てくる順の番号を付け、文を末尾に並べる。
+  const { document, texts: footnoteTexts } = withFootnoteNumbers(bodyToExportDocument(body, context));
   // Markdown の表は結合を表せないので、結合を解いてから書き出す。
-  return markdownManager().serialize(mapNodes(bodyToExportDocument(body, context), (node) => [node.type === "table" ? withoutMergedCells(node) : node]));
+  const markdown = markdownManager().serialize(mapNodes(document, (node) => [node.type === "table" ? withoutMergedCells(node) : node]));
+  const footnoteLines = footnoteTexts.map((text, index) => `[^${index + 1}]: ${text}`);
+  return footnoteLines.length === 0 ? markdown : `${markdown}\n\n${footnoteLines.join("\n")}`;
 }
 
 export type ImportedAttachment = { attachmentId: string; fileName: string; mimeType: string; byteLength: number };
@@ -98,7 +103,7 @@ export type MarkdownImportContext = {
 
 // Markdown を、本文に入れられるブロックの並びにする。
 export async function markdownToBodyBlocks(markdown: string, context: MarkdownImportContext): Promise<JSONContent[]> {
-  const parsed = await replaceImportedNodes(markdownManager().parse(markdown), context);
+  const parsed = await replaceImportedNodes(withImportedFootnoteTexts(markdownManager().parse(markdown)), context);
   return mapNodes(parsed, (node) => [node.type === "blockquote" ? calloutFromBlockquote(node) : node.type === "codeBlock" ? noteQueryFromCodeBlock(node) : node]).content ?? [];
 }
 

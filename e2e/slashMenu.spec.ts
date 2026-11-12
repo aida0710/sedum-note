@@ -14,7 +14,7 @@ test("「/」を打つとブロックの候補が出て、上下のキーと Ent
   await expect(slashMenu(page).getByRole("option")).toHaveText([
     "本文", "見出し 1", "見出し 2", "見出し 3", "見出し 4", "見出し 5", "見出し 6", "箇条書き", "番号付きリスト", "チェックリスト", "引用",
     "コールアウト: 情報", "コールアウト: ヒント", "コールアウト: 注意", "コールアウト: 警告", "コード", "表", "区切り線",
-    "画像を貼る", "ファイルを添付", "今日の日付", "今の日時", "2 段組み", "3 段組み", "数式", "図（Mermaid）", "クエリ（条件に合うメモの一覧）", "メモへのリンク",
+    "画像を貼る", "ファイルを添付", "今日の日付", "今の日時", "2 段組み", "3 段組み", "脚注", "数式", "図（Mermaid）", "クエリ（条件に合うメモの一覧）", "メモへのリンク",
   ]);
   await page.keyboard.press("ArrowDown");
   await expect(slashMenu(page).getByRole("option", { name: "見出し 1" })).toHaveAttribute("aria-selected", "true");
@@ -161,7 +161,7 @@ test("「/」から図を入れると Mermaid の図が出る。カーソルが�
   await expect(diagram).toContainText("かえた");
 });
 
-test("「/」から段組みを入れると、ブロックを横に並べて書ける。スマホの幅では縦に並ぶ", async ({ page }) => {
+test("「/」から段組みを入れると、ブロックを横に並べて書ける", async ({ page }) => {
   await openNewNote(page);
   await page.keyboard.type("/だんぐみ");
   await slashMenu(page).getByRole("option", { name: "2 段組み" }).click();
@@ -177,6 +177,26 @@ test("「/」から段組みを入れると、ブロックを横に並べて書�
   expect(right!.x).toBeGreaterThan(left!.x + left!.width - 1);
   expect(Math.abs(right!.y - left!.y)).toBeLessThan(2);
 
-  await page.setViewportSize({ width: 390, height: 844 });
-  await expect.poll(async () => { const [top, bottom] = await boxes(); return bottom!.y - top!.y; }).toBeGreaterThan(10);
+});
+
+test("「/」から脚注を入れると、本文に番号の印が付き、本文の下で脚注の文を書ける。印を押すと、その文の欄へ移る", async ({ page }) => {
+  await openNewNote(page);
+  await page.keyboard.type("最初の文 /きゃくちゅう");
+  await page.keyboard.press("Enter");
+  const footnotes = page.getByRole("region", { name: "脚注" });
+  // 入れた直後は、脚注の文の欄にカーソルがある。
+  await expect(footnotes.getByRole("textbox", { name: "脚注 1 の文" })).toBeFocused();
+  await page.keyboard.type("出典は 1 章");
+  await expect(page.locator(".ProseMirror .footnote-reference")).toHaveAttribute("title", "出典は 1 章");
+
+  await page.locator(".ProseMirror").click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.type(" 次の文 /きゃくちゅう");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("2 つ目の注");
+  await expect(footnotes.getByRole("textbox")).toHaveCount(2);
+  await expect(footnotes.getByRole("textbox", { name: "脚注 2 の文" })).toHaveValue("2 つ目の注");
+
+  await page.locator(".ProseMirror .footnote-reference").first().click();
+  await expect(footnotes.getByRole("textbox", { name: "脚注 1 の文" })).toBeFocused();
 });

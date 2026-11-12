@@ -28,6 +28,12 @@ async function bodyFromMarkdown(markdown: string, context: MarkdownImportContext
 }
 
 describe("Markdown の取り込み", () => {
+  it("脚注は、本文の [^ラベル] の印と、末尾の [^ラベル]: 文 の形と往復する。番号は出てくる順に付け直す", async () => {
+    const body = await bodyFromMarkdown("本文[^b]と続き[^a]。\n\n[^a]: 2 つ目の注\n[^b]: 1 つ目の注\n", importContext({}));
+    expect(bodyPlainText(body)).toBe("本文と続き。");
+    expect(bodyToMarkdown(body, exportContext)).toBe("本文[^1]と続き[^2]。\n\n[^1]: 1 つ目の注\n[^2]: 2 つ目の注");
+  });
+
   it("数式は、行の中の $...$ と、独立した行の $$...$$ と往復する。金額の $ は数式にしない", async () => {
     const body = await bodyFromMarkdown("面積は $\\pi r^2$ です。\n\n$$\nE = mc^2\n$$\n\n$5 と $6 の品\n", importContext({}));
     const document = yXmlFragmentToProsemirrorJSON(body) as { content: Array<{ type: string; attrs?: { latex?: string }; content?: Array<{ type: string; attrs?: { latex?: string } }> }> };
