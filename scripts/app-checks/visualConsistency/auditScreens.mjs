@@ -116,10 +116,14 @@ async function openRichNote(page) {
   await page.locator(".ProseMirror").waitFor();
 }
 
-// エディタの最後の段落の末尾にカーソルを置く。
+// エディタの最後の段落の末尾にカーソルを置く。ブラウザの Ctrl+End は、本文の後ろのほうに添付や埋め込み（文字を打てない要素）が
+// 並ぶと、行き先がぶれる（図のコードの先頭に入ることがあった）。Tiptap がエディタの要素に付けるエディタ（.editor）で末尾へ移す。
+// Tiptap の focus は、フォーカスを次の描画まで待つ。続けて打つ文字が本文に入るよう、その場でもフォーカスを移す。
 async function placeCursorAtEnd(page) {
-  await page.locator(".ProseMirror").evaluate((editor) => editor.focus());
-  await page.keyboard.press("Control+End");
+  await page.locator(".ProseMirror").evaluate((element) => {
+    element.editor.commands.focus("end");
+    element.editor.view.focus();
+  });
 }
 
 async function openSlashMenu(page, filter = "") {

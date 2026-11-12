@@ -67,6 +67,8 @@ async function visitScreen(page, screen) {
     }
   } catch (error) {
     failures.push({ screen: screen.name, message: String(error.message ?? error).split("\n")[0] });
+    // どこで止まったかを見られるよう、開けなかったときの画面を残す（測らない）。
+    await page.screenshot({ path: `${outputDirectory}/failed-${screen.name}.png` }).catch(() => {});
   } finally {
     if (screen.close) {
       await screen.close(page).catch(() => {});
