@@ -24,6 +24,9 @@ import { dueItemsOf } from "../../core/notes/dueItems";
 import { useDialogs } from "../shared/DialogProvider";
 import type { LiveSavedSearch } from "../../core/notes/noteRecords";
 
+// アプリのアイコン（public/app-icon.svg。Web の favicon と同じもの）。Web 版は /sedum-note/ の下に置くので、置き場所の頭を付ける。
+const APP_ICON_URL = `${import.meta.env.BASE_URL}app-icon.svg`;
+
 type SidebarProps = {
   snapshot: RepositorySnapshot;
   repository: NoteRepository;
@@ -93,7 +96,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <FileText size={16} />{translate("app.name")}
+        <img className="sidebar-brand-icon" src={APP_ICON_URL} alt="" width={18} height={18} />{translate("app.name")}
         <span className="sidebar-brand-actions">
           <button className="icon-button" aria-label={translate("shortcut.dailyNote")} title={translate("shortcut.dailyNote")} onClick={onOpenDailyNote}>
             <CalendarDays size={16} />
