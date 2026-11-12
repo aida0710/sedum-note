@@ -1,4 +1,4 @@
-// 画面に渡す記録（メモとノートブック）の形。中身は Yjs の文書（recordDocument.ts）から読む。
+// 画面に渡す記録（メモ、ノートブック、保存した検索）の形。中身は Yjs の文書（recordDocument.ts）から読む。
 //
 // 1 件の記録が S3 の 1 オブジェクトになる。種類・タイトル・ノートブック名などは
 // すべて暗号文の中に入れ、S3 には ID しか見せない。
@@ -57,3 +57,17 @@ export type LiveNote = RecordHeader & {
 };
 
 export type LiveNotebook = RecordHeader & { kind: "notebook"; content: NotebookContent };
+
+// 保存した検索。左の列から 1 回で、同じ条件の検索を開く。
+export type SavedSearchContent = {
+  name: string;
+  searchText: string;
+  // 検索する範囲。どちらも null なら、すべてのメモ。
+  notebookId: string | null;
+  tag: string | null;
+  createdAt: string;
+};
+
+export type LiveSavedSearch = RecordHeader & { kind: "savedSearch"; content: SavedSearchContent };
+
+export type LiveRecord = LiveNote | LiveNotebook | LiveSavedSearch;

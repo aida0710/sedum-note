@@ -118,6 +118,10 @@ export const englishMessages: Record<MessageKey, string> = {
 
   "sidebar.search": "Search",
   "sidebar.searchPlaceholder": "Search notes",
+  "sidebar.saveSearch": "Save this search",
+  "sidebar.savedSearches": "Saved searches",
+  "sidebar.saveSearchPrompt": "Name for the saved search",
+  "sidebar.removeSavedSearch": "Remove the saved search “{name}”",
   "sidebar.newNote": "New note",
   "sidebar.allNotes": "All notes",
   "sidebar.bookmarked": "Bookmarks",

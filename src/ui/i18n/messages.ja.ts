@@ -116,6 +116,10 @@ export const japaneseMessages = {
 
   "sidebar.search": "検索",
   "sidebar.searchPlaceholder": "メモを検索",
+  "sidebar.saveSearch": "この検索を保存",
+  "sidebar.savedSearches": "保存した検索",
+  "sidebar.saveSearchPrompt": "保存する検索の名前",
+  "sidebar.removeSavedSearch": "保存した検索「{name}」を消す",
   "sidebar.newNote": "新しいメモ",
   "sidebar.allNotes": "すべてのメモ",
   "sidebar.bookmarked": "お気に入り",

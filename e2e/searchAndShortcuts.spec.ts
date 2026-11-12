@@ -176,3 +176,26 @@ test("コマンドパレットで、メモを題で探して開ける。「>」�
   await page.keyboard.press("Enter");
   await expect(page.locator(".sidebar")).toBeHidden();
 });
+
+test("検索を名前を付けて保存でき、左の列から同じ検索を開ける。消すこともできる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "旅行の持ち物", "パスポート");
+  await newNote(page, "買い物", "牛乳");
+  await page.keyboard.press("Control+Shift+f");
+  await page.getByPlaceholder("メモを検索").fill("パスポート");
+  await expect(page.getByText("検索結果（1件）")).toBeVisible();
+  await page.getByRole("button", { name: "この検索を保存" }).click();
+  await page.getByRole("dialog").getByRole("textbox").fill("旅の準備");
+  await page.keyboard.press("Enter");
+
+  await page.getByPlaceholder("メモを検索").fill("");
+  const savedSearch = page.getByRole("button", { name: "旅の準備", exact: true });
+  await savedSearch.click();
+  await expect(page.getByPlaceholder("メモを検索")).toHaveValue("パスポート");
+  await expect(page.getByText("検索結果（1件）")).toBeVisible();
+
+  await page.getByPlaceholder("メモを検索").fill("");
+  await savedSearch.hover();
+  await page.getByRole("button", { name: "保存した検索「旅の準備」を消す" }).click();
+  await expect(savedSearch).toHaveCount(0);
+});

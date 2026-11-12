@@ -10,7 +10,7 @@
 
 import * as Y from "yjs";
 
-export type RecordKind = "note" | "notebook";
+export type RecordKind = "note" | "notebook" | "savedSearch";
 
 type FieldEntry = { value: unknown; at: string };
 

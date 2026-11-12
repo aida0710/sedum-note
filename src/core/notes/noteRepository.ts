@@ -13,7 +13,7 @@ import type { LocalRecordEntry, LocalStore } from "../local/localStore";
 import type { SerialQueue } from "../local/serialQueue";
 import { blobBinding } from "../sync/remoteLayout";
 import { bodyAttachments } from "./bodyText";
-import type { AttachmentReference, LiveNote, LiveNotebook, NotebookContent } from "./noteRecords";
+import type { AttachmentReference, LiveNote, LiveNotebook, LiveRecord, LiveSavedSearch, NotebookContent, SavedSearchContent } from "./noteRecords";
 import { type NoteVersion, NoteVersionHistory } from "./noteVersions";
 import { openRecordPayload, type RecordPayload, sealRecordPayload } from "./recordCodec";
 import {
@@ -63,7 +63,7 @@ type LiveHolder = {
   state: "live";
   doc: Y.Doc;
   revision: number;
-  cachedView: LiveNote | LiveNotebook | null;
+  cachedView: LiveRecord | null;
   // 本文を変えて、まだ「編集した時刻」を書いていない。
   bodyEdited: boolean;
 };
@@ -268,6 +268,25 @@ export class NoteRepository {
     for (const child of this.notebooks().filter((candidate) => candidate.content.parentId === id)) {
       await this.updateNotebook(child.id, { parentId });
     }
+    await this.#removeRecord(id, []);
+  }
+
+  // ── 保存した検索 ──────────────────────────────
+
+  savedSearches(): LiveSavedSearch[] {
+    return this.#views().filter((view): view is LiveSavedSearch => view.kind === "savedSearch")
+      .sort((left, right) => left.content.createdAt.localeCompare(right.content.createdAt));
+  }
+
+  async createSavedSearch(search: Omit<SavedSearchContent, "createdAt">): Promise<LiveSavedSearch> {
+    const id = newRandomId();
+    this.#writeFields(this.#newDocument(id, "savedSearch"), search);
+    await this.flush();
+    return this.#view(id) as LiveSavedSearch;
+  }
+
+  async removeSavedSearch(id: string): Promise<void> {
+    this.#liveDocument(id, "savedSearch");
     await this.#removeRecord(id, []);
   }
 
@@ -531,8 +550,8 @@ export class NoteRepository {
     }
   }
 
-  #views(): Array<LiveNote | LiveNotebook> {
-    const views: Array<LiveNote | LiveNotebook> = [];
+  #views(): LiveRecord[] {
+    const views: LiveRecord[] = [];
     for (const id of this.#holders.keys()) {
       const view = this.#view(id);
       if (view) {
@@ -542,7 +561,7 @@ export class NoteRepository {
     return views;
   }
 
-  #view(id: string): LiveNote | LiveNotebook | undefined {
+  #view(id: string): LiveRecord | undefined {
     const holder = this.#holders.get(id);
     if (holder?.state !== "live") {
       return undefined;
@@ -575,7 +594,7 @@ function notebookIdsOf(doc: Y.Doc): string[] {
     .map((name) => name.slice(NOTEBOOK_MEMBERSHIP_PREFIX.length));
 }
 
-function buildView(id: string, holder: LiveHolder): LiveNote | LiveNotebook | null {
+function buildView(id: string, holder: LiveHolder): LiveRecord | null {
   const { doc, revision } = holder;
   const header = { id, updatedAt: latestFieldTime(doc), revision };
   const createdAt = readField<string>(doc, "createdAt") ?? header.updatedAt;
@@ -589,6 +608,19 @@ function buildView(id: string, holder: LiveHolder): LiveNote | LiveNotebook | nu
         parentId: readField<string | null>(doc, "parentId") ?? null,
         colorName: readField<string | null>(doc, "colorName") ?? null,
         iconName: readField<string | null>(doc, "iconName") ?? null,
+        createdAt,
+      },
+    };
+  }
+  if (kind === "savedSearch") {
+    return {
+      ...header,
+      kind,
+      content: {
+        name: readField<string>(doc, "name") ?? "",
+        searchText: readField<string>(doc, "searchText") ?? "",
+        notebookId: readField<string | null>(doc, "notebookId") ?? null,
+        tag: readField<string | null>(doc, "tag") ?? null,
         createdAt,
       },
     };

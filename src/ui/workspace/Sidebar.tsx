@@ -1,7 +1,7 @@
 // 案C の左の列: 一覧（すべて・お気に入り・ノートブック・タグ・ゴミ箱）を木にして、
 // 開いた所にメモを並べる。
 
-import { CalendarDays, FileText, Hash, LayoutTemplate, Maximize2, Plus, Search, Star, Trash2, X } from "lucide-react";
+import { Bookmark, CalendarDays, FileText, Hash, LayoutTemplate, Maximize2, Plus, Search, Star, Trash2, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { buildNotebookTree, countTags, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
@@ -15,6 +15,8 @@ import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { SearchResults, ViewGroup } from "./SidebarViewGroup";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
+import { useDialogs } from "../shared/DialogProvider";
+import type { LiveSavedSearch } from "../../core/notes/noteRecords";
 
 type SidebarProps = {
   snapshot: RepositorySnapshot;
@@ -51,6 +53,29 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
   const scopeName = scopedView?.kind === "notebook"
     ? snapshot.notebooks.find((notebook) => notebook.id === scopedView.notebookId)?.content.name ?? ""
     : scopedView?.kind === "tag" ? `#${scopedView.tag}` : "";
+
+  const dialogs = useDialogs();
+  // 今の検索（言葉と範囲）に名前を付けて保存する。
+  const saveSearch = async () => {
+    const searchText = navigation.searchText.trim();
+    const name = await dialogs.prompt({ message: translate("sidebar.saveSearchPrompt"), initialValue: searchText });
+    if (name?.trim()) {
+      await repository.createSavedSearch({
+        name: name.trim(), searchText,
+        notebookId: searchView.kind === "notebook" ? searchView.notebookId : null,
+        tag: searchView.kind === "tag" ? searchView.tag : null,
+      });
+    }
+  };
+  const openSavedSearch = ({ content }: LiveSavedSearch) => {
+    const scope: NoteView | null = content.notebookId !== null ? { kind: "notebook", notebookId: content.notebookId } : content.tag !== null ? { kind: "tag", tag: content.tag } : null;
+    if (scope) {
+      navigation.selectView(scope);
+    }
+    setSearchEverywhere(scope === null);
+    setSearchOpen(true);
+    navigation.setSearchText(content.searchText);
+  };
 
   const closeSearch = () => {
     setSearchOpen(false);
@@ -90,6 +115,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
                 {searchEverywhere ? translate("sidebar.searchOnlyIn", { name: scopeName }) : translate("sidebar.searchingIn", { name: scopeName })}
               </button>
             )}
+            <button className="search-scope" onClick={() => void saveSearch()}><Bookmark size={13} />{translate("sidebar.saveSearch")}</button>
             <SearchResults summaries={selectNotes(summaries, { view: searchView, searchText: navigation.searchText, sortOrder: noteSortOrder })}
               view={searchView} navigation={navigation} repository={repository} />
           </>
@@ -113,6 +139,16 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
             )}
             {notebookTree.map((node) => (
               <NotebookBranch key={node.notebook.id} node={node} depth={0} summaries={summaries} repository={repository} navigation={navigation} notebookColors={notebookColors} />
+            ))}
+            {snapshot.savedSearches.length > 0 && <div className="section-title">{translate("sidebar.savedSearches")}</div>}
+            {snapshot.savedSearches.map((savedSearch) => (
+              <div key={savedSearch.id} className="nav-row saved-search-row">
+                <button className="nav" onClick={() => openSavedSearch(savedSearch)}>
+                  <Bookmark size={15} /><span className="nav-label">{savedSearch.content.name}</span>
+                </button>
+                <button className="icon-button row-action" aria-label={translate("sidebar.removeSavedSearch", { name: savedSearch.content.name })}
+                  onClick={() => void repository.removeSavedSearch(savedSearch.id)}><X size={13} /></button>
+              </div>
             ))}
             {tags.length > 0 && <div className="section-title">{translate("sidebar.tags")}</div>}
             {tags.map(({ tag }) => (

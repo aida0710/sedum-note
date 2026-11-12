@@ -1,7 +1,7 @@
 // NoteRepository の中身を React の描画に渡す。変更の知らせごとに一覧を作り直す。
 
 import { createContext, useMemo, useSyncExternalStore } from "react";
-import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
+import type { LiveNote, LiveNotebook, LiveSavedSearch } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { type NoteSummary, summarizeNote } from "../../core/notes/noteQueries";
 
@@ -9,6 +9,7 @@ export type RepositorySnapshot = {
   notes: LiveNote[];
   summaries: NoteSummary[];
   notebooks: LiveNotebook[];
+  savedSearches: LiveSavedSearch[];
   unreadableCount: number;
   // まだ同期先へ送っていない記録の ID。
   unsyncedIds: ReadonlySet<string>;
@@ -33,6 +34,7 @@ export function useRepositorySnapshot(repository: NoteRepository): RepositorySna
         notes,
         summaries,
         notebooks: repository.notebooks(),
+        savedSearches: repository.savedSearches(),
         unreadableCount: repository.unreadableIds().length,
         unsyncedIds: repository.unsyncedIds(),
       };
