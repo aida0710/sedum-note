@@ -218,6 +218,8 @@ export const japaneseMessages = {
   "editor.link": "リンク",
   "editor.linkPrompt": "リンク先の URL",
   "editor.noteLink": "メモへのリンク",
+  "editor.math": "数式",
+  "editor.mathPlaceholder": "LaTeX で書く（例: x^2 + y^2）",
   "editor.noteQuery": "クエリ（条件に合うメモの一覧）",
   "query.notebook": "ノートブック",
   "query.anyNotebook": "すべてのノートブック",

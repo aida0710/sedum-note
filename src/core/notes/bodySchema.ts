@@ -9,7 +9,8 @@
 // 4: 箇条書きの項目と見出しに、折りたたみの属性を足した。
 // 5: コールアウトを足した。
 // 6: クエリのブロックを足した。
-export const BODY_SCHEMA_VERSION = 6;
+// 7: 数式（行の中と、独立した行）を足した。
+export const BODY_SCHEMA_VERSION = 7;
 
 export class AppUpdateRequiredError extends Error {
   constructor() {

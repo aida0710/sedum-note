@@ -64,6 +64,11 @@ button:disabled { cursor: default; opacity: .55; }
 .note-query-conditions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px; background: var(--tag); color: var(--muted); }
 .note-query-conditions select, .note-query-conditions input { height: 26px; border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; background: var(--panel); color: var(--text); font-size: 12.5px; min-width: 0; }
 .note-query-results { padding: 4px; display: flex; flex-direction: column; }
+.math-inline .math-rendered, .math-block .math-rendered { cursor: pointer; border-radius: 4px; }
+.math-block { margin: 10px 0; text-align: center; overflow-x: auto; }
+.math.selected .math-rendered, .math-rendered:hover { background: var(--accent-soft); }
+.math-input { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; border: 1px solid var(--accent); border-radius: 6px; padding: 4px 8px; background: var(--panel); color: var(--text); resize: vertical; vertical-align: middle; }
+.math-block .math-input { width: 100%; }
 .backlinks { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); }
 .backlinks h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; }
 .sidebar-brand-actions { margin-left: auto; display: flex; gap: 2px; }

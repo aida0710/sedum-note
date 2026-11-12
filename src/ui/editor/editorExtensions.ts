@@ -13,6 +13,7 @@ import type * as Y from "yjs";
 import { translate } from "../i18n/translate";
 import { AttachmentFile } from "./attachmentFileNode";
 import { AttachmentImage } from "./attachmentImageNode";
+import { BlockMath, InlineMath } from "./mathNodes";
 import { NoteLink } from "./noteLinkNode";
 import { NoteQuery } from "./noteQueryNode";
 import { SearchHighlight } from "./searchHighlightExtension";
@@ -60,6 +61,8 @@ export function documentExtensions() {
     Folding,
     Callout,
     NoteQuery,
+    InlineMath,
+    BlockMath,
     AttachmentImage,
     AttachmentFile,
     NoteLink,

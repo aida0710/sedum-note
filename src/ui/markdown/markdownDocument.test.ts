@@ -28,6 +28,17 @@ async function bodyFromMarkdown(markdown: string, context: MarkdownImportContext
 }
 
 describe("Markdown の取り込み", () => {
+  it("数式は、行の中の $...$ と、独立した行の $$...$$ と往復する。金額の $ は数式にしない", async () => {
+    const body = await bodyFromMarkdown("面積は $\\pi r^2$ です。\n\n$$\nE = mc^2\n$$\n\n$5 と $6 の品\n", importContext({}));
+    const document = yXmlFragmentToProsemirrorJSON(body) as { content: Array<{ type: string; attrs?: { latex?: string }; content?: Array<{ type: string; attrs?: { latex?: string } }> }> };
+    expect(document.content[0]?.content?.find((inline) => inline.type === "inlineMath")?.attrs?.latex).toBe("\\pi r^2");
+    expect(document.content[1]).toMatchObject({ type: "blockMath", attrs: { latex: "E = mc^2" } });
+    expect(document.content[2]?.content?.some((inline) => inline.type === "inlineMath")).toBe(false);
+    const markdown = bodyToMarkdown(body, exportContext);
+    expect(markdown).toContain("$\\pi r^2$");
+    expect(markdown).toContain("$$\nE = mc^2\n$$");
+  });
+
   it("クエリのブロックは、言語が sedum-query のコードの囲みと往復する", async () => {
     const body = await bodyFromMarkdown('```sedum-query\n{"tag":"旅行","searchText":"持ち物"}\n```\n', importContext({}));
     const document = yXmlFragmentToProsemirrorJSON(body) as { content: Array<{ type: string; attrs?: Record<string, unknown> }> };

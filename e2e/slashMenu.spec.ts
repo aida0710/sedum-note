@@ -14,7 +14,7 @@ test("「/」を打つとブロックの候補が出て、上下のキーと Ent
   await expect(slashMenu(page).getByRole("option")).toHaveText([
     "本文", "見出し 1", "見出し 2", "見出し 3", "見出し 4", "見出し 5", "見出し 6", "箇条書き", "番号付きリスト", "チェックリスト", "引用",
     "コールアウト: 情報", "コールアウト: ヒント", "コールアウト: 注意", "コールアウト: 警告", "コード", "表", "区切り線",
-    "画像を貼る", "ファイルを添付", "今日の日付", "今の日時", "クエリ（条件に合うメモの一覧）", "メモへのリンク",
+    "画像を貼る", "ファイルを添付", "今日の日付", "今の日時", "数式", "クエリ（条件に合うメモの一覧）", "メモへのリンク",
   ]);
   await page.keyboard.press("ArrowDown");
   await expect(slashMenu(page).getByRole("option", { name: "見出し 1" })).toHaveAttribute("aria-selected", "true");
@@ -114,4 +114,23 @@ test("クエリのブロックは、条件に合うメモの一覧を出し、�
   await expect(query.locator(".note-query-results .menu-item")).toHaveText(["買い物"]);
   await query.locator(".note-query-results .menu-item").click();
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("買い物");
+});
+
+test("「/」から数式を入れて LaTeX を書くと、数式として表示される。行の中では $...$ と打つと数式になる", async ({ page }) => {
+  await openNewNote(page);
+  await page.keyboard.type("/すうしき");
+  await page.keyboard.press("Enter");
+  await page.getByRole("textbox", { name: "数式" }).fill("E = mc^2");
+  await page.keyboard.press("Control+Enter");
+  const blockMath = page.locator(".ProseMirror .math-block");
+  await expect(blockMath.locator(".katex")).toBeVisible();
+  await expect(blockMath.locator(".math-rendered")).toHaveAttribute("title", "E = mc^2");
+
+  await page.keyboard.press("Control+End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("面積は $\\pi r^2$ です");
+  const inlineMath = page.locator(".ProseMirror .math-inline");
+  await expect(inlineMath.locator(".katex")).toBeVisible();
+  await expect(inlineMath.locator(".math-rendered")).toHaveAttribute("title", "\\pi r^2");
+  await expect(page.locator(".ProseMirror")).toContainText("面積は");
 });

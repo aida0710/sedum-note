@@ -220,6 +220,8 @@ export const englishMessages: Record<MessageKey, string> = {
   "editor.link": "Link",
   "editor.linkPrompt": "Link URL",
   "editor.noteLink": "Link to a note",
+  "editor.math": "Math",
+  "editor.mathPlaceholder": "Write LaTeX (for example x^2 + y^2)",
   "editor.noteQuery": "Query (list of matching notes)",
   "query.notebook": "Notebook",
   "query.anyNotebook": "All notebooks",
