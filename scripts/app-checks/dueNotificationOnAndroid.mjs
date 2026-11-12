@@ -68,7 +68,7 @@ await app.getByRole("button", { name: "新しいメモ" }).click();
 await app.getByPlaceholder("タイトル").fill("買い物");
 await app.getByPlaceholder("タイトル").press("Enter");
 await app.keyboard.type(`[ ] 牛乳を買う 📅 ${dueAt}`);
-await app.locator(".ProseMirror .due-mark").waitFor();
+await app.locator(".ProseMirror .due-mark-icon").waitFor();
 captureScreen("task-with-due-mark");
 await app.getByRole("button", { name: "戻る" }).click();
 await pause(2_000);

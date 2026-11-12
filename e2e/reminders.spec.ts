@@ -41,14 +41,15 @@ test("「/」の「期限」で、チェックリストの項目に期限の印�
   await saveDue(page, "項目の期限", "2026-11-13T09:00");
   // 段落だった行は、チェックリストの項目になる。
   await expect(page.locator(".ProseMirror ul[data-type='taskList'] li p")).toHaveText("牛乳を買う 📅 2026-11-13 09:00");
-  await expect(page.locator(".ProseMirror .due-mark")).toHaveText("📅 2026-11-13 09:00");
+  // 印の絵文字は隠してアイコンを描くので、日時の部分を見る。
+  await expect(page.locator(".ProseMirror .due-mark:not(.due-mark-icon)")).toHaveText("2026-11-13 09:00");
 
   // メニューから開き直すと、今の期限が入っていて、変えられる。
   await page.getByRole("button", { name: "その他の操作" }).last().click();
   await page.getByRole("menuitem", { name: "この項目の期限を設定" }).click();
   await expect(page.getByRole("dialog", { name: "項目の期限" }).getByLabel("日時")).toHaveValue("2026-11-13T09:00");
   await saveDue(page, "項目の期限", "2026-11-14T08:15");
-  await expect(page.locator(".ProseMirror .due-mark")).toHaveText("📅 2026-11-14 08:15");
+  await expect(page.locator(".ProseMirror .due-mark:not(.due-mark-icon)")).toHaveText("2026-11-14 08:15");
 
   await page.clock.runFor(1_000);
   await page.keyboard.press("Control+Alt+e");
