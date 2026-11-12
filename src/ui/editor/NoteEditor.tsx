@@ -33,6 +33,8 @@ import { SlashMenuController } from "./slashMenuController";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { NoteCharacterCount } from "./NoteCharacterCount";
 import { NoteBacklinks } from "./NoteBacklinks";
+import { NoteProperties } from "./NoteProperties";
+import { propertiesOfNote } from "../../core/notes/noteProperties";
 
 type NoteEditorProps = {
   note: LiveNote;
@@ -242,6 +244,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
                 editor.commands.setTextSelection(1);
               }
             }} />
+          <NoteProperties note={note} properties={propertiesOfNote(note, notebooks)} repository={repository} readOnly={inTrash} />
           <EditorContent editor={editor} />
           <NoteBacklinks backlinks={backlinks} onOpenNote={openNote} />
         </div>

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { addNotebookOnDesktop, startLocalVault } from "./devices";
+import { addNotebookOnDesktop, createNoteOnDesktop, startLocalVault } from "./devices";
 
 test("ノートブックの色とアイコンを選ぶと、左の列の印が変わり、開き直しても保たれる", async ({ page }) => {
   await startLocalVault(page);
@@ -61,4 +61,32 @@ test("ゴミ箱の自動削除は、既定ではオフ。日数を決めると�
   await page.getByLabel("パスフレーズ").fill("correct horse battery");
   await page.getByRole("button", { name: "解除" }).click();
   await expect(page.locator(".nav-row", { hasText: "ゴミ箱" }).locator(".count")).toHaveText("0");
+});
+
+test("ノートブックにプロパティを決めると、その中のメモに値を入れる欄が出て、開き直しても値が残る", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "読書");
+  await page.locator(".nav-row", { has: page.locator(".nav", { hasText: "読書" }) }).getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "プロパティ" }).click();
+  const dialog = page.getByRole("dialog", { name: "プロパティ" });
+  await dialog.getByRole("button", { name: "プロパティを追加" }).click();
+  await dialog.getByRole("textbox", { name: "名前" }).fill("状態");
+  await dialog.getByRole("combobox", { name: "種類" }).selectOption("select");
+  await dialog.getByRole("textbox", { name: "選択肢" }).fill("未読、読了");
+  await dialog.getByRole("textbox", { name: "選択肢" }).blur();
+  await dialog.getByRole("button", { name: "プロパティを追加" }).click();
+  await dialog.getByRole("textbox", { name: "名前" }).last().fill("ページ数");
+  await dialog.getByRole("combobox", { name: "種類" }).last().selectOption("number");
+  await dialog.getByRole("button", { name: "閉じる" }).click();
+
+  await page.locator(".nav", { hasText: "読書" }).click();
+  await createNoteOnDesktop(page, "吾輩は猫である");
+  await page.getByLabel("状態").selectOption("読了");
+  await page.getByLabel("ページ数").fill("512");
+
+  await createNoteOnDesktop(page, "別のメモ");
+  await expect(page.getByLabel("状態")).toHaveValue("");
+  await page.getByRole("tab", { name: "吾輩は猫である" }).click();
+  await expect(page.getByLabel("状態")).toHaveValue("読了");
+  await expect(page.getByLabel("ページ数")).toHaveValue("512");
 });

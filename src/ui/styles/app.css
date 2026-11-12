@@ -32,6 +32,16 @@ button:disabled { cursor: default; opacity: .55; }
 .focus-mode-exit { position: fixed; top: 10px; right: 14px; z-index: 6; }
 .typewriter-mode .document { padding-bottom: 50vh; }
 .code-input { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--panel); color: var(--text); resize: vertical; }
+.note-properties { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; align-items: center; margin-bottom: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+.note-property { display: contents; }
+.note-property label { color: var(--muted); }
+.note-property input:not([type="checkbox"]), .note-property select { height: 28px; border: 1px solid var(--line); border-radius: 6px; padding: 0 8px; background: var(--panel); color: var(--text); max-width: 320px; }
+.note-property input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--accent); justify-self: start; }
+.notebook-properties { width: min(620px, 100%); }
+.property-definitions { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+.property-definition { display: flex; gap: 6px; align-items: center; }
+.property-definition input, .property-definition select { height: 30px; border: 1px solid var(--line); border-radius: 6px; padding: 0 8px; background: var(--panel); color: var(--text); min-width: 0; flex: 1; }
+.property-definition select { flex: none; }
 .backlinks { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); }
 .backlinks h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; }
 .sidebar-brand-actions { margin-left: auto; display: flex; gap: 2px; }

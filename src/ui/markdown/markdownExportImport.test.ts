@@ -54,6 +54,30 @@ describe("Markdown の書き出しと取り込み", () => {
     expect(await target.readAttachment(imported!.content.attachments[0]!.id)).toEqual(new Uint8Array([9, 8, 7]));
   });
 
+  it("プロパティは、先頭の項目として書き出され、取り込むとノートブックのプロパティと値に戻る", async () => {
+    const source = await newRepository();
+    const books = await source.createNotebook("読書");
+    const status = await source.saveNotebookProperty(books.id, { name: "状態", type: "select", options: ["未読", "読了"], order: 1 });
+    const pages = await source.saveNotebookProperty(books.id, { name: "ページ数", type: "number", options: [], order: 2 });
+    const note = await source.createNote({ title: "吾輩は猫である", notebookIds: [books.id] });
+    await source.setNotePropertyValue(note.id, status.id, "読了");
+    await source.setNotePropertyValue(note.id, pages.id, 512);
+    await source.createNote({ title: "添付なしで 2 件にして zip にする" });
+
+    const exported = await exportAll(source);
+    const markdown = strFromU8(unzipSync(exported.bytes)["読書/吾輩は猫である.md"]!);
+    expect(markdown).toContain('状態: "読了"');
+    expect(markdown).toContain("ページ数: 512");
+
+    const target = await newRepository();
+    await importMarkdownNotes(target, unzipToSources(exported.bytes));
+    const importedNotebook = target.notebooks().find((notebook) => notebook.content.name === "読書")!;
+    expect(importedNotebook.content.properties.map((property) => [property.name, property.type])).toEqual([["状態", "text"], ["ページ数", "text"]]);
+    const imported = target.notes().find((candidate) => candidate.content.title === "吾輩は猫である")!;
+    const valueOf = (name: string) => imported.content.propertyValues[importedNotebook.content.properties.find((property) => property.name === name)!.id];
+    expect([valueOf("状態"), valueOf("ページ数")]).toEqual(["読了", "512"]);
+  });
+
   it("添付の無いメモ 1 件は、Markdown のファイル 1 つで書き出す", async () => {
     const repository = await newRepository();
     const note = await repository.createNote({ title: "買い物" });

@@ -10,6 +10,7 @@ import { bodyPlainText } from "../../core/notes/bodyText";
 import { bodyToHtml, noteAsHtmlFile } from "./htmlDocument";
 import { type BodyExportContext, bodyToMarkdown } from "./markdownDocument";
 import { encodeMarkdownPath, relativePath, safeFileName, UniquePaths } from "./markdownFileNames";
+import { propertiesOfNote } from "../../core/notes/noteProperties";
 
 const ATTACHMENTS_DIRECTORY = "attachments";
 // 添付（写真など）は既に圧縮されていることが多いので、zip では圧縮せずに入れる。
@@ -22,7 +23,7 @@ type NoteFileWriter = {
   mimeType: string;
   // テキストには添付を入れられないので、添付のファイルを一緒に書き出さない。
   includesAttachments: boolean;
-  fileText: (note: LiveNote, context: BodyExportContext & { language: string }) => string;
+  fileText: (note: LiveNote, context: BodyExportContext & { language: string; propertyValuesByName: Record<string, string | number | boolean> }) => string;
 };
 
 const NOTE_FILE_WRITERS: Record<NoteFileFormat, NoteFileWriter> = {
@@ -30,7 +31,10 @@ const NOTE_FILE_WRITERS: Record<NoteFileFormat, NoteFileWriter> = {
     extension: ".md",
     mimeType: "text/markdown",
     includesAttachments: true,
-    fileText: (note, context) => withFrontMatter({ title: note.content.title, created: note.content.createdAt, updated: note.updatedAt }, bodyToMarkdown(note.body, context)),
+    fileText: (note, context) => withFrontMatter(
+      { title: note.content.title, created: note.content.createdAt, updated: note.updatedAt, properties: context.propertyValuesByName },
+      bodyToMarkdown(note.body, context),
+    ),
   },
   html: {
     extension: ".html",
@@ -70,7 +74,8 @@ type ExportNotesInput = {
 export async function exportNotesAsFiles({ repository, notes, format, language, untitledName, archiveName }: ExportNotesInput): Promise<NoteFileExport> {
   const writer = NOTE_FILE_WRITERS[format];
   const paths = new UniquePaths();
-  const notebookDirectories = notebookDirectoryPaths(repository.notebooks());
+  const notebooks = repository.notebooks();
+  const notebookDirectories = notebookDirectoryPaths(notebooks);
   const attachmentPaths = new Map<string, string>();
   const files: Zippable = {};
   const textEncoder = new TextEncoder();
@@ -95,6 +100,7 @@ export async function exportNotesAsFiles({ repository, notes, format, language, 
     }
     files[notePath] = textEncoder.encode(writer.fileText(note, {
       language,
+      propertyValuesByName: propertyValuesByName(note, notebooks),
       attachmentHref: ({ id }) => encodeMarkdownPath(relativePath(notePath, attachmentPaths.get(id) ?? ATTACHMENTS_DIRECTORY)),
       noteTitle: (noteId) => repository.note(noteId)?.content.title ?? null,
     }));
@@ -128,4 +134,16 @@ function notebookDirectoryPaths(notebooks: LiveNotebook[]): Map<string, string> 
 function splitExtension(fileName: string): { baseName: string; extension: string } {
   const dot = fileName.lastIndexOf(".");
   return dot > 0 ? { baseName: fileName.slice(0, dot), extension: fileName.slice(dot) } : { baseName: fileName, extension: "" };
+}
+
+// メモのプロパティの値を、プロパティの名前から引ける形にする。値の無いプロパティは入れない。
+function propertyValuesByName(note: LiveNote, notebooks: LiveNotebook[]): Record<string, string | number | boolean> {
+  const values: Record<string, string | number | boolean> = {};
+  for (const property of propertiesOfNote(note, notebooks)) {
+    const value = note.content.propertyValues[property.id];
+    if (value !== undefined && value !== null) {
+      values[property.name] = value;
+    }
+  }
+  return values;
 }

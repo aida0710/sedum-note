@@ -13,6 +13,7 @@ import type { LocalRecordEntry, LocalStore } from "../local/localStore";
 import type { SerialQueue } from "../local/serialQueue";
 import { blobBinding } from "../sync/remoteLayout";
 import { bodyAttachments } from "./bodyText";
+import { PROPERTY_DEFINITION_FIELD_PREFIX, PROPERTY_VALUE_FIELD_PREFIX, type PropertyDefinition, propertyDefinitionFromField, type PropertyValue } from "./noteProperties";
 import type { AttachmentReference, LiveNote, LiveNotebook, LiveRecord, LiveSavedSearch, NotebookContent, SavedSearchContent } from "./noteRecords";
 import { type NoteVersion, NoteVersionHistory } from "./noteVersions";
 import { openRecordPayload, type RecordPayload, sealRecordPayload } from "./recordCodec";
@@ -255,7 +256,25 @@ export class NoteRepository {
     return this.#view(id) as LiveNotebook;
   }
 
-  async updateNotebook(id: string, changes: Partial<Omit<NotebookContent, "createdAt">>): Promise<void> {
+  // ── プロパティ ────────────────────────────────
+
+  // ノートブックにプロパティの定義を足す。id を渡すと、その定義を書き換える。
+  async saveNotebookProperty(notebookId: string, definition: Omit<PropertyDefinition, "id"> & { id?: string }): Promise<PropertyDefinition> {
+    const { id = newRandomId(), ...fields } = definition;
+    this.#writeFields(this.#liveDocument(notebookId, "notebook"), { [PROPERTY_DEFINITION_FIELD_PREFIX + id]: fields });
+    return { id, ...fields };
+  }
+
+  // 定義を消す。メモに付けた値は記録に残るが、定義が無いので画面には出ない。
+  async removeNotebookProperty(notebookId: string, propertyId: string): Promise<void> {
+    this.#writeFields(this.#liveDocument(notebookId, "notebook"), { [PROPERTY_DEFINITION_FIELD_PREFIX + propertyId]: null });
+  }
+
+  async setNotePropertyValue(noteId: string, propertyId: string, value: PropertyValue): Promise<void> {
+    this.#writeFields(this.#liveDocument(noteId, "note"), { [PROPERTY_VALUE_FIELD_PREFIX + propertyId]: value });
+  }
+
+  async updateNotebook(id: string, changes: Partial<Omit<NotebookContent, "createdAt" | "properties">>): Promise<void> {
     this.#writeFields(this.#liveDocument(id, "notebook"), changes);
   }
 
@@ -594,6 +613,27 @@ function notebookIdsOf(doc: Y.Doc): string[] {
     .map((name) => name.slice(NOTEBOOK_MEMBERSHIP_PREFIX.length));
 }
 
+function fieldsWithPrefix(doc: Y.Doc, prefix: string): Array<{ id: string; value: unknown }> {
+  return [...fieldNames(doc)].filter((name) => name.startsWith(prefix)).map((name) => ({ id: name.slice(prefix.length), value: readField<unknown>(doc, name) }));
+}
+
+function propertyDefinitionsOf(doc: Y.Doc): PropertyDefinition[] {
+  return fieldsWithPrefix(doc, PROPERTY_DEFINITION_FIELD_PREFIX)
+    .map(({ id, value }) => propertyDefinitionFromField(id, value))
+    .filter((definition) => definition !== null)
+    .sort((left, right) => left.order - right.order || left.id.localeCompare(right.id));
+}
+
+function propertyValuesOf(doc: Y.Doc): Record<string, PropertyValue> {
+  const values: Record<string, PropertyValue> = {};
+  for (const { id, value } of fieldsWithPrefix(doc, PROPERTY_VALUE_FIELD_PREFIX)) {
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      values[id] = value;
+    }
+  }
+  return values;
+}
+
 function buildView(id: string, holder: LiveHolder): LiveRecord | null {
   const { doc, revision } = holder;
   const header = { id, updatedAt: latestFieldTime(doc), revision };
@@ -608,6 +648,7 @@ function buildView(id: string, holder: LiveHolder): LiveRecord | null {
         parentId: readField<string | null>(doc, "parentId") ?? null,
         colorName: readField<string | null>(doc, "colorName") ?? null,
         iconName: readField<string | null>(doc, "iconName") ?? null,
+        properties: propertyDefinitionsOf(doc),
         createdAt,
       },
     };
@@ -641,6 +682,7 @@ function buildView(id: string, holder: LiveHolder): LiveRecord | null {
       trashedAt: readField<string | null>(doc, "trashedAt") ?? null,
       isTemplate: readField<boolean>(doc, "isTemplate") ?? false,
       attachments: bodyAttachments(body),
+      propertyValues: propertyValuesOf(doc),
       createdAt,
     },
   };

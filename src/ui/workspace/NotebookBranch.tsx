@@ -12,6 +12,7 @@ import { NotebookActionsMenu } from "./NotebookActionsMenu";
 import { NotebookAppearanceDialog } from "./NotebookAppearanceDialog";
 import { ViewGroup } from "./SidebarViewGroup";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
+import { NotebookPropertiesDialog } from "./NotebookPropertiesDialog";
 
 export type NotebookBranchProps = {
   notebookColors: NotebookColors;
@@ -28,6 +29,7 @@ export function NotebookBranch({ node, depth, summaries, repository, navigation,
   const [renaming, setRenaming] = useState(false);
   const [addingChild, setAddingChild] = useState(false);
   const [choosingAppearance, setChoosingAppearance] = useState(false);
+  const [editingProperties, setEditingProperties] = useState(false);
   if (renaming) {
     return (
       <InlineNameInput initialName={notebook.content.name} placeholder={translate("sidebar.newNotebookPlaceholder")} onDone={(name) => {
@@ -68,12 +70,14 @@ export function NotebookBranch({ node, depth, summaries, repository, navigation,
         <NotebookActionsMenu anchor={menuAnchor} notebook={notebook} repository={repository} onClose={() => setMenuAnchor(null)}
           onRename={() => setRenaming(true)}
           onChooseAppearance={() => setChoosingAppearance(true)}
+          onEditProperties={() => setEditingProperties(true)}
           onAddChild={() => {
             setAddingChild(true);
             navigation.selectView({ kind: "notebook", notebookId: notebook.id });
           }} />
       )}
       {choosingAppearance && <NotebookAppearanceDialog notebook={notebook} repository={repository} onClose={() => setChoosingAppearance(false)} />}
+      {editingProperties && <NotebookPropertiesDialog notebook={notebook} repository={repository} onClose={() => setEditingProperties(false)} />}
     </>
   );
 }

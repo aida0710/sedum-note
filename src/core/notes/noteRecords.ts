@@ -4,6 +4,7 @@
 // すべて暗号文の中に入れ、S3 には ID しか見せない。
 
 import type * as Y from "yjs";
+import type { PropertyDefinition, PropertyValue } from "./noteProperties";
 
 export type AttachmentReference = {
   // S3 の blobs/<id> に置いた暗号文の ID。
@@ -27,6 +28,8 @@ export type NoteContent = {
   isTemplate: boolean;
   // 本文に貼ってある添付（本文から導く）。
   attachments: AttachmentReference[];
+  // プロパティの値。キーはプロパティの ID。値の無いプロパティは入らない。
+  propertyValues: Record<string, PropertyValue>;
   createdAt: string;
 };
 
@@ -38,6 +41,8 @@ export type NotebookContent = {
   // 画面は、知らない名前（新しい版のアプリが足したもの）を null と同じに扱う。
   colorName: string | null;
   iconName: string | null;
+  // このノートブックのメモに付けられるプロパティの定義。並び順（order）の順。
+  properties: PropertyDefinition[];
   createdAt: string;
 };
 

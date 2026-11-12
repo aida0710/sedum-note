@@ -11,6 +11,7 @@ import { splitFrontMatter } from "./frontMatter";
 import { type ImportedAttachment, writeMarkdownToBody } from "./markdownDocument";
 import { resolveRelativePath } from "./markdownFileNames";
 import { mimeTypeOfFileName } from "./mimeTypeOfFileName";
+import { propertyValueFromText } from "../../core/notes/noteProperties";
 
 // zip を広げた大きさの上限。全部をメモリに載せるので、小さな zip が巨大に広がるものを断る。
 const MAX_UNZIPPED_BYTES = 500 * 1024 * 1024;
@@ -77,6 +78,9 @@ export async function importMarkdownNotes(repository: NoteRepository, sources: I
       title: frontMatter.title ?? fileName.replace(MARKDOWN_FILE_PATTERN, ""),
       notebookIds: notebookId === null ? [] : [notebookId],
     });
+    if (notebookId !== null) {
+      await importProperties(repository, { noteId: note.id, notebookId, valuesByName: frontMatter.properties ?? {} });
+    }
     await writeMarkdownToBody(markdown, note.body, {
       noteExists: (noteId) => repository.note(noteId) !== undefined,
       attachFile: async (relative) => {
@@ -94,6 +98,16 @@ export async function importMarkdownNotes(repository: NoteRepository, sources: I
   }
   await repository.flush();
   return { noteCount: markdownSources.length };
+}
+
+// 先頭の項目に書いてあったプロパティを、メモに付ける。ノートブックに同じ名前のプロパティが無ければ、文字のプロパティとして足す。
+async function importProperties(repository: NoteRepository, input: { noteId: string; notebookId: string; valuesByName: Record<string, string | number | boolean> }): Promise<void> {
+  for (const [name, writtenValue] of Object.entries(input.valuesByName)) {
+    const properties = repository.notebooks().find((notebook) => notebook.id === input.notebookId)?.content.properties ?? [];
+    const property = properties.find((candidate) => candidate.name === name)
+      ?? await repository.saveNotebookProperty(input.notebookId, { name, type: "text", options: [], order: Math.max(0, ...properties.map((candidate) => candidate.order)) + 1 });
+    await repository.setNotePropertyValue(input.noteId, property.id, propertyValueFromText(property.type, String(writtenValue)));
+  }
 }
 
 async function storeAttachment(repository: NoteRepository, source: ImportSourceFile): Promise<ImportedAttachment> {
