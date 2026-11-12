@@ -163,7 +163,7 @@ test("OpenAI 互換のエンドポイントをつなぎ先にして答えても�
   authorized = false;
   await input.fill("もう一度");
   await page.keyboard.press("Enter");
-  await expect(chat(page).getByRole("alert")).toHaveText("API キーが受け付けられませんでした。「設定」の API キーを確かめてください。");
+  await expect(chat(page).getByRole("alert")).toHaveText("API キーが受け付けられませんでした。「設定」の「AI」のページの API キーを確かめてください。");
   // 失敗した回の、空の答えは会話に残さない。
   await expect(chat(page).locator(".ai-message.assistant")).toHaveCount(1);
 });
