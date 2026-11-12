@@ -184,6 +184,11 @@ button:disabled { cursor: default; opacity: .55; }
 .ai-context .chip input { width: 12px; height: 12px; accent-color: var(--accent); }
 .ai-context .chip button { display: grid; place-items: center; color: var(--muted); }
 .ai-chat-composer { flex: none; border-top: 1px solid var(--line); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.ai-composer-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
+.ai-send-button { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); flex: none; }
+.ai-send-button:disabled { opacity: 0.4; cursor: default; }
+.ai-model-select { min-width: 0; max-width: 150px; height: var(--control-height-compact); font-size: var(--font-size-small); }
+.ai-connection { display: flex; flex-direction: column; gap: 12px; }
 .mention-input { position: relative; }
 .mention-input textarea { width: 100%; border: 1px solid var(--line); border-radius: var(--radius-control); padding: 8px 10px; background: var(--panel); color: var(--text); resize: none; font: inherit; line-height: 1.5; }
 .mention-input textarea:focus { outline: 0; border-color: var(--accent); }

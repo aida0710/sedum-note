@@ -1,7 +1,7 @@
 // AI とのチャット。会話を続けられ、発言には文脈として、開いているメモ・選択範囲・「@」で指定したメモを添えられる。
 // 答えは、コピーするか、開いているメモのカーソルの位置か末尾に入れられる。
 
-import { FileText, TextSelect, X } from "lucide-react";
+import { ArrowUp, FileText, Square, TextSelect, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
@@ -13,6 +13,7 @@ import { appendMarkdownToBody } from "../markdown/appendMarkdown";
 import { ATTACHMENT_HREF_PREFIX, bodyToMarkdown } from "../markdown/markdownDocument";
 import { type ActiveNoteEditor, useAiChatSession } from "./aiChatSession";
 import { AI_QUICK_REQUESTS, type AiAttachment, type AiChatMessage, type AiConversation, type AiQuickRequest, conversationForApi } from "./aiConversation";
+import { AiModelSelect } from "./AiModelSelect";
 import { useAiSettings } from "./aiSettingsAccess";
 import { streamClaudeCompletion } from "./claudeCompletion";
 import { NoteMentionInput } from "./NoteMentionInput";
@@ -26,9 +27,13 @@ type AiChatProps = {
 };
 
 function streamCompletion(settings: AiSettings, input: { conversation: AiConversation; onText: (text: string) => void; signal: AbortSignal }): Promise<void> {
-  return settings.provider === "claude"
-    ? streamClaudeCompletion({ ...settings.claude, ...input })
-    : streamOpenAiCompatibleCompletion({ ...settings.openAiCompatible, ...input });
+  if (settings.provider === "claude") {
+    const { apiKey, model, models } = settings.claude;
+    const maxOutputTokens = models.find((option) => option.id === model)?.maxOutputTokens ?? null;
+    return streamClaudeCompletion({ apiKey, model, maxOutputTokens, ...input });
+  }
+  const { baseUrl, apiKey, model } = settings.openAiCompatible;
+  return streamOpenAiCompatibleCompletion({ baseUrl, apiKey, model, ...input });
 }
 
 // 開いているメモで選択している文字。選択していなければ空の文字。選択や本文が変わるたびに読み直す。
@@ -128,14 +133,14 @@ export function AiChat({ repository, notes, onClose }: AiChatProps) {
   if (settings?.enabled !== true) {
     return (
       <section className="ai-chat" aria-label={translate("ai.chat")}>
-        <ChatHeader running={false} hasMessages={false} onClear={() => undefined} onStop={() => undefined} onClose={onClose} />
+        <ChatHeader showsModel={false} canStartNewChat={false} onStartNewChat={() => undefined} onClose={onClose} />
         <p className="ai-chat-notice">{translate("ai.notEnabled")}</p>
       </section>
     );
   }
   return (
     <section className="ai-chat" aria-label={translate("ai.chat")}>
-      <ChatHeader running={running} hasMessages={messages.length > 0} onClear={() => setMessages(() => [])} onStop={() => request.current?.abort()} onClose={onClose} />
+      <ChatHeader showsModel canStartNewChat={messages.length > 0 && !running} onStartNewChat={() => setMessages(() => [])} onClose={onClose} />
       <div className="ai-chat-messages">
         {messages.length === 0 && <p className="ai-chat-notice">{translate("ai.chatDescription")}</p>}
         {messages.map((message, index) => (
@@ -195,27 +200,36 @@ export function AiChat({ repository, notes, onClose }: AiChatProps) {
         <NoteMentionInput value={input} onChange={setInput} disabled={running} onSubmit={() => void send(input, currentAttachments())}
           notes={notes.filter((note) => !mentionedNoteIds.includes(note.id))}
           onMention={(note) => setMentionedNoteIds([...mentionedNoteIds, note.id])} />
-        <div className="form-actions">
+        <div className="ai-composer-actions">
           {openNote && (Object.keys(AI_QUICK_REQUESTS) as AiQuickRequest[]).map((quickRequest) => (
             <button key={quickRequest} type="button" className="secondary-button" disabled={running} onClick={() => sendQuickRequest(quickRequest)}>
               {translate(`ai.task.${quickRequest}`)}
             </button>
           ))}
-          <button type="button" className="primary-button" disabled={running || input.trim() === ""} onClick={() => void send(input, currentAttachments())}>{translate("ai.send")}</button>
+          {/* 答えを受け取っている間は、送るボタンが止めるボタンに変わる（Claude や ChatGPT と同じ置き場所）。 */}
+          {running ? (
+            <button type="button" className="ai-send-button" aria-label={translate("ai.stop")} title={translate("ai.stop")} onClick={() => request.current?.abort()}>
+              <Square size={13} fill="currentColor" />
+            </button>
+          ) : (
+            <button type="button" className="ai-send-button" aria-label={translate("ai.send")} title={translate("ai.send")} disabled={input.trim() === ""} onClick={() => void send(input, currentAttachments())}>
+              <ArrowUp size={16} />
+            </button>
+          )}
         </div>
       </div>
     </section>
   );
 }
 
-type ChatHeaderProps = { running: boolean; hasMessages: boolean; onClear: () => void; onStop: () => void; onClose: () => void };
+type ChatHeaderProps = { showsModel: boolean; canStartNewChat: boolean; onStartNewChat: () => void; onClose: () => void };
 
-function ChatHeader({ running, hasMessages, onClear, onStop, onClose }: ChatHeaderProps) {
+function ChatHeader({ showsModel, canStartNewChat, onStartNewChat, onClose }: ChatHeaderProps) {
   return (
     <header className="ai-chat-header">
       <h2>{translate("ai.chat")}</h2>
-      {running && <button type="button" className="text-button" onClick={onStop}>{translate("ai.stop")}</button>}
-      {hasMessages && !running && <button type="button" className="text-button" onClick={onClear}>{translate("ai.newChat")}</button>}
+      {showsModel && <AiModelSelect id="ai-chat-model" compact />}
+      {canStartNewChat && <button type="button" className="text-button" onClick={onStartNewChat}>{translate("ai.newChat")}</button>}
       <button type="button" className="icon-button" aria-label={translate("ai.closeChat")} onClick={onClose}><X size={16} /></button>
     </header>
   );

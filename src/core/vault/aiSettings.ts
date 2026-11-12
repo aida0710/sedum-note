@@ -14,12 +14,22 @@ const textDecoder = new TextDecoder();
 export const AI_PROVIDERS = ["claude", "openAiCompatible"] as const;
 export type AiProvider = (typeof AI_PROVIDERS)[number];
 
+// 選べるモデル。一覧は、API キー（とエンドポイント）を確かめたときに、つなぎ先から取ってきて覚える。
+export type AiModelOption = {
+  id: string;
+  // 画面に出す名前。つなぎ先が名前を返さなければ id と同じ。
+  name: string;
+  // 1 回の答えの長さの上限（トークン）。つなぎ先が返さなければ null。
+  maxOutputTokens: number | null;
+};
+
+// model は、models の中から選んだもの（models が空なら、前の版で手で入れた名前のことがある）。
 export type AiSettings = {
   enabled: boolean;
   provider: AiProvider;
-  claude: { apiKey: string; model: string };
+  claude: { apiKey: string; model: string; models: AiModelOption[] };
   // baseUrl は、/chat/completions の手前まで（例: http://127.0.0.1:11434/v1）。API キーの要らないサーバーでは空にする。
-  openAiCompatible: { baseUrl: string; apiKey: string; model: string };
+  openAiCompatible: { baseUrl: string; apiKey: string; model: string; models: AiModelOption[] };
 };
 
 export const DEFAULT_CLAUDE_MODEL = "claude-opus-5-5";
@@ -27,8 +37,8 @@ export const DEFAULT_CLAUDE_MODEL = "claude-opus-5-5";
 export const DEFAULT_AI_SETTINGS: AiSettings = {
   enabled: false,
   provider: "claude",
-  claude: { apiKey: "", model: DEFAULT_CLAUDE_MODEL },
-  openAiCompatible: { baseUrl: "http://127.0.0.1:11434/v1", apiKey: "", model: "" },
+  claude: { apiKey: "", model: DEFAULT_CLAUDE_MODEL, models: [] },
+  openAiCompatible: { baseUrl: "http://127.0.0.1:11434/v1", apiKey: "", model: "", models: [] },
 };
 
 // まだ設定していなければ、無効の設定を返す（保存はしない）。

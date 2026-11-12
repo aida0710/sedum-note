@@ -3,10 +3,13 @@
 import { translate } from "../i18n/translate";
 import { UserFacingError } from "../i18n/userFacingError";
 import type { AiConversation } from "./aiConversation";
+import { createClaudeClient, userFacingClaudeError } from "./claudeClient";
 
 type ClaudeCompletionInput = {
   apiKey: string;
   model: string;
+  // モデルの一覧で分かった、答えの長さの上限。分からなければ null。
+  maxOutputTokens: number | null;
   conversation: AiConversation;
   // 答えの文字が届くたびに呼ぶ（届いた分だけ）。
   onText: (text: string) => void;
@@ -14,20 +17,20 @@ type ClaudeCompletionInput = {
 };
 
 // 長い答えでも途中で切れないよう、出力の上限は大きく取る（ストリーミングなので、時間切れの心配は無い）。
+// モデルの上限の方が小さければ、そちらに合わせる（超えると断られる）。
 const MAX_OUTPUT_TOKENS = 64000;
 // 安全上の理由で断られたときに、API の側で別のモデルに回す仕組み（サーバー側のフォールバック）を使えるモデル。
 const MODELS_WITH_SERVER_SIDE_FALLBACK = new Set(["claude-fable-5-2", "claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5"]);
 const SERVER_SIDE_FALLBACK_BETA = "server-side-fallback-2026-07-01";
 
-export async function streamClaudeCompletion({ apiKey, model, conversation, onText, signal }: ClaudeCompletionInput): Promise<void> {
-  const { default: Anthropic } = await import("@anthropic-ai/sdk");
-  // このアプリは利用者の手元で動き、API キーは利用者自身のもの（暗号化して手元に置いている）なので、画面から直接呼ぶ。
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export async function streamClaudeCompletion({ apiKey, model, maxOutputTokens, conversation, onText, signal }: ClaudeCompletionInput): Promise<void> {
+  const { client, sdk } = await createClaudeClient(apiKey);
+  const maxTokens = Math.min(MAX_OUTPUT_TOKENS, maxOutputTokens ?? MAX_OUTPUT_TOKENS);
   const fallback = MODELS_WITH_SERVER_SIDE_FALLBACK.has(model) ? { betas: [SERVER_SIDE_FALLBACK_BETA], fallbacks: "default" as const } : {};
   try {
     const stream = client.beta.messages.stream(
       // 会話は毎回、最初から全部送る。前の回までと同じ部分はキャッシュから読まれるようにして、料金と待ち時間を減らす。
-      { model, max_tokens: MAX_OUTPUT_TOKENS, cache_control: { type: "ephemeral" }, system: conversation.system, messages: conversation.messages, ...fallback },
+      { model, max_tokens: maxTokens, cache_control: { type: "ephemeral" }, system: conversation.system, messages: conversation.messages, ...fallback },
       { signal },
     );
     for await (const event of stream) {
@@ -46,21 +49,6 @@ export async function streamClaudeCompletion({ apiKey, model, conversation, onTe
     if (error instanceof UserFacingError || signal.aborted) {
       throw error;
     }
-    if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) {
-      throw new UserFacingError(translate("ai.error.authentication"));
-    }
-    if (error instanceof Anthropic.NotFoundError) {
-      throw new UserFacingError(translate("ai.error.modelNotFound", { model }));
-    }
-    if (error instanceof Anthropic.RateLimitError) {
-      throw new UserFacingError(translate("ai.error.rateLimited"));
-    }
-    if (error instanceof Anthropic.APIConnectionError) {
-      throw new UserFacingError(translate("ai.error.connection"));
-    }
-    if (error instanceof Anthropic.APIError) {
-      throw new UserFacingError(translate("ai.error.api", { status: String(error.status ?? ""), reason: error.message }));
-    }
-    throw error;
+    throw userFacingClaudeError(sdk, error, model);
   }
 }
