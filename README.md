@@ -176,7 +176,7 @@ npx tauri android dev  # Android（Android SDK・NDK と JDK 21 が必要）
 
 アプリの Rust 側を変えたときは、`scripts/app-checks/linux/build-app.sh` で、Linux のアプリを Docker のコンテナの中で組み立てられます（WebKitGTK の開発用パッケージを手元に入れずに済みます）。
 
-エディタに書式（ノードやマーク）を足したら、`src/core/notes/bodySchema.ts` の `BODY_SCHEMA_VERSION` を 1 つ上げます。足す前のアプリがその書式を本文から消さないようにするためです。
+エディタに書式（ノードやマーク）を足したときや、記録の書き方を変えたときは、`src/core/format/dataFormat.ts` の `DATA_FORMAT_VERSION` を 1 つ上げます。足す前のアプリがその書式を本文から消さないようにするためです。手元の記録を新しい形にする手順が要るときの決まりは、[docs/data-format.md](docs/data-format.md) にあります。
 
 `docs/releases/<タグ>.md` を置いて `v0.2.0` の形のタグを push すると、CI がインストーラーと、アプリの更新用の `latest.json` を GitHub Releases に置きます。CI は Linux で、古いバージョンから組み立てた AppImage へ実際に更新する予行もします。
 
