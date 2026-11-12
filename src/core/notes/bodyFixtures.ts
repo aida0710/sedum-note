@@ -10,6 +10,19 @@ export function appendParagraph(body: Y.XmlFragment, text: string): void {
   body.insert(body.length, [paragraph]);
 }
 
+// チェックリストに、項目を 1 つ足す（チェックリストは項目ごとに 1 つ作る）。
+export function appendTaskItem(body: Y.XmlFragment, text: string, checked = false): void {
+  const paragraph = new Y.XmlElement("paragraph");
+  paragraph.insert(0, [new Y.XmlText(text)]);
+  const taskItem = new Y.XmlElement("taskItem");
+  // 属性は ProseMirror の JSON と同じ形（真偽値のまま）で入れる。
+  taskItem.setAttribute("checked", checked as unknown as string);
+  taskItem.insert(0, [paragraph]);
+  const taskList = new Y.XmlElement("taskList");
+  taskList.insert(0, [taskItem]);
+  body.insert(body.length, [taskList]);
+}
+
 export function appendAttachmentImage(body: Y.XmlFragment, attachment: AttachmentReference): void {
   appendAttachment(body, ATTACHMENT_IMAGE_NODE, attachment);
 }

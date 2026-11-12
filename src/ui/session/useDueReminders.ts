@@ -1,0 +1,104 @@
+// 期限が来たことを、OS の通知で知らせる。設定（期限の通知）を入れている間だけ動く。
+//   PC のアプリとブラウザ  開いていてロックを解除している間、期限が来たら出す（見直しは 30 秒おき）。閉じていた間に過ぎた期限は、
+//                         次に開いたときに出す
+//   Android のアプリ       これから来る期限を OS に予約する。アプリが動いていなくても、その時刻に出る
+// ロックしたメモの期限は、中身を出さずに、メモの題だけで知らせる。
+
+import { useEffect, useMemo, useRef } from "react";
+import { type DueItem, dueItemsOf, dueItemsToNotify, upcomingDueItems } from "../../core/notes/dueItems";
+import { dueTimeAsDate } from "../../core/notes/dueTimes";
+import type { NoteSummary } from "../../core/notes/noteQueries";
+import { translate } from "../i18n/translate";
+import { canScheduleNotifications, replaceScheduledNotifications, showNotification, type SystemNotification } from "../platform/systemNotifications";
+import { useDevicePreferences } from "../preferences/devicePreferences";
+import { formatDueTime } from "../shared/formatTime";
+
+// 期限が来たかを見直す間隔。期限は分の単位なので、1 分より細かく見る。
+const DUE_CHECK_INTERVAL_MILLISECONDS = 30_000;
+// OS に予約する通知の数の上限（期限の近い順）。Android が 1 つのアプリに許す予約の数（500）に、余裕を持って収める。
+const MAX_SCHEDULED_NOTIFICATIONS = 100;
+// もう知らせた期限の名前（DueItem.key）の置き場所。このデバイスだけで持つ。
+const NOTIFIED_KEYS_STORAGE_KEY = "sedum-note:notifiedDueKeys";
+
+function readNotifiedKeys(): Set<string> {
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem(NOTIFIED_KEYS_STORAGE_KEY) ?? "[]");
+    return new Set(Array.isArray(stored) ? stored.filter((key) => typeof key === "string") : []);
+  } catch {
+    return new Set();
+  }
+}
+
+// 通知の番号。期限の名前から決めるので、同じ期限は、予約し直しても同じ番号になる。
+function notificationId(key: string): number {
+  let hash = 0;
+  for (const character of key) {
+    hash = (hash * 31 + character.codePointAt(0)!) | 0;
+  }
+  return Math.abs(hash);
+}
+
+function notificationOf(item: DueItem, lockedNoteIds: ReadonlySet<string>): SystemNotification {
+  const noteTitle = item.noteTitle || translate("sidebar.untitled");
+  const time = formatDueTime(item.dueAt);
+  if (lockedNoteIds.has(item.noteId)) {
+    return { id: notificationId(item.key), title: translate("due.notificationLocked"), body: translate("due.notificationBody", { time, title: noteTitle }) };
+  }
+  return { id: notificationId(item.key), title: item.task?.text || noteTitle, body: translate("due.notificationBody", { time, title: noteTitle }) };
+}
+
+type DueRemindersInput = {
+  // ロックで隠す前の要約（ロックしたメモの期限も知らせる）。
+  summaries: NoteSummary[];
+  lockedNoteIds: ReadonlySet<string>;
+};
+
+export function useDueReminders({ summaries, lockedNoteIds }: DueRemindersInput): void {
+  const { dueNotifications } = useDevicePreferences();
+  const items = useMemo(() => dueItemsOf(summaries), [summaries]);
+
+  // 開いている間に来た期限を出す。期限は、決めた間隔で見直す。前の見直しのときにも同じ形であった期限だけを知らせる
+  // （期限の印を打っている途中の、時刻をまだ打っていない日付で、通知を出さないため）。
+  const latest = useRef({ items, lockedNoteIds });
+  latest.current = { items, lockedNoteIds };
+  useEffect(() => {
+    if (!dueNotifications || canScheduleNotifications()) {
+      return undefined;
+    }
+    let keysAtPreviousCheck = new Set<string>();
+    const notifyDueItems = () => {
+      const { items: currentItems, lockedNoteIds: currentLockedNoteIds } = latest.current;
+      const notifiedKeys = readNotifiedKeys();
+      const dueItems = dueItemsToNotify(currentItems, { now: new Date(), notifiedKeys }).filter((item) => keysAtPreviousCheck.has(item.key));
+      const currentKeys = new Set(currentItems.map((item) => item.key));
+      keysAtPreviousCheck = currentKeys;
+      if (dueItems.length === 0) {
+        return;
+      }
+      dueItems.forEach((item) => void showNotification(notificationOf(item, currentLockedNoteIds)));
+      // もう無い期限の名前は捨てて、増え続けないようにする。
+      const kept = [...notifiedKeys].filter((key) => currentKeys.has(key));
+      localStorage.setItem(NOTIFIED_KEYS_STORAGE_KEY, JSON.stringify([...kept, ...dueItems.map((item) => item.key)]));
+    };
+    notifyDueItems();
+    const timer = setInterval(notifyDueItems, DUE_CHECK_INTERVAL_MILLISECONDS);
+    return () => clearInterval(timer);
+  }, [dueNotifications]);
+
+  // Android では、これから来る期限を OS に予約し直す。予約の中身が前と同じなら、何もしない。
+  const lastScheduled = useRef<string | null>(null);
+  useEffect(() => {
+    if (!canScheduleNotifications()) {
+      return;
+    }
+    const scheduled = dueNotifications
+      ? upcomingDueItems(items, new Date()).slice(0, MAX_SCHEDULED_NOTIFICATIONS)
+        .map((item) => ({ ...notificationOf(item, lockedNoteIds), at: dueTimeAsDate(item.dueAt)! }))
+      : [];
+    const serialized = JSON.stringify(scheduled);
+    if (serialized !== lastScheduled.current) {
+      lastScheduled.current = serialized;
+      void replaceScheduledNotifications(scheduled);
+    }
+  }, [dueNotifications, items, lockedNoteIds]);
+}

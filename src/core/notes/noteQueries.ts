@@ -1,6 +1,7 @@
 // 画面に並べるメモの絞り込みと並べ替え。画面の部品から切り離して試験できるようにする。
 
 import { bodyLinkedNoteIds, bodyPlainText, plainTextHashtags } from "./bodyText";
+import { bodyDueTasks, type DueTask } from "./dueTasks";
 import type { LiveNote, LiveNotebook } from "./noteRecords";
 
 export type NoteView =
@@ -17,11 +18,13 @@ export type NoteSummary = {
   tags: string[];
   // 本文の中のリンクが指す、ほかのメモの ID。
   linkedNoteIds: string[];
+  // 本文の、期限の印が付いたチェックリストの項目。
+  dueTasks: DueTask[];
 };
 
 export function summarizeNote(note: LiveNote): NoteSummary {
   const plainText = bodyPlainText(note.body);
-  return { note, plainText, tags: plainTextHashtags(plainText), linkedNoteIds: bodyLinkedNoteIds(note.body) };
+  return { note, plainText, tags: plainTextHashtags(plainText), linkedNoteIds: bodyLinkedNoteIds(note.body), dueTasks: bodyDueTasks(note.body) };
 }
 
 // noteId のメモにリンクしているメモ（バックリンク）。ゴミ箱のメモは除く。新しく更新した順。

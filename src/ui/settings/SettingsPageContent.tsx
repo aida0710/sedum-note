@@ -13,6 +13,7 @@ import { MarkdownSection } from "./MarkdownSection";
 import { McpSectionSlot } from "./mcpSectionSlot";
 import { PassphraseSection } from "./PassphraseSection";
 import type { SettingsPage } from "./settingsPages";
+import { RemindersSection } from "./RemindersSection";
 import { ShortcutsSection } from "./ShortcutsSection";
 import { SyncSection } from "./SyncSection";
 import { ThemeSection } from "./ThemeSection";
@@ -32,7 +33,7 @@ export function SettingsPageContent({ page, session, vault }: SettingsPageConten
   const mcpSection = useContext(McpSectionSlot);
   switch (page) {
     case "general":
-      return <><DisplaySection /><DailyNoteSection notebooks={repository.notebooks()} /><TrashSection /></>;
+      return <><DisplaySection /><DailyNoteSection notebooks={repository.notebooks()} /><RemindersSection /><TrashSection /></>;
     case "appearance":
       return <><ThemeSection /><CustomCssSection /></>;
     case "sync":

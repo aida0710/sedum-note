@@ -37,6 +37,7 @@ import { ColoredTableCell, ColoredTableHeader } from "./tableCellBackground";
 import { TableRowFilterExtension } from "./tableRowFilter";
 import { TableShortcuts } from "./tableShortcuts";
 import { TextColor } from "./textColorMark";
+import { DueMarks } from "./dueMarks";
 import { TypewriterScroll } from "./typewriterScroll";
 import { readDevicePreferences } from "../preferences/devicePreferences";
 import type { SlashMenuController } from "./slashMenuController";
@@ -97,6 +98,7 @@ export function createEditorExtensions({ body, slashMenuController, isOutline }:
     ...documentExtensions({ keepsTrailingParagraph: !isOutline }),
     ...(isOutline ? [OutlineMode] : []),
     SlashCommands.configure({ controller: slashMenuController }),
+    DueMarks,
     TableShortcuts,
     TableRowFilterExtension,
     MermaidDiagrams,

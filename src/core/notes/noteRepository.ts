@@ -14,6 +14,7 @@ import type { SerialQueue } from "../local/serialQueue";
 import { blobBinding } from "../sync/remoteLayout";
 import { bodyAttachments } from "./bodyText";
 import { databaseViewFromField } from "./databaseView";
+import { isDueTime } from "./dueTimes";
 import { PROPERTY_DEFINITION_FIELD_PREFIX, PROPERTY_VALUE_FIELD_PREFIX, type PropertyDefinition, propertyDefinitionFromField, type PropertyValue } from "./noteProperties";
 import { type AttachmentReference, type LiveNote, type LiveNotebook, type LiveRecord, type LiveSavedSearch, type NotebookContent, PAGE_ALIGNMENTS, type PageAlignment, type SavedSearchContent } from "./noteRecords";
 import { type NoteVersion, NoteVersionHistory } from "./noteVersions";
@@ -59,6 +60,7 @@ export type NoteChanges = Partial<{
   isTemplate: boolean;
   isOutline: boolean;
   isLocked: boolean;
+  dueAt: string | null;
   pageAlignment: PageAlignment | null;
 }>;
 
@@ -706,12 +708,19 @@ function buildView(id: string, holder: LiveHolder): LiveRecord | null {
       isTemplate: readField<boolean>(doc, "isTemplate") ?? false,
       isOutline: readField<boolean>(doc, "isOutline") ?? false,
       isLocked: readField<boolean>(doc, "isLocked") ?? false,
+      dueAt: dueAtOf(doc),
       pageAlignment: pageAlignmentOf(doc),
       attachments: bodyAttachments(body),
       propertyValues: propertyValuesOf(doc),
       createdAt,
     },
   };
+}
+
+// 読めない形（新しい版のアプリが足したもの）は、期限なしとして読む。
+function dueAtOf(doc: Y.Doc): string | null {
+  const stored = readField<unknown>(doc, "dueAt");
+  return isDueTime(stored) ? stored : null;
 }
 
 function pageAlignmentOf(doc: Y.Doc): PageAlignment | null {

@@ -11,6 +11,8 @@ import type { SettingRevealRequest } from "../settings/revealSetting";
 export const SETTINGS_TAB = "settings";
 // グラフ表示もタブで開く。
 export const GRAPH_TAB = "graph";
+// 期限の一覧のタブ。
+export const REMINDERS_TAB = "reminders";
 
 // ノートブックのデータベース表示もタブで開く。タブの ID は、この先頭にノートブックの ID を続ける。
 const DATABASE_TAB_PREFIX = "database:";

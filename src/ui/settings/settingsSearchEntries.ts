@@ -22,6 +22,8 @@ export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
   { label: "settings.dailyNote", page: "general" },
   { label: "settings.dailyNoteTitleFormat", page: "general" },
   { label: "settings.dailyNoteNotebook", page: "general" },
+  { label: "settings.reminders", page: "general" },
+  { label: "reminders.notify", page: "general" },
   { label: "settings.trash", page: "general" },
   { label: "trash.autoDelete", page: "general" },
   { label: "settings.theme", page: "appearance" },

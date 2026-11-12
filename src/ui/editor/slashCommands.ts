@@ -2,7 +2,7 @@
 
 import type { Editor } from "@tiptap/react";
 import {
-  CalendarClock, CalendarDays, Code, Columns2, FileSymlink, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, ImagePlus, Info, Lightbulb, Link2, ListFilter, MonitorPlay, OctagonAlert, PenTool, ScanLine, Sigma, SquareDashedBottom, Superscript, TriangleAlert, Workflow, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Minus, Paperclip, Pilcrow, Table, TextQuote,
+  AlarmClock, CalendarClock, CalendarDays, Code, Columns2, FileSymlink, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, ImagePlus, Info, Lightbulb, Link2, ListFilter, MonitorPlay, OctagonAlert, PenTool, ScanLine, Sigma, SquareDashedBottom, Superscript, TriangleAlert, Workflow, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Minus, Paperclip, Pilcrow, Table, TextQuote,
 } from "lucide-react";
 import { translate } from "../i18n/translate";
 import { HEADING_LEVELS, type HeadingLevel } from "./headingLevels";
@@ -24,6 +24,8 @@ export type SlashCommandActions = {
   pickBlockEmbed: () => void;
   // 書類を撮る（か写真を選ぶ）画面を開く。
   scanDocument: () => void;
+  // カーソルのある行に付ける期限を選ぶ画面を開く。
+  pickTaskDue: () => void;
   // 登録してあるテンプレート。候補の最後に並べる。
   templates: Array<{ id: string; title: string }>;
   // テンプレートの本文を、カーソルの所に入れる。
@@ -75,6 +77,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "image", icon: ImagePlus, name: () => translate("editor.image"), keywords: ["image", "photo", "picture", "gazou", "がぞう", "しゃしん"], run: (_editor, actions) => actions.pickImage() },
   { id: "file", icon: Paperclip, name: () => translate("editor.file"), keywords: ["file", "attach", "tenpu", "てんぷ", "ふぁいる"], run: (_editor, actions) => actions.pickFile() },
   { id: "scan", icon: ScanLine, name: () => translate("editor.scan"), keywords: ["scan", "document", "camera", "sukyan", "すきゃん", "しょるい"], run: (_editor, actions) => actions.scanDocument() },
+  { id: "due", icon: AlarmClock, name: () => translate("due.slash"), keywords: ["due", "deadline", "reminder", "kigen", "きげん", "しめきり", "りまいんだー"], run: (_editor, actions) => actions.pickTaskDue() },
   { id: "date", icon: CalendarDays, name: () => translate("editor.insertDate"), keywords: ["date", "today", "hizuke", "ひづけ", "きょう"], run: (editor) => insertCurrentDateTime(editor, "date") },
   { id: "dateTime", icon: CalendarClock, name: () => translate("editor.insertDateTime"), keywords: ["time", "now", "datetime", "nichiji", "にちじ", "じこく", "いま"], run: (editor) => insertCurrentDateTime(editor, "dateTime") },
   ...COLUMN_COUNTS.map((columnCount): SlashCommand => ({

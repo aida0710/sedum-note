@@ -2,6 +2,7 @@
 
 import { lazy, Suspense, useEffect } from "react";
 import { languageInUse } from "./i18n/languageInUse";
+import { translate } from "./i18n/translate";
 import { useDevicePreferences } from "./preferences/devicePreferences";
 import { useLaunchRequests } from "./share/useLaunchRequests";
 import { isRunningInTauri } from "./platform/runtime";
@@ -17,6 +18,9 @@ import { AttachmentReaderContext } from "./editor/attachmentReader";
 import { MobileWorkspace } from "./mobile/MobileWorkspace";
 import { UnsyncedRecordsContext, useRepositorySnapshot } from "./session/useRepositorySnapshot";
 import { useTrashRetention } from "./session/useTrashRetention";
+import { useDueReminders } from "./session/useDueReminders";
+import { applyResidentAppSetting } from "./platform/residentApp";
+import { canStayResident } from "./platform/runtime";
 import { NoteLockStateContext, useSnapshotWithLocks } from "./session/noteLockState";
 import { PassphraseConfirmProvider } from "./session/PassphraseConfirmProvider";
 import { useVaultSession, type VaultSession } from "./session/useVaultSession";
@@ -36,7 +40,13 @@ const McpGatewayProvider = __INCLUDES_MCP__ && isRunningInTauri() ? lazy(() => i
 export function App() {
   const session = useVaultSession();
   // 言語を変えたら、ここから下を描き直して文言を入れ替える。
-  const { language, editorFontSize, sidebarWidth } = useDevicePreferences();
+  const { language, editorFontSize, sidebarWidth, stayResident } = useDevicePreferences();
+  // 常駐の設定は、ロックを解除する前から効かせる（言語を変えたら、アイコンのメニューの文言も入れ替える）。
+  useEffect(() => {
+    if (canStayResident()) {
+      void applyResidentAppSetting({ enabled: stayResident, showLabel: translate("reminders.trayShow"), quitLabel: translate("reminders.trayQuit") });
+    }
+  }, [stayResident, language]);
   useEffect(() => {
     document.documentElement.lang = languageInUse();
   }, [language]);
@@ -71,6 +81,7 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   }, [customCss, customCssEnabled]);
   const navigation = useWorkspaceNavigation();
   const { snapshot, lockState } = useSnapshotWithLocks(repositorySnapshot, navigation.revealedNoteIds);
+  useDueReminders({ summaries: repositorySnapshot.summaries, lockedNoteIds: lockState.lockedNoteIds });
   const isMobile = useMediaQuery(MOBILE_LAYOUT_QUERY);
   useLaunchRequests(vault.repository, navigation.openNote);
   const availableUpdate = useAvailableUpdate();

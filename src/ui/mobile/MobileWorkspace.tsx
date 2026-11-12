@@ -13,7 +13,8 @@ import { MobileLibrary } from "./MobileLibrary";
 import { listTitle, NoteList } from "./MobileNoteList";
 import { useBackGestureToClose } from "./useBackGestureToClose";
 import { UpdateChip } from "../update/UpdateChip";
-import { SETTINGS_TAB } from "../workspace/useWorkspaceNavigation";
+import { REMINDERS_TAB, SETTINGS_TAB } from "../workspace/useWorkspaceNavigation";
+import { RemindersView } from "../workspace/RemindersView";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
 import { NoteQuerySourceContext } from "../editor/noteQuerySource";
@@ -32,12 +33,15 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
   const { noteSortOrder } = useDevicePreferences();
   // 開いているメモは PC の組み方と同じ所（navigation のタブ）に持つ。共有から作ったメモや、
   // メモ同士のリンクが、どちらの組み方でも同じ操作で開ける。
-  const openNoteId = navigation.activeTab !== SETTINGS_TAB ? navigation.activeTab : null;
+  const showsReminders = navigation.activeTab === REMINDERS_TAB;
+  const openNoteId = navigation.activeTab !== SETTINGS_TAB && !showsReminders ? navigation.activeTab : null;
   const openNote = openNoteId ? repository.note(openNoteId) : undefined;
   // 「戻る」は 1 回で一覧へ戻す。リンクや共有で、開いたメモの上に別のメモを開いていても、全部閉じる
   // （戻るための履歴は、最初に開いたときの 1 つしか積んでいない）。
-  const closeOpenNotes = () => navigation.openTabs.filter((tabId) => tabId !== SETTINGS_TAB).forEach(navigation.closeTab);
+  const closeOpenNotes = () => navigation.openTabs.filter((tabId) => tabId !== SETTINGS_TAB && tabId !== REMINDERS_TAB).forEach(navigation.closeTab);
   const goBack = useBackGestureToClose(openNote !== undefined, closeOpenNotes);
+  // 期限の一覧は、メモの上に重ねて開く画面。一覧からメモを開いて戻ると、また一覧に戻る。
+  const closeReminders = useBackGestureToClose(showsReminders, () => navigation.closeTab(REMINDERS_TAB));
   // 設定のページを開いている間も、端末の「戻る」でページの一覧へ戻す。下のタブで別の画面へ移るときは、
   // 積んだ履歴をここで外す（残すと、次の「戻る」が 1 回空振りする）。
   const settingsPageOpen = openNote === undefined && tab === "settings" && navigation.settingsPage !== null;
@@ -49,6 +53,13 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
       <div className="phone">
         <LockedNoteGate key={openNote.id} title={openNote.content.title} verifyPassphrase={session.verifyPassphrase}
           onRevealed={() => navigation.revealLockedNote(openNote.id)} onBack={goBack} />
+      </div>
+    );
+  }
+  if (showsReminders) {
+    return (
+      <div className="phone">
+        <RemindersView summaries={snapshot.summaries} repository={repository} onOpenNote={navigation.openNote} onBack={closeReminders} />
       </div>
     );
   }
@@ -94,7 +105,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
       )}
       {tab === "notebooks" && (
         <MobileLibrary snapshot={snapshot} repository={repository}
-          onPick={(picked) => { navigation.selectView(picked); setTab("notes"); }} />
+          onPick={(picked) => { navigation.selectView(picked); setTab("notes"); }} onOpenReminders={() => navigation.openTab(REMINDERS_TAB)} />
       )}
       {tab !== "settings" && <UpdateChip onOpenSettings={() => { selectTab("settings"); navigation.selectSettingsPage("update"); }} />}
       {(tab === "notes" || tab === "bookmarked") && (

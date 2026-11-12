@@ -8,3 +8,8 @@ export function isRunningInTauri(): boolean {
 export function isAndroidApp(): boolean {
   return isRunningInTauri() && /Android/i.test(navigator.userAgent);
 }
+
+// ウィンドウを閉じても動かしたままにできるか（Windows と Mac のアプリだけ。通知の領域やメニューバーに常駐する）。
+export function canStayResident(): boolean {
+  return isRunningInTauri() && !isAndroidApp() && /Win|Mac/.test(navigator.platform);
+}

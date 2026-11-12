@@ -36,6 +36,8 @@ export type NoteContent = {
   isOutline: boolean;
   // ロックしたメモ（core/notes/noteLock.ts）。ロックを知らない版のアプリでは、ふつうのメモとして見える。
   isLocked: boolean;
+  // メモの期限（dueTimes.ts の形）。null なら期限なし。期限が来たら知らせる。
+  dueAt: string | null;
   // 本文の列の置き場所。null なら、このデバイスの表示の設定（既定の置き場所）に従う。
   // 知らない値（新しい版のアプリが足したもの）も null として読む。
   pageAlignment: PageAlignment | null;

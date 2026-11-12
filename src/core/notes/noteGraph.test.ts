@@ -6,7 +6,7 @@ import type { NoteSummary } from "./noteQueries";
 
 function summary(id: string, linkedNoteIds: string[] = [], overrides: { trashedAt?: string | null; isTemplate?: boolean } = {}): NoteSummary {
   return {
-    plainText: "", tags: [], linkedNoteIds,
+    plainText: "", tags: [], linkedNoteIds, dueTasks: [],
     note: {
       id, kind: "note", updatedAt: "2026-11-12T00:00:00.000Z", revision: 0, body: new Y.Doc().getXmlFragment("body"),
       content: noteContentFixture({ title: id, createdAt: "2026-11-12T00:00:00.000Z", ...overrides }),

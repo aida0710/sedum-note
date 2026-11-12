@@ -31,6 +31,12 @@ tauri-plugin-fs = "2.7"
 tauri-plugin-http = "2"
 # 更新の知らせから、リリースのページをブラウザで開くのに使う。
 tauri-plugin-opener = "2.7"
+# 期限の通知を出す（Android では、日時を指定して OS に予約する）。
+tauri-plugin-notification = "2"
+
+# 常駐（src/resident.rs）のアイコン。Linux では追加のライブラリ（libayatana-appindicator）が要るので、入れない。
+[target.'cfg(any(target_os = "windows", target_os = "macos"))'.dependencies]
+tauri = { version = "2.12.5", features = ["tray-icon"] }
 
 # アプリが自分を更新する（デスクトップだけ。Android は APK を入れ直す）。
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]

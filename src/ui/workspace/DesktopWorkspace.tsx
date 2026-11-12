@@ -20,7 +20,8 @@ import { shortcutText } from "../shared/shortcutKeys";
 import { UpdateChip } from "../update/UpdateChip";
 import { NotebookDatabaseView } from "./NotebookDatabaseView";
 import { NoteGraphView } from "./NoteGraphView";
-import { GRAPH_TAB, notebookIdOfDatabaseTab, SETTINGS_TAB } from "./useWorkspaceNavigation";
+import { RemindersView } from "./RemindersView";
+import { GRAPH_TAB, notebookIdOfDatabaseTab, REMINDERS_TAB, SETTINGS_TAB } from "./useWorkspaceNavigation";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
 import { NoteQuerySourceContext } from "../editor/noteQuerySource";
 import { AiChat } from "../ai/AiChat";
@@ -34,7 +35,8 @@ import { useNoteLockState } from "../session/noteLockState";
 export function DesktopWorkspace({ session, vault, snapshot, navigation }: WorkspaceProps) {
   const { repository } = vault;
   const showsGraph = navigation.activeTab === GRAPH_TAB;
-  const activeNote = navigation.activeTab && navigation.activeTab !== SETTINGS_TAB && !showsGraph ? repository.note(navigation.activeTab) : undefined;
+  const showsReminders = navigation.activeTab === REMINDERS_TAB;
+  const activeNote = navigation.activeTab && navigation.activeTab !== SETTINGS_TAB && !showsGraph && !showsReminders ? repository.note(navigation.activeTab) : undefined;
   const { concealedNoteIds } = useNoteLockState();
   const activeNoteIsConcealed = activeNote !== undefined && concealedNoteIds.has(activeNote.id);
   const databaseNotebook = snapshot.notebooks.find((notebook) => notebook.id === notebookIdOfDatabaseTab(navigation.activeTab));
@@ -69,6 +71,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
     closeTab: () => navigation.activeTab && navigation.closeTab(navigation.activeTab),
     openSettings: () => navigation.openSettings(),
     graph: () => navigation.openTab(GRAPH_TAB),
+    reminders: () => navigation.openTab(REMINDERS_TAB),
     aiChat: () => aiChat.setOpen(!aiChat.open),
     dailyNote: () => void openDailyNote(),
     focusMode: () => setFocusMode((on) => !on),
@@ -88,7 +91,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
           onClick={() => setFocusMode(false)}><Minimize2 size={16} /></button>
       )}
       <Sidebar snapshot={snapshot} repository={repository} navigation={navigation} onCreateNote={() => void createNote()}
-        onOpenDailyNote={() => void openDailyNote()} onEnterFocusMode={() => setFocusMode(true)} onOpenGraph={() => navigation.openTab(GRAPH_TAB)}
+        onOpenDailyNote={() => void openDailyNote()} onEnterFocusMode={() => setFocusMode(true)} onOpenGraph={() => navigation.openTab(GRAPH_TAB)} onOpenReminders={() => navigation.openTab(REMINDERS_TAB)}
         footer={(
           <>
             <UpdateChip onOpenSettings={() => navigation.openSettings("update")} />
@@ -131,7 +134,8 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
             notes={snapshot.notes.filter((note) => note.content.notebookIds.includes(databaseNotebook.id) && note.content.trashedAt === null && !note.content.isTemplate)} />
         )}
         {showsGraph && <NoteGraphView summaries={snapshot.summaries} onOpenNote={navigation.openNote} />}
-        {!activeNote && !databaseNotebook && !showsGraph && navigation.activeTab !== SETTINGS_TAB && <div className="empty-state">{translate("editor.empty")}</div>}
+        {showsReminders && <RemindersView summaries={snapshot.summaries} repository={repository} onOpenNote={navigation.openNote} />}
+        {!activeNote && !databaseNotebook && !showsGraph && !showsReminders && navigation.activeTab !== SETTINGS_TAB && <div className="empty-state">{translate("editor.empty")}</div>}
       </main>
       {aiChat.open && (
         <AiChat repository={repository} notes={snapshot.notes.filter((note) => note.content.trashedAt === null && !concealedNoteIds.has(note.id))} onClose={() => aiChat.setOpen(false)} />

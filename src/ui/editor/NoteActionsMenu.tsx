@@ -1,6 +1,6 @@
-// メモの「…」メニュー: ピン留め、ノートブックの付け外し、本文の配置（PC だけ）、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、AI チャット、履歴、ファイルへの書き出し、印刷、ロック、ゴミ箱。
+// メモの「…」メニュー: ピン留め、ノートブックの付け外し、本文の配置（PC だけ）、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、期限、AI チャット、履歴、ファイルへの書き出し、印刷、ロック、ゴミ箱。
 
-import { Check, Copy, FileDown, History, ListTree, Merge, LayoutTemplate, LockKeyhole, LockKeyholeOpen, Pin, PinOff, Printer, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
+import { AlarmClock, Check, Copy, FileDown, History, ListTree, Merge, LayoutTemplate, LockKeyhole, LockKeyholeOpen, Pin, PinOff, Printer, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { type MessageKey, translate } from "../i18n/translate";
@@ -30,6 +30,10 @@ type NoteActionsMenuProps = {
   onToggleOutline: () => void;
   // カーソルのある箇条書きの項目にズームする。カーソルが項目の中に無ければ undefined。
   onZoomIntoItem: (() => void) | undefined;
+  // メモの期限を選ぶ画面を開く。
+  onSetNoteDue: () => void;
+  // カーソルのあるチェックリストの項目の期限を選ぶ画面を開く。カーソルが項目の中に無ければ undefined。
+  onSetTaskDue: (() => void) | undefined;
   onShowHistory: () => void;
   onExport: (format: NoteFileFormat) => void;
   // 本文の列の置き場所を選べるか。スマホの幅では列が画面いっぱいなので出さない。
@@ -37,7 +41,7 @@ type NoteActionsMenuProps = {
   onClose: () => void;
 };
 
-export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, onZoomIntoItem, onShowHistory, onExport, canChoosePageAlignment, onClose }: NoteActionsMenuProps) {
+export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, onZoomIntoItem, onSetNoteDue, onSetTaskDue, onShowHistory, onExport, canChoosePageAlignment, onClose }: NoteActionsMenuProps) {
   const { content } = note;
   const moveToTrash = useTrashWithUndo(repository);
   const toggleNotebook = (notebookId: string) => {
@@ -97,6 +101,16 @@ export function NoteActionsMenu({ anchor, note, notebooks, repository, onFind, o
       {onZoomIntoItem && (
         <button className="menu-item" role="menuitem" onClick={() => { onClose(); onZoomIntoItem(); }}>
           <ZoomIn size={15} />{translate("editor.zoomIntoItem")}
+        </button>
+      )}
+      {content.trashedAt === null && (
+        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onSetNoteDue(); }}>
+          <AlarmClock size={15} />{translate("due.setForNote")}
+        </button>
+      )}
+      {onSetTaskDue && (
+        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onSetTaskDue(); }}>
+          <AlarmClock size={15} />{translate("due.setForTask")}
         </button>
       )}
       {/* 開いているメモは、もうパスフレーズを確かめてある。ロックを外すのに、もう一度は聞かない。 */}

@@ -1,4 +1,4 @@
-// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか、デイリーノートの作り方、タイプライターモード、カスタム CSS）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか、デイリーノートの作り方、タイプライターモード、カスタム CSS、期限の通知、常駐）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
@@ -48,6 +48,10 @@ export type DevicePreferences = {
   // 自分で書いた CSS と、それを当てるか。
   customCss: string;
   customCssEnabled: boolean;
+  // 期限が来たら、OS の通知で知らせるか。
+  dueNotifications: boolean;
+  // ウィンドウを閉じても、アプリを動かしたままにするか（Windows と Mac のアプリだけ。閉じていても期限を知らせるため）。
+  stayResident: boolean;
   // 本文の列の置き場所の既定。メモごとに選んだもの（NoteContent.pageAlignment）があれば、そちらが勝つ。
   pageAlignment: PageAlignment;
 };
@@ -69,6 +73,8 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   typewriterMode: false,
   customCss: "",
   customCssEnabled: true,
+  dueNotifications: false,
+  stayResident: false,
   pageAlignment: "center",
 };
 
@@ -141,6 +147,8 @@ function validPreferences(stored: unknown): DevicePreferences {
     typewriterMode: typeof candidate.typewriterMode === "boolean" ? candidate.typewriterMode : DEFAULT_DEVICE_PREFERENCES.typewriterMode,
     customCss: typeof candidate.customCss === "string" ? candidate.customCss : DEFAULT_DEVICE_PREFERENCES.customCss,
     customCssEnabled: typeof candidate.customCssEnabled === "boolean" ? candidate.customCssEnabled : DEFAULT_DEVICE_PREFERENCES.customCssEnabled,
+    dueNotifications: typeof candidate.dueNotifications === "boolean" ? candidate.dueNotifications : DEFAULT_DEVICE_PREFERENCES.dueNotifications,
+    stayResident: typeof candidate.stayResident === "boolean" ? candidate.stayResident : DEFAULT_DEVICE_PREFERENCES.stayResident,
     pageAlignment: PAGE_ALIGNMENTS.find((alignment) => alignment === candidate.pageAlignment) ?? DEFAULT_DEVICE_PREFERENCES.pageAlignment,
     sidebarWidth: clampSidebarWidth(typeof candidate.sidebarWidth === "number" ? candidate.sidebarWidth : DEFAULT_DEVICE_PREFERENCES.sidebarWidth),
   };

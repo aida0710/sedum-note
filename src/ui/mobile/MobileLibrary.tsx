@@ -1,4 +1,5 @@
-import { FolderPlus, Hash, Trash2, LayoutTemplate } from "lucide-react";
+import { AlarmClock, FolderPlus, Hash, Trash2, LayoutTemplate } from "lucide-react";
+import { dueItemsOf } from "../../core/notes/dueItems";
 import { countTags, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import { translate } from "../i18n/translate";
 import { useDialogs } from "../shared/DialogProvider";
@@ -9,10 +10,11 @@ type MobileLibraryProps = {
   snapshot: WorkspaceProps["snapshot"];
   repository: WorkspaceProps["vault"]["repository"];
   onPick: (view: NoteView) => void;
+  onOpenReminders: () => void;
 };
 
-// スマホの「ノートブック」タブ: ノートブック・タグ・ゴミ箱を選ぶと、その一覧を開く。
-export function MobileLibrary({ snapshot, repository, onPick }: MobileLibraryProps) {
+// スマホの「ノートブック」タブ: ノートブック・タグ・ゴミ箱を選ぶと、その一覧を開く。期限の一覧もここから開く。
+export function MobileLibrary({ snapshot, repository, onPick, onOpenReminders }: MobileLibraryProps) {
   const dialogs = useDialogs();
   const tags = countTags(snapshot.summaries);
   const notebookColors = assignNotebookColors(snapshot.notebooks);
@@ -44,6 +46,10 @@ export function MobileLibrary({ snapshot, repository, onPick }: MobileLibraryPro
           </button>
         ))}
         <div className="section-title" />
+        <button className="library-row" onClick={onOpenReminders}>
+          <AlarmClock size={15} />{translate("due.title")}
+          <span className="count">{dueItemsOf(snapshot.summaries).filter((item) => !item.done).length}</span>
+        </button>
         <button className="library-row" onClick={() => onPick({ kind: "templates" })}>
           <LayoutTemplate size={15} />{translate("sidebar.templates")}
           <span className="count">{selectNotes(snapshot.summaries, { view: { kind: "templates" } }).length}</span>

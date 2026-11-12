@@ -6,7 +6,7 @@ import { useState } from "react";
 import { showDragPreview } from "../shared/dragPreview";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
-import { GRAPH_TAB, notebookIdOfDatabaseTab, SETTINGS_TAB, type WorkspaceNavigation } from "./useWorkspaceNavigation";
+import { GRAPH_TAB, notebookIdOfDatabaseTab, REMINDERS_TAB, SETTINGS_TAB, type WorkspaceNavigation } from "./useWorkspaceNavigation";
 
 // タブのドラッグのデータの種類。メモのドラッグ（左の列）と区別する。
 const TAB_DRAG_TYPE = "application/x-sedum-note-tab";
@@ -30,6 +30,8 @@ export function NoteTabs({ navigation, repository }: { navigation: WorkspaceNavi
           ? translate("settings.title")
           : tabId === GRAPH_TAB
             ? translate("graph.title")
+            : tabId === REMINDERS_TAB
+            ? translate("due.title")
             : databaseNotebookId !== null
             ? repository.notebooks().find((notebook) => notebook.id === databaseNotebookId)?.content.name ?? ""
             : repository.note(tabId)?.content.title || translate("sidebar.untitled");

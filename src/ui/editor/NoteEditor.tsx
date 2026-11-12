@@ -3,11 +3,14 @@
 
 import { type Editor, EditorContent, type JSONContent, useEditor } from "@tiptap/react";
 import { yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
-import { ChevronLeft, ListTree, MoreHorizontal, Star } from "lucide-react";
+import { AlarmClock, ChevronLeft, ListTree, MoreHorizontal, Star } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { bodyPlainText, BLOCK_EMBED_NODE, NOTE_LINK_NODE, plainTextHashtags } from "../../core/notes/bodyText";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
+import { isCursorInTaskItem, setTaskDueAtCursor, taskDueAtCursor } from "./dueMarks";
+import { DueDateDialog } from "../shared/DueDateDialog";
+import { formatDueTime } from "../shared/formatTime";
 import { useNoteLockState } from "../session/noteLockState";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
@@ -149,6 +152,8 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
     }
   }, [editor, noteId, blockToReveal]);
 
+  // 期限のダイアログを、何の期限のために開いているか（メモか、カーソルのあるチェックリストの項目か）。
+  const [dueTarget, setDueTarget] = useState<"note" | "task" | null>(null);
   const exportNote = useNoteFileExport(repository);
   // リンク先や結合の相手に選べるメモ（ゴミ箱の外で、いま開いているメモ以外）。
   const otherNotes = () => repository.notes().filter((candidate) => candidate.id !== noteId && candidate.content.trashedAt === null);
@@ -239,7 +244,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
   const templates = repository.notes()
     .filter((candidate) => candidate.content.isTemplate && candidate.content.trashedAt === null && candidate.id !== noteId && isRevealed(candidate))
     .map((template) => ({ id: template.id, title: template.content.title }));
-  slashMenuController.actions = { pickImage, pickFile, pickNoteLink, pickBlockLink, pickBlockEmbed, scanDocument: () => scanInput.current?.click(), templates, insertTemplate };
+  slashMenuController.actions = { pickImage, pickFile, pickNoteLink, pickBlockLink, pickBlockEmbed, scanDocument: () => scanInput.current?.click(), pickTaskDue: () => setDueTarget("task"), templates, insertTemplate };
 
   const actionError = attachments.errorMessage ?? audioRecorder.errorMessage ?? pasteMarkdown.errorMessage ?? exportNote.errorMessage ?? print.errorMessage;
   if (!editor) {
@@ -290,6 +295,11 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
               <span key={notebook.id} className="chip"><NotebookMark notebook={notebook} colors={notebookColors} />{notebook.content.name}</span>
             ))}
             {tags.map((tag) => <span key={tag} className="chip">#{tag}</span>)}
+            {note.content.dueAt !== null && (
+              <button type="button" className="chip due-chip" disabled={inTrash} onClick={() => setDueTarget("note")}>
+                <AlarmClock size={12} />{translate("due.chip", { time: formatDueTime(note.content.dueAt) })}
+              </button>
+            )}
             {unsyncedIds.has(noteId) && <span className="chip unsynced">{translate("editor.unsynced")}</span>}
             <NoteCharacterCount editor={editor} />
             <span className="updated">{translate("editor.updatedAt", { time: formatDateTime(note.updatedAt) })}</span>
@@ -358,8 +368,18 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
             void repository.updateNote(noteId, { isOutline: !isOutline });
           }}
           onZoomIntoItem={editor && isCursorInListItem(editor.state) ? () => zoomIntoItemAtCursor(editor) : undefined}
+          onSetNoteDue={() => setDueTarget("note")}
+          onSetTaskDue={editor && isCursorInTaskItem(editor.state) ? () => setDueTarget("task") : undefined}
           onShowHistory={() => setShowingHistory(true)} onExport={(format) => void exportNote.run({ notes: [note], format })}
           canChoosePageAlignment={!isMobile} onClose={() => setMenuAnchor(null)} />
+      )}
+      {dueTarget === "note" && (
+        <DueDateDialog title={translate("due.dialogTitleNote")} dueAt={note.content.dueAt} onClose={() => setDueTarget(null)}
+          onSave={(dueAt) => { setDueTarget(null); void repository.updateNote(noteId, { dueAt }); }} />
+      )}
+      {dueTarget === "task" && (
+        <DueDateDialog title={translate("due.dialogTitleTask")} dueAt={taskDueAtCursor(editor.state)} onClose={() => setDueTarget(null)}
+          onSave={(dueAt) => { setDueTarget(null); setTaskDueAtCursor(editor, dueAt); }} />
       )}
       {showingHistory && (
         <NoteHistoryDialog note={note} repository={repository} onClose={() => setShowingHistory(false)}
