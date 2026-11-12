@@ -24,6 +24,7 @@ import { Folding } from "./folding";
 import { HEADING_LEVELS } from "./headingLevels";
 import { Highlight } from "./highlightMark";
 import { DateTimeShortcuts } from "./insertDateTime";
+import { BlockDragHandle } from "./blockDragHandle";
 import { ColoredTableCell, ColoredTableHeader } from "./tableCellBackground";
 import { TableRowFilterExtension } from "./tableRowFilter";
 import { TableShortcuts } from "./tableShortcuts";
@@ -77,6 +78,7 @@ export function createEditorExtensions(body: Y.XmlFragment, slashMenuController:
     TableShortcuts,
     TableRowFilterExtension,
     MermaidDiagrams,
+    BlockDragHandle,
     DateTimeShortcuts,
     TypewriterScroll.configure({ isEnabled: () => readDevicePreferences().typewriterMode, scrollContainerSelector: ".document-scroll" }),
     SearchHighlight,

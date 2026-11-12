@@ -81,6 +81,12 @@ button:disabled { cursor: default; opacity: .55; }
 .pdf-page-number { min-width: 64px; text-align: center; }
 .pdf-preview-page { overflow: auto; max-height: 70vh; text-align: center; background: var(--tag); border-radius: 6px; padding: 8px; }
 .pdf-preview-page canvas { background: #ffffff; box-shadow: 0 1px 4px var(--shadow); }
+/* ブロックをドラッグする持ち手。エディタを包む要素（EditorContent）の中に、位置を決めて置く。 */
+.document > div:has(> .ProseMirror) { position: relative; }
+.block-drag-handle { position: absolute; width: 14px; height: 1.7em; height: 1lh; cursor: grab; border-radius: 4px; color: var(--muted); display: grid; place-items: center; user-select: none; }
+.block-drag-handle[hidden] { display: none; }
+.block-drag-handle::before { content: "⠿"; font-size: 13px; line-height: 1; }
+.block-drag-handle:hover { background: var(--selected); color: var(--text); }
 .backlinks { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); }
 .backlinks h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; }
 .sidebar-brand-actions { margin-left: auto; display: flex; gap: 2px; }
@@ -134,6 +140,11 @@ button:disabled { cursor: default; opacity: .55; }
 .tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--line); background: var(--sidebar); overflow-x: auto; flex: none; scrollbar-width: none; }
 .tab { display: flex; align-items: center; gap: 6px; padding: 7px 8px 7px 14px; border-radius: 8px 8px 0 0; color: var(--muted); font-size: 12.5px; max-width: 220px; flex: none; border: 1px solid transparent; }
 .tab .tab-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* タブとタブの間の区切り線。開いているタブと、マウスを乗せたタブの両隣には出さない（タブの形と線が重なって見えるため）。 */
+.tab { position: relative; }
+.tab + .tab::before { content: ""; position: absolute; left: -2px; top: 9px; bottom: 8px; width: 1px; background: var(--line); }
+.tab.on::before, .tab.on + .tab::before, .tab:hover::before, .tab:hover + .tab::before { background: none; }
+.tab:hover:not(.on) { background: var(--selected); }
 .tab .tab-close { width: 18px; height: 18px; border-radius: 4px; display: grid; place-items: center; visibility: hidden; }
 .tab:hover .tab-close, .tab.on .tab-close { visibility: visible; }
 .tab .tab-close:hover { background: var(--selected); }
@@ -434,7 +445,7 @@ details summary { cursor: pointer; color: var(--accent); }
   .workspace, .phone, .main, .document-area { display: block; height: auto; overflow: visible; }
   .document-scroll { overflow: visible; }
   .document { max-width: none; padding: 0; }
-  .sidebar, .tabs, .editor-bar, .find-bar, .outline, .backlinks, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
+  .sidebar, .tabs, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
   .document-meta .unsynced, .update-chip { display: none !important; }
   .search-match, .search-match.active { background: none; color: inherit; }
   .ProseMirror pre, .ProseMirror table, .attachment-image, .attachment-file { break-inside: avoid; }

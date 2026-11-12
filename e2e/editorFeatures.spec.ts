@@ -486,3 +486,28 @@ test("子の項目を持つ箇条書きと、見出しを折りたためる。�
   await expect(body.getByText("残る段落")).toBeVisible();
   await expect(shopping.locator(".fold-toggle")).toHaveAttribute("aria-expanded", "false");
 });
+
+test("ブロックにマウスを乗せると出る持ち手をドラッグすると、そのブロックを別の位置へ動かせる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "ドラッグのメモ");
+  await page.locator(".ProseMirror").click();
+  await page.keyboard.type("1 つ目");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("2 つ目");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("3 つ目");
+  const paragraphs = page.locator(".ProseMirror > p");
+  await expect(paragraphs).toHaveText(["1 つ目", "2 つ目", "3 つ目"]);
+
+  await paragraphs.nth(2).hover();
+  const handle = page.getByRole("button", { name: "ドラッグしてブロックを動かす" });
+  await expect(handle).toBeVisible();
+  // 3 つ目の段落を、1 つ目の段落の上へ落とす。
+  const handleBox = (await handle.boundingBox())!;
+  const firstParagraphBox = (await paragraphs.nth(0).boundingBox())!;
+  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(firstParagraphBox.x + 10, firstParagraphBox.y + 2, { steps: 8 });
+  await page.mouse.up();
+  await expect(paragraphs).toHaveText(["3 つ目", "1 つ目", "2 つ目"]);
+});

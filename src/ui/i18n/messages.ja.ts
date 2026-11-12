@@ -320,6 +320,7 @@ export const japaneseMessages = {
   "editor.newFromTemplate": "このテンプレートから新しいメモを作る",
   "editor.templateNamed": "テンプレート: {title}",
   "editor.outline": "目次",
+  "editor.dragBlock": "ドラッグしてブロックを動かす",
   "editor.fold": "折りたたむ",
   "editor.unfold": "開く",
   "editor.outlineEmpty": "見出しがありません",

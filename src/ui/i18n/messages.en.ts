@@ -322,6 +322,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "editor.newFromTemplate": "Create a note from this template",
   "editor.templateNamed": "Template: {title}",
   "editor.outline": "Outline",
+  "editor.dragBlock": "Drag to move the block",
   "editor.fold": "Fold",
   "editor.unfold": "Unfold",
   "editor.outlineEmpty": "No headings",
