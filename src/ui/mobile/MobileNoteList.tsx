@@ -61,9 +61,8 @@ export function NoteList({ title, summaries, notebooks, view, showChips, navigat
 function NoteListItem({ summary, notebooks, onOpen }: { summary: NoteSummary; notebooks: NotebookChoice[]; onOpen: (noteId: string) => void }) {
   const { note, plainText } = summary;
   const unsyncedIds = useContext(UnsyncedRecordsContext);
-  const { lockedNoteIds, concealedNoteIds } = useNoteLockState();
-  // 中身を隠しているメモは、写真の縮小も出さない。
-  const firstImage = concealedNoteIds.has(note.id) ? null : note.content.attachments.find((attachment) => attachment.mimeType.startsWith("image/")) ?? null;
+  const { lockedNoteIds } = useNoteLockState();
+  const firstImage = note.content.attachments.find((attachment) => attachment.mimeType.startsWith("image/")) ?? null;
   const thumbnail = useAttachmentUrl(firstImage?.id ?? null, firstImage?.mimeType);
   const notebookNames = notebooks.filter((notebook) => note.content.notebookIds.includes(notebook.id)).map((notebook) => notebook.name);
   return (

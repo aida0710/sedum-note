@@ -89,7 +89,7 @@ test("ノートブックをロックすると、中のメモがロックされ�
   await expect(page.locator(".ProseMirror")).toHaveText("残高の控え");
 });
 
-test("ロックしたメモの中身は、埋め込みにも AI チャットの「@」にも出ない", async ({ page }) => {
+test("ロックしたメモの中身は、埋め込みに出ず、ブロックの指定の相手にも選べない", async ({ page }) => {
   await startLocalVault(page);
   await createNoteOnDesktop(page, "計画");
   await page.keyboard.type("宿は駅前");

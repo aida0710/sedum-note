@@ -131,6 +131,33 @@ test("選択した文字と、「@」で指定したメモを、文脈として�
   await expect(chat(page).locator(".ai-message.user .chip")).toHaveText(["旅行の計画", "選択範囲（3 文字）"]);
 });
 
+test("ロックしたメモは、「@」の候補に出ず、開いていても AI へは渡らない", async ({ page }) => {
+  const requests = await mockClaudeApi(page, ["はい。"]);
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "旅行の計画");
+  await page.keyboard.type("出発は 8 月 3 日。");
+  await page.getByRole("button", { name: "その他の操作" }).last().click();
+  await page.getByRole("menuitem", { name: "メモをロック" }).click();
+  await expect(page.getByRole("region", { name: "ロックしたメモ" })).toBeVisible();
+  await createNoteOnDesktop(page, "持ち物");
+  await page.keyboard.type("パスポートと充電器");
+  await enableAi(page);
+  await page.getByLabel("API キー").fill("test-key");
+  await saveAiSettingsAndOpenChat(page, "持ち物");
+
+  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
+  await input.fill("@旅行");
+  await expect(chat(page).getByRole("option")).toHaveCount(0);
+  // ロックしたメモのタブを開いている間は、「開いているメモ」としても渡らない。
+  await page.getByRole("tab", { name: "旅行の計画" }).click();
+  await expect(page.getByRole("region", { name: "ロックしたメモ" })).toBeVisible();
+  await expect(chat(page).getByLabel("AI に渡す文脈").getByText(/開いているメモ/)).toHaveCount(0);
+  await input.fill("出発はいつ？");
+  await page.keyboard.press("Enter");
+  await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["はい。"]);
+  expect(JSON.stringify(requests[0]!.body)).not.toContain("8 月 3 日");
+});
+
 test("OpenAI 互換のエンドポイントをつなぎ先にして答えてもらえる。キーが断られたら、その旨を出す", async ({ page }) => {
   let authorized = true;
   const requests: Array<{ authorization: string | undefined; body: ChatRequestBody }> = [];

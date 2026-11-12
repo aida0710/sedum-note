@@ -33,7 +33,9 @@ export function lockedNoteIds(notes: LiveNote[], notebooks: LiveNotebook[]): Set
     .map((note) => note.id));
 }
 
-// 本文から読んだもの（文字、タグ、リンク）を抜いた要約。一覧・検索・グラフは、これを使えば題だけを出すことになる。
+// 題のほかの中身（本文から読んだ文字・タグ・リンク、添付、プロパティの値）を抜いた要約。
+// 一覧・検索・グラフ・クエリは、これを使えば題だけを出すことになる。
 export function concealSummary(summary: NoteSummary): NoteSummary {
-  return { note: summary.note, plainText: "", tags: [], linkedNoteIds: [] };
+  const { note } = summary;
+  return { note: { ...note, content: { ...note.content, attachments: [], propertyValues: {} } }, plainText: "", tags: [], linkedNoteIds: [] };
 }

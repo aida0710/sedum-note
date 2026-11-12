@@ -42,9 +42,11 @@ describe("lockedNoteIds", () => {
 });
 
 describe("concealSummary", () => {
-  it("本文から読んだ文字・タグ・リンクを抜いて、題だけを残す", () => {
-    const summary = summarizeNote(note("日記"));
+  it("本文から読んだ文字・タグ・リンクと、プロパティの値を抜いて、題だけを残す", () => {
+    const summary = summarizeNote(note("日記", { propertyValues: { mood: "良い" } }));
     expect(summary.tags).toEqual(["秘密"]);
-    expect(concealSummary(summary)).toEqual({ note: summary.note, plainText: "", tags: [], linkedNoteIds: [] });
+    const concealed = concealSummary(summary);
+    expect(concealed).toMatchObject({ plainText: "", tags: [], linkedNoteIds: [] });
+    expect(concealed.note.content).toMatchObject({ title: "日記", propertyValues: {}, attachments: [] });
   });
 });

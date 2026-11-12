@@ -135,4 +135,16 @@ describe("MCP で本文を読んで書き戻したときに残るもの", () => 
     // 書き換える前の本文は履歴にある。
     expect((await repository.noteVersions(note.id)).map((version) => version.reason)).toEqual(["replace"]);
   });
+
+  it("ロックしたメモは、検索に題だけが出て、読むことも書き換えることもできない", async () => {
+    const { repository, run } = await toolsOver();
+    const created = await run("create_note", { title: "日記", markdown: "海へ行った #秘密\n" });
+    await repository.updateNote(created.noteId, { isLocked: true });
+    expect((await run("search_notes", { query: "海へ" })).totalCount).toBe(0);
+    expect((await run("search_notes", { query: "日記" })).notes).toMatchObject([{ noteId: created.noteId, title: "日記", locked: true, tags: [], excerpt: "" }]);
+    expect((await run("list_tags")).tags).toEqual([]);
+    await expect(run("get_note", { noteId: created.noteId })).rejects.toThrow(/locked/);
+    await expect(run("append_to_note", { noteId: created.noteId, markdown: "追記" })).rejects.toThrow(/locked/);
+    await expect(run("update_note", { noteId: created.noteId, notebookIds: [] })).rejects.toThrow(/locked/);
+  });
 });
