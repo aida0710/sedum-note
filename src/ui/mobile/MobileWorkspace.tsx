@@ -36,6 +36,10 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
   // （戻るための履歴は、最初に開いたときの 1 つしか積んでいない）。
   const closeOpenNotes = () => navigation.openTabs.filter((tabId) => tabId !== SETTINGS_TAB).forEach(navigation.closeTab);
   const goBack = useBackGestureToClose(openNote !== undefined, closeOpenNotes);
+  // 設定のページを開いている間も、端末の「戻る」でページの一覧へ戻す。下のタブで別の画面へ移るときは、
+  // 積んだ履歴をここで外す（残すと、次の「戻る」が 1 回空振りする）。
+  const settingsPageOpen = openNote === undefined && tab === "settings" && navigation.settingsPage !== null;
+  const closeSettingsPage = useBackGestureToClose(settingsPageOpen, () => navigation.selectSettingsPage(null));
 
   if (openNote) {
     return (
@@ -58,6 +62,9 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
   const view: NoteView = tab === "bookmarked" ? { kind: "bookmarked" } : navigation.view;
   const createNote = async () => navigation.openNote((await createNoteInView(repository, view)).id);
   const selectTab = (next: MobileTab) => {
+    if (settingsPageOpen) {
+      closeSettingsPage();
+    }
     setTab(next);
     // 下の「設定」を押したら、いつもページの一覧から始める。
     if (next === "settings") {
@@ -72,7 +79,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
     <div className="phone">
       {tab === "settings" && (
         <SettingsPanel session={session} vault={vault} unreadableCount={snapshot.unreadableCount} isMobile
-          page={navigation.settingsPage} onSelectPage={navigation.selectSettingsPage} />
+          page={navigation.settingsPage} onSelectPage={navigation.selectSettingsPage} onBackToPageList={closeSettingsPage} />
       )}
       {tab === "notebooks" && (
         <MobileLibrary snapshot={snapshot} repository={repository}

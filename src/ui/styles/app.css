@@ -1,4 +1,5 @@
-/* 色と寸法は、選ばれた案C（artifacts/design-options/2026-11-10/prototype.html）に合わせる。 */
+/* 色と寸法は、選ばれた案C（artifacts/design-options/2026-11-10/prototype.html）に合わせる。角丸・部品の高さ・文字の大きさは、
+   案C の値をもとに役割ごとに 1 つにそろえた（下の変数。案C のタブ 12.5px、チップ 11.5px、写真の角丸 10px は、それぞれ 12px、12px、8px にした）。 */
 :root {
   /* テーマの色（--canvas、--text など）と --editor-font-size は theme/applyAppearance.ts が入れる。 */
   --bookmark: #d4a017;
@@ -286,6 +287,8 @@ button:disabled { cursor: default; opacity: .55; }
 .ProseMirror li:hover > .fold-toggle, .ProseMirror li:hover > div > .fold-toggle, .ProseMirror h1:hover > .fold-toggle, .ProseMirror h2:hover > .fold-toggle, .ProseMirror h3:hover > .fold-toggle,
 .ProseMirror h4:hover > .fold-toggle, .ProseMirror h5:hover > .fold-toggle, .ProseMirror h6:hover > .fold-toggle { opacity: 1; }
 .ProseMirror h1 > .fold-toggle, .ProseMirror h2 > .fold-toggle, .ProseMirror h3 > .fold-toggle, .ProseMirror h4 > .fold-toggle, .ProseMirror h5 > .fold-toggle, .ProseMirror h6 > .fold-toggle { left: -20px; }
+/* スマホは本文の左の余白（18px）が狭いので、見出しの印を内側に寄せて、画面の端からはみ出さないようにする。 */
+.phone .ProseMirror :is(h1, h2, h3, h4, h5, h6) > .fold-toggle { left: -17px; width: 14px; }
 /* 箇条書きへのズーム。道筋の上にないものを隠し、道筋の上の入れ物からは字下げと印を外して、項目を本文の左端から出す。 */
 .ProseMirror .zoom-hidden { display: none; }
 .ProseMirror ul.zoom-path, .ProseMirror ol.zoom-path { padding-left: 0; margin: 0; }
@@ -453,8 +456,8 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .field select { min-width: 0; width: 100%; height: var(--control-height); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 8px; background: var(--panel); }
 .field input[type="file"] { height: auto; padding: 6px 8px; }
 .field input:focus { border-color: var(--accent); outline: 0; }
-/* 設定の選択欄は、選ぶ言葉が短いので、ページの幅いっぱいには広げない。 */
-.settings-section .field select { max-width: 360px; }
+/* 設定の選択欄は、選択肢の長さに合わせる（ページの幅いっぱいに広げると、短い選択肢のときに間延びする）。 */
+.settings-section .field select { width: auto; min-width: 240px; max-width: 100%; }
 .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .checkbox-line { display: flex; gap: 8px; align-items: center; }
 .form-error { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); border-radius: var(--radius-control); padding: 8px 10px; line-height: 1.5; }

@@ -5,7 +5,6 @@ import { ChevronLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import type { UnlockedVault } from "../../core/vault/vaultSession";
 import { translate } from "../i18n/translate";
-import { useBackGestureToClose } from "../mobile/useBackGestureToClose";
 import type { VaultSession } from "../session/useVaultSession";
 import { SettingsNavigation, SettingsPageList } from "./SettingsNavigation";
 import { SettingsPageContent } from "./SettingsPageContent";
@@ -20,14 +19,17 @@ type SettingsPanelProps = {
   // 開いているページ。null はまだ選んでいない（PC では最初のページ、スマホではページの一覧を出す）。
   page: SettingsPage | null;
   onSelectPage: (page: SettingsPage | null) => void;
+  // スマホで、開いているページからページの一覧へ戻る（端末の「戻る」の履歴も外す）。PC では使わない。
+  onBackToPageList?: () => void;
 };
 
-export function SettingsPanel({ session, vault, unreadableCount, isMobile, page, onSelectPage }: SettingsPanelProps) {
+export function SettingsPanel({ session, vault, unreadableCount, isMobile, page, onSelectPage, onBackToPageList }: SettingsPanelProps) {
   const pages = settingsPagesFor({ isMobile });
   // 開けない記録の知らせは、どのページを開いていても出す。
   const unreadableWarning = unreadableCount > 0 && <div className="form-error">{translate("settings.unreadable", { count: unreadableCount })}</div>;
   if (isMobile) {
-    return <PhoneSettings session={session} vault={vault} pages={pages} page={page} onSelectPage={onSelectPage} unreadableWarning={unreadableWarning} />;
+    return <PhoneSettings session={session} vault={vault} pages={pages} page={page} onSelectPage={onSelectPage}
+      onBackToPageList={onBackToPageList ?? (() => onSelectPage(null))} unreadableWarning={unreadableWarning} />;
   }
   const shownPage = page !== null && pages.includes(page) ? page : FIRST_SETTINGS_PAGE;
   return (
@@ -45,13 +47,12 @@ export function SettingsPanel({ session, vault, unreadableCount, isMobile, page,
 
 type PhoneSettingsProps = Pick<SettingsPanelProps, "session" | "vault" | "page" | "onSelectPage"> & {
   pages: SettingsPage[];
+  onBackToPageList: () => void;
   unreadableWarning: ReactNode;
 };
 
-function PhoneSettings({ session, vault, pages, page, onSelectPage, unreadableWarning }: PhoneSettingsProps) {
+function PhoneSettings({ session, vault, pages, page, onSelectPage, onBackToPageList, unreadableWarning }: PhoneSettingsProps) {
   const shownPage = page !== null && pages.includes(page) ? page : null;
-  // 端末の「戻る」で、アプリを閉じずにページの一覧へ戻す。
-  const goBack = useBackGestureToClose(shownPage !== null, () => onSelectPage(null));
   if (shownPage === null) {
     return (
       <div className="document-scroll">
@@ -66,7 +67,7 @@ function PhoneSettings({ session, vault, pages, page, onSelectPage, unreadableWa
   return (
     <>
       <div className="phone-top">
-        <button type="button" className="phone-back" onClick={goBack}><ChevronLeft size={20} />{translate("settings.title")}</button>
+        <button type="button" className="phone-back" onClick={onBackToPageList}><ChevronLeft size={20} />{translate("settings.title")}</button>
       </div>
       <div className="document-scroll">
         <div className="settings">
