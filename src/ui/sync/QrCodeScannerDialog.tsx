@@ -65,8 +65,7 @@ export function QrCodeScannerDialog({ onRead, onClose }: QrCodeScannerDialogProp
   }, []);
 
   return (
-    <ModalDialog label={translate("syncSetup.scanTitle")} className="qr-code-scanner" onClose={onClose}>
-      <h2>{translate("syncSetup.scanTitle")}</h2>
+    <ModalDialog label={translate("syncSetup.scanTitle")} title={translate("syncSetup.scanTitle")} className="qr-code-scanner" onClose={onClose}>
       {cameraProblem === null ? (
         <>
           <p>{translate("syncSetup.scanDescription")}</p>

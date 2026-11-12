@@ -31,9 +31,15 @@ test.describe("システムの言語が英語のとき", () => {
     await expect(page.getByText(/^Updated /)).toBeVisible();
     expect(await visibleTextOutsideLanguageNames(page)).not.toMatch(JAPANESE_CHARACTERS);
 
-    await page.getByRole("button", { name: /Sync is not set up/ }).click();
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
-    expect(await visibleTextOutsideLanguageNames(page)).not.toMatch(JAPANESE_CHARACTERS);
+    // 設定はページに分かれているので、全部のページを開いて確かめる。
+    const settingsPages = page.getByRole("navigation", { name: "Settings pages" }).getByRole("button");
+    for (const pageName of await settingsPages.allInnerTexts()) {
+      await settingsPages.filter({ hasText: pageName }).click();
+      await expect(settingsPages.filter({ hasText: pageName })).toHaveAttribute("aria-current", "page");
+      expect(await visibleTextOutsideLanguageNames(page), `the settings page "${pageName}"`).not.toMatch(JAPANESE_CHARACTERS);
+    }
   });
 
   test("設定で言語を日本語に変えると、開いたまま文言が入れ替わり、開き直しても保たれる", async ({ page }) => {
@@ -41,7 +47,7 @@ test.describe("システムの言語が英語のとき", () => {
     await page.getByLabel("Passphrase", { exact: true }).fill(PASSPHRASE);
     await page.getByLabel("Passphrase (confirm)").fill(PASSPHRASE);
     await page.getByRole("button", { name: "Create" }).click();
-    await page.getByRole("button", { name: /Sync is not set up/ }).click();
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
     await page.getByLabel("Language").selectOption("ja");
     await expect(page.getByRole("heading", { name: "設定" })).toBeVisible();
     await expect(page.getByRole("button", { name: "新しいメモ" })).toBeVisible();

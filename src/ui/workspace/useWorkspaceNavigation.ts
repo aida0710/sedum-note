@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import type { NoteView } from "../../core/notes/noteQueries";
 import type { BlockToReveal } from "../editor/noteLinkTargets";
+import { SETTINGS_PAGES, type SettingsPage } from "../settings/settingsPages";
 
 // 設定はメモと同じくタブで開く。メモの ID（16 進）と重ならない名前にする。
 export const SETTINGS_TAB = "settings";
@@ -32,7 +33,11 @@ export type WorkspaceNavigation = {
   blockToReveal: BlockToReveal | null;
   // メモ以外のタブ（データベース表示）を開く。
   openTab: (tabId: string) => void;
-  openSettings: () => void;
+  // 設定のタブを開く。ページを渡すとそのページを出し、渡さなければ前に見ていたページのままにする。
+  openSettings: (page?: SettingsPage) => void;
+  // 設定で開いているページ。null はまだ選んでいない（スマホではページの一覧を出す）。
+  settingsPage: SettingsPage | null;
+  selectSettingsPage: (page: SettingsPage | null) => void;
   closeTab: (tabId: string) => void;
   // タブを、別のタブの位置へ動かす（ドラッグでの並べ替え）。
   moveTab: (tabId: string, toTabId: string) => void;
@@ -68,6 +73,7 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
   const [searchText, setSearchText] = useState("");
   const [searchFocusRequest, setSearchFocusRequest] = useState(0);
   const [findInNoteRequest, setFindInNoteRequest] = useState(0);
+  const [settingsPage, setSettingsPage] = useState<SettingsPage | null>(null);
 
   const [blockToReveal, setBlockToReveal] = useState<BlockToReveal | null>(null);
 
@@ -115,13 +121,22 @@ export function useWorkspaceNavigation(): WorkspaceNavigation {
     [expandedOverrides],
   );
 
+  const openSettings = useCallback((page?: SettingsPage) => {
+    // ボタンの onClick にそのまま渡されると、押したときの出来事が来るので、ページの名前のときだけ読む。
+    if (page !== undefined && SETTINGS_PAGES.includes(page)) {
+      setSettingsPage(page);
+    }
+    openTab(SETTINGS_TAB);
+  }, [openTab]);
+
   const selectView = useCallback((next: NoteView) => {
     setView(next);
     setExpanded(viewKey(next), true);
   }, [setExpanded]);
 
   return {
-    view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote, blockToReveal, openTab, openSettings: () => openTab(SETTINGS_TAB), closeTab, moveTab,
+    view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote, blockToReveal, openTab, openSettings, closeTab, moveTab,
+    settingsPage, selectSettingsPage: setSettingsPage,
     isExpanded, setExpanded, searchText, setSearchText,
     searchFocusRequest, requestSearchFocus: () => setSearchFocusRequest((count) => count + 1),
     findInNoteRequest, requestFindInNote: () => setFindInNoteRequest((count) => count + 1),

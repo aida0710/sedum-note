@@ -37,9 +37,7 @@ export function NoteHistoryDialog({ note, repository, onRestored, onClose }: Not
   });
 
   return (
-    <ModalDialog label={translate("editor.history")} className="note-history" onClose={onClose}>
-        <p className="note-history-title">{translate("editor.history")}</p>
-        <p className="hint">{translate("history.localOnly")}</p>
+    <ModalDialog label={translate("editor.history")} title={translate("editor.history")} description={translate("history.localOnly")} className="note-history" onClose={onClose}>
         {versions?.length === 0 && <p>{translate("history.empty")}</p>}
         {versions && versions.length > 0 && (
           <div className="note-history-body">

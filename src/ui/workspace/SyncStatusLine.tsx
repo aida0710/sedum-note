@@ -1,4 +1,4 @@
-// 左の列の下の同期の状態。押すと設定を開く。
+// 左の列の下の同期の状態。押すと設定の同期のページを開く。
 
 import { useContext, useEffect, useState } from "react";
 import type { SyncStatus } from "../../core/sync/autoSync";
@@ -37,7 +37,7 @@ export function describeSyncStatus({ status, now, unsyncedCount, automatic }: Sy
   return { text: translate("sync.synced", { time }), dotClass: "" };
 }
 
-export function SyncStatusLine({ status, onOpenSettings }: { status: SyncStatus | null; onOpenSettings: () => void }) {
+export function SyncStatusLine({ status, onOpenSyncSettings }: { status: SyncStatus | null; onOpenSyncSettings: () => void }) {
   const unsyncedCount = useContext(UnsyncedRecordsContext).size;
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -47,8 +47,8 @@ export function SyncStatusLine({ status, onOpenSettings }: { status: SyncStatus 
   const { autoSync: automatic } = useDevicePreferences();
   const { text, dotClass } = describeSyncStatus({ status, now, unsyncedCount, automatic });
   return (
-    <button className="sync-line" onClick={onOpenSettings}>
-      <span className={`status-dot ${dotClass}`} />{text}
+    <button className="sync-line" onClick={() => onOpenSyncSettings()}>
+      <span className={`status-dot ${dotClass}`} /><span className="sync-line-text">{text}</span>
     </button>
   );
 }

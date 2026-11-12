@@ -1,6 +1,6 @@
 // 案C の PC の組み方: 左にノートブックの木、右にタブとエディタ。
 
-import { Minimize2 } from "lucide-react";
+import { Minimize2, Settings } from "lucide-react";
 import { useState } from "react";
 import { languageInUse } from "../i18n/languageInUse";
 import { translate } from "../i18n/translate";
@@ -59,7 +59,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
     nextTab: () => openNeighborTab(1),
     previousTab: () => openNeighborTab(-1),
     closeTab: () => navigation.activeTab && navigation.closeTab(navigation.activeTab),
-    openSettings: navigation.openSettings,
+    openSettings: () => navigation.openSettings(),
     graph: () => navigation.openTab(GRAPH_TAB),
     aiChat: () => aiChat.setOpen(!aiChat.open),
     dailyNote: () => void openDailyNote(),
@@ -78,7 +78,18 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
       )}
       <Sidebar snapshot={snapshot} repository={repository} navigation={navigation} onCreateNote={() => void createNote()}
         onOpenDailyNote={() => void openDailyNote()} onEnterFocusMode={() => setFocusMode(true)} onOpenGraph={() => navigation.openTab(GRAPH_TAB)}
-        footer={<><UpdateChip onOpenSettings={navigation.openSettings} /><SyncStatusLine status={session.syncStatus} onOpenSettings={navigation.openSettings} /></>} />
+        footer={(
+          <>
+            <UpdateChip onOpenSettings={() => navigation.openSettings("update")} />
+            <div className="sidebar-footer">
+              <SyncStatusLine status={session.syncStatus} onOpenSyncSettings={() => navigation.openSettings("sync")} />
+              <button type="button" className="icon-button" aria-label={translate("settings.title")} title={translate("settings.title")}
+                onClick={() => navigation.openSettings()}>
+                <Settings size={16} />
+              </button>
+            </div>
+          </>
+        )} />
       {paletteOpen && (
         <CommandPalette notes={snapshot.notes.filter((note) => note.content.trashedAt === null)} commands={paletteCommands}
           onOpenNote={navigation.openNote} onClose={() => setPaletteOpen(false)} />
@@ -86,7 +97,8 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
       <main className="main">
         <NoteTabs navigation={navigation} repository={repository} />
         {navigation.activeTab === SETTINGS_TAB && (
-          <SettingsPanel session={session} vault={vault} unreadableCount={snapshot.unreadableCount} isMobile={false} />
+          <SettingsPanel session={session} vault={vault} unreadableCount={snapshot.unreadableCount} isMobile={false}
+            page={navigation.settingsPage} onSelectPage={navigation.selectSettingsPage} />
         )}
         {activeNote && (
           <NoteLinkTargetsContext.Provider value={createNoteLinkTargets(repository, navigation)}>

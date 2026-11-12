@@ -1,0 +1,51 @@
+// 設定の 1 ページに並べる欄。どの欄をどのページに置くかを、ここで決める。
+
+import { useContext } from "react";
+import type { UnlockedVault } from "../../core/vault/vaultSession";
+import { AiSection } from "../ai/AiSection";
+import type { VaultSession } from "../session/useVaultSession";
+import { BackupSection } from "./BackupSection";
+import { CustomCssSection } from "./CustomCssSection";
+import { DailyNoteSection } from "./DailyNoteSection";
+import { DisplaySection } from "./DisplaySection";
+import { LockSection } from "./LockSection";
+import { MarkdownSection } from "./MarkdownSection";
+import { McpSectionSlot } from "./mcpSectionSlot";
+import { PassphraseSection } from "./PassphraseSection";
+import type { SettingsPage } from "./settingsPages";
+import { ShortcutsSection } from "./ShortcutsSection";
+import { SyncSection } from "./SyncSection";
+import { ThemeSection } from "./ThemeSection";
+import { TrashSection } from "./TrashSection";
+import { UpdateSection } from "./UpdateSection";
+import { WipeDeviceDataSection } from "./WipeDeviceDataSection";
+
+type SettingsPageContentProps = {
+  page: SettingsPage;
+  session: VaultSession;
+  vault: UnlockedVault;
+};
+
+export function SettingsPageContent({ page, session, vault }: SettingsPageContentProps) {
+  const { repository } = vault;
+  // PC 版では MCP の欄が入っている。Web 版と Android のアプリでは null。
+  const mcpSection = useContext(McpSectionSlot);
+  switch (page) {
+    case "general":
+      return <><DisplaySection /><DailyNoteSection notebooks={repository.notebooks()} /><TrashSection /></>;
+    case "appearance":
+      return <><ThemeSection /><CustomCssSection /></>;
+    case "sync":
+      return <SyncSection session={session} vault={vault} />;
+    case "data":
+      return <><BackupSection session={session} /><MarkdownSection repository={repository} /></>;
+    case "security":
+      return <><PassphraseSection session={session} /><LockSection session={session} /><WipeDeviceDataSection session={session} /></>;
+    case "shortcuts":
+      return <ShortcutsSection />;
+    case "ai":
+      return <>{mcpSection}<AiSection /></>;
+    case "update":
+      return <UpdateSection repository={repository} />;
+  }
+}

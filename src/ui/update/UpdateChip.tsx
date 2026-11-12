@@ -1,4 +1,4 @@
-// 新しいバージョンがあるときに出す小さな知らせ。押すと設定（更新の欄）を開く。
+// 新しいバージョンがあるときに出す小さな知らせ。押すと設定の更新のページを開く。
 
 import { ArrowUpCircle } from "lucide-react";
 import { useContext } from "react";
@@ -11,7 +11,7 @@ export function UpdateChip({ onOpenSettings }: { onOpenSettings: () => void }) {
     return null;
   }
   return (
-    <button type="button" className="update-chip" onClick={onOpenSettings}>
+    <button type="button" className="update-chip" onClick={() => onOpenSettings()}>
       <ArrowUpCircle size={14} />{translate("update.available", { version: availableUpdate.version })}
     </button>
   );

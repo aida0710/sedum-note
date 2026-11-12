@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, startLocalVault } from "./devices";
+import { createNoteOnDesktop, openSettingsPage, startLocalVault } from "./devices";
 
 // 写真の代わりの、細かいむらのある大きな画像を作る。
 async function largePhoto(page: Page, width: number, height: number): Promise<Buffer> {
@@ -38,7 +38,7 @@ test("写真は既定では元のまま貼り、「小さくして貼る」に�
   await expect(page.locator(".attachment-image img")).toBeVisible();
   expect(await attachedImageWidth(page)).toBe(4000);
 
-  await page.locator(".sync-line").click();
+  await openSettingsPage(page, "一般");
   await page.getByLabel("写真を貼るとき").selectOption("reduced");
   await page.getByRole("button", { name: "新しいメモ" }).click();
   await page.getByPlaceholder("タイトル").fill("小さくした写真");
@@ -51,7 +51,7 @@ test("写真は既定では元のまま貼り、「小さくして貼る」に�
 
 test("「貼るたびに聞く」では、小さくするか元のままかを選べる。もう小さい写真は縮めない", async ({ page }) => {
   await openNewNote(page);
-  await page.locator(".sync-line").click();
+  await openSettingsPage(page, "一般");
   await page.getByLabel("写真を貼るとき").selectOption("ask");
   await page.getByRole("tab", { name: "写真のメモ" }).click();
 
@@ -71,7 +71,7 @@ test("「貼るたびに聞く」では、小さくするか元のままかを�
 test("印刷では、開いているメモの本文だけを、明るい色で出す", async ({ page }) => {
   await openNewNote(page);
   await page.keyboard.type("印刷する本文");
-  await page.locator(".sync-line").click();
+  await openSettingsPage(page, "外観");
   await page.getByRole("radio", { name: "ミッドナイト" }).click();
   await page.getByRole("tab", { name: "写真のメモ" }).click();
 

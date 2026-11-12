@@ -64,7 +64,18 @@ export async function openSyncedDevice(browser: Browser, { remoteConfig, join, v
   return page;
 }
 
-// PC の画面で、設定の「今すぐ同期」を押して終わるのを待ち、元のメモのタブへ戻る。
+// PC の画面で、左下の歯車から設定を開き、左のページの一覧からページを選ぶ（ページの名前は一覧の文言）。
+export async function openSettingsPage(page: Page, pageName: string): Promise<void> {
+  await page.getByRole("button", { name: "設定", exact: true }).click();
+  await selectSettingsPage(page, pageName);
+}
+
+// 開いている設定で、左のページの一覧からページを選ぶ。
+export async function selectSettingsPage(page: Page, pageName: string): Promise<void> {
+  await page.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: pageName, exact: true }).click();
+}
+
+// PC の画面で、設定の「今すぐ同期」を押して終わるのを待ち、元のメモのタブへ戻る。左下の同期の状態を押すと、同期のページが開く。
 export async function syncNowOnDesktop(page: Page, noteTitle: string): Promise<void> {
   await page.locator(".sync-line").click();
   const syncNow = page.getByRole("button", { name: "今すぐ同期" });

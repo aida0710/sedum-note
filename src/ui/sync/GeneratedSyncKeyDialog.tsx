@@ -7,8 +7,7 @@ import { ModalDialog } from "../shared/ModalDialog";
 export function GeneratedSyncKeyDialog({ syncKey, onClose }: { syncKey: string; onClose: () => void }) {
   return (
     // 背景を押しただけで消えないように、閉じるのは「控えました」のボタンだけにする。
-    <ModalDialog label={translate("syncKey.generatedTitle")} onClose={() => undefined}>
-      <h2>{translate("syncKey.generatedTitle")}</h2>
+    <ModalDialog label={translate("syncKey.generatedTitle")} title={translate("syncKey.generatedTitle")} onClose={() => undefined}>
       <p>{translate("syncKey.generatedDescription")}</p>
       <div className="generated-passphrase">
         <code>{syncKey}</code>

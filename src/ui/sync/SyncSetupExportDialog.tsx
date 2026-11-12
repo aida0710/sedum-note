@@ -32,8 +32,7 @@ export function SyncSetupExportDialog({ setup, onClose }: { setup: string; onClo
     }));
   });
   return (
-    <ModalDialog label={translate("syncSetup.exportTitle")} className="sync-setup-export" onClose={onClose}>
-      <h2>{translate("syncSetup.exportTitle")}</h2>
+    <ModalDialog label={translate("syncSetup.exportTitle")} title={translate("syncSetup.exportTitle")} className="sync-setup-export" onClose={onClose}>
       <p>{translate("syncSetup.exportDescription")}</p>
       {qrCodeImage && <img className="sync-setup-qr" src={qrCodeImage} alt={translate("syncSetup.qrCodeLabel")} />}
       {save.errorMessage && <div className="form-error" role="alert">{save.errorMessage}</div>}

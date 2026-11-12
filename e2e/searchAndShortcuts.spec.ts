@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, startLocalVault } from "./devices";
+import { createNoteOnDesktop, selectSettingsPage, startLocalVault } from "./devices";
 
 async function newNote(page: Page, title: string, body: string): Promise<void> {
   await createNoteOnDesktop(page, title);
@@ -57,10 +57,13 @@ test("ショートカットで、新しいメモ・タブの切り替え・タ�
   await expect(page.getByRole("tab")).toHaveText(["1 つ目"]);
 
   await page.keyboard.press("Control+,");
+  await selectSettingsPage(page, "ショートカット");
   await expect(page.getByRole("heading", { name: "キーボードショートカット" })).toBeVisible();
   await expect(page.locator(".shortcut-list").first()).toContainText("Ctrl + Alt + N");
   await expect(page.locator(".shortcut-list").last()).toContainText("Ctrl + Alt + Enter");
 
+  // データの消去は、セキュリティのページにある。
+  await selectSettingsPage(page, "セキュリティ");
   await page.getByRole("button", { name: "このデバイスのデータを消す" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Control+Alt+n");

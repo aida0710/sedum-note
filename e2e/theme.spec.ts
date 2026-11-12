@@ -1,9 +1,10 @@
 import { expect, type Page, test } from "@playwright/test";
-import { PASSPHRASE, startLocalVault } from "./devices";
+import { openSettingsPage, PASSPHRASE, startLocalVault } from "./devices";
 
-async function openSettingsOfNewVault(page: Page): Promise<void> {
+// 新しい vault を作り、設定の外観のページ（テーマとカスタム CSS）を開く。
+async function openAppearanceOfNewVault(page: Page): Promise<void> {
   await startLocalVault(page);
-  await page.getByRole("button", { name: /同期は未設定/ }).click();
+  await openSettingsPage(page, "外観");
 }
 
 function cssVariable(page: Page, name: string): Promise<string> {
@@ -11,7 +12,7 @@ function cssVariable(page: Page, name: string): Promise<string> {
 }
 
 test("テーマを選ぶとすぐ色が変わり、開き直したロック解除の画面にも当たる", async ({ page }) => {
-  await openSettingsOfNewVault(page);
+  await openAppearanceOfNewVault(page);
   expect(await cssVariable(page, "--panel")).toBe("#ffffff");
   await page.getByRole("radio", { name: "ミッドナイト" }).click();
   expect(await cssVariable(page, "--canvas")).toBe("#000000");
@@ -22,12 +23,12 @@ test("テーマを選ぶとすぐ色が変わり、開き直したロック解�
 
 test("システムに合わせるテーマは、OS がダークならダークの色になる", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "dark" });
-  await openSettingsOfNewVault(page);
+  await openAppearanceOfNewVault(page);
   expect(await cssVariable(page, "--panel")).toBe("#1d2025");
 });
 
 test("自作のテーマは、読めない色の組み合わせでは保存できず、直すと保存して使える", async ({ page }) => {
-  await openSettingsOfNewVault(page);
+  await openAppearanceOfNewVault(page);
   await page.getByRole("button", { name: "テーマを作る" }).click();
   await page.getByLabel("テーマの名前").fill("わたしの色");
   await page.getByLabel("文字", { exact: true }).fill("#f0f0f0");
@@ -49,15 +50,16 @@ test("自作のテーマは、読めない色の組み合わせでは保存で�
 });
 
 test("本文の文字の大きさを変えると、エディタの文字が大きくなる", async ({ page }) => {
-  await openSettingsOfNewVault(page);
+  await startLocalVault(page);
+  await openSettingsPage(page, "一般");
   await page.getByLabel("本文の文字の大きさ").selectOption("large");
   await page.getByRole("button", { name: "新しいメモ" }).click();
   await expect(page.locator(".ProseMirror")).toHaveCSS("font-size", "16.5px");
 });
 
 test("カスタム CSS は、ロックを解除している間だけ当たり、ロック解除の画面でオフにできる", async ({ page }) => {
-  await openSettingsOfNewVault(page);
-  await page.getByRole("textbox", { name: "カスタム CSS" }).fill(".settings h1 { letter-spacing: 7px; }");
+  await openAppearanceOfNewVault(page);
+  await page.getByRole("textbox", { name: "カスタム CSS" }).fill(".settings-navigation h1 { letter-spacing: 7px; }");
   await page.getByRole("button", { name: "適用" }).click();
   const headingSpacing = () => page.getByRole("heading", { name: "設定", exact: true }).evaluate((heading) => getComputedStyle(heading).letterSpacing);
   await expect.poll(headingSpacing).toBe("7px");
@@ -68,7 +70,7 @@ test("カスタム CSS は、ロックを解除している間だけ当たり、
   await page.getByLabel("カスタム CSS をオフにして開く").click();
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await page.getByRole("button", { name: "解除" }).click();
-  await page.getByRole("button", { name: /同期は未設定/ }).click();
+  await openSettingsPage(page, "外観");
   await expect.poll(headingSpacing).not.toBe("7px");
   await expect(page.getByRole("checkbox", { name: "カスタム CSS を当てる" })).not.toBeChecked();
 });

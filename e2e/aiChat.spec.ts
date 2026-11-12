@@ -1,12 +1,12 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, startLocalVault } from "./devices";
+import { createNoteOnDesktop, openSettingsPage, startLocalVault } from "./devices";
 
 // 試験では AI の提供元へつながない。届いた要求を覚えて、ストリーミングの形の決まった答えを返す。
 
 type ChatRequestBody = { model: string; stream: boolean; fallbacks?: unknown; messages: Array<{ role: string; content: string }> };
 
 async function enableAi(page: Page): Promise<void> {
-  await page.getByRole("button", { name: /同期は未設定/ }).click();
+  await openSettingsPage(page, "AI");
   await page.getByRole("checkbox", { name: "アプリ内の AI を使う" }).check();
 }
 

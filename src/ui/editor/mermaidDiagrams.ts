@@ -15,14 +15,33 @@ type RenderDiagram = (source: string) => Promise<string>;
 let loading: Promise<RenderDiagram> | null = null;
 let renderedDiagramCount = 0;
 
+// 図の色と文字を、いまのテーマから作る（Mermaid の既定の色はアプリのテーマと合わない）。Mermaid は色から影の色などを
+// 計算するので、CSS の変数そのものではなく、テーマが入れた色の値（#rrggbb）を渡す。
+function diagramThemeVariables(): Record<string, string> {
+  const root = getComputedStyle(document.documentElement);
+  const color = (name: string) => root.getPropertyValue(name).trim();
+  return {
+    darkMode: String(document.documentElement.style.colorScheme === "dark"),
+    background: color("--panel"),
+    primaryColor: color("--accent-soft"),
+    primaryTextColor: color("--text"),
+    primaryBorderColor: color("--accent"),
+    secondaryColor: color("--tag"),
+    tertiaryColor: color("--panel"),
+    lineColor: color("--muted"),
+    textColor: color("--text"),
+    fontFamily: root.fontFamily,
+    fontSize: root.getPropertyValue("--font-size-ui").trim(),
+  };
+}
+
 function loadDiagramRenderer(): Promise<RenderDiagram> {
-  loading ??= import("mermaid").then(({ default: mermaid }) => {
+  loading ??= import("mermaid").then(({ default: mermaid }) => async (source) => {
+    // 描くたびにいまのテーマの色を入れる（読み込んだあとにテーマを変えても、次に描く図から合う）。
     // strict: 図の中のスクリプトとリンクを効かせない。
-    mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: document.documentElement.style.colorScheme === "dark" ? "dark" : "default" });
-    return async (source) => {
-      renderedDiagramCount += 1;
-      return (await mermaid.render(`mermaid-diagram-${renderedDiagramCount}`, source)).svg;
-    };
+    mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "base", themeVariables: diagramThemeVariables() });
+    renderedDiagramCount += 1;
+    return (await mermaid.render(`mermaid-diagram-${renderedDiagramCount}`, source)).svg;
   });
   return loading;
 }

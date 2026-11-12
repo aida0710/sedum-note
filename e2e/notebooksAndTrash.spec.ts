@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { addNotebookOnDesktop, createNoteOnDesktop, startLocalVault } from "./devices";
+import { addNotebookOnDesktop, createNoteOnDesktop, openSettingsPage, startLocalVault } from "./devices";
 
 test("ノートブックの色とアイコンを選ぶと、左の列の印が変わり、開き直しても保たれる", async ({ page }) => {
   await startLocalVault(page);
@@ -34,7 +34,7 @@ test("ゴミ箱の自動削除は、既定ではオフ。日数を決めると�
   const trashCount = page.locator(".nav-row", { hasText: "ゴミ箱" }).locator(".count");
   await expect(trashCount).toHaveText("1");
 
-  await page.locator(".sync-line").click();
+  await openSettingsPage(page, "一般");
   const autoDelete = page.getByLabel("ゴミ箱のメモを、日数がたったら完全に削除する");
   await expect(autoDelete).not.toBeChecked();
   await autoDelete.check();

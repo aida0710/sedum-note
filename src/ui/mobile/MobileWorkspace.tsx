@@ -59,6 +59,10 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
   const createNote = async () => navigation.openNote((await createNoteInView(repository, view)).id);
   const selectTab = (next: MobileTab) => {
     setTab(next);
+    // 下の「設定」を押したら、いつもページの一覧から始める。
+    if (next === "settings") {
+      navigation.selectSettingsPage(null);
+    }
     if (next === "notes") {
       navigation.selectView({ kind: "all" });
     }
@@ -66,12 +70,15 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
 
   return (
     <div className="phone">
-      {tab === "settings" && <SettingsPanel session={session} vault={vault} unreadableCount={snapshot.unreadableCount} isMobile />}
+      {tab === "settings" && (
+        <SettingsPanel session={session} vault={vault} unreadableCount={snapshot.unreadableCount} isMobile
+          page={navigation.settingsPage} onSelectPage={navigation.selectSettingsPage} />
+      )}
       {tab === "notebooks" && (
         <MobileLibrary snapshot={snapshot} repository={repository}
           onPick={(picked) => { navigation.selectView(picked); setTab("notes"); }} />
       )}
-      {tab !== "settings" && <UpdateChip onOpenSettings={() => selectTab("settings")} />}
+      {tab !== "settings" && <UpdateChip onOpenSettings={() => { selectTab("settings"); navigation.selectSettingsPage("update"); }} />}
       {(tab === "notes" || tab === "bookmarked") && (
         <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, { view, searchText: navigation.searchText, sortOrder: noteSortOrder })}
           notebooks={snapshot.notebooks.map((notebook) => ({ id: notebook.id, name: notebook.content.name }))}

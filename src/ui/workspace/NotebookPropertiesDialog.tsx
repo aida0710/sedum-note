@@ -20,8 +20,8 @@ export function NotebookPropertiesDialog({ notebook, repository, onClose }: Note
     name: translate("property.newName"), type: "text", options: [], order: Math.max(0, ...properties.map((property) => property.order)) + 1,
   });
   return (
-    <ModalDialog label={translate("property.dialogTitle")} className="notebook-properties" onClose={onClose}>
-      <p>{translate("property.dialogDescription", { name: notebook.content.name })}</p>
+    <ModalDialog label={translate("property.dialogTitle")} title={translate("property.dialogTitle")}
+      description={translate("property.dialogDescription", { name: notebook.content.name })} className="notebook-properties" onClose={onClose}>
       <div className="property-definitions">
         {properties.length === 0 && <div className="tree-empty">{translate("property.none")}</div>}
         {properties.map((property) => (

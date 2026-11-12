@@ -11,8 +11,9 @@ const MAX_LISTED_CHOICES = 50;
 export type PickerChoice = { id: string; label: string };
 
 type SearchablePickerProps = {
-  // 何のために選ぶかの説明。
+  // 何のために選ぶか（ダイアログの見出し）と、選んだら何が起きるかの説明。
   title: string;
+  description?: string;
   // 選べるもの。並べたい順に渡す。
   choices: PickerChoice[];
   // 絞り込みの欄に、打つ前に出しておく文。
@@ -23,13 +24,12 @@ type SearchablePickerProps = {
   onCancel: () => void;
 };
 
-export function SearchablePicker({ title, choices, searchPlaceholder, emptyMessage, onPick, onCancel }: SearchablePickerProps) {
+export function SearchablePicker({ title, description, choices, searchPlaceholder, emptyMessage, onPick, onCancel }: SearchablePickerProps) {
   const [searchText, setSearchText] = useState("");
   const words = searchText.toLocaleLowerCase().split(/\s+/).filter((word) => word !== "");
   const listed = choices.filter((choice) => words.every((word) => choice.label.toLocaleLowerCase().includes(word))).slice(0, MAX_LISTED_CHOICES);
   return (
-    <ModalDialog label={title} className="note-picker" onClose={onCancel}>
-      <p>{title}</p>
+    <ModalDialog label={title} title={title} description={description} className="note-picker" onClose={onCancel}>
       <label className="sidebar-search">
         <Search size={14} />
         <input autoFocus value={searchText} placeholder={searchPlaceholder} onChange={(event) => setSearchText(event.target.value)} />

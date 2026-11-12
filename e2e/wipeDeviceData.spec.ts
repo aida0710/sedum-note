@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { startLocalVault } from "./devices";
+import { openSettingsPage, selectSettingsPage, startLocalVault } from "./devices";
 
 async function startLocalVaultWithNote(page: Page, title: string): Promise<void> {
   await startLocalVault(page);
@@ -26,12 +26,13 @@ async function storedRecordCount(page: Page): Promise<number> {
 
 test("設定からこのデバイスのデータを消すと、入力の直後でも何も残らず、最初の画面に戻る", async ({ page }) => {
   await startLocalVaultWithNote(page, "消すメモ");
-  await page.getByRole("button", { name: /同期は未設定/ }).click();
+  await openSettingsPage(page, "外観");
   await page.getByRole("radio", { name: "ミッドナイト" }).click();
   // 保存（0.15 秒後）を待たせた入力を残したまま消す。
   await page.getByRole("tab", { name: "消すメモ" }).click();
   await page.getByPlaceholder("タイトル").fill("消す直前に打った");
   await page.getByRole("tab", { name: "設定" }).click();
+  await selectSettingsPage(page, "セキュリティ");
   await page.getByRole("button", { name: "このデバイスのデータを消す" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toContainText("1 件のメモとノートブックは、バックアップが無ければ元に戻せません");

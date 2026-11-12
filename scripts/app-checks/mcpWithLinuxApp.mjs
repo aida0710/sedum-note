@@ -57,7 +57,9 @@ try {
   await app.type(await app.waitForXPath("//input[@id='setup-passphrase']", 30_000), PASSPHRASE);
   await app.type(await app.find("#setup-passphrase-confirm"), PASSPHRASE);
   await clickButton("作成");
-  await app.click(await app.waitForXPath("//button[contains(@class,'sync-line')]", 60_000));
+  // MCP の欄は、設定の AI のページにある。
+  await app.click(await app.waitForXPath("//button[@aria-label='設定']", 60_000));
+  await app.click(await app.waitForXPath("//nav[@aria-label='設定のページ']//button[normalize-space(.)='AI']", 30_000));
   await app.click(await app.waitForXPath("//label[contains(., 'MCP の窓口を開く')]/input", 30_000));
   await clickButton("トークンを表示");
   await pause(1_000);

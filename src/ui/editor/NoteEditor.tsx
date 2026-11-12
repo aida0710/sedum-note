@@ -304,7 +304,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
           onPick={insertPickedBlock} onCancel={() => setPickingBlockFor(null)} />
       )}
       {pickingNoteToMerge && (
-        <NotePicker title={translate("editor.mergeNotePickerTitle")} candidates={otherNotes()}
+        <NotePicker title={translate("editor.mergeNotePickerTitle")} description={translate("editor.mergeNotePickerDescription")} candidates={otherNotes()}
           onPick={(pickedNoteId) => { setPickingNoteToMerge(false); void repository.mergeNoteInto(noteId, pickedNoteId); }}
           onCancel={() => setPickingNoteToMerge(false)} />
       )}

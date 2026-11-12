@@ -1,5 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
+import { PAGE_ORIGIN } from "./devServer";
+import { openSettingsPage } from "./devices";
 
 const PASSPHRASE = "correct horse battery";
 
@@ -50,7 +52,7 @@ test("バックアップを書き出し、別のデバイスの最初の画面�
   await source.locator('input[type="file"]:not([accept])').setInputFiles({ name: "memo.txt", mimeType: "text/plain", buffer: Buffer.from("添付の中身") });
   await expect(source.locator(".attachment-file")).toContainText("memo.txt");
 
-  await source.getByRole("button", { name: /同期は未設定/ }).click();
+  await openSettingsPage(source, "データ");
   const download = source.waitForEvent("download");
   await source.getByRole("button", { name: "バックアップを書き出す" }).click();
   const backup = await download;
@@ -87,7 +89,7 @@ test("Markdown で書き出すと暗号化されないことを確かめられ�
   await source.locator('input[type="file"]:not([accept])').setInputFiles({ name: "memo.txt", mimeType: "text/plain", buffer: Buffer.from("添付の中身") });
   await expect(source.locator(".attachment-file")).toContainText("memo.txt");
 
-  await source.getByRole("button", { name: /同期は未設定/ }).click();
+  await openSettingsPage(source, "データ");
   await source.getByRole("button", { name: "すべてのメモを Markdown で書き出す" }).click();
   const confirmation = source.getByRole("dialog");
   await expect(confirmation).toContainText("書き出したファイルは暗号化されません");
@@ -102,7 +104,7 @@ test("Markdown で書き出すと暗号化されないことを確かめられ�
   await target.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await target.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
   await target.getByRole("button", { name: "作成" }).click();
-  await target.getByRole("button", { name: /同期は未設定/ }).click();
+  await openSettingsPage(target, "データ");
   await target.getByLabel("Markdown を取り込む").setInputFiles(await exported.path());
   await expect(target.getByText("1件のメモを取り込みました")).toBeVisible();
   await target.getByRole("button", { name: "旅のメモ" }).click();
@@ -137,7 +139,7 @@ test("Web 版で同期を使うときは、最初の画面でバケットの COR
   await page.getByText("バケットの CORS の設定").click();
   await expect(page.locator("details pre")).toContainText('"ExposeHeaders"');
   // 入れるのは、開いている Web 版の origin だけ（アプリは CORS の設定が要らない）。
-  await expect(page.locator("details pre")).toContainText("http://127.0.0.1:5173");
+  await expect(page.locator("details pre")).toContainText(PAGE_ORIGIN);
 });
 
 test("メモを HTML とテキストで書き出せる。HTML は書式と添付へのリンクを保ち、テキストは文字だけになる", async ({ page }) => {

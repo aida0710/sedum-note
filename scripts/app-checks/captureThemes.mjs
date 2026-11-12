@@ -16,8 +16,13 @@ const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport: { width: 1280, height: 820 }, locale: UI_LOCALE })).newPage();
 await fillSampleWorkspace(page);
 const captures = [];
+// テーマは、設定の外観のページで選ぶ。
+async function openAppearanceSettings() {
+  await page.getByRole("button", { name: "設定", exact: true }).click();
+  await page.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: "外観", exact: true }).click();
+}
 for (const [index, themeName] of THEME_NAMES.entries()) {
-  await page.getByRole("button", { name: /同期は未設定/ }).click();
+  await openAppearanceSettings();
   await page.getByRole("radio", { name: themeName, exact: true }).click();
   await page.getByRole("button", { name: SHOWN_NOTE }).first().click();
   await page.locator(".ProseMirror").waitFor();
@@ -27,7 +32,7 @@ for (const [index, themeName] of THEME_NAMES.entries()) {
 }
 
 // 設定のテーマの欄（見本の並び）も撮る。
-await page.getByRole("button", { name: /同期は未設定/ }).click();
+await openAppearanceSettings();
 await page.getByRole("radio", { name: "ライト", exact: true }).click();
 await page.getByRole("button", { name: "テーマを作る" }).click();
 await page.screenshot({ path: `${outputDirectory}/theme-settings.png` });

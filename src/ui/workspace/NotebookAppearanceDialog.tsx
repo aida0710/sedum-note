@@ -14,8 +14,7 @@ export function NotebookAppearanceDialog({ notebook, repository, onClose }: Note
   const { colorName, iconName } = notebook.content;
   const change = (changes: { colorName?: string | null; iconName?: string | null }) => void repository.updateNotebook(notebook.id, changes);
   return (
-    <ModalDialog label={translate("notebook.appearance")} onClose={onClose}>
-        <p>{translate("notebook.appearanceOf", { name: notebook.content.name })}</p>
+    <ModalDialog label={translate("notebook.appearance")} title={translate("notebook.appearanceOf", { name: notebook.content.name })} onClose={onClose}>
         <div className="choice-grid" role="radiogroup" aria-label={translate("notebook.color")}>
           <button type="button" role="radio" aria-checked={colorName === null} className={`choice${colorName === null ? " on" : ""}`} onClick={() => change({ colorName: null })}>
             {translate("notebook.automaticColor")}
