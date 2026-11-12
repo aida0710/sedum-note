@@ -17,8 +17,14 @@ export function createCrossWindowWriteQueue(vaultId: string): WriteQueue {
 
 export function createRecordChangeChannel(vaultId: string): RecordChangeChannel {
   const channel = new BroadcastChannel(`sedum-note:records:${vaultId}`);
+  // 閉じたあとに書き込みが終わること（ロックやスペースの切り替えの直前の入力の保存）がある。閉じた通り道へ送ると失敗するので、送らない。
+  let closed = false;
   return {
-    announce: (recordId) => channel.postMessage(recordId),
+    announce: (recordId) => {
+      if (!closed) {
+        channel.postMessage(recordId);
+      }
+    },
     subscribe: (listener) => {
       const receive = (event: MessageEvent<unknown>) => {
         if (typeof event.data === "string") {
@@ -28,7 +34,10 @@ export function createRecordChangeChannel(vaultId: string): RecordChangeChannel 
       channel.addEventListener("message", receive);
       return () => channel.removeEventListener("message", receive);
     },
-    close: () => channel.close(),
+    close: () => {
+      closed = true;
+      channel.close();
+    },
   };
 }
 

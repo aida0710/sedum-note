@@ -2,7 +2,7 @@
 // データを消すときは、全部のスペースの手元の保存を相手にする。
 // ロックを解除したスペースのマスターキーは、ロックするまでメモリに持つ（スペースを切り替えて戻ったときに、パスフレーズを聞かない）。
 
-import { changePassphrase, readVaultState, verifyPassphrase } from "../../core/vault/vaultSession";
+import { changePassphrase, type DeviceDataSummary, readVaultState, summarizeDeviceData, verifyPassphrase } from "../../core/vault/vaultSession";
 import { createAppEnvironment } from "./appEnvironment";
 import { readSpaceRegistry, resetSpaceRegistry } from "./spaceRegistry";
 
@@ -59,6 +59,21 @@ export async function changePassphraseOfAllSpaces(passphrases: { current: string
   for (const environment of environments) {
     await changePassphrase(environment, passphrases);
   }
+}
+
+// 全部のスペースを消したときに失われるものを、消す前の確認に出す形でまとめる。同期していないスペースのメモは全部、
+// 同期しているスペースのメモは、まだ送っていない分が失われる。
+export async function summarizeAllSpaces(): Promise<DeviceDataSummary> {
+  let recordCount = 0;
+  let lostCount = 0;
+  let syncConfigured = false;
+  for (const space of readSpaceRegistry().spaces) {
+    const summary = await summarizeDeviceData(createAppEnvironment(space.id).localStore);
+    recordCount += summary.recordCount;
+    lostCount += summary.syncConfigured ? summary.waitingForPushCount : summary.recordCount;
+    syncConfigured ||= summary.syncConfigured;
+  }
+  return { recordCount, waitingForPushCount: lostCount, syncConfigured };
 }
 
 // スペースの手元の保存を消す（同期先は消さない）。

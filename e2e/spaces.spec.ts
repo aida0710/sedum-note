@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
-import { createNoteOnDesktop, fillSyncTarget, openSettingsPage, openSyncedDevice, PASSPHRASE, startLocalVault, startSyncedVault, SYNC_KEY, syncNowOnDesktop } from "./devices";
+import { createNoteOnDesktop, fillSyncTarget, openSettingsPage, openSyncedDevice, PASSPHRASE, selectSettingsPage, startLocalVault, startSyncedVault, SYNC_KEY, syncNowOnDesktop } from "./devices";
 
 const spaceSwitcher = (page: Page) => page.getByRole("button", { name: /スペースを切り替える/ });
 const noteInList = (page: Page, title: string) => page.locator(".tree-note", { hasText: title });
@@ -121,4 +121,44 @@ test("スペースごとに、同期先を別にできる。ほかのデバイ�
   const otherDevice = await openSyncedDevice(browser, { remoteConfig: personalRemote, join: true });
   await expect(noteInList(otherDevice, "個人のメモ").first()).toBeVisible();
   await expect(noteInList(otherDevice, "仕事のメモ")).toHaveCount(0);
+});
+
+test("打った直後にスペースを切り替えても、戻ると打った文字が残っている", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "個人のメモ");
+  await addSpace(page, "仕事");
+  await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
+  await page.getByRole("button", { name: "作成" }).click();
+  await createNoteOnDesktop(page, "仕事のメモ");
+  await page.keyboard.type("切り替える直前に打った行");
+  // 保存（0.15 秒後）を待たずに切り替える。
+  await switchSpace(page, "最初のスペース");
+  await expect(noteInList(page, "個人のメモ").first()).toBeVisible();
+  await switchSpace(page, "仕事");
+  await noteInList(page, "仕事のメモ").first().click();
+  await expect(page.locator(".ProseMirror")).toHaveText("切り替える直前に打った行");
+});
+
+test("このデバイスのデータを消すと、全部のスペースが消える。消す前に、全部のスペースの件数を知らせる", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "個人のメモ");
+  await addSpace(page, "仕事");
+  await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
+  await page.getByRole("button", { name: "作成" }).click();
+  await createNoteOnDesktop(page, "仕事のメモ 1");
+  await createNoteOnDesktop(page, "仕事のメモ 2");
+
+  await openSettingsPage(page, "一般");
+  await selectSettingsPage(page, "セキュリティ");
+  await page.getByRole("button", { name: "このデバイスのデータを消す" }).click();
+  const dialog = page.getByRole("dialog");
+  // 開いているスペースの 2 件だけでなく、もう 1 つのスペースの 1 件も数える。
+  await expect(dialog).toContainText("3 件のメモとノートブックは、バックアップが無ければ元に戻せません");
+  await dialog.getByRole("button", { name: "すべて消す" }).click();
+
+  // 最初の画面に戻り、スペースは最初の 1 つだけになる。どちらの保存も残っていない。
+  await expect(page.getByLabel("パスフレーズ（確認）")).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("sedum-note:spaces"))).toBeNull();
+  const databaseNames = await page.evaluate(async () => (await indexedDB.databases()).map((database) => database.name));
+  expect(databaseNames.filter((name) => name?.startsWith("sedum-note:space:"))).toEqual([]);
 });

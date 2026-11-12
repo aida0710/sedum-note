@@ -10,7 +10,7 @@ import { dueTimeAsDate } from "../../core/notes/dueTimes";
 import type { NoteSummary } from "../../core/notes/noteQueries";
 import { translate } from "../i18n/translate";
 import { canScheduleNotifications, replaceScheduledNotifications, showNotification, type SystemNotification } from "../platform/systemNotifications";
-import { readNotifiedDueKeys, writeNotifiedDueKeys } from "./dueReminderRecords";
+import { addNotifiedDueKeys, readNotifiedDueKeys } from "./dueReminderRecords";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import { formatDueTime } from "../shared/formatTime";
 
@@ -66,8 +66,7 @@ export function useDueReminders({ enabled, summaries, lockedNoteIds }: DueRemind
       if (dueItems.length === 0) {
         return;
       }
-      // もう無い期限の名前は捨てて、増え続けないようにする。出せなかった通知は、知らせたことにしない（次の見直しでまた試す）。
-      const keptKeys = [...notifiedKeys].filter((key) => currentKeys.has(key));
+      // 出せなかった通知は、知らせたことにしない（次の見直しでまた試す）。
       const shownKeys = dueItems.filter((item) => {
         try {
           showNotification(notificationOf(item, currentLockedNoteIds));
@@ -76,7 +75,7 @@ export function useDueReminders({ enabled, summaries, lockedNoteIds }: DueRemind
           return false;
         }
       }).map((item) => item.key);
-      writeNotifiedDueKeys([...keptKeys, ...shownKeys]);
+      addNotifiedDueKeys(shownKeys, new Date());
     };
     notifyDueItems();
     const timer = setInterval(notifyDueItems, DUE_CHECK_INTERVAL_MILLISECONDS);
