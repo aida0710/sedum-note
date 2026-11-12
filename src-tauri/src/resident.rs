@@ -52,6 +52,8 @@ pub fn set_resident(app: AppHandle, state: State<ResidentState>, enabled: bool, 
     return Ok(());
   }
   let mut tray = TrayIconBuilder::with_id(TRAY_ICON_ID)
+    // アイコンにマウスを載せたときと、読み上げで、どのアプリのアイコンかが分かるようにする。
+    .tooltip(&app.package_info().name)
     .menu(&menu)
     // 左クリックではウィンドウを開き、メニューは右クリックで出す。
     .show_menu_on_left_click(false)
