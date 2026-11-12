@@ -1,11 +1,12 @@
 // IndexedDB を使う LocalStore。Web 版も Tauri の WebView も同じものを使う。
 
 import { type DBSchema, deleteDB, type IDBPDatabase, openDB } from "idb";
-import type { LocalBlobEntry, LocalRecordEntry, LocalRecordState, LocalSettingName, LocalStore, LocalVersionEntry } from "./localStore";
+import type { LocalBlobEntry, LocalRecordEntry, LocalRecordState, LocalSettingName, LocalStore, LocalVersionEntry, LocalVersionState } from "./localStore";
 
 // 2 で、メモの履歴（versions）を足した。
 // 3 で、記録の状態だけの写し（recordStates）を足した。
-const DATABASE_VERSION = 3;
+// 4 で、履歴の状態だけの写し（versionStates）と、履歴を同期先へ送ったかの印を足した。
+const DATABASE_VERSION = 4;
 
 interface MemoDatabase extends DBSchema {
   settings: { key: LocalSettingName; value: unknown };
@@ -14,13 +15,18 @@ interface MemoDatabase extends DBSchema {
   recordStates: { key: string; value: LocalRecordState };
   blobs: { key: string; value: LocalBlobEntry; indexes: { byUploaded: number } };
   versions: { key: string; value: LocalVersionEntry; indexes: { byRecord: string } };
+  // versions の、暗号文を除いた写し。versions と同じトランザクションで書く。
+  versionStates: { key: string; value: LocalVersionState };
 }
 
 // clearEverything が空にするストア。ストアを足したら、ここと upgrade の両方に足す。
-const STORE_NAMES = ["settings", "records", "recordStates", "blobs", "versions"] as const;
+const STORE_NAMES = ["settings", "records", "recordStates", "blobs", "versions", "versionStates"] as const;
 
 // IndexedDB の索引は真偽値を受け付けないので、送ったかどうかを 0・1 で持つ。
 type StoredBlob = LocalBlobEntry & { uploadedFlag: number };
+
+// 履歴の暗号文と、その状態の写し。いつも同じ取り引きの中で揃えて書く。
+const VERSION_STORE_NAMES = ["versions", "versionStates"] as const;
 
 export class IndexedDbLocalStore implements LocalStore {
   readonly #database: Promise<IDBPDatabase<MemoDatabase>>;
@@ -49,6 +55,15 @@ export class IndexedDbLocalStore implements LocalStore {
           // 既にある記録の分を写す。
           for (let cursor = await transaction.objectStore("records").openCursor(); cursor; cursor = await cursor.continue()) {
             await recordStates.put(recordStateOf(cursor.value));
+          }
+        }
+        if (oldVersion < 4) {
+          const versionStates = database.createObjectStore("versionStates", { keyPath: "id" });
+          // 既にある履歴は、まだ同期先へ送っていないものとして写す。
+          for (let cursor = await transaction.objectStore("versions").openCursor(); cursor; cursor = await cursor.continue()) {
+            const version: LocalVersionEntry = { ...cursor.value, uploaded: false };
+            await cursor.update(version);
+            await versionStates.put(versionStateOf(version));
           }
         }
       },
@@ -113,21 +128,57 @@ export class IndexedDbLocalStore implements LocalStore {
   }
 
   async putVersion(entry: LocalVersionEntry): Promise<void> {
-    await (await this.#database).put("versions", entry);
+    const transaction = (await this.#database).transaction(VERSION_STORE_NAMES, "readwrite");
+    await Promise.all([
+      transaction.objectStore("versions").put(entry),
+      transaction.objectStore("versionStates").put(versionStateOf(entry)),
+      transaction.done,
+    ]);
   }
 
   async listVersions(recordId: string): Promise<LocalVersionEntry[]> {
     return (await this.#database).getAllFromIndex("versions", "byRecord", recordId);
   }
 
+  async getVersion(id: string): Promise<LocalVersionEntry | undefined> {
+    return (await this.#database).get("versions", id);
+  }
+
+  async listVersionStates(): Promise<LocalVersionState[]> {
+    return (await this.#database).getAll("versionStates");
+  }
+
+  async markVersionUploaded(id: string): Promise<void> {
+    const transaction = (await this.#database).transaction(VERSION_STORE_NAMES, "readwrite");
+    const version = await transaction.objectStore("versions").get(id);
+    if (version) {
+      const uploaded: LocalVersionEntry = { ...version, uploaded: true };
+      await transaction.objectStore("versions").put(uploaded);
+      await transaction.objectStore("versionStates").put(versionStateOf(uploaded));
+    }
+    await transaction.done;
+  }
+
+  async markAllVersionsForUpload(): Promise<void> {
+    const transaction = (await this.#database).transaction(VERSION_STORE_NAMES, "readwrite");
+    for (let cursor = await transaction.objectStore("versions").openCursor(); cursor; cursor = await cursor.continue()) {
+      const waiting: LocalVersionEntry = { ...cursor.value, uploaded: false };
+      await cursor.update(waiting);
+      await transaction.objectStore("versionStates").put(versionStateOf(waiting));
+    }
+    await transaction.done;
+  }
+
   async deleteVersion(id: string): Promise<void> {
-    await (await this.#database).delete("versions", id);
+    const transaction = (await this.#database).transaction(VERSION_STORE_NAMES, "readwrite");
+    await Promise.all([transaction.objectStore("versions").delete(id), transaction.objectStore("versionStates").delete(id), transaction.done]);
   }
 
   async deleteVersionsOfRecord(recordId: string): Promise<void> {
-    const transaction = (await this.#database).transaction("versions", "readwrite");
-    for (const key of await transaction.store.index("byRecord").getAllKeys(recordId)) {
-      await transaction.store.delete(key);
+    const transaction = (await this.#database).transaction(VERSION_STORE_NAMES, "readwrite");
+    for (const key of await transaction.objectStore("versions").index("byRecord").getAllKeys(recordId)) {
+      await transaction.objectStore("versions").delete(key);
+      await transaction.objectStore("versionStates").delete(key);
     }
     await transaction.done;
   }
@@ -142,6 +193,10 @@ export class IndexedDbLocalStore implements LocalStore {
     (await this.#database).close();
     await deleteDB(this.#databaseName);
   }
+}
+
+function versionStateOf({ id, recordId, capturedAt, reason, uploaded }: LocalVersionEntry): LocalVersionState {
+  return { id, recordId, capturedAt, reason, uploaded };
 }
 
 function recordStateOf(entry: LocalRecordEntry): LocalRecordState {

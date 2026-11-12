@@ -10,6 +10,7 @@ import { VaultAlreadyExistsError, type VaultSessionEnvironment } from "../src/co
 import { createSyncedVault, joinSyncedVault } from "../src/core/vault/vaultTestDevices";
 import { appendAttachmentImage, appendParagraph } from "../src/core/notes/bodyFixtures";
 import { bodyPlainText } from "../src/core/notes/bodyText";
+import { EDIT_VERSION_INTERVAL_MILLISECONDS } from "../src/core/notes/noteVersions";
 import { newTestRemoteConfig } from "./testStorage";
 
 const PASSPHRASE = "correct horse battery";
@@ -60,5 +61,28 @@ describe("S3ObjectStore（SeaweedFS）", () => {
       expect(bodyPlainText(device.repository.note(note.id)!.body).split("\n").sort()).toEqual(["PC", "スマホ"]);
     }
     expect(await laptop.syncEngine!.syncOnce()).toMatchObject({ pulledCount: 0, pushedCount: 0 });
+  });
+
+  it("1 台で残したメモの履歴が、実際のストレージを通して、もう 1 台で見られる。メモを完全に削除すると、履歴も消える", async () => {
+    const remoteConfig = await newTestRemoteConfig();
+    const clock = { now: new Date("2026-11-11T09:00:00Z") };
+    const environmentWithClock = (): VaultSessionEnvironment => ({ ...environment(), now: () => clock.now });
+    const laptop = await createSyncedVault(environmentWithClock(), { passphrase: PASSPHRASE, remoteConfig });
+    const phone = await joinSyncedVault(environmentWithClock(), { passphrase: PASSPHRASE, remoteConfig });
+    const note = await laptop.repository.createNote({ title: "議事録" });
+    appendParagraph(note.body, "1 行目");
+    await laptop.repository.flush();
+    clock.now = new Date(clock.now.getTime() + EDIT_VERSION_INTERVAL_MILLISECONDS);
+    appendParagraph(laptop.repository.note(note.id)!.body, "2 行目");
+    await laptop.syncEngine!.syncOnce();
+    await phone.syncEngine!.syncOnce();
+    await phone.repository.downloadNoteVersions(note.id);
+    expect((await phone.repository.noteVersions(note.id)).map((version) => version.plainText)).toEqual(["1 行目"]);
+
+    const store = new S3ObjectStore(remoteConfig);
+    expect(await store.list("versions/")).toHaveLength(1);
+    await laptop.repository.removeNotePermanently(note.id);
+    await laptop.syncEngine!.syncOnce();
+    expect(await store.list("versions/")).toEqual([]);
   });
 });

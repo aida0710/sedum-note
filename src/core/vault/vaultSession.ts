@@ -48,6 +48,8 @@ export type VaultSessionEnvironment = {
   // 新しく作る vault の、パスフレーズからキーを導出する重さ。指定しなければ製品の値（64 MiB）。
   // 試験では軽くする（何十回も導出するので、製品の値だと CI で時間切れになる）。
   kdfCost?: Omit<Argon2idParameters, "salt">;
+  // 今の時刻。試験で時刻を進めるのに使う。
+  now?: () => Date;
 };
 
 export type UnlockedVault = {
@@ -229,9 +231,11 @@ async function assembleUnlockedVault(
     deviceId,
     writeQueue: new SerialQueue(),
     downloadBlob: (id) => syncEngine?.downloadBlob(id) ?? Promise.resolve(null),
+    downloadVersions: (noteId) => syncEngine?.downloadVersions(noteId) ?? Promise.resolve(),
+    now: environment.now,
   });
   if (remoteConfig) {
-    syncEngine = new SyncEngine({ localStore, objectStore: environment.createObjectStore(remoteConfig), repository, bodySchemaVersion });
+    syncEngine = new SyncEngine({ localStore, objectStore: environment.createObjectStore(remoteConfig), repository, bodySchemaVersion, masterKey, now: environment.now });
   }
   await repository.load();
   return { vaultId, masterKey, localStore, repository, syncEngine, remoteConfig };
@@ -277,6 +281,7 @@ export async function connectRemote(
     // 新しい同期先には添付が 1 つも無い。前の同期先へ送り終えた添付も、送り直す
     // （記録は、同期先に無ければ同期の中で送り直しになる）。
     await environment.localStore.markAllBlobsForUpload();
+    await environment.localStore.markAllVersionsForUpload();
     if (unlocked.remoteConfig) {
       await copyRemoteBlobs(environment.createObjectStore(unlocked.remoteConfig), environment.createObjectStore(remoteConfig));
     }

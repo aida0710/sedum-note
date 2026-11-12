@@ -33,6 +33,8 @@ describe("IndexedDbLocalStore", () => {
     ]);
     expect((await store.listBlobsWaitingForUpload()).map((blob) => blob.id)).toEqual(["b1"]);
     expect((await store.listVersions("r1")).map((version) => version.id)).toEqual(["v1"]);
+    // 前の版で残した履歴は、まだ同期先へ送っていないものになる。
+    expect(await store.listVersionStates()).toEqual([{ id: "v1", recordId: "r1", capturedAt: "2026-11-11T00:00:00Z", reason: "edit", uploaded: false }]);
   });
 
   it("記録を書くと、状態の写しも同じ中身になる。空にすると両方が消える", async () => {

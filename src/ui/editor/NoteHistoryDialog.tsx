@@ -20,11 +20,24 @@ export function NoteHistoryDialog({ note, repository, onRestored, onClose }: Not
   // 読み込むまでは null。
   const [versions, setVersions] = useState<NoteVersion[] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // ほかのデバイスが残した履歴を、同期先から取ってこられなかった（オフラインなど）。手元にある分だけを出している。
+  const [remoteUnavailable, setRemoteUnavailable] = useState(false);
   useEffect(() => {
-    void repository.noteVersions(note.id).then((loaded) => {
-      setVersions(loaded);
-      setSelectedId(loaded[0]?.id ?? null);
-    });
+    let closed = false;
+    const showVersions = async () => {
+      const loaded = await repository.noteVersions(note.id);
+      if (!closed) {
+        setVersions(loaded);
+        setSelectedId((current) => (loaded.some((version) => version.id === current) ? current : loaded[0]?.id ?? null));
+      }
+    };
+    // まず手元にある分を出し、同期先の分が届いたら出し直す。
+    void showVersions()
+      .then(() => repository.downloadNoteVersions(note.id))
+      .then(showVersions, () => !closed && setRemoteUnavailable(true));
+    return () => {
+      closed = true;
+    };
   }, [repository, note.id]);
   const selected = versions?.find((version) => version.id === selectedId);
 
@@ -37,7 +50,8 @@ export function NoteHistoryDialog({ note, repository, onRestored, onClose }: Not
   });
 
   return (
-    <ModalDialog label={translate("editor.history")} title={translate("editor.history")} description={translate("history.localOnly")} className="note-history" onClose={onClose}>
+    <ModalDialog label={translate("editor.history")} title={translate("editor.history")} description={translate("history.description")} className="note-history" onClose={onClose}>
+        {remoteUnavailable && <div className="form-error" role="alert">{translate("history.remoteUnavailable")}</div>}
         {versions?.length === 0 && <p>{translate("history.empty")}</p>}
         {versions && versions.length > 0 && (
           <div className="note-history-body">

@@ -1,7 +1,7 @@
 import { type Browser, expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
 import { S3ObjectStore } from "../src/core/remote/s3ObjectStore";
-import { startSyncedVault } from "./devices";
+import { createNoteOnDesktop, DESKTOP_VIEWPORT, openSyncedDevice, startSyncedVault, syncNowOnDesktop } from "./devices";
 
 const PASSPHRASE = "correct horse battery";
 // 画面の確認用の画像を置く場所。artifacts は git に入れない。
@@ -112,4 +112,31 @@ test("写真は貼り付けとドロップでも本文に入る", async ({ brows
   }
   await expect(page.locator(".attachment-image img")).toHaveCount(2);
   await expect(page.locator(".attachment-image .file-name")).toHaveText(["paste.png", "drop.png"]);
+});
+
+test("1 台で残した履歴を、もう 1 台の履歴のダイアログで見られ、そこから復元できる", async ({ browser }) => {
+  const remoteConfig = await newTestRemoteConfig();
+  const laptop = await newDevice(browser, DESKTOP_VIEWPORT);
+  // 履歴は 10 分おきに残るので、書いた側の時計を進める。
+  await laptop.clock.install({ time: new Date() });
+  await startSyncedVault(laptop, { remoteConfig, join: false });
+  await createNoteOnDesktop(laptop, "議事録");
+  await laptop.keyboard.type("書き直す前の文");
+  await laptop.clock.runFor(11 * 60_000);
+  await laptop.locator(".ProseMirror").click();
+  await laptop.keyboard.press("Control+A");
+  await laptop.keyboard.type("書き直した文");
+  await laptop.clock.runFor(1_000);
+  await syncNowOnDesktop(laptop, "議事録");
+
+  const desktop = await openSyncedDevice(browser, { remoteConfig, join: true });
+  await desktop.locator(".tree-note", { hasText: "議事録" }).first().click();
+  await expect(desktop.locator(".ProseMirror")).toHaveText("書き直した文");
+  await desktop.getByRole("button", { name: "その他の操作" }).last().click();
+  await desktop.getByRole("menuitem", { name: "履歴" }).click();
+  const history = desktop.getByRole("dialog", { name: "履歴" });
+  await expect(history.getByRole("option")).toHaveCount(1);
+  await expect(history.locator(".note-history-preview")).toContainText("書き直す前の文");
+  await history.getByRole("button", { name: "別のメモとして復元" }).click();
+  await expect(desktop.locator(".ProseMirror")).toHaveText("書き直す前の文");
 });

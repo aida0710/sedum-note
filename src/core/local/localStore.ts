@@ -22,7 +22,7 @@ export type LocalBlobEntry = {
   uploaded: boolean;
 };
 
-// メモの過去の状態（履歴）。このデバイスだけに持ち、同期もバックアップもしない。
+// メモの過去の状態（履歴）。同期先にも置く（sync/versionSync.ts）。バックアップには入れない。
 export type LocalVersionEntry = {
   id: string;
   recordId: string;
@@ -33,9 +33,15 @@ export type LocalVersionEntry = {
   reason: "edit" | "sync" | "replace";
   // 記録と同じ形の暗号文（recordCodec.ts）。記録の ID に結び付いている。
   sealed: Uint8Array;
+  // 同期先へ送り終えたか（同期先から取ってきたものも true）。sync の版は、そのデバイスの控えなので送らない。
+  uploaded: boolean;
 };
 
-export type LocalSettingName = "vault" | "deviceId" | "sealedRemoteConfig" | "sealedMcpSettings" | "sealedAiSettings";
+// 履歴の、同期に使う状態だけ（暗号文を除いたもの）。同期のたびに全件を見るので、暗号文を読まずに引けるようにする。
+export type LocalVersionState = Omit<LocalVersionEntry, "sealed">;
+
+// remoteVersionsSweptAt は、同期先の古い履歴をまとめて消した時刻（ISO 8601）。
+export type LocalSettingName = "vault" | "deviceId" | "sealedRemoteConfig" | "sealedMcpSettings" | "sealedAiSettings" | "remoteVersionsSweptAt";
 
 export interface LocalStore {
   readSetting<Value>(name: LocalSettingName): Promise<Value | undefined>;
@@ -55,6 +61,13 @@ export interface LocalStore {
   markAllBlobsForUpload(): Promise<void>;
   putVersion(entry: LocalVersionEntry): Promise<void>;
   listVersions(recordId: string): Promise<LocalVersionEntry[]>;
+  getVersion(id: string): Promise<LocalVersionEntry | undefined>;
+  // 暗号文を読まずに、全部のメモの履歴の状態を返す。
+  listVersionStates(): Promise<LocalVersionState[]>;
+  // 送り終えた印を付ける。送っている間に消された版には、何もしない。
+  markVersionUploaded(id: string): Promise<void>;
+  // 手元の履歴を全部、送っていないことにする（同期先を別の場所に付け替えたとき）。
+  markAllVersionsForUpload(): Promise<void>;
   deleteVersion(id: string): Promise<void>;
   deleteVersionsOfRecord(recordId: string): Promise<void>;
   // 中身を空にして使い続ける（バックアップを戻す前など）。同期先は消さない。

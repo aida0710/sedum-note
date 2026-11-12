@@ -45,6 +45,8 @@ export type NoteRepositoryDependencies = {
   writeQueue: SerialQueue;
   // 手元に無い添付を同期先から取る。同期先を設定していなければ null を返す。
   downloadBlob: (id: string) => Promise<Uint8Array | null>;
+  // ほかのデバイスが残したメモの履歴を、同期先から取る。同期先を設定していなければ何もしない。
+  downloadVersions: (noteId: string) => Promise<void>;
   now?: () => Date;
 };
 
@@ -182,7 +184,13 @@ export class NoteRepository {
     await this.#removeRecord(id, attachmentIds);
   }
 
-  // ── 履歴（このデバイスだけ） ──────────────────────────
+  // ── 履歴 ──────────────────────────────────
+
+  // ほかのデバイスが残した履歴を同期先から取ってきて、手元の履歴に足す。同期先に届かなければ失敗する
+  // （手元にある分は、そのまま noteVersions で読める）。
+  downloadNoteVersions(noteId: string): Promise<void> {
+    return this.#dependencies.downloadVersions(noteId);
+  }
 
   noteVersions(noteId: string): Promise<NoteVersion[]> {
     return this.#versionHistory.list(noteId);
@@ -406,8 +414,8 @@ export class NoteRepository {
   }
 
   // 送り終えた記録に ETag を記録する。送っている間に変わっていなければ「揃った」にする。
-  // 削除の印を送り終えたときは、同期先から消してよい添付の ID を返す。
-  async confirmPushed(sent: LocalRecordEntry, remoteEtag: string): Promise<{ removedAttachmentIds: string[] }> {
+  // 削除の印を送り終えたときは、recordRemoved を true にし、同期先から消してよい添付の ID を返す。
+  async confirmPushed(sent: LocalRecordEntry, remoteEtag: string): Promise<{ removedAttachmentIds: string[]; recordRemoved: boolean }> {
     await this.#dependencies.writeQueue.run(async () => {
       const latest = await this.#dependencies.localStore.getRecordEntry(sent.id);
       const unchanged = latest !== undefined && sameBytes(latest.sealed, sent.sealed) && !this.#unsavedIds.has(sent.id);
@@ -415,7 +423,13 @@ export class NoteRepository {
     });
     this.#notify("stored");
     const holder = this.#holders.get(sent.id);
-    return { removedAttachmentIds: holder?.state === "removed" && !this.#waitingForPushIds.has(sent.id) ? holder.attachmentIds : [] };
+    const recordRemoved = holder?.state === "removed" && !this.#waitingForPushIds.has(sent.id);
+    return { removedAttachmentIds: recordRemoved ? holder.attachmentIds : [], recordRemoved };
+  }
+
+  // 完全に削除した記録か（削除の印を持っている）。
+  isRemoved(id: string): boolean {
+    return this.#holders.get(id)?.state === "removed";
   }
 
   // 同期先から消えた記録を、手元の写しから送り直す対象にする（どこかで消えても、データを失わない）。

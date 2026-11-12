@@ -18,6 +18,7 @@ export async function newTestRepository(now?: () => Date): Promise<{ repository:
     deviceId: newRandomId(),
     writeQueue: new SerialQueue(),
     downloadBlob: async () => null,
+    downloadVersions: async () => undefined,
     now,
   });
   await repository.load();

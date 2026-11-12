@@ -1,5 +1,6 @@
-// メモの履歴。本文を編集し始める前の状態と、ほかのデバイスの変更を取り込む前の状態を、
-// このデバイスの中に残す。同期もバックアップもしない（同期先を増やさず、形式も変えないため）。
+// メモの履歴。本文を編集し始める前の状態と、ほかのデバイスの変更を取り込む前の状態を残す。
+// 編集と置き換えの前の状態は、同期先にも置く（sync/versionSync.ts）。バックアップには入れない。
+// 残す数と期間の決まりは versionRetention.ts。
 //
 // 残すのは、手元に保存してあった記録の暗号文そのもの。記録の ID に結び付いているので、
 // 開くときも記録と同じ手順（recordCodec.ts）で開ける。
@@ -10,12 +11,11 @@ import type { LocalStore, LocalVersionEntry } from "../local/localStore";
 import { bodyAttachments, bodyPlainText } from "./bodyText";
 import { openRecordPayload } from "./recordCodec";
 import { latestFieldTime, readField, recordBody, recordDocumentFromState } from "./recordDocument";
+import { versionsToRemove } from "./versionRetention";
 
 // 編集の前の状態を残す間隔。打つたびに残すと増えすぎるので、前に残してから（まだ残していなければ、
 // メモを作ってから）これだけ空いたあとの編集で残す。
 export const EDIT_VERSION_INTERVAL_MILLISECONDS = 10 * 60 * 1000;
-// 1 件のメモに残す「編集の前」と「置き換えの前」の数。超えたら古いものから消す（10 分おきなら 8 時間分ほど）。
-export const MAX_EDIT_VERSIONS_PER_NOTE = 50;
 
 export type NoteVersion = {
   id: string;
@@ -72,13 +72,13 @@ export class NoteVersionHistory {
     }
     await this.#put(recordId, "edit", sealedBeforeEdit);
     this.#editCaptureBaselines.set(recordId, now);
-    await this.#pruneEditVersions(recordId);
+    await this.#removeOutdatedVersions(recordId);
   }
 
   // 本文を丸ごと置き換える直前に呼ぶ。間隔を空けずに毎回残す（数は「編集の前」と合わせて上限まで）。
   async captureBeforeReplace(recordId: string, sealedBeforeReplace: Uint8Array): Promise<void> {
     await this.#put(recordId, "replace", sealedBeforeReplace);
-    await this.#pruneEditVersions(recordId);
+    await this.#removeOutdatedVersions(recordId);
   }
 
   // ほかのデバイスの変更を取り込む直前に呼ぶ。メモごとに、いちばん新しい 1 つだけを残す。
@@ -94,6 +94,7 @@ export class NoteVersionHistory {
 
   // 新しい順。開けないもの（別のキーの暗号文など）は除く。
   async list(recordId: string): Promise<NoteVersion[]> {
+    await this.#removeOutdatedVersions(recordId);
     const versions: NoteVersion[] = [];
     for (const entry of await this.#dependencies.localStore.listVersions(recordId)) {
       const doc = await this.#openDocument(recordId, entry.sealed);
@@ -127,7 +128,7 @@ export class NoteVersionHistory {
 
   async #put(recordId: string, reason: LocalVersionEntry["reason"], sealed: Uint8Array): Promise<void> {
     await this.#dependencies.localStore.putVersion({
-      id: newRandomId(), recordId, reason, sealed, capturedAt: this.#dependencies.now().toISOString(),
+      id: newRandomId(), recordId, reason, sealed, capturedAt: this.#dependencies.now().toISOString(), uploaded: false,
     });
   }
 
@@ -148,11 +149,13 @@ export class NoteVersionHistory {
     return latest;
   }
 
-  async #pruneEditVersions(recordId: string): Promise<void> {
-    const editVersions = (await this.#dependencies.localStore.listVersions(recordId))
+  // 残す数と期間の決まりから外れた版を、手元から消す。同期先の分は、同期のときに同じ決まりで消す。
+  // 「同期の取り込みの前」は別に 1 つだけ持つので、数に入れない。
+  async #removeOutdatedVersions(recordId: string): Promise<void> {
+    const versions = (await this.#dependencies.localStore.listVersions(recordId))
       .filter((version) => version.reason !== "sync")
-      .sort((left, right) => right.capturedAt.localeCompare(left.capturedAt));
-    for (const outdated of editVersions.slice(MAX_EDIT_VERSIONS_PER_NOTE)) {
+      .map((version) => ({ id: version.id, capturedAtMilliseconds: new Date(version.capturedAt).getTime() }));
+    for (const outdated of versionsToRemove(versions, this.#dependencies.now())) {
       await this.#dependencies.localStore.deleteVersion(outdated.id);
     }
   }

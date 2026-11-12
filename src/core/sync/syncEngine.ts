@@ -4,6 +4,7 @@
 // 2. 送っていない添付を送る（記録より先に置き、参照先の無いメモを見せない）
 // 3. 同期先の一覧と手元の ETag を比べ、変わった記録を取り込んでマージする
 // 4. 手元で変えた記録を条件付き PUT で送る。先に変えられていたら、取り込んでマージしてから送り直す
+// 5. メモの履歴を送り、古い履歴を消す（versionSync.ts）
 //
 // 記録は Yjs の文書なので、2 台の変更はマージで 1 つになり、競合は起きない。条件付き PUT は
 // 「マージしていない中身で上書きしない」ために使う。手元の記録の書き込みは NoteRepository が行う。
@@ -15,6 +16,7 @@ import { type ObjectStore, PreconditionFailedError, type WriteCondition } from "
 import { readRemoteVault, writeRemoteVault } from "../vault/remoteVault";
 import type { VaultDocument } from "../vault/vaultDocument";
 import { blobObjectKey, RECORDS_PREFIX, recordIdFromObjectKey, recordObjectKey } from "./remoteLayout";
+import { VersionSync } from "./versionSync";
 
 // 同期先の vault.json が消えたか、別の vault に置き換わった。混ぜると開けない記録が
 // 増えるので、同期を止めて知らせる。
@@ -39,14 +41,22 @@ export type SyncEngineDependencies = {
   repository: NoteRepository;
   // このアプリが扱える本文の形の版（notes/bodySchema.ts）。
   bodySchemaVersion: number;
+  // 履歴を同期先に置くときに、理由と時刻を包む鍵。
+  masterKey: CryptoKey;
+  now?: () => Date;
 };
 
 export class SyncEngine {
   readonly #dependencies: SyncEngineDependencies;
+  readonly #versionSync: VersionSync;
   #running: Promise<SyncReport> | null = null;
 
   constructor(dependencies: SyncEngineDependencies) {
     this.#dependencies = dependencies;
+    const { localStore, objectStore, masterKey, repository } = dependencies;
+    this.#versionSync = new VersionSync({
+      localStore, objectStore, masterKey, isRecordRemoved: (recordId) => repository.isRemoved(recordId), now: dependencies.now ?? (() => new Date()),
+    });
   }
 
   // 同期中にもう一度呼ばれたら、走っている方の結果を返す。
@@ -66,6 +76,8 @@ export class SyncEngine {
     await this.#pushWaitingRecords(remoteEtags, report);
     // 記録を送る間に貼られた添付や、削除の印の上へ送り直すことになった添付を送る。
     await this.#uploadWaitingBlobs();
+    await this.#versionSync.uploadWaitingVersions();
+    await this.#versionSync.sweepRemoteVersionsIfDue();
     return report;
   }
 
@@ -190,11 +202,19 @@ export class SyncEngine {
     const condition: WriteCondition =
       entry.remoteEtag !== null && existsRemotely ? { ifMatch: entry.remoteEtag } : { ifAbsent: true };
     const { etag } = await objectStore.put(recordObjectKey(entry.id), entry.sealed, condition);
-    const { removedAttachmentIds } = await repository.confirmPushed(entry, etag);
-    // 削除の印が同期先に入ってから、貼ってあった添付を消す（消したら戻せない）。
+    const { removedAttachmentIds, recordRemoved } = await repository.confirmPushed(entry, etag);
+    // 削除の印が同期先に入ってから、貼ってあった添付と履歴を消す（消したら戻せない）。
     for (const attachmentId of removedAttachmentIds) {
       await objectStore.delete(blobObjectKey(attachmentId));
     }
+    if (recordRemoved) {
+      await this.#versionSync.removeVersionsOfRecord(entry.id);
+    }
+  }
+
+  // メモの履歴を開いたときに、ほかのデバイスが残した版を同期先から取ってくる。
+  downloadVersions(noteId: string): Promise<void> {
+    return this.#versionSync.downloadVersionsOfRecord(noteId);
   }
 
   // 表示するときに、まだ手元に無い添付を同期先から取ってくる。
