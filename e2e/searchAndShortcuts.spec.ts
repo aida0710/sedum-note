@@ -105,3 +105,55 @@ test("「/」のメニューとショートカットで、今日の日付を本�
   await page.keyboard.press("Control+Alt+d");
   await expect(page.locator(".ProseMirror")).toHaveText(today + today);
 });
+
+test("デイリーノートのボタンで今日のメモを作り、もう一度押すと同じメモが開く。入れるノートブックは設定で選べる", async ({ page }) => {
+  await startLocalVault(page);
+  const today = await page.evaluate(() => {
+    const now = new Date();
+    const twoDigits = (value: number) => String(value).padStart(2, "0");
+    return `${now.getFullYear()}-${twoDigits(now.getMonth() + 1)}-${twoDigits(now.getDate())}`;
+  });
+  await page.getByRole("button", { name: "今日のメモ（デイリーノート）" }).click();
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue(today);
+  await page.locator(".ProseMirror").click();
+  await page.keyboard.type("朝の記録");
+
+  await page.keyboard.press("Control+Alt+n");
+  await expect(page.getByRole("tab")).toHaveCount(2);
+  await page.keyboard.press("Control+Alt+j");
+  await expect(page.getByRole("tab")).toHaveCount(2);
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue(today);
+  await expect(page.locator(".ProseMirror")).toHaveText("朝の記録");
+});
+
+test("フォーカスモードでは左の列・タブ・ツールバーが隠れ、ボタンかショートカットで戻る", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "集中して書く", "本文");
+  await page.getByRole("button", { name: "フォーカスモード", exact: true }).click();
+  await expect(page.locator(".sidebar")).toBeHidden();
+  await expect(page.locator(".tabs")).toBeHidden();
+  await expect(page.locator(".editor-bar")).toBeHidden();
+  await expect(page.locator(".ProseMirror")).toHaveText("本文");
+
+  await page.getByRole("button", { name: "フォーカスモードを終わる" }).click();
+  await expect(page.locator(".sidebar")).toBeVisible();
+  await page.keyboard.press("Control+Alt+f");
+  await expect(page.locator(".sidebar")).toBeHidden();
+});
+
+test("タイプライターモードでは、打っている行が本文の領域の中央あたりに保たれる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "長いメモ", "");
+  await page.keyboard.press("Control+Alt+Shift+f");
+  for (let line = 0; line < 40; line += 1) {
+    await page.keyboard.type(`${line} 行目`);
+    await page.keyboard.press("Enter");
+  }
+  const offsetFromCenter = await page.evaluate(() => {
+    const area = document.querySelector(".document-scroll")!.getBoundingClientRect();
+    const caret = window.getSelection()!.getRangeAt(0).getBoundingClientRect();
+    const lastLine = caret.height > 0 ? caret : document.querySelector(".ProseMirror")!.lastElementChild!.getBoundingClientRect();
+    return Math.abs((lastLine.top + lastLine.bottom) / 2 - (area.top + area.height / 2));
+  });
+  expect(offsetFromCenter).toBeLessThan(40);
+});

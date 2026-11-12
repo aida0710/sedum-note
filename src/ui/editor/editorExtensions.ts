@@ -22,6 +22,8 @@ import { DateTimeShortcuts } from "./insertDateTime";
 import { ColoredTableCell, ColoredTableHeader } from "./tableCellBackground";
 import { TableShortcuts } from "./tableShortcuts";
 import { TextColor } from "./textColorMark";
+import { TypewriterScroll } from "./typewriterScroll";
+import { readDevicePreferences } from "../preferences/devicePreferences";
 import type { SlashMenuController } from "./slashMenuController";
 
 // よく使われる言語（highlight.js の common の組）だけを入れる。言語の指定が無いコードは中身から推す。
@@ -63,6 +65,7 @@ export function createEditorExtensions(body: Y.XmlFragment, slashMenuController:
     SlashCommands.configure({ controller: slashMenuController }),
     TableShortcuts,
     DateTimeShortcuts,
+    TypewriterScroll.configure({ isEnabled: () => readDevicePreferences().typewriterMode, scrollContainerSelector: ".document-scroll" }),
     SearchHighlight,
     Collaboration.configure({ fragment: body }),
     Placeholder.configure({ placeholder: translate("editor.bodyPlaceholder") }),

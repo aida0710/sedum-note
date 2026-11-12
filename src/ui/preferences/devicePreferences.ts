@@ -1,9 +1,10 @@
-// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の大きさ、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか、デイリーノートの作り方、タイプライターモード）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
 import { type CustomTheme, parseStoredCustomTheme } from "../theme/customTheme";
 import { NOTE_SORT_ORDERS, type NoteSortOrder } from "../../core/notes/noteQueries";
+import { DAILY_NOTE_TITLE_FORMATS, type DailyNoteTitleFormat } from "../workspace/dailyNote";
 
 // Web 版はほかのページと同じ origin（github.io）に載るので、キーにアプリの名前を付ける。
 const STORAGE_KEY = "sedum-note:devicePreferences";
@@ -38,6 +39,11 @@ export type DevicePreferences = {
   sidebarWidth: number;
   // このデバイスで、同期を自動で流すか。切っても「今すぐ同期」は使える。
   autoSync: boolean;
+  // デイリーノートの題の形式と、新しく作るときに入れるノートブック（null なら、どこにも入れない）。
+  dailyNoteTitleFormat: DailyNoteTitleFormat;
+  dailyNoteNotebookId: string | null;
+  // 打っている行を、本文の領域の中央に保つか。
+  typewriterMode: boolean;
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
@@ -52,6 +58,9 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   imageAttachment: "original",
   sidebarWidth: 290,
   autoSync: true,
+  dailyNoteTitleFormat: "iso",
+  dailyNoteNotebookId: null,
+  typewriterMode: false,
 };
 
 let current: DevicePreferences | null = null;
@@ -118,6 +127,9 @@ function validPreferences(stored: unknown): DevicePreferences {
     showOutline: typeof candidate.showOutline === "boolean" ? candidate.showOutline : DEFAULT_DEVICE_PREFERENCES.showOutline,
     imageAttachment: IMAGE_ATTACHMENT_CHOICES.find((choice) => choice === candidate.imageAttachment) ?? DEFAULT_DEVICE_PREFERENCES.imageAttachment,
     autoSync: typeof candidate.autoSync === "boolean" ? candidate.autoSync : DEFAULT_DEVICE_PREFERENCES.autoSync,
+    dailyNoteTitleFormat: DAILY_NOTE_TITLE_FORMATS.find((format) => format === candidate.dailyNoteTitleFormat) ?? DEFAULT_DEVICE_PREFERENCES.dailyNoteTitleFormat,
+    dailyNoteNotebookId: typeof candidate.dailyNoteNotebookId === "string" ? candidate.dailyNoteNotebookId : DEFAULT_DEVICE_PREFERENCES.dailyNoteNotebookId,
+    typewriterMode: typeof candidate.typewriterMode === "boolean" ? candidate.typewriterMode : DEFAULT_DEVICE_PREFERENCES.typewriterMode,
     sidebarWidth: clampSidebarWidth(typeof candidate.sidebarWidth === "number" ? candidate.sidebarWidth : DEFAULT_DEVICE_PREFERENCES.sidebarWidth),
   };
 }

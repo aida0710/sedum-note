@@ -1,7 +1,7 @@
 // 案C の左の列: 一覧（すべて・お気に入り・ノートブック・タグ・ゴミ箱）を木にして、
 // 開いた所にメモを並べる。
 
-import { FileText, Hash, LayoutTemplate, Plus, Search, Star, Trash2, X } from "lucide-react";
+import { CalendarDays, FileText, Hash, LayoutTemplate, Maximize2, Plus, Search, Star, Trash2, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { buildNotebookTree, countTags, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
@@ -21,10 +21,12 @@ type SidebarProps = {
   repository: NoteRepository;
   navigation: WorkspaceNavigation;
   onCreateNote: () => void;
+  onOpenDailyNote: () => void;
+  onEnterFocusMode: () => void;
   footer: ReactNode;
 };
 
-export function Sidebar({ snapshot, repository, navigation, onCreateNote, footer }: SidebarProps) {
+export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpenDailyNote, onEnterFocusMode, footer }: SidebarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [addingNotebook, setAddingNotebook] = useState(false);
   const { summaries } = snapshot;
@@ -59,9 +61,17 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, footer
     <aside className="sidebar">
       <div className="sidebar-brand">
         <FileText size={16} />{translate("app.name")}
+        <span className="sidebar-brand-actions">
+          <button className="icon-button" aria-label={translate("shortcut.dailyNote")} title={translate("shortcut.dailyNote")} onClick={onOpenDailyNote}>
+            <CalendarDays size={16} />
+          </button>
+          <button className="icon-button" aria-label={translate("shortcut.focusMode")} title={translate("shortcut.focusMode")} onClick={onEnterFocusMode}>
+            <Maximize2 size={16} />
+          </button>
         <button className="icon-button" aria-label={translate("sidebar.search")} onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}>
           {searchOpen ? <X size={16} /> : <Search size={16} />}
         </button>
+        </span>
       </div>
       {searchOpen && (
         <label className="sidebar-search">

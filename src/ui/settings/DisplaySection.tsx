@@ -1,4 +1,4 @@
-// 設定: このデバイスの表示（言語、メモの並び順、本文の文字の大きさ、写真を貼るときの大きさ）。
+// 設定: このデバイスの表示（言語、メモの並び順、本文の文字の大きさ、写真を貼るときの大きさ、タイプライターモード）。
 
 import { NOTE_SORT_ORDERS, type NoteSortOrder } from "../../core/notes/noteQueries";
 import { REDUCED_IMAGE_MAX_EDGE } from "../editor/reduceImage";
@@ -59,6 +59,10 @@ export function DisplaySection() {
         </select>
         <span className="hint">{translate("settings.imageAttachmentHint", { edge: REDUCED_IMAGE_MAX_EDGE })}</span>
       </div>
+      <label className="checkbox-line">
+        <input type="checkbox" checked={preferences.typewriterMode} onChange={(event) => updateDevicePreferences({ typewriterMode: event.target.checked })} />
+        {translate("settings.typewriterMode")}
+      </label>
     </section>
   );
 }

@@ -19,6 +19,7 @@ import { ThemeSection } from "./ThemeSection";
 import { TrashSection } from "./TrashSection";
 import { UpdateSection } from "./UpdateSection";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
+import { DailyNoteSection } from "./DailyNoteSection";
 
 type SettingsPanelProps = {
   session: VaultSession;
@@ -38,6 +39,7 @@ export function SettingsPanel({ session, vault, unreadableCount, isMobile }: Set
         <h1>{translate("settings.title")}</h1>
         {unreadableCount > 0 && <div className="form-error">{translate("settings.unreadable", { count: unreadableCount })}</div>}
         <DisplaySection />
+        <DailyNoteSection notebooks={repository.notebooks()} />
         <ThemeSection />
         <SyncSection session={session} vault={vault} />
         <BackupSection session={session} />

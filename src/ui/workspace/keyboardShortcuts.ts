@@ -6,16 +6,19 @@ import type { MessageKey } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { isApplePlatform, type ShortcutKeys } from "../shared/shortcutKeys";
 
-export type ShortcutId = "newNote" | "searchNotes" | "findInNote" | "nextTab" | "previousTab" | "closeTab" | "openSettings";
+export type ShortcutId = "newNote" | "dailyNote" | "searchNotes" | "findInNote" | "nextTab" | "previousTab" | "closeTab" | "openSettings" | "focusMode" | "typewriterMode";
 
 export const KEYBOARD_SHORTCUTS: Array<{ id: ShortcutId; label: MessageKey; keys: ShortcutKeys }> = [
   { id: "newNote", label: "shortcut.newNote", keys: { key: "n", alt: true } },
+  { id: "dailyNote", label: "shortcut.dailyNote", keys: { key: "j", alt: true } },
   { id: "searchNotes", label: "shortcut.searchNotes", keys: { key: "f", shift: true } },
   { id: "findInNote", label: "shortcut.findInNote", keys: { key: "f" } },
   { id: "nextTab", label: "shortcut.nextTab", keys: { key: "ArrowRight", alt: true } },
   { id: "previousTab", label: "shortcut.previousTab", keys: { key: "ArrowLeft", alt: true } },
   { id: "closeTab", label: "shortcut.closeTab", keys: { key: "w", alt: true } },
   { id: "openSettings", label: "shortcut.openSettings", keys: { key: "," } },
+  { id: "focusMode", label: "shortcut.focusMode", keys: { key: "f", alt: true } },
+  { id: "typewriterMode", label: "shortcut.typewriterMode", keys: { key: "f", alt: true, shift: true } },
 ];
 
 function matches(event: KeyboardEvent, keys: ShortcutKeys): boolean {
