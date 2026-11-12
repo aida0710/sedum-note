@@ -25,15 +25,15 @@ async function ensureBucket(bucket: string): Promise<void> {
 }
 
 // 実際のストレージ（Cloudflare R2、AWS S3 など）を相手に統合試験を流すときの接続先。環境変数
-// R2_ENDPOINT・R2_BUCKET・R2_ACCESS_KEY_ID・R2_SECRET_ACCESS_KEY を渡すと、SeaweedFS の代わりにそこへつなぐ
-// （リージョンは R2_REGION、無ければ auto）。試験は run-<乱数> のフォルダに書くので、終わったら消す
+// S3_TEST_ENDPOINT・S3_TEST_BUCKET・S3_TEST_ACCESS_KEY_ID・S3_TEST_SECRET_ACCESS_KEY を渡すと、SeaweedFS の代わりにそこへつなぐ
+// （リージョンは S3_TEST_REGION、無ければ Cloudflare R2 向けの auto）。試験は run-<乱数> のフォルダに書くので、終わったら消す
 // （integration/README.md）。
 function externalRemoteConfig(): Omit<RemoteConfig, "prefix"> | null {
-  const { R2_ENDPOINT, R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_REGION } = process.env;
-  if (!R2_ENDPOINT || !R2_BUCKET || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY) {
+  const { S3_TEST_ENDPOINT, S3_TEST_BUCKET, S3_TEST_ACCESS_KEY_ID, S3_TEST_SECRET_ACCESS_KEY, S3_TEST_REGION } = process.env;
+  if (!S3_TEST_ENDPOINT || !S3_TEST_BUCKET || !S3_TEST_ACCESS_KEY_ID || !S3_TEST_SECRET_ACCESS_KEY) {
     return null;
   }
-  return { endpoint: R2_ENDPOINT, bucket: R2_BUCKET, region: R2_REGION ?? "auto", accessKeyId: R2_ACCESS_KEY_ID, secretAccessKey: R2_SECRET_ACCESS_KEY };
+  return { endpoint: S3_TEST_ENDPOINT, bucket: S3_TEST_BUCKET, region: S3_TEST_REGION ?? "auto", accessKeyId: S3_TEST_ACCESS_KEY_ID, secretAccessKey: S3_TEST_SECRET_ACCESS_KEY };
 }
 
 export const TEST_RUN_PREFIX = "run-";

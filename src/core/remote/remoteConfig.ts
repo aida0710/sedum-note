@@ -5,10 +5,10 @@
 // 閉じる loopback だけ（手元の S3 互換サーバーでの試験用）。
 
 export type RemoteConfig = {
-  // 例: https://<account>.r2.cloudflarestorage.com、https://s3.ap-northeast-1.amazonaws.com
+  // 例: https://s3.ap-northeast-1.amazonaws.com、https://<account>.r2.cloudflarestorage.com
   endpoint: string;
   bucket: string;
-  // R2 は "auto"。AWS はバケットのリージョン。署名に入るので違うと断られる。
+  // AWS S3 はバケットのリージョン、Cloudflare R2 は "auto"。署名に入るので違うと断られる。
   region: string;
   // バケットの中の置き場所。空ならバケットの直下。
   prefix: string;

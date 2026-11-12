@@ -20,6 +20,7 @@ export function RemoteConfigFields({ value, onChange }: RemoteConfigFieldsProps)
       <div className="field">
         <label htmlFor="remote-endpoint">{translate("remote.endpoint")}</label>
         <input id="remote-endpoint" value={value.endpoint} onChange={update("endpoint")} placeholder={translate("remote.endpointPlaceholder")} autoComplete="off" spellCheck={false} inputMode="url" />
+        <span className="hint">{translate("remote.endpointHint")}</span>
       </div>
       <div className="field-grid">
         <div className="field">
