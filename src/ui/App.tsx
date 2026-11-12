@@ -24,6 +24,7 @@ import { useWorkspaceNavigation } from "./workspace/useWorkspaceNavigation";
 import type { UnlockedVault } from "../core/vault/vaultSession";
 import { applyCustomCss } from "./theme/customCss";
 import { AiSettingsContext, useAiSettingsOfVault } from "./ai/aiSettingsAccess";
+import { AiChatSessionProvider } from "./ai/aiChatSession";
 
 // MCP は PC 版（デスクトップのアプリ）にだけ同梱する。__INCLUDES_MCP__ はビルドのときに決まる定数なので、
 // Web 版と Android のアプリのビルドでは、この読み込みごと取り除かれ、MCP のコードはファイルに入らない。
@@ -84,9 +85,11 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
       <UnsyncedRecordsContext.Provider value={vault.syncEngine ? snapshot.unsyncedIds : NO_UNSYNCED_RECORDS}>
         <AvailableUpdateContext.Provider value={availableUpdate}>
           <AiSettingsContext.Provider value={aiSettings}>
+          <AiChatSessionProvider>
           {McpGatewayProvider
             ? <Suspense fallback={null}><McpGatewayProvider vault={vault}>{workspace}</McpGatewayProvider></Suspense>
             : workspace}
+          </AiChatSessionProvider>
           </AiSettingsContext.Provider>
         </AvailableUpdateContext.Provider>
       </UnsyncedRecordsContext.Provider>

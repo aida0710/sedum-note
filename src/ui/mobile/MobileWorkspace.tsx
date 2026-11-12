@@ -17,11 +17,15 @@ import { SETTINGS_TAB } from "../workspace/useWorkspaceNavigation";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
 import { NoteQuerySourceContext } from "../editor/noteQuerySource";
+import { AiChat } from "../ai/AiChat";
+import { useAiChatSession } from "../ai/aiChatSession";
+import { ModalDialog } from "../shared/ModalDialog";
 
 type MobileTab = "notes" | "notebooks" | "bookmarked" | "settings";
 
 export function MobileWorkspace({ session, vault, snapshot, navigation }: WorkspaceProps) {
   const { repository } = vault;
+  const aiChat = useAiChatSession();
   const [tab, setTab] = useState<MobileTab>("notes");
   const { noteSortOrder } = useDevicePreferences();
   // 開いているメモは PC の組み方と同じ所（navigation のタブ）に持つ。共有から作ったメモや、
@@ -42,6 +46,11 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Worksp
             repository={repository} isMobile onBack={goBack} />
             </NoteQuerySourceContext.Provider>
         </NoteLinkTargetsContext.Provider>
+        {aiChat.open && (
+          <ModalDialog label={translate("ai.chat")} className="ai-chat-dialog" onClose={() => aiChat.setOpen(false)}>
+            <AiChat repository={repository} notes={snapshot.notes.filter((note) => note.content.trashedAt === null)} onClose={() => aiChat.setOpen(false)} />
+          </ModalDialog>
+        )}
       </div>
     );
   }

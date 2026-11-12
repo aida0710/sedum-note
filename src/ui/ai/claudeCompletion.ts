@@ -2,12 +2,12 @@
 
 import { translate } from "../i18n/translate";
 import { UserFacingError } from "../i18n/userFacingError";
-import type { AiPrompt } from "./aiTasks";
+import type { AiConversation } from "./aiConversation";
 
 type ClaudeCompletionInput = {
   apiKey: string;
   model: string;
-  prompt: AiPrompt;
+  conversation: AiConversation;
   // 答えの文字が届くたびに呼ぶ（届いた分だけ）。
   onText: (text: string) => void;
   signal: AbortSignal;
@@ -19,14 +19,15 @@ const MAX_OUTPUT_TOKENS = 64000;
 const MODELS_WITH_SERVER_SIDE_FALLBACK = new Set(["claude-fable-5-2", "claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5"]);
 const SERVER_SIDE_FALLBACK_BETA = "server-side-fallback-2026-07-01";
 
-export async function streamClaudeCompletion({ apiKey, model, prompt, onText, signal }: ClaudeCompletionInput): Promise<void> {
+export async function streamClaudeCompletion({ apiKey, model, conversation, onText, signal }: ClaudeCompletionInput): Promise<void> {
   const { default: Anthropic } = await import("@anthropic-ai/sdk");
   // このアプリは利用者の手元で動き、API キーは利用者自身のもの（暗号化して手元に置いている）なので、画面から直接呼ぶ。
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
   const fallback = MODELS_WITH_SERVER_SIDE_FALLBACK.has(model) ? { betas: [SERVER_SIDE_FALLBACK_BETA], fallbacks: "default" as const } : {};
   try {
     const stream = client.beta.messages.stream(
-      { model, max_tokens: MAX_OUTPUT_TOKENS, system: prompt.system, messages: [{ role: "user", content: prompt.user }], ...fallback },
+      // 会話は毎回、最初から全部送る。前の回までと同じ部分はキャッシュから読まれるようにして、料金と待ち時間を減らす。
+      { model, max_tokens: MAX_OUTPUT_TOKENS, cache_control: { type: "ephemeral" }, system: conversation.system, messages: conversation.messages, ...fallback },
       { signal },
     );
     for await (const event of stream) {

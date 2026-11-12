@@ -3,13 +3,13 @@
 
 import { translate } from "../i18n/translate";
 import { UserFacingError } from "../i18n/userFacingError";
-import type { AiPrompt } from "./aiTasks";
+import type { AiConversation } from "./aiConversation";
 
 type OpenAiCompatibleCompletionInput = {
   baseUrl: string;
   apiKey: string;
   model: string;
-  prompt: AiPrompt;
+  conversation: AiConversation;
   onText: (text: string) => void;
   signal: AbortSignal;
 };
@@ -36,14 +36,14 @@ export function textOfStreamLine(line: string): string {
   }
 }
 
-export async function streamOpenAiCompatibleCompletion({ baseUrl, apiKey, model, prompt, onText, signal }: OpenAiCompatibleCompletionInput): Promise<void> {
+export async function streamOpenAiCompatibleCompletion({ baseUrl, apiKey, model, conversation, onText, signal }: OpenAiCompatibleCompletionInput): Promise<void> {
   let response: Response;
   try {
     response = await fetch(`${baseUrl.replace(/\/+$/, "")}/chat/completions`, {
       method: "POST",
       signal,
       headers: { "Content-Type": "application/json", ...(apiKey === "" ? {} : { Authorization: `Bearer ${apiKey}` }) },
-      body: JSON.stringify({ model, stream: true, messages: [{ role: "system", content: prompt.system }, { role: "user", content: prompt.user }] }),
+      body: JSON.stringify({ model, stream: true, messages: [{ role: "system", content: conversation.system }, ...conversation.messages] }),
     });
   } catch (error) {
     if (signal.aborted) {

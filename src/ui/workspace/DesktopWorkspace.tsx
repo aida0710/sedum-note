@@ -23,6 +23,8 @@ import { NoteGraphView } from "./NoteGraphView";
 import { GRAPH_TAB, notebookIdOfDatabaseTab, SETTINGS_TAB } from "./useWorkspaceNavigation";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
 import { NoteQuerySourceContext } from "../editor/noteQuerySource";
+import { AiChat } from "../ai/AiChat";
+import { useAiChatSession } from "../ai/aiChatSession";
 
 export function DesktopWorkspace({ session, vault, snapshot, navigation }: WorkspaceProps) {
   const { repository } = vault;
@@ -47,6 +49,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
       navigation.openNote(neighbor);
     }
   };
+  const aiChat = useAiChatSession();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const shortcutHandlers: Record<ShortcutId, () => void> = {
     commandPalette: () => setPaletteOpen(true),
@@ -58,6 +61,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
     closeTab: () => navigation.activeTab && navigation.closeTab(navigation.activeTab),
     openSettings: navigation.openSettings,
     graph: () => navigation.openTab(GRAPH_TAB),
+    aiChat: () => aiChat.setOpen(!aiChat.open),
     dailyNote: () => void openDailyNote(),
     focusMode: () => setFocusMode((on) => !on),
     typewriterMode: () => updateDevicePreferences({ typewriterMode: !readDevicePreferences().typewriterMode }),
@@ -67,7 +71,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
   const paletteCommands = KEYBOARD_SHORTCUTS.filter((shortcut) => shortcut.id !== "commandPalette")
     .map((shortcut) => ({ id: shortcut.id, label: translate(shortcut.label), shortcut: shortcutText(shortcut.keys), run: shortcutHandlers[shortcut.id] }));
   return (
-    <div className={`workspace${focusMode ? " focus-mode" : ""}${typewriterMode ? " typewriter-mode" : ""}`}>
+    <div className={`workspace${focusMode ? " focus-mode" : ""}${typewriterMode ? " typewriter-mode" : ""}${aiChat.open ? " with-ai-chat" : ""}`}>
       {focusMode && (
         <button className="icon-button focus-mode-exit" aria-label={translate("workspace.exitFocusMode")} title={translate("workspace.exitFocusMode")}
           onClick={() => setFocusMode(false)}><Minimize2 size={16} /></button>
@@ -100,6 +104,9 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation }: Works
         {showsGraph && <NoteGraphView summaries={snapshot.summaries} onOpenNote={navigation.openNote} />}
         {!activeNote && !databaseNotebook && !showsGraph && navigation.activeTab !== SETTINGS_TAB && <div className="empty-state">{translate("editor.empty")}</div>}
       </main>
+      {aiChat.open && (
+        <AiChat repository={repository} notes={snapshot.notes.filter((note) => note.content.trashedAt === null)} onClose={() => aiChat.setOpen(false)} />
+      )}
     </div>
   );
 }

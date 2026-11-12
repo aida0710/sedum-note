@@ -6,7 +6,7 @@ import type { MessageKey } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { isApplePlatform, type ShortcutKeys } from "../shared/shortcutKeys";
 
-export type ShortcutId = "commandPalette" | "newNote" | "dailyNote" | "searchNotes" | "findInNote" | "nextTab" | "previousTab" | "closeTab" | "openSettings" | "graph" | "focusMode" | "typewriterMode";
+export type ShortcutId = "commandPalette" | "newNote" | "dailyNote" | "searchNotes" | "findInNote" | "nextTab" | "previousTab" | "closeTab" | "openSettings" | "graph" | "aiChat" | "focusMode" | "typewriterMode";
 
 export const KEYBOARD_SHORTCUTS: Array<{ id: ShortcutId; label: MessageKey; keys: ShortcutKeys }> = [
   { id: "commandPalette", label: "shortcut.commandPalette", keys: { key: "k", alt: true } },
@@ -19,6 +19,7 @@ export const KEYBOARD_SHORTCUTS: Array<{ id: ShortcutId; label: MessageKey; keys
   { id: "closeTab", label: "shortcut.closeTab", keys: { key: "w", alt: true } },
   { id: "openSettings", label: "shortcut.openSettings", keys: { key: "," } },
   { id: "graph", label: "graph.title", keys: { key: "g", alt: true } },
+  { id: "aiChat", label: "ai.chat", keys: { key: "a", alt: true } },
   { id: "focusMode", label: "shortcut.focusMode", keys: { key: "f", alt: true } },
   { id: "typewriterMode", label: "shortcut.typewriterMode", keys: { key: "f", alt: true, shift: true } },
 ];
