@@ -260,7 +260,7 @@ test("OpenAI 互換のエンドポイントをつなぎ先にして答えても�
   await enableAi(page);
   await page.getByLabel("つなぎ先").selectOption("openAiCompatible");
   await saveAiSettingsAndOpenChat(page, "旅行の計画");
-  await expect(chat(page).getByRole("combobox", { name: "モデル" })).toHaveValue("local-model");
+  await expect(chat(page).getByRole("combobox", { name: "この会話で使うモデル" })).toHaveValue("local-model");
 
   const input = chat(page).getByRole("textbox", { name: "AI への発言" });
   await input.fill("出発はいつ？");
@@ -290,13 +290,14 @@ test("API キーを保存すると、モデルの一覧を取ってきてキー�
 
   await page.getByLabel("API キー").fill("test-key");
   await page.getByRole("button", { name: "保存して確かめる" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "つなぎ先につながりました" })).toHaveText("つなぎ先につながりました。モデルを 2 個取得しました。");
+  await expect(page.getByRole("status").filter({ hasText: "つなぎ先につながりました" }))
+    .toHaveText("つなぎ先につながりました。モデルを 2 個取得しました。使うモデルは「Claude Opus 5.5」です。");
   const modelSelect = page.getByRole("combobox", { name: "モデル" });
   await expect(modelSelect).toHaveValue("claude-opus-5-5");
   await expect(modelSelect.getByRole("option")).toHaveText(["Claude Sonnet 5.5", "Claude Opus 5.5"]);
 });
 
-test("チャットの上でモデルを変えると、次の発言からそのモデルで頼み、答えの長さの上限もそのモデルに合わせる", async ({ page }) => {
+test("チャットの上でモデルを変えると、その会話の次の発言からそのモデルで頼む。設定のモデルは変えず、新しい会話では設定のモデルに戻る", async ({ page }) => {
   const requests = await mockClaudeApi(page, ["一つ目の答え", "二つ目の答え"]);
   await startLocalVault(page);
   await createNoteOnDesktop(page, "メモ");
@@ -310,11 +311,17 @@ test("チャットの上でモデルを変えると、次の発言からその�
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["一つ目の答え"]);
   expect(requests[0]!.body).toMatchObject({ model: "claude-opus-5-5", max_tokens: 64000 });
 
-  await chat(page).getByRole("combobox", { name: "モデル" }).selectOption("claude-sonnet-5-5");
+  const chatModel = chat(page).getByRole("combobox", { name: "この会話で使うモデル" });
+  await chatModel.selectOption("claude-sonnet-5-5");
   await input.fill("続けて");
   await page.keyboard.press("Enter");
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["一つ目の答え", "二つ目の答え"]);
   expect(requests[1]!.body).toMatchObject({ model: "claude-sonnet-5-5", max_tokens: 32000 });
+
+  await chat(page).getByRole("button", { name: "新しい会話" }).click();
+  await expect(chatModel).toHaveValue("claude-opus-5-5");
+  await openSettingsPage(page, "AI");
+  await expect(page.getByRole("combobox", { name: "モデル", exact: true })).toHaveValue("claude-opus-5-5");
 });
 
 test("答えを受け取っている間は、送るボタンが止めるボタンに変わり、押すと止まる", async ({ page }) => {
@@ -449,7 +456,7 @@ test("開いているメモの直しを頼むと、差分を承認してから�
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかん"]);
 });
 
-test("承認を待つ間にメモを書き換えると、その変更は行わない。作る・直すを聞かずに行う設定でも、ゴミ箱に入れるときは聞く", async ({ page }) => {
+test("承認を待つ間にメモを書き換えると、その変更は行わない。その会話で作る・直すを聞かずに行うようにしても、ゴミ箱に入れるときは聞く", async ({ page }) => {
   await mockClaudeApi(page, [
     fruitEdit("toolu_first"),
     "書き換えられたので、直しませんでした。",
@@ -471,7 +478,8 @@ test("承認を待つ間にメモを書き換えると、その変更は行わ�
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text").last()).toHaveText("書き換えられたので、直しませんでした。");
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかんとレモン"]);
 
-  await chat(page).getByRole("checkbox", { name: "メモを作る・直すときは、承認を待たずに行う" }).check();
+  const editsWithoutAsking = chat(page).getByRole("checkbox", { name: "この会話では、メモを作る・直すときに承認を待たない" });
+  await editsWithoutAsking.check();
   await input.fill("もう一度直して");
   await page.keyboard.press("Enter");
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "バナナ", "みかん", "ぶどう"]);
@@ -481,6 +489,12 @@ test("承認を待つ間にメモを書き換えると、その変更は行わ�
   await approvalCard(page).getByRole("button", { name: "行わない" }).click();
   await expect(chat(page).locator(".ai-tool-activity").last()).toContainText("承認しなかったため、行いませんでした");
   await expect(page.locator(".tree-note", { hasText: "果物" })).toBeVisible();
+
+  // 承認を待たない切り替えは、その会話だけ。設定は毎回聞くのままで、新しい会話では外れる。
+  await chat(page).getByRole("button", { name: "新しい会話" }).click();
+  await expect(editsWithoutAsking).not.toBeChecked();
+  await openSettingsPage(page, "AI");
+  await expect(page.getByLabel("メモやノートブックを作る・直す")).toHaveValue("ask");
 });
 
 test("開いていないメモも、検索して読み、差分を承認して直せる。ツールの行を押すと、そのメモを開く", async ({ page }) => {

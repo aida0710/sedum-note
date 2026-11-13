@@ -56,6 +56,18 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   openAiCompatible: { baseUrl: "http://127.0.0.1:11434/v1", apiKey: "", model: "", models: [] },
 };
 
+// 今のつなぎ先の、使うモデルと選べるモデルの一覧。
+export function selectedModelOf(settings: AiSettings): { model: string; models: AiModelOption[] } {
+  return settings.provider === "claude" ? settings.claude : settings.openAiCompatible;
+}
+
+// 今のつなぎ先の、使うモデルを変えた設定。
+export function withSelectedModel(settings: AiSettings, model: string): AiSettings {
+  return settings.provider === "claude"
+    ? { ...settings, claude: { ...settings.claude, model } }
+    : { ...settings, openAiCompatible: { ...settings.openAiCompatible, model } };
+}
+
 // まだ設定していなければ、無効の設定を返す（保存はしない）。
 export async function readAiSettings(localStore: LocalStore, masterKey: CryptoKey): Promise<AiSettings> {
   const sealed = await localStore.readSetting<Uint8Array>(AI_SETTINGS_NAME);

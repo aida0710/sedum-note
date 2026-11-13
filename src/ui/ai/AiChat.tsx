@@ -1,10 +1,11 @@
 // AI とのチャット。会話を続けられ、発言には文脈として、開いているメモ・選択範囲・「@」で指定したメモを添えられる。
 // AI はツールでメモを探し、読み、作り、直せる（許可は設定の「AI」のページで種類ごとに選ぶ）。聞く設定の変更は、
-// 答えの下のカードで承認してから行う。答えは、コピーするか、開いているメモのカーソルの位置か末尾に入れられる。
+// 答えの下のカードで承認してから行う。チャットの上のモデルと、承認を待つかの切り替えは、その会話だけに効く（設定は変えない）。
+// 答えは、コピーするか、開いているメモのカーソルの位置か末尾に入れられる。
 // 発言を進める状態は AiChatSessionProvider が持つので、この欄を閉じても止まらない。
 
 import { ArrowUp, FileText, History, Square, TextSelect, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { insertPastedMarkdown } from "../editor/pastedMarkdown";
@@ -15,7 +16,6 @@ import { type ActiveNoteEditor, useAiChatSession } from "./aiChatSession";
 import { AiChatMessageView, type AnswerActions } from "./AiChatMessageView";
 import { AI_QUICK_REQUESTS, type AiAttachment, type AiQuickRequest } from "./aiConversation";
 import { AiModelSelect } from "./AiModelSelect";
-import { useAiSettings } from "./aiSettingsAccess";
 import { NoteMentionInput } from "./NoteMentionInput";
 import { SavedChatList } from "./SavedChatList";
 import { isReplaceableSelection, replaceSelectedText } from "./selectionReplacement";
@@ -59,9 +59,8 @@ function useSelectedText(activeNote: ActiveNoteEditor | null): SelectedText {
 }
 
 export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNote }: AiChatProps) {
-  const { settings, saveSettings } = useAiSettings();
   const {
-    messages, activeNote, savedChats, startNewChat, openSavedChat, deleteSavedChat,
+    messages, conversationSettings: settings, setConversationOverrides, activeNote, savedChats, startNewChat, openSavedChat, deleteSavedChat,
     running, startingToolName, errorMessage, setErrorMessage, pendingApproval, send, stop,
   } = useAiChatSession();
   // true なら、会話の代わりに、残した会話の一覧を出す。
@@ -137,7 +136,7 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNot
   if (settings?.enabled !== true) {
     return (
       <section className="ai-chat" aria-label={translate("ai.chat")}>
-        <ChatHeader showsModel={false} canStartNewChat={false} onStartNewChat={() => undefined} showsHistory={null} onToggleHistory={() => undefined} onClose={onClose} />
+        <ChatHeader modelSelect={null} canStartNewChat={false} onStartNewChat={() => undefined} showsHistory={null} onToggleHistory={() => undefined} onClose={onClose} />
         <div className="ai-chat-notice">
           <p>{translate("ai.notEnabled")}</p>
           <button type="button" className="primary-button" onClick={onOpenAiSettings}>{translate("ai.openSettings")}</button>
@@ -148,8 +147,12 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNot
   const editsWithoutAsking = settings.permissions.edit === "allow";
   return (
     <section className="ai-chat" aria-label={translate("ai.chat")}>
-      <ChatHeader showsModel canStartNewChat={messages.length > 0 && !running && !showsHistory} onStartNewChat={startNewChat}
-        showsHistory={showsHistory} onToggleHistory={() => setShowsHistory(!showsHistory)} onClose={onClose} />
+      <ChatHeader canStartNewChat={messages.length > 0 && !running && !showsHistory} onStartNewChat={startNewChat}
+        showsHistory={showsHistory} onToggleHistory={() => setShowsHistory(!showsHistory)} onClose={onClose}
+        modelSelect={(
+          <AiModelSelect id="ai-chat-model" compact ariaLabel={translate("ai.conversationModel")} settings={settings}
+            onChoose={(id) => setConversationOverrides((overrides) => ({ ...overrides, model: { provider: settings.provider, id } }))} />
+        )} />
       {showsHistory ? (
         <SavedChatList chats={savedChats ?? []} disabled={running}
           onOpen={(chatId) => {
@@ -197,11 +200,11 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNot
         <NoteMentionInput value={input} onChange={setInput} disabled={running} onSubmit={() => sendInput(currentAttachments())}
           notes={notes.filter((note) => !mentionedNoteIds.includes(note.id))}
           onMention={(note) => setMentionedNoteIds([...mentionedNoteIds, note.id])} />
-        {/* 「作る・直す」の許可を、聞かずに行う・毎回聞くで切り替える（設定の「AI」のページと同じ設定）。 */}
+        {/* 「作る・直す」を、この会話だけ、聞かずに行うか毎回聞くかで切り替える（設定で許可していなければ出さない）。 */}
         {settings.permissions.edit !== "deny" && (
           <label className="checkbox-line ai-auto-apply">
             <input type="checkbox" checked={editsWithoutAsking}
-              onChange={(event) => void saveSettings({ ...settings, permissions: { ...settings.permissions, edit: event.target.checked ? "allow" : "ask" } })} />
+              onChange={(event) => setConversationOverrides((overrides) => ({ ...overrides, editsWithoutAsking: event.target.checked }))} />
             {translate("ai.autoApplyEdits")}
           </label>
         )}
@@ -230,7 +233,8 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNot
 }
 
 type ChatHeaderProps = {
-  showsModel: boolean;
+  // 会話で使うモデルを選ぶ欄。出さないなら null。
+  modelSelect: ReactNode | null;
   canStartNewChat: boolean;
   onStartNewChat: () => void;
   // 残した会話の一覧を出しているか。一覧のボタンを出さないときは null。
@@ -239,11 +243,11 @@ type ChatHeaderProps = {
   onClose: () => void;
 };
 
-function ChatHeader({ showsModel, canStartNewChat, onStartNewChat, showsHistory, onToggleHistory, onClose }: ChatHeaderProps) {
+function ChatHeader({ modelSelect, canStartNewChat, onStartNewChat, showsHistory, onToggleHistory, onClose }: ChatHeaderProps) {
   return (
     <header className="ai-chat-header">
       <h2>{translate("ai.chat")}</h2>
-      {showsModel && <AiModelSelect id="ai-chat-model" compact />}
+      {modelSelect}
       {canStartNewChat && <button type="button" className="text-button" onClick={onStartNewChat}>{translate("ai.newChat")}</button>}
       {showsHistory !== null && (
         <button type="button" className={`icon-button${showsHistory ? " active" : ""}`} aria-label={translate("ai.history")} aria-pressed={showsHistory} title={translate("ai.history")} onClick={onToggleHistory}>
