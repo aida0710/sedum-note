@@ -437,8 +437,10 @@ test("表の行と列を、上と左にも足せる。表の中のショート�
   await chooseTableAction(page, "左に列を追加");
   expect(await tableShape(page)).toEqual([["", "", "", ""], ["", "", "", ""], ["", "もと", "", ""], ["", "", "", ""]]);
 
-  // ショートカットで足しても、カーソルは元のセルに残る。
+  // ショートカットで足しても、カーソルは元のセルに残る。セルの真ん中を押すと、文字の大きさによっては文字の途中に
+  // カーソルが入るので、押したあとにセルの文字の末尾へ移す。
   await page.locator(".ProseMirror td", { hasText: "もと" }).click();
+  await page.keyboard.press("End");
   await page.keyboard.press("ControlOrMeta+Enter");
   await page.keyboard.press("ControlOrMeta+Shift+Enter");
   await page.keyboard.press("ControlOrMeta+Alt+Enter");
