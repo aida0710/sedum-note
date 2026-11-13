@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
-import { createNoteOnDesktop, insertFromSlashMenu, openSettingsPage, openSyncedDevice, PHONE_VIEWPORT, startLocalVault, syncNowOnDesktop } from "./devices";
+import { createNoteOnDesktop, insertFromSlashMenu, openSettingsPage, openSyncedDevice, PHONE_VIEWPORT, placeCursorAtBodyEnd, startLocalVault, syncNowOnDesktop } from "./devices";
 
 const newNote = createNoteOnDesktop;
 
@@ -546,7 +546,8 @@ test("選んだ文字にハイライトと文字色を付け、色なしで外�
   await expect(page.locator(".ProseMirror mark")).toHaveCount(0);
   await expect(page.locator('.ProseMirror [data-text-color="red"]')).toHaveText("大事な文字");
 
-  await page.keyboard.press("End");
+  // 全体を選んだまま End を押すと、エディタがカーソルの移動を読み取る前に次のキーが届くことがあるので、エディタの操作で末尾へ移す。
+  await placeCursorAtBodyEnd(page);
   await page.keyboard.press("Enter");
   await insertFromSlashMenu(page, "表", "表");
   await firstBodyCell(page).click();
