@@ -14,9 +14,12 @@ export function useTrashWithUndo(repository: NoteRepository): (noteIds: string[]
     if (noteIds.length === 0) {
       return;
     }
-    for (const noteId of noteIds) {
-      await repository.moveNoteToTrash(noteId);
-    }
+    // まとめて入れたときは、入れ終えてから 1 回だけ左の列へ知らせる（1 件ごとだと、件数の 2 乗の時間がかかる）。
+    await repository.holdChangeNotifications(async () => {
+      for (const noteId of noteIds) {
+        await repository.moveNoteToTrash(noteId);
+      }
+    });
     const undoableNoteIds = [...(undoableTrashedNotes.get(repository) ?? []), ...noteIds];
     showToast({
       message: undoableNoteIds.length === 1 ? translate("toast.movedToTrash") : translate("toast.movedManyToTrash", { count: undoableNoteIds.length }),
@@ -29,7 +32,9 @@ export function useTrashWithUndo(repository: NoteRepository): (noteIds: string[]
 }
 
 async function restoreAll(repository: NoteRepository, noteIds: string[]): Promise<void> {
-  for (const noteId of noteIds) {
-    await repository.restoreNoteFromTrash(noteId);
-  }
+  await repository.holdChangeNotifications(async () => {
+    for (const noteId of noteIds) {
+      await repository.restoreNoteFromTrash(noteId);
+    }
+  });
 }

@@ -76,24 +76,27 @@ export async function dropNoteOnView(event: React.DragEvent, view: NoteView, { r
     return;
   }
   const undoSteps: (() => Promise<void>)[] = [];
-  for (const noteId of dragged.noteIds) {
-    const note = repository.note(noteId);
-    if (note) {
-      const before = movedFieldsOf(note);
-      await moveNoteToView(repository, note, { view, fromNotebookId: dragged.fromNotebookId });
-      undoSteps.push(() => repository.updateNote(noteId, before));
+  // 移し終えてから 1 回だけ左の列へ知らせる（1 件ごとだと、件数の 2 乗の時間がかかる）。
+  await repository.holdChangeNotifications(async () => {
+    for (const noteId of dragged.noteIds) {
+      const note = repository.note(noteId);
+      if (note) {
+        const before = movedFieldsOf(note);
+        await moveNoteToView(repository, note, { view, fromNotebookId: dragged.fromNotebookId });
+        undoSteps.push(() => repository.updateNote(noteId, before));
+      }
     }
-  }
+  });
   if (undoSteps.length === 0) {
     return;
   }
   onMoved({
     noteIds: dragged.noteIds, destination: view, fromNotebook: dragged.fromNotebookId !== null,
-    undo: async () => {
+    undo: () => repository.holdChangeNotifications(async () => {
       for (const undoStep of undoSteps) {
         await undoStep();
       }
-    },
+    }),
   });
 }
 

@@ -29,11 +29,12 @@ export function SelectedNotesMenu({ anchor, noteIds, inTrash, repository, onClos
     resetNoteSelection();
     void action();
   };
-  const restoreAll = async () => {
+  // 戻し終えてから 1 回だけ左の列へ知らせる（1 件ごとだと、件数の 2 乗の時間がかかる）。
+  const restoreAll = () => repository.holdChangeNotifications(async () => {
     for (const noteId of targetIds) {
       await repository.restoreNoteFromTrash(noteId);
     }
-  };
+  });
   return (
     <PopupMenu anchor={anchor} onClose={onClose}>
       {inTrash && (
