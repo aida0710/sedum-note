@@ -1,11 +1,13 @@
 // スペースを消すような、取り返しのつかない操作の前に、パスフレーズを確かめるダイアログ。確かめられたら true、やめたら false を返す。
+// 決めるボタンには、押すと何が起きるかを書く（「確認」ではなく「削除」）。
 
 import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
-import { translate } from "../i18n/translate";
 import { ModalDialog } from "../shared/ModalDialog";
 import { PassphraseCheckForm } from "./PassphraseCheckForm";
 
-type ConfirmPassphrase = (message: string) => Promise<boolean>;
+// submitLabel は、決めるボタンの名前。danger は、戻せない操作か（決めるボタンを赤くする）。
+type PassphraseConfirmation = { message: string; submitLabel: string; danger: boolean };
+type ConfirmPassphrase = (confirmation: PassphraseConfirmation) => Promise<boolean>;
 
 const PassphraseConfirmContext = createContext<ConfirmPassphrase | null>(null);
 
@@ -20,8 +22,8 @@ export function useConfirmPassphrase(): ConfirmPassphrase {
 type PassphraseConfirmProviderProps = { verifyPassphrase: (passphrase: string) => Promise<void>; children: ReactNode };
 
 export function PassphraseConfirmProvider({ verifyPassphrase, children }: PassphraseConfirmProviderProps) {
-  const [request, setRequest] = useState<{ message: string; resolve: (verified: boolean) => void } | null>(null);
-  const confirmPassphrase = useCallback<ConfirmPassphrase>((message) => new Promise((resolve) => setRequest({ message, resolve })), []);
+  const [request, setRequest] = useState<PassphraseConfirmation & { resolve: (verified: boolean) => void } | null>(null);
+  const confirmPassphrase = useCallback<ConfirmPassphrase>((confirmation) => new Promise((resolve) => setRequest({ ...confirmation, resolve })), []);
   const finish = (verified: boolean) => {
     request?.resolve(verified);
     setRequest(null);
@@ -31,7 +33,7 @@ export function PassphraseConfirmProvider({ verifyPassphrase, children }: Passph
       {children}
       {request && (
         <ModalDialog label={request.message} description={request.message} onClose={() => finish(false)}>
-          <PassphraseCheckForm verifyPassphrase={verifyPassphrase} submitLabel={translate("lock.confirm")} onVerified={() => finish(true)} onCancel={() => finish(false)} />
+          <PassphraseCheckForm verifyPassphrase={verifyPassphrase} submitLabel={request.submitLabel} danger={request.danger} onVerified={() => finish(true)} onCancel={() => finish(false)} />
         </ModalDialog>
       )}
     </PassphraseConfirmContext.Provider>

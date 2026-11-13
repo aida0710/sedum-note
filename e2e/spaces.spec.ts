@@ -72,7 +72,8 @@ test("スペースを足すのをやめられる。足したスペースは、�
   await workSpace.getByRole("button", { name: "削除" }).click();
   const confirmation = page.getByRole("dialog", { name: /スペース「仕事」を、このデバイスから消します/ });
   await confirmation.getByLabel("パスフレーズ").fill(PASSPHRASE);
-  await confirmation.getByRole("button", { name: "確認" }).click();
+  // 決めるボタンは、押すと起きること（削除）を言う。
+  await confirmation.getByRole("button", { name: "削除" }).click();
   await expect(page.locator(".space-list li")).toHaveCount(1);
   await expect(spaceSwitcher(page)).toHaveCount(0);
 });

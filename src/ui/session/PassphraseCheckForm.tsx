@@ -9,11 +9,13 @@ type PassphraseCheckFormProps = {
   // 入れた文字を確かめる。違えば失敗する（VaultSession の verifyPassphrase）。
   verifyPassphrase: (passphrase: string) => Promise<void>;
   submitLabel: string;
+  // 戻せない操作の前の確認か。決めるボタンを赤くする。
+  danger?: boolean;
   onVerified: () => void;
   onCancel?: () => void;
 };
 
-export function PassphraseCheckForm({ verifyPassphrase, submitLabel, onVerified, onCancel }: PassphraseCheckFormProps) {
+export function PassphraseCheckForm({ verifyPassphrase, submitLabel, danger = false, onVerified, onCancel }: PassphraseCheckFormProps) {
   const [passphrase, setPassphrase] = useState("");
   const check = useAsyncAction(verifyPassphrase);
   const inputId = useId();
@@ -32,7 +34,7 @@ export function PassphraseCheckForm({ verifyPassphrase, submitLabel, onVerified,
       <div className="form-actions">
         {check.busy && <span className="hint">{translate("lock.checking")}</span>}
         {onCancel && <button type="button" className="secondary-button" onClick={onCancel}>{translate("common.cancel")}</button>}
-        <button type="submit" className="primary-button" disabled={check.busy}>{submitLabel}</button>
+        <button type="submit" className={danger ? "danger-button filled" : "primary-button"} disabled={check.busy}>{submitLabel}</button>
       </div>
     </form>
   );

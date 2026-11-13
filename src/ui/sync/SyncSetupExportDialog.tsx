@@ -38,8 +38,9 @@ export function SyncSetupExportDialog({ setup, onClose }: { setup: string; onClo
       {save.errorMessage && <div className="form-error" role="alert">{save.errorMessage}</div>}
       <div className="form-actions">
         {saved && <span className="form-success">{translate("syncSetup.saved")}</span>}
-        <button type="button" className="secondary-button" disabled={save.busy} onClick={() => void save.run(undefined)}>{translate("syncSetup.saveFile")}</button>
-        <button type="button" className="primary-button" onClick={onClose}>{translate("common.close")}</button>
+        {/* 「閉じる」を主のボタンにするのは、ほかに決める操作が無いダイアログだけ。ここでは、ファイルへの保存が主。 */}
+        <button type="button" className="secondary-button" onClick={onClose}>{translate("common.close")}</button>
+        <button type="button" className="primary-button" disabled={save.busy} onClick={() => void save.run(undefined)}>{translate("syncSetup.saveFile")}</button>
       </div>
     </ModalDialog>
   );

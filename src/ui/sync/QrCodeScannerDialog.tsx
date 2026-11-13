@@ -74,7 +74,7 @@ export function QrCodeScannerDialog({ onRead, onClose }: QrCodeScannerDialogProp
         </>
       ) : <div className="form-error" role="alert">{cameraProblem}</div>}
       <div className="form-actions">
-        <button type="button" className="secondary-button" onClick={onClose}>{translate("common.close")}</button>
+        <button type="button" className="primary-button" onClick={onClose}>{translate("common.close")}</button>
       </div>
     </ModalDialog>
   );

@@ -28,7 +28,7 @@ export function SpacesSection() {
   // 消すのは、このデバイスにある分だけ（同期先は残る）。送っていないメモは失われるので、パスフレーズを確かめてから消す。
   const remove = useAsyncAction(async (space: Space) => {
     const name = spaceDisplayName(space);
-    if (!(await confirmPassphrase(translate("space.removeConfirm", { name })))) {
+    if (!(await confirmPassphrase({ message: translate("space.removeConfirm", { name }), submitLabel: translate("common.delete"), danger: true }))) {
       return;
     }
     await destroySpaceData(space.id);

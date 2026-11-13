@@ -61,7 +61,7 @@ export function NoteNotebooksDialog({ note, notebooks, repository, onClose }: No
         ))}
       </div>
       <div className="form-actions">
-        <button type="button" className="secondary-button" onClick={onClose}>{translate("common.close")}</button>
+        <button type="button" className="primary-button" onClick={onClose}>{translate("common.close")}</button>
       </div>
     </ModalDialog>
   );
