@@ -1,6 +1,7 @@
-import { AlarmClock, FolderPlus, Hash, Trash2, LayoutTemplate } from "lucide-react";
+import { AlarmClock, Bookmark, FolderPlus, Hash, Trash2, LayoutTemplate } from "lucide-react";
 import { dueItemsOf } from "../../core/notes/dueItems";
 import { countTags, type NoteView, selectNotes } from "../../core/notes/noteQueries";
+import type { LiveSavedSearch } from "../../core/notes/noteRecords";
 import { translate } from "../i18n/translate";
 import { useDialogs } from "../shared/DialogProvider";
 import { notebookTreeRows } from "../editor/notebookTreeRows";
@@ -12,13 +13,14 @@ type MobileLibraryProps = {
   snapshot: WorkspaceProps["snapshot"];
   repository: WorkspaceProps["vault"]["repository"];
   onPick: (view: NoteView) => void;
+  onOpenSavedSearch: (savedSearch: LiveSavedSearch) => void;
   onOpenNote: (noteId: string) => void;
   onOpenReminders: () => void;
 };
 
 // スマホの「ノートブック」タブ: ノートブック・タグ・ゴミ箱を選ぶと、その一覧を開く。期限の一覧もここから開く。
 // ノートブックは、PC の左の列と同じ順（親の下に子、同じ階層は名前の順）で、子を字下げして並べる。
-export function MobileLibrary({ snapshot, repository, onPick, onOpenNote, onOpenReminders }: MobileLibraryProps) {
+export function MobileLibrary({ snapshot, repository, onPick, onOpenSavedSearch, onOpenNote, onOpenReminders }: MobileLibraryProps) {
   const dialogs = useDialogs();
   const tags = countTags(snapshot.summaries);
   const notebookColors = assignNotebookColors(snapshot.notebooks);
@@ -46,6 +48,13 @@ export function MobileLibrary({ snapshot, repository, onPick, onOpenNote, onOpen
         {tags.map(({ tag, count }) => (
           <button key={tag} className="library-row" onClick={() => onPick({ kind: "tag", tag })}>
             <Hash size={15} /><span className="library-row-label">{tag}</span><span className="count">{count}</span>
+          </button>
+        ))}
+        {/* PC で保存した検索も、ここから開ける（保存と削除は PC の左の列で行う）。 */}
+        {snapshot.savedSearches.length > 0 && <div className="section-title">{translate("sidebar.savedSearches")}</div>}
+        {snapshot.savedSearches.map((savedSearch) => (
+          <button key={savedSearch.id} className="library-row" onClick={() => onOpenSavedSearch(savedSearch)}>
+            <Bookmark size={15} /><span className="library-row-label">{savedSearch.content.name}</span>
           </button>
         ))}
         <div className="section-title" />

@@ -3,6 +3,7 @@
 import { FileText, FolderOpen, Plus, Settings, Star } from "lucide-react";
 import { useState } from "react";
 import { notebookNameLookup, selectNotes, type NoteView } from "../../core/notes/noteQueries";
+import type { LiveSavedSearch } from "../../core/notes/noteRecords";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import { NoteEditor } from "../editor/NoteEditor";
 import { createNoteLinkTargets, NoteLinkTargetsContext } from "../editor/noteLinkTargets";
@@ -43,6 +44,8 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
   // 「ノートブック」タブで開いている一覧（ノートブック・タグ・テンプレート・ゴミ箱）。null ならノートブックの一覧を出す。
   const [pickedLibraryView, setPickedLibraryView] = useState<NoteView | null>(null);
   const libraryView = existingView(pickedLibraryView, snapshot.notebooks);
+  // ノートブックかタグの一覧の中を検索しているときに、「すべてのメモ」へ広げているか。
+  const [searchesEverywhere, setSearchesEverywhere] = useState(false);
   const { noteSortOrder, typewriterMode } = useDevicePreferences();
   // 開いているメモは PC の組み方と同じ所（navigation のタブ）に持つ。共有から作ったメモや、
   // メモ同士のリンクが、どちらの組み方でも同じ操作で開ける。
@@ -133,6 +136,19 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
   };
   // 今のタブで出しているメモの一覧。設定と、ノートブックの一覧を出しているときは null。
   const view = tab === "settings" ? null : listViews[tab];
+  const isScopedSearch = (view?.kind === "notebook" || view?.kind === "tag") && navigation.searchText.trim() !== "";
+  const searchedView: NoteView | null = isScopedSearch && searchesEverywhere ? { kind: "all" } : view;
+  // 保存した検索を開く。範囲（ノートブックかタグ）があればその一覧で、無ければ「メモ」タブのすべてのメモで探す。
+  const openSavedSearch = ({ content }: LiveSavedSearch) => {
+    const scope: NoteView | null = content.notebookId !== null ? { kind: "notebook", notebookId: content.notebookId } : content.tag !== null ? { kind: "tag", tag: content.tag } : null;
+    if (scope) {
+      setPickedLibraryView(scope);
+    } else {
+      selectTab("notes");
+    }
+    setSearchesEverywhere(false);
+    navigation.setSearchText(content.searchText);
+  };
   const createNote = async (inView: NoteView) => navigation.openNote((await createNoteInView(repository, inView)).id);
 
   return (
@@ -143,13 +159,14 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
       )}
       {tab === "notebooks" && view === null && (
         <MobileLibrary snapshot={snapshot} repository={repository}
-          onPick={setPickedLibraryView} onOpenNote={navigation.openNote} onOpenReminders={() => navigation.openTab(REMINDERS_TAB)} />
+          onPick={setPickedLibraryView} onOpenSavedSearch={openSavedSearch} onOpenNote={navigation.openNote} onOpenReminders={() => navigation.openTab(REMINDERS_TAB)} />
       )}
       {tab !== "settings" && <UpdateChip onOpenSettings={() => openSettingsPage("update")} />}
-      {view && (
-        <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, { view, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNameOf: notebookNameLookup(snapshot.notebooks) })}
+      {view && searchedView && (
+        <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, { view: searchedView, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNameOf: notebookNameLookup(snapshot.notebooks) })}
           notebooks={snapshot.notebooks} view={view} listKey={`${tab}:${viewKey(view)}`} showChips={tab === "notes"}
           headerEnd={<SyncStatusLine status={session.syncStatus} onOpenSyncSettings={() => openSettingsPage("sync")} />}
+          searchScope={isScopedSearch ? { searchesEverywhere, onChange: setSearchesEverywhere } : null}
           onBackToLibrary={tab === "notebooks" ? closeLibraryList : undefined}
           navigation={navigation} repository={repository} onOpen={navigation.openNote} onPullToSync={syncFromPull} />
       )}

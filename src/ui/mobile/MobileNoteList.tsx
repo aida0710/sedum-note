@@ -11,6 +11,7 @@ import { notebookTreeRows } from "../editor/notebookTreeRows";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { formatShortDate } from "../shared/formatTime";
+import { SearchScopeSwitch } from "../shared/SearchScopeSwitch";
 import { assignNotebookColors, NotebookMark, type NotebookColors } from "../shared/notebookAppearance";
 import { useTrashWithUndo } from "../workspace/useTrashWithUndo";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
@@ -39,6 +40,8 @@ type NoteListProps = {
   showChips: boolean;
   // 題の右に出すもの（同期の状態）。
   headerEnd: ReactNode;
+  // ノートブックかタグの一覧の中を検索している間の、検索する範囲。それ以外は null（切り替えを出さない）。
+  searchScope: { searchesEverywhere: boolean; onChange: (searchesEverywhere: boolean) => void } | null;
   // 「ノートブック」タブから開いた一覧で、ノートブックの一覧へ戻る。ほかの一覧では渡さない。
   onBackToLibrary?: () => void;
   navigation: WorkspaceProps["navigation"];
@@ -50,7 +53,7 @@ type NoteListProps = {
 
 const PULL_MESSAGES = { idle: "mobile.pullToSync", pulling: "mobile.pullToSync", ready: "mobile.releaseToSync", syncing: "mobile.syncing" } as const satisfies Record<PullState, string>;
 
-export function NoteList({ title, summaries, notebooks, view, listKey, showChips, headerEnd, onBackToLibrary, navigation, repository, onOpen, onPullToSync }: NoteListProps) {
+export function NoteList({ title, summaries, notebooks, view, listKey, showChips, headerEnd, searchScope, onBackToLibrary, navigation, repository, onOpen, onPullToSync }: NoteListProps) {
   const { listRef, scrollRef, indicatorRef, pullState } = usePullToSync(onPullToSync);
   useRememberedListScroll(scrollRef, listKey);
   const notebookColors = assignNotebookColors(notebooks);
@@ -74,6 +77,7 @@ export function NoteList({ title, summaries, notebooks, view, listKey, showChips
           <button type="button" className="icon-button" aria-label={translate("mobile.clearSearch")} onClick={() => navigation.setSearchText("")}><X size={15} /></button>
         )}
       </label>
+      {searchScope && <SearchScopeSwitch scopeName={title} searchesEverywhere={searchScope.searchesEverywhere} onChange={searchScope.onChange} />}
       {showChips && (
         <div className="chips">
           <button className={`chip${view.kind === "all" ? " on" : ""}`} onClick={() => navigation.selectView({ kind: "all" })}>{translate("mobile.all")}</button>

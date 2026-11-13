@@ -1,6 +1,6 @@
 import { type Browser, expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
-import { openSyncedDevice, PHONE_VIEWPORT, startLocalVault, SYNC_KEY } from "./devices";
+import { createNoteOnDesktop, openSyncedDevice, PHONE_VIEWPORT, startLocalVault, SYNC_KEY } from "./devices";
 
 // スマホの幅の画面で、同期なしの vault を作る。hasTouch を付けると、指で使う端末（pointer: coarse）として開く。
 async function openPhone(browser: Browser, { hasTouch = false }: { hasTouch?: boolean } = {}): Promise<Page> {
@@ -336,4 +336,44 @@ test("設定の「同期」でも、書き出した同期の設定のファイ�
   await phone.getByRole("button", { name: "取り込む" }).click();
   await expect(phone.getByText("同期の設定を取り込みました")).toBeVisible();
   await expect(phone.getByLabel("バケット")).toHaveValue(remoteConfig.bucket);
+});
+
+test("PC で保存した検索を、スマホの「ノートブック」タブから開ける", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "旅行の持ち物");
+  await createNoteOnDesktop(page, "買い物");
+  await page.keyboard.press("Control+Shift+f");
+  await page.getByPlaceholder("メモを検索").fill("持ち物");
+  await page.getByRole("button", { name: "この検索を保存" }).click();
+  await page.getByRole("dialog").getByRole("textbox").fill("旅の準備");
+  await page.keyboard.press("Enter");
+  await page.getByPlaceholder("メモを検索").fill("");
+
+  // 同じデバイスを、スマホの幅にする。PC で開いていたメモが開いたままなので、一覧へ戻る。
+  await page.setViewportSize(PHONE_VIEWPORT);
+  await backToList(page);
+  await selectPhoneTab(page, "ノートブック");
+  await page.locator(".library-row", { hasText: "旅の準備" }).click();
+  await expect(page.getByPlaceholder("メモを検索")).toHaveValue("持ち物");
+  await expect(page.locator(".note-item-title")).toHaveText(["旅行の持ち物"]);
+});
+
+test("スマホでノートブックの中を検索すると、探している範囲が出て、「すべてのメモ」に広げられる", async ({ browser }) => {
+  const page = await openPhone(browser);
+  await openNewNoteOnPhone(page, "外のメモ");
+  await backToList(page);
+  await selectPhoneTab(page, "ノートブック");
+  await addNotebookOnPhone(page, "旅行");
+  await notebookRow(page, "旅行").locator(".notebook-row-open").click();
+  await openNewNoteOnPhone(page, "中のメモ");
+  await backToList(page);
+  const scope = page.getByRole("radiogroup", { name: "検索する範囲" });
+  // 検索していない間は、範囲の切り替えを出さない。
+  await expect(scope).toHaveCount(0);
+
+  await page.getByPlaceholder("メモを検索").fill("メモ");
+  await expect(scope.getByRole("radio", { name: "「旅行」の中" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".note-item-title")).toHaveText(["中のメモ"]);
+  await scope.getByRole("radio", { name: "すべてのメモ" }).click();
+  await expect(page.locator(".note-item-title")).toHaveText(["中のメモ", "外のメモ"]);
 });

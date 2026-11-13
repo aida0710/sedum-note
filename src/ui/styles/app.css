@@ -954,6 +954,8 @@ details summary { cursor: pointer; color: var(--accent); }
 .phone-search input { appearance: none; }
 .phone-search input::-webkit-search-cancel-button { display: none; }
 .phone-search .icon-button { margin-right: -6px; }
+.phone .search-scope-switch { margin: 0 16px 8px; flex: none; }
+.phone .search-scope-switch button { padding: 6px 8px; }
 /* 最後の行が「＋」のボタン（下から 76px の所に高さ 54px）の下に隠れないよう、一覧の終わりに余白を取る。 */
 .phone-list .phone-scroll { padding-bottom: 88px; }
 /* スマホの幅では、メモの中の検索の欄を 1 行目の幅いっぱいに置き、探し方のボタンと件数は次の行へ回す。 */
