@@ -2,10 +2,11 @@
 // 種類ごとに並べる。「>」で始めると、操作だけを探す。何も打っていないときは、最近のメモと、よく使う操作を並べる。
 
 import { BookOpen, FilePlus, FileText, Hash, type LucideIcon, Search, Settings, Zap } from "lucide-react";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useState } from "react";
 import { type MessageKey, translate } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { ModalDialog } from "../shared/ModalDialog";
+import { useKeyboardListSelection } from "../shared/useKeyboardListSelection";
 import { COMMAND_PREFIX, type PaletteCandidate, type PaletteItem, type PaletteItemKind, searchPalette } from "./paletteItems";
 
 type CommandPaletteProps = {
@@ -28,7 +29,6 @@ const ICON_SIZE = 15;
 
 export function CommandPalette({ candidates, onCreateNote, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(0);
   const newNoteTitle = query.trim();
   // 言葉を打ったら、最後に「その題で新しいメモを作る」を出す。操作を探しているときと、同じ題のメモがもうあるときは出さない。
   const sameTitleExists = candidates.some((candidate) => candidate.kind === "note" && candidate.label === newNoteTitle);
@@ -36,24 +36,7 @@ export function CommandPalette({ candidates, onCreateNote, onClose }: CommandPal
     id: "create-note", kind: "create", label: translate("palette.createNote", { title: newNoteTitle }), hint: "", run: () => onCreateNote(newNoteTitle),
   };
   const items = [...searchPalette(candidates, query), ...(createItem ? [createItem] : [])];
-  const selected = Math.min(selectedIndex, Math.max(items.length - 1, 0));
-  // キーで選んだ項目が一覧の見える範囲の外にあれば、見える所まで送る。
-  const list = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (selected === 0) {
-      // 先頭の項目では、その上のまとまりの見出しも見えるよう、一覧の先頭まで戻す。
-      list.current?.scrollTo({ top: 0 });
-      return;
-    }
-    list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
-  }, [selected, query]);
-  // 押したキーごとの、次に選ぶ項目の番号。↑↓ は端で反対の端へ回る。
-  const selectionMoves: Record<string, () => number> = {
-    ArrowDown: () => (selected + 1) % items.length,
-    ArrowUp: () => (selected - 1 + items.length) % items.length,
-    Home: () => 0,
-    End: () => items.length - 1,
-  };
+  const { selected, selectFirst, list, moveSelectionByKey } = useKeyboardListSelection(items.length);
   const runItem = (item: PaletteItem | undefined) => {
     if (item) {
       onClose();
@@ -66,18 +49,12 @@ export function CommandPalette({ candidates, onCreateNote, onClose }: CommandPal
         <Search size={14} />
         <input autoFocus value={query} placeholder={translate("palette.placeholder")} aria-label={translate("palette.title")}
           role="combobox" aria-expanded aria-controls="command-palette-list" aria-activedescendant={items[selected] ? `palette-item-${items[selected].id}` : undefined}
-          onChange={(event) => { setQuery(event.target.value); setSelectedIndex(0); }}
+          onChange={(event) => { setQuery(event.target.value); selectFirst(); }}
           onKeyDown={(event) => {
             if (isImeKeyEvent(event.nativeEvent)) {
               return;
             }
-            const moveSelection = selectionMoves[event.key];
-            // Home と End は、言葉を打っている間は欄の中のカーソルを動かすのに使う。
-            const movesCursorInInput = (event.key === "Home" || event.key === "End") && query !== "";
-            if (moveSelection && !movesCursorInInput) {
-              event.preventDefault();
-              setSelectedIndex(items.length === 0 ? 0 : moveSelection());
-            } else if (event.key === "Enter") {
+            if (!moveSelectionByKey(event) && event.key === "Enter") {
               event.preventDefault();
               runItem(items[selected]);
             }

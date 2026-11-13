@@ -962,6 +962,7 @@ export const japaneseMessages = {
   "common.add": "追加",
   "common.create": "作成",
   "common.apply": "適用",
+  "picker.moreChoices": "ほかに{count}件あります。言葉を入力して絞り込んでください。",
 } as const;
 
 export type MessageKey = keyof typeof japaneseMessages;

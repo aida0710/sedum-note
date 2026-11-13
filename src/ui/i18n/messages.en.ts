@@ -963,4 +963,5 @@ export const englishMessages: Record<MessageKey, string> = {
   "common.add": "Add",
   "common.create": "Create",
   "common.apply": "Apply",
+  "picker.moreChoices": "{count} more. Type to narrow the list.",
 };

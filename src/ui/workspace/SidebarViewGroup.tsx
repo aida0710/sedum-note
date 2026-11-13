@@ -3,7 +3,7 @@
 // 落とすと、その中へ移す（notebookDrag.ts）。
 
 import { ChevronDown, ChevronRight } from "lucide-react";
-import type { ReactNode, Ref } from "react";
+import { type ReactNode, type Ref, useEffect } from "react";
 import { type NoteSummary, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import { parseNoteSearchQuery } from "../../core/notes/noteSearchQuery";
 import { type SearchSnippet, searchSnippetOf } from "../../core/notes/noteSearchSnippet";
@@ -20,6 +20,10 @@ import { SidebarNoteRow } from "./SidebarNoteRow";
 import { useMovedNotesToast } from "./useMovedNotesToast";
 import { useTrashWithUndo } from "./useTrashWithUndo";
 import { viewKey, type WorkspaceNavigation } from "./useWorkspaceNavigation";
+
+// ドラッグ中に、畳んだ一覧の上にとどまってから開くまでの時間。通り過ぎるだけでは開かず、止まって待つには長すぎない長さ
+//（ファイルの管理の画面で、フォルダの上にとどまると開くまでと同じくらい）。
+const EXPAND_ON_DRAG_HOVER_MILLISECONDS = 600;
 
 export type ViewGroupProps = {
   view: NoteView;
@@ -87,6 +91,15 @@ export function ViewGroup(props: ViewGroupProps) {
     },
   } : {};
   const expanded = navigation.isExpanded(key, expandedByDefault);
+  // ドラッグ中に、畳んだ一覧の上にとどまったら開く（中の入れ子のノートブックへ落とせるように）。
+  const { setExpanded } = navigation;
+  useEffect(() => {
+    if (!isDropTarget || expanded) {
+      return undefined;
+    }
+    const timer = setTimeout(() => setExpanded(key, true), EXPAND_ON_DRAG_HOVER_MILLISECONDS);
+    return () => clearTimeout(timer);
+  }, [isDropTarget, expanded, key, setExpanded]);
   const { noteSortOrder } = useDevicePreferences();
   const notes = selectNotes(summaries, { view, sortOrder: noteSortOrder });
   const isActive = viewKey(navigation.view) === key;

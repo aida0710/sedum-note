@@ -70,6 +70,28 @@ test("メモを畳んだノートブックへ落とすと、移した先を知�
   await expect(viewRow(page, "仕事").locator(".count")).toHaveText("1");
 });
 
+test("メモをドラッグしたまま畳んだノートブックの上にとどまると、そのノートブックが開く", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "旅行");
+  await createNoteOnDesktop(page, "持ち物");
+  const travelRow = viewRow(page, "旅行").locator(".nav");
+  await travelRow.click();
+  await travelRow.click();
+  await expect(travelRow).toHaveAttribute("aria-expanded", "false");
+
+  await viewRow(page, "すべてのメモ").locator(".nav").click();
+  await noteRow(page, "持ち物").locator(".tree-note").hover();
+  await page.mouse.down();
+  const travelBox = (await travelRow.boundingBox())!;
+  await page.mouse.move(travelBox.x + travelBox.width / 2, travelBox.y + travelBox.height / 2, { steps: 8 });
+  // 試験のブラウザは、行に入った動きでは dragenter だけを送る。行の上でもう一度動かして dragover を送る。
+  await page.mouse.move(travelBox.x + travelBox.width / 2 + 2, travelBox.y + travelBox.height / 2);
+  // 落とさずに待つと開く。
+  await expect(travelRow).toHaveAttribute("aria-expanded", "true");
+  await page.mouse.up();
+  await expect(viewRow(page, "旅行").locator(".count")).toHaveText("1");
+});
+
 // ノートブックの中（入れ子の一覧と中のメモの範囲）にある、別のノートブックの行。
 function notebookRowsInside(page: Page, notebookName: string) {
   return page.locator(".view-group", { has: page.locator(":scope > .nav-row .nav", { hasText: notebookName }) }).locator(".view-group .nav-label");
@@ -206,9 +228,17 @@ test("メモを複製すると、同じ本文のコピーが開く。ほかの�
   await expect(page.locator(".ProseMirror")).toHaveText("混ぜる");
   await expect(noteRow(page, "材料")).toHaveCount(1);
 
+  // 2 回目は、キーボードだけで選ぶ: 言葉で絞り、↓ ↑ で選んで、Enter で決める。
   await page.getByRole("button", { name: "その他の操作" }).click();
   await page.getByRole("menuitem", { name: "ほかのメモを結合" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "材料" }).click();
+  const picker = page.getByRole("dialog", { name: "結合するメモを選ぶ" });
+  await expect(picker.getByPlaceholder("メモを検索")).toBeFocused();
+  await expect(picker.locator(".menu-item").first()).toHaveClass(/on/);
+  await page.keyboard.press("ArrowDown");
+  await expect(picker.locator(".menu-item").nth(1)).toHaveClass(/on/);
+  await page.keyboard.type("材料");
+  await expect(picker.locator(".menu-item")).toHaveText(["材料"]);
+  await page.keyboard.press("Enter");
   await confirmation.getByRole("button", { name: "結合" }).click();
   await expect(page.locator(".ProseMirror")).toHaveText("混ぜる材料小麦粉");
   await expect(page.locator(".ProseMirror h2")).toHaveText("材料");
