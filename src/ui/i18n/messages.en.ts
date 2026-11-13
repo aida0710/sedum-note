@@ -205,6 +205,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "notebook.color.teal": "Teal",
   "notebook.color.brown": "Brown",
   "notebook.color.gray": "Gray",
+  "notebook.addNote": "Add a note inside",
   "notebook.addChild": "Add a notebook inside",
   "notebook.remove": "Delete notebook",
   "notebook.removeConfirm": "Delete “{name}”? Its notes are not deleted; they are only removed from this notebook.",

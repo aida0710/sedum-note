@@ -14,7 +14,7 @@ import { PopupMenu } from "../shared/PopupMenu";
 import { isApplePlatform } from "../shared/shortcutKeys";
 import { InlineNameInput } from "./InlineNameInput";
 import { startNoteDrag } from "./noteDrag";
-import { useNoteDragState } from "./noteDragState";
+import { useSidebarDragState } from "./sidebarDragState";
 import { resetNoteSelection, selectNoteRange, toggleNoteSelection, useNoteSelection } from "./noteSelection";
 import { SelectedNotesMenu } from "./SelectedNotesMenu";
 import { focusViewRowOfNote } from "./sidebarKeyboard";
@@ -44,8 +44,8 @@ export function SidebarNoteRow({ note, view, listedNoteIds, paddingLeft, navigat
   const inTrash = content.trashedAt !== null;
   const title = content.title || translate("sidebar.untitled");
   // この行からドラッグしている間は、元の行を薄くする（持ち上げたことが分かるように）。
-  const dragState = useNoteDragState();
-  const isDragged = (dragState?.noteIds.includes(note.id) ?? false) && dragState?.fromViewKey === viewKey(view);
+  const dragged = useSidebarDragState()?.dragged;
+  const isDragged = dragged?.kind === "notes" && dragged.noteIds.includes(note.id) && dragged.fromViewKey === viewKey(view);
   const selection = useNoteSelection();
   const isSelected = selection.noteIds.includes(note.id);
 

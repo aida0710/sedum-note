@@ -1,5 +1,6 @@
 // 左の列の 1 行（すべて・お気に入り・ノートブック・タグ・ゴミ箱）と、開いたときに並ぶメモ。
-// メモをドラッグして行に落とすと、その一覧へ移す。ノートブックは、行と中のメモの範囲全体に落とせる。
+// メモをドラッグして行に落とすと、その一覧へ移す。ノートブックは、行と中のメモの範囲全体に落とせ、ノートブックを
+// 落とすと、その中へ移す（notebookDrag.ts）。
 
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
@@ -9,8 +10,9 @@ import { type SearchSnippet, searchSnippetOf } from "../../core/notes/noteSearch
 import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import type { NoteRepository } from "../../core/notes/noteRepository";
+import { canDropDraggedNotebook, dropNotebook, isNotebookDrag } from "./notebookDrag";
 import { acceptsNoteDrop, canDropDraggedNote, dropNoteOnView, isNoteDrag } from "./noteDrag";
-import { markNoteDropTarget, useNoteDragState } from "./noteDragState";
+import { markSidebarDropTarget, useSidebarDragState } from "./sidebarDragState";
 import { expandOrCollapseViewRow } from "./sidebarKeyboard";
 import { SidebarNoteRow } from "./SidebarNoteRow";
 import { useTrashWithUndo } from "./useTrashWithUndo";
@@ -40,31 +42,44 @@ export type ViewGroupProps = {
   // 行だけでなく、中のメモと入れ子の一覧を含めた範囲全体を落とし先にするか（ノートブック）。
   // ゴミ箱やテンプレートでは行だけにする（開いた中に落として、うっかりゴミ箱に入れないように）。
   dropsOnWholeGroup?: boolean;
+  // 行をドラッグし始めたとき。ドラッグして動かせる行（ノートブック）が渡す。
+  onDragStart?: (event: React.DragEvent) => void;
 };
 
 // 開くと中のメモが並ぶ 1 行。ノートブック・タグ・ゴミ箱で同じ形を使う。
-export function ViewGroup({ view, icon, label, summaries, navigation, repository, depth = 0, actions, onContextMenu, childBranches, expandedByDefault = false, dropsOnWholeGroup = false }: ViewGroupProps) {
+export function ViewGroup(props: ViewGroupProps) {
+  const { view, icon, label, summaries, navigation, repository, depth = 0, actions, onContextMenu, childBranches, expandedByDefault = false, dropsOnWholeGroup = false, onDragStart } = props;
   const moveToTrash = useTrashWithUndo(repository);
   const key = viewKey(view);
-  const dragState = useNoteDragState();
-  const isDropTarget = canDropDraggedNote(view, dragState) && dragState?.dropTargetKey === key;
+  const dragState = useSidebarDragState();
+  // ノートブックを落とせるのは、ノートブックの一覧だけ（その中へ移す）。
+  const notebookId = view.kind === "notebook" ? view.notebookId : null;
+  const acceptsDraggedNotebook = () => dragState?.dragged.kind === "notebook" && notebookId !== null && canDropDraggedNotebook(notebookId, dragState, repository.notebooks());
+  const acceptsDragged = () => canDropDraggedNote(view, dragState) || acceptsDraggedNotebook();
+  const isDropTarget = dragState?.dropTargetKey === key && acceptsDragged();
+  const isDraggedNotebook = dragState?.dragged.kind === "notebook" && dragState.dragged.notebookId === notebookId;
   const dropHandlers = acceptsNoteDrop(view) ? {
     onDragOver: (event: React.DragEvent) => {
-      if (!isNoteDrag(event)) {
+      if (!isNoteDrag(event) && !isNotebookDrag(event)) {
         return;
       }
       // 入れ子のノートブックでは、いちばん内側の一覧だけが受ける（外側の一覧まで光らせない）。
       event.stopPropagation();
-      if (canDropDraggedNote(view, dragState)) {
+      if (acceptsDragged()) {
         event.preventDefault();
-        markNoteDropTarget(key);
+        markSidebarDropTarget(key);
       } else {
-        markNoteDropTarget(null);
+        markSidebarDropTarget(null);
       }
     },
     onDrop: (event: React.DragEvent) => {
       event.preventDefault();
       event.stopPropagation();
+      if (isNotebookDrag(event)) {
+        // 移したノートブックが見えるよう、落とし先を開く。
+        void dropNotebook(event, notebookId, repository).then((moved) => moved && navigation.setExpanded(key, true));
+        return;
+      }
       void dropNoteOnView(event, view, { repository, moveToTrash });
     },
   } : {};
@@ -74,9 +89,10 @@ export function ViewGroup({ view, icon, label, summaries, navigation, repository
   const isActive = viewKey(navigation.view) === key;
   const indent = { paddingLeft: ROW_PADDING_LEFT + depth * TREE_INDENT_STEP };
   const row = (
-    <div className={`nav-row${isDropTarget && !dropsOnWholeGroup ? " drop-target" : ""}`} {...(dropsOnWholeGroup ? {} : dropHandlers)}
+    <div className={`nav-row${isDropTarget && !dropsOnWholeGroup ? " drop-target" : ""}${isDraggedNotebook ? " dragging" : ""}`} {...(dropsOnWholeGroup ? {} : dropHandlers)}
       onContextMenu={onContextMenu && ((event) => { event.preventDefault(); onContextMenu(event.currentTarget); })}>
       <button className={`nav${isActive ? " active" : ""}`} style={indent} aria-expanded={expanded} data-view-key={key}
+        draggable={onDragStart !== undefined} onDragStart={onDragStart}
         onKeyDown={(event) => expandOrCollapseViewRow(event, { expanded, setExpanded: (next) => navigation.setExpanded(key, next) })}
         onClick={() => {
           if (isActive) {

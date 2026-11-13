@@ -17,6 +17,7 @@ import { bodyAttachments } from "./bodyText";
 import { databaseViewFromField } from "./databaseView";
 import { isDueTime } from "./dueTimes";
 import { linkFirstMention } from "./noteMentions";
+import { isNotebookWithin } from "./noteQueries";
 import { PROPERTY_DEFINITION_FIELD_PREFIX, PROPERTY_VALUE_FIELD_PREFIX, type PropertyDefinition, propertyDefinitionFromField, type PropertyValue } from "./noteProperties";
 import { type AttachmentReference, type LiveNote, type LiveNotebook, type LiveRecord, type LiveSavedSearch, type NotebookContent, PAGE_ALIGNMENTS, type PageAlignment, type SavedSearchContent } from "./noteRecords";
 import { type NoteVersion, NoteVersionHistory, type OverwriteReason } from "./noteVersions";
@@ -341,6 +342,15 @@ export class NoteRepository {
 
   async updateNotebook(id: string, changes: Partial<Omit<NotebookContent, "createdAt" | "properties">>): Promise<void> {
     this.#writeFields(this.#liveDocument(id, "notebook"), changes);
+  }
+
+  // ノートブックを、別のノートブックの中（parentId が null なら一番上の段）へ移す。中のメモと子のノートブックも一緒に移る。
+  // 自分の中（自分と、その下のノートブック）へは移せない（親子が輪になり、左の列から消える）。
+  async moveNotebook(id: string, parentId: string | null): Promise<void> {
+    if (parentId !== null && isNotebookWithin(this.notebooks(), parentId, id)) {
+      throw new Error("a notebook cannot be moved into itself or a notebook inside it");
+    }
+    await this.updateNotebook(id, { parentId });
   }
 
   // ノートブックを消す。中のメモは消さず、そのノートブックから外すだけにする。

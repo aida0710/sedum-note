@@ -48,6 +48,39 @@ test("メモを別のノートブックの中のメモの上へ落としても�
   await expect(page.locator(".nav-row.dragging")).toHaveCount(0);
 });
 
+// ノートブックの中（入れ子の一覧と中のメモの範囲）にある、別のノートブックの行。
+function notebookRowsInside(page: Page, notebookName: string) {
+  return page.locator(".view-group", { has: page.locator(":scope > .nav-row .nav", { hasText: notebookName }) }).locator(".view-group .nav-label");
+}
+
+test("ノートブックをドラッグして別のノートブックの中へ移し、「ノートブック」の見出しに落とすと一番上の段へ戻る。自分の中へは移せない", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "仕事");
+  await addNotebookOnDesktop(page, "旅行");
+  await expect(notebookRowsInside(page, "仕事")).toHaveCount(0);
+
+  await viewRow(page, "旅行").locator(".nav").dragTo(viewRow(page, "仕事"));
+  await expect(notebookRowsInside(page, "仕事")).toHaveText(["旅行"]);
+
+  // 仕事を、自分の中の旅行へは移せない。
+  await viewRow(page, "仕事").locator(".nav").dragTo(viewRow(page, "旅行"));
+  await expect(notebookRowsInside(page, "仕事")).toHaveText(["旅行"]);
+
+  await viewRow(page, "旅行").locator(".nav").dragTo(page.locator(".section-title", { hasText: "ノートブック" }));
+  await expect(notebookRowsInside(page, "仕事")).toHaveCount(0);
+  await expect(viewRow(page, "旅行")).toBeVisible();
+});
+
+test("ノートブックを右クリックして「中にメモを追加」を選ぶと、そのノートブックに新しいメモができて開く", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "旅行");
+  await viewRow(page, "旅行").click({ button: "right" });
+  await expect(page.getByRole("menuitem").first()).toHaveText("中にメモを追加");
+  await page.getByRole("menuitem", { name: "中にメモを追加" }).click();
+  await expect(page.getByPlaceholder("タイトル")).toBeFocused();
+  await expect(viewRow(page, "旅行").locator(".count")).toHaveText("1");
+});
+
 test("メモをゴミ箱へドラッグすると知らせが出て、「元に戻す」で戻せる", async ({ page }) => {
   await startLocalVault(page);
   await createNoteOnDesktop(page, "買い物");

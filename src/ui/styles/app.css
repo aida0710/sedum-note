@@ -295,6 +295,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .nav-row:hover .count, .nav-row:focus-within .count { visibility: hidden; }
 .section-title { color: var(--muted); font-size: var(--font-size-caption); font-weight: 600; letter-spacing: .04em; padding: 14px 8px 4px; display: flex; align-items: center; }
 .section-title .icon-button { margin-left: auto; }
+/* ノートブックを一番上の段へ移す落とし先（「ノートブック」の見出し）。 */
+.section-title.drop-target { background: var(--accent-soft); outline: 1px dashed var(--accent); outline-offset: -1px; border-radius: var(--radius-row); }
 .saved-search-row { display: flex; align-items: center; }
 .saved-search-row .row-action { visibility: hidden; flex: none; }
 .saved-search-row:hover .row-action, .saved-search-row .row-action:focus-visible { visibility: visible; }
@@ -316,7 +318,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .view-group { display: flex; flex-direction: column; gap: 2px; border-radius: var(--radius-row); }
 .view-group.drop-target { background: var(--accent-soft); outline: 1px dashed var(--accent); outline-offset: -1px; }
 /* ドラッグして持ち上げたメモの、元の行。 */
-.nav-row.dragging .tree-note { opacity: .5; outline: 1px dashed var(--muted); outline-offset: -1px; }
+.nav-row.dragging .tree-note, .nav-row.dragging > .nav { opacity: .5; outline: 1px dashed var(--muted); outline-offset: -1px; }
 /* ドラッグしている間、指の下に出す札（shared/dragPreview.ts）。写し取ったらすぐ消すので、画面の外に置いて描く。 */
 .drag-preview { position: fixed; top: -100px; left: 0; max-width: 260px; padding: 4px 10px; border-radius: var(--radius-control); background: var(--panel); color: var(--text); border: 1px solid var(--accent); box-shadow: 0 4px 12px var(--shadow); font-size: var(--font-size-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .nav-row .tree-note { padding-right: 30px; }

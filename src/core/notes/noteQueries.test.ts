@@ -4,7 +4,7 @@ import { appendParagraph } from "./bodyFixtures";
 import { bodyPlainText, plainTextHashtags } from "./bodyText";
 import { noteContentFixture } from "./noteFixtures";
 import type { LiveNote, LiveNotebook } from "./noteRecords";
-import { buildNotebookTree, countTags, selectNotes, summarizeNote } from "./noteQueries";
+import { buildNotebookTree, countTags, isNotebookWithin, type NotebookTreeNode, selectNotes, summarizeNote } from "./noteQueries";
 import { DEFAULT_DATABASE_VIEW } from "./databaseView";
 
 function bodyWith(...paragraphs: string[]): Y.XmlFragment {
@@ -101,10 +101,25 @@ describe("selectNotes の並び順", () => {
 });
 
 describe("buildNotebookTree", () => {
+  const notebook = (id: string, name: string, parentId: string | null): LiveNotebook => ({
+    id, kind: "notebook", updatedAt: "", revision: 0, content: { name, parentId, colorName: null, iconName: null, properties: [], databaseView: DEFAULT_DATABASE_VIEW, createdAt: "" },
+  });
+  const namesOf = (nodes: NotebookTreeNode[]): unknown[] => nodes.map((node) => (node.children.length === 0 ? node.notebook.content.name : [node.notebook.content.name, namesOf(node.children)]));
+
+  it("2 台で逆向きに移して親子が輪になっても、輪の中のノートブックを最上位に出し、その下のノートブックは残す", () => {
+    const tree = buildNotebookTree([notebook("a", "A", "b"), notebook("b", "B", "a"), notebook("c", "C", "a"), notebook("s", "自分が親", "s")]);
+    expect(namesOf(tree)).toEqual([["A", ["C"]], "B", "自分が親"]);
+  });
+
+  it("ノートブックが、別のノートブックの中（何段下でも）にあるかを、輪になっていても止まって答える", () => {
+    const notebooks = [notebook("w", "仕事", null), notebook("m", "議事録", "w"), notebook("d", "日次", "m"), notebook("a", "A", "b"), notebook("b", "B", "a")];
+    expect(isNotebookWithin(notebooks, "d", "w")).toBe(true);
+    expect(isNotebookWithin(notebooks, "w", "w")).toBe(true);
+    expect(isNotebookWithin(notebooks, "w", "d")).toBe(false);
+    expect(isNotebookWithin(notebooks, "a", "w")).toBe(false);
+  });
+
   it("親を指すノートブックを子として入れ、親が消えたものは最上位に出す", () => {
-    const notebook = (id: string, name: string, parentId: string | null): LiveNotebook => ({
-      id, kind: "notebook", updatedAt: "", revision: 0, content: { name, parentId, colorName: null, iconName: null, properties: [], databaseView: DEFAULT_DATABASE_VIEW, createdAt: "" },
-    });
     const tree = buildNotebookTree([notebook("w", "仕事", null), notebook("m", "議事録", "w"), notebook("o", "旅行", "gone")]);
     expect(tree.map((node) => [node.notebook.content.name, node.children.map((child) => child.notebook.content.name)])).toEqual([
       ["仕事", ["議事録"]],

@@ -124,14 +124,41 @@ export function countTags(summaries: NoteSummary[]): Array<{ tag: string; count:
 
 export type NotebookTreeNode = { notebook: LiveNotebook; children: NotebookTreeNode[] };
 
-// 親の無い（または消えた親を指す）ノートブックを最上位にして、名前の順に並べる。
+// ノートブックの親をたどる（自分は含めない）。消えた親か、一度たどったノートブックに戻ったら（親子が輪になっている）止める。
+function ancestorIdsOf(notebookId: string, notebooksById: ReadonlyMap<string, LiveNotebook>): string[] {
+  const ancestors: string[] = [];
+  const visited = new Set([notebookId]);
+  for (let parentId = notebooksById.get(notebookId)?.content.parentId ?? null; parentId !== null && notebooksById.has(parentId) && !visited.has(parentId);
+    parentId = notebooksById.get(parentId)!.content.parentId) {
+    ancestors.push(parentId);
+    visited.add(parentId);
+  }
+  return ancestors;
+}
+
+// 親子が輪になっているか（親をたどると自分に戻る）。ノートブックを移す操作は、ほかのデバイスの移動と重なると輪を作りうる
+// （こちらで A を B の中へ、あちらで B を A の中へ移し、同期で両方が入る）。
+function isInParentCycle(notebook: LiveNotebook, notebooksById: ReadonlyMap<string, LiveNotebook>): boolean {
+  const ancestors = ancestorIdsOf(notebook.id, notebooksById);
+  const topmost = ancestors[ancestors.length - 1];
+  const parentOfTopmost = topmost === undefined ? notebook.content.parentId : notebooksById.get(topmost)!.content.parentId;
+  return parentOfTopmost === notebook.id;
+}
+
+// notebookId が containerId そのものか、その中（何段下でも）にあるか。ノートブックを、自分の中へは移せない。
+export function isNotebookWithin(notebooks: LiveNotebook[], notebookId: string, containerId: string): boolean {
+  return notebookId === containerId || ancestorIdsOf(notebookId, new Map(notebooks.map((notebook) => [notebook.id, notebook]))).includes(containerId);
+}
+
+// 親の無い（または消えた親を指す）ノートブックを最上位にして、名前の順に並べる。親子が輪になったノートブックも
+// 最上位に出す（輪の中のどれも最上位に来ず、左の列から消えるのを防ぐ）。
 export function buildNotebookTree(notebooks: LiveNotebook[]): NotebookTreeNode[] {
-  const ids = new Set(notebooks.map((notebook) => notebook.id));
+  const notebooksById = new Map(notebooks.map((notebook) => [notebook.id, notebook]));
   const nodes = new Map(notebooks.map((notebook) => [notebook.id, { notebook, children: [] as NotebookTreeNode[] }]));
   const roots: NotebookTreeNode[] = [];
   for (const node of nodes.values()) {
     const parentId = node.notebook.content.parentId;
-    const parent = parentId !== null && ids.has(parentId) && parentId !== node.notebook.id ? nodes.get(parentId) : undefined;
+    const parent = parentId !== null && !isInParentCycle(node.notebook, notebooksById) ? nodes.get(parentId) : undefined;
     (parent ? parent.children : roots).push(node);
   }
   const sortByName = (list: NotebookTreeNode[]) => {

@@ -1,5 +1,5 @@
 // 左の列で、メモをドラッグして別の一覧（ノートブック・お気に入り・ゴミ箱）へ落とす操作。
-// ドラッグしているメモは、ブラウザのドラッグのデータ（dataTransfer）に入れて運ぶ。画面の状態（noteDragState.ts）にも入れ、
+// ドラッグしているメモは、ブラウザのドラッグのデータ（dataTransfer）に入れて運ぶ。画面の状態（sidebarDragState.ts）にも入れ、
 // 落とし先を光らせるのに使う。選んだメモ（noteSelection.ts）の 1 つをドラッグしたら、選んだメモをまとめて運ぶ。
 
 import type { NoteView } from "../../core/notes/noteQueries";
@@ -7,7 +7,7 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { showDragPreview } from "../shared/dragPreview";
 import { carriesDraggedNotes, type DraggedNotes, readDraggedNotes, writeDraggedNotes } from "../shared/noteDragData";
-import { beginNoteDragState, type DraggedNoteState, endNoteDragState } from "./noteDragState";
+import { beginSidebarDrag, endSidebarDrag, type SidebarDragState } from "./sidebarDragState";
 import { readNoteSelection, resetNoteSelection } from "./noteSelection";
 import { viewKey } from "./useWorkspaceNavigation";
 
@@ -24,7 +24,7 @@ export function startNoteDrag(event: React.DragEvent, { noteId, title, fromView 
   const dragged: DraggedNotes = { noteIds, fromNotebookId: fromView.kind === "notebook" ? fromView.notebookId : null };
   writeDraggedNotes(event.dataTransfer, dragged);
   showDragPreview(event, noteIds.length === 1 ? title : translate("sidebar.draggedNotes", { count: noteIds.length }));
-  beginNoteDragState({ ...dragged, fromViewKey: viewKey(fromView) });
+  beginSidebarDrag({ kind: "notes", ...dragged, fromViewKey: viewKey(fromView) });
 }
 
 export function isNoteDrag(event: React.DragEvent): boolean {
@@ -37,8 +37,8 @@ export function acceptsNoteDrop(view: NoteView): boolean {
 }
 
 // いまドラッグしているメモを、この一覧へ落とせるか。始めた一覧そのものへ落としても何も変わらないので、落とし先にしない。
-export function canDropDraggedNote(view: NoteView, dragged: DraggedNoteState | null): boolean {
-  return dragged !== null && acceptsNoteDrop(view) && dragged.fromViewKey !== viewKey(view);
+export function canDropDraggedNote(view: NoteView, dragState: SidebarDragState | null): boolean {
+  return dragState?.dragged.kind === "notes" && acceptsNoteDrop(view) && dragState.dragged.fromViewKey !== viewKey(view);
 }
 
 type NoteDropActions = {
@@ -50,7 +50,7 @@ type NoteDropActions = {
 // 落とした先に合わせてメモを変える。落としたあとは、選択を外す（選んだメモは別の一覧へ移っている）。
 export async function dropNoteOnView(event: React.DragEvent, view: NoteView, { repository, moveToTrash }: NoteDropActions): Promise<void> {
   const dragged = readDraggedNotes(event.dataTransfer);
-  endNoteDragState();
+  endSidebarDrag();
   if (dragged === null) {
     return;
   }

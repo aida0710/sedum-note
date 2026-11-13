@@ -13,8 +13,10 @@ import { InlineNameInput } from "./InlineNameInput";
 import { NotebookBranch } from "./NotebookBranch";
 import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { SearchResults, ViewGroup } from "./SidebarViewGroup";
+import { isNotebookDrag } from "./notebookDrag";
+import { NotebookSectionTitle } from "./NotebookSectionTitle";
 import { isNoteDrag } from "./noteDrag";
-import { markNoteDropTarget } from "./noteDragState";
+import { markSidebarDropTarget } from "./sidebarDragState";
 import { moveFocusBetweenRows } from "./sidebarKeyboard";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
@@ -124,8 +126,8 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
       <button className="new-note" onClick={onCreateNote}><Plus size={16} />{translate("sidebar.newNote")}</button>
       {/* 落とせる一覧の外（タグ、見出し、行の間）に来たら、落とし先の光りを消す。一覧の外へ出たときも消す。 */}
       <div className="sidebar-scroll" onKeyDown={moveFocusBetweenRows}
-        onDragOver={(event) => isNoteDrag(event) && markNoteDropTarget(null)}
-        onDragLeave={(event) => !event.currentTarget.contains(event.relatedTarget as Node | null) && markNoteDropTarget(null)}>
+        onDragOver={(event) => (isNoteDrag(event) || isNotebookDrag(event)) && markSidebarDropTarget(null)}
+        onDragLeave={(event) => !event.currentTarget.contains(event.relatedTarget as Node | null) && markSidebarDropTarget(null)}>
         {searching ? (
           <>
             {scopedView && (
@@ -160,10 +162,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
               <ViewGroup view={{ kind: "templates" }} icon={<LayoutTemplate size={15} />} label={translate("sidebar.templates")} summaries={summaries} navigation={navigation} repository={repository} />
             )}
             <ViewGroup view={{ kind: "trash" }} icon={<Trash2 size={15} />} label={translate("sidebar.trash")} summaries={summaries} navigation={navigation} repository={repository} />
-            <div className="section-title">
-              {translate("sidebar.notebooks")}
-              <button className="icon-button" aria-label={translate("sidebar.newNotebook")} onClick={() => setAddingNotebook(true)}><Plus size={14} /></button>
-            </div>
+            <NotebookSectionTitle repository={repository} onAddNotebook={() => setAddingNotebook(true)} />
             {addingNotebook && (
               <InlineNameInput placeholder={translate("sidebar.newNotebookPlaceholder")} onDone={(name) => {
                 setAddingNotebook(false);

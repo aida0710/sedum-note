@@ -203,6 +203,7 @@ export const japaneseMessages = {
   "notebook.color.teal": "青緑",
   "notebook.color.brown": "茶",
   "notebook.color.gray": "灰",
+  "notebook.addNote": "中にメモを追加",
   "notebook.addChild": "中にノートブックを追加",
   "notebook.remove": "ノートブックを削除",
   "notebook.removeConfirm": "「{name}」を削除しますか？ 中のメモは削除されず、このノートブックから外れます。",
