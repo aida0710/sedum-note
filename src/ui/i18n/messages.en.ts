@@ -866,6 +866,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "palette.group.create": "New note",
   "palette.createNote": "Create a note titled “{title}”",
   "palette.noResults": "No matches",
+  "palette.openNoteCommand": "Open note: {action}",
   "graph.title": "Graph view",
   "graph.summary": "{notes} notes, {links} links",
   "shortcut.newNote": "New note",

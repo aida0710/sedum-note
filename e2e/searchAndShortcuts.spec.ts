@@ -381,6 +381,25 @@ test("コマンドパレットの上端は、当たりの数が変わっても�
   expect(await topOf()).toBe(topWhenEmpty);
 });
 
+test("コマンドパレットから、開いているメモをゴミ箱に入れたり、タブをピン留めしたりできる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "会議の記録", "");
+  await newNote(page, "買い物リスト", "");
+  const palette = page.getByRole("dialog", { name: "コマンドパレット" });
+
+  await page.keyboard.press("Control+k");
+  await palette.getByRole("combobox").fill(">ピン留め");
+  await palette.getByRole("option", { name: "タブをピン留め" }).click();
+  await expect(page.getByRole("tab")).toHaveText([/買い物リスト/, /会議の記録/]);
+
+  await page.keyboard.press("Control+k");
+  await palette.getByRole("combobox").fill(">ゴミ箱");
+  await expect(palette.getByRole("option")).toHaveText(["開いているメモ: ゴミ箱に入れる"]);
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" })).toBeVisible();
+  await expect(page.locator(".sidebar .tree-note", { hasText: "買い物リスト" })).toHaveCount(0);
+});
+
 test("コマンドパレットで打った言葉を題にして、新しいメモを作れる", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "会議の記録", "");

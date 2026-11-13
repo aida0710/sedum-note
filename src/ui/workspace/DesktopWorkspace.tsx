@@ -15,6 +15,8 @@ import { useExitFocusModeOnEscape } from "./useExitFocusModeOnEscape";
 import { createNoteInView } from "./createNoteInView";
 import { CommandPalette } from "./CommandPalette";
 import { EmptyEditorPane } from "./EmptyEditorPane";
+import { openNoteCommands } from "./openNoteCommands";
+import { useTrashWithUndo } from "./useTrashWithUndo";
 import { APP_SHORTCUT_IDS, useKeyboardShortcuts } from "./keyboardShortcuts";
 import { UpdateChip } from "../update/UpdateChip";
 import { NotebookDatabaseView } from "./NotebookDatabaseView";
@@ -80,8 +82,15 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
   };
   useKeyboardShortcuts(shortcutHandlers);
   // コマンドパレットに並べる操作。どこでも効くショートカットと同じもの（パレットを開く操作は除く）。キーなしにしたものは、キーを出さない。
-  const paletteCommands = APP_SHORTCUT_IDS.filter((id) => id !== "commandPalette")
-    .map((id) => ({ id, label: translate(shortcutDefinition(id).label), shortcut: shortcutTextOf(id, shortcutOverrides) ?? "", run: shortcutHandlers[id] }));
+  // その下に、開いているメモ・タブ・同期への、キーの無い操作を足す。
+  // 同期の失敗は、左下の同期の状態に出る（SyncStatusLine.tsx）ので、ここでは受けるだけにする。
+  const syncNowFromPalette = () => void session.syncNow().catch(() => undefined);
+  const moveToTrash = useTrashWithUndo(repository);
+  const paletteCommands = [
+    ...APP_SHORTCUT_IDS.filter((id) => id !== "commandPalette")
+      .map((id) => ({ id, label: translate(shortcutDefinition(id).label), shortcut: shortcutTextOf(id, shortcutOverrides) ?? "", run: shortcutHandlers[id] })),
+    ...openNoteCommands({ note: activeNote, navigation, repository, moveToTrash, syncNow: vault.syncEngine ? syncNowFromPalette : null }),
+  ];
   // MCP の欄は PC 版（デスクトップのアプリ）にだけある。無い版では、パレットの設定の項目からも外す。
   const includesMcp = useContext(McpSectionSlot) !== null;
   return (

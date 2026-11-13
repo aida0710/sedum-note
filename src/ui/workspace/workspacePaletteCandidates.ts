@@ -9,11 +9,11 @@ import type { AppShortcutId } from "../shortcuts/shortcutCatalog";
 import type { PaletteCandidate } from "./paletteItems";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
 
-// shortcut は、キーの表記。キーなしにしたものは空。
-export type PaletteCommand = { id: AppShortcutId; label: string; shortcut: string; run: () => void };
+// id は、どこでも効くショートカットの ID か、キーの無い操作の名前（openNoteCommands.ts）。shortcut は、キーの表記で、キーが無ければ空。
+export type PaletteCommand = { id: string; label: string; shortcut: string; run: () => void };
 
 // パレットを開いてすぐ（何も打つ前）に並べる、よく使う操作。
-const SUGGESTED_COMMAND_IDS: AppShortcutId[] = ["newNote", "reminders", "openSettings"];
+const SUGGESTED_COMMAND_IDS: readonly string[] = ["newNote", "reminders", "openSettings"] satisfies AppShortcutId[];
 
 type PaletteCandidatesInput = {
   summaries: NoteSummary[];

@@ -865,6 +865,7 @@ export const japaneseMessages = {
   "palette.group.create": "新しいメモ",
   "palette.createNote": "「{title}」という題で新しいメモを作る",
   "palette.noResults": "当たるものがありません",
+  "palette.openNoteCommand": "開いているメモ: {action}",
   "graph.title": "グラフ表示",
   "graph.summary": "メモ {notes} 件、リンク {links} 本",
   "shortcut.newNote": "新しいメモ",
