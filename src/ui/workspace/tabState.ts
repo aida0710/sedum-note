@@ -79,8 +79,10 @@ export function restoreTabsIn(state: TabsState, remembered: RememberedTabs, tabE
   const pinnedTabs = remembered.pinnedTabs.filter((tabId) => rememberedTabs.includes(tabId));
   const openedMeanwhile = state.openTabs.filter((tabId) => !rememberedTabs.includes(tabId));
   const unpinned = [...rememberedTabs.filter((tabId) => !pinnedTabs.includes(tabId)), ...openedMeanwhile];
-  const rememberedActiveTab = remembered.activeTab !== null && rememberedTabs.includes(remembered.activeTab) ? remembered.activeTab : null;
-  return { ...state, openTabs: [...pinnedTabs, ...unpinned], pinnedTabs, activeTab: state.activeTab ?? rememberedActiveTab };
+  const openTabs = [...pinnedTabs, ...unpinned];
+  // 選んでいたタブが消えていたら、残ったタブの最後を選ぶ（タブがあるのに、何も選んでいない画面にしない）。
+  const rememberedActiveTab = remembered.activeTab !== null && rememberedTabs.includes(remembered.activeTab) ? remembered.activeTab : openTabs.at(-1) ?? null;
+  return { ...state, openTabs, pinnedTabs, activeTab: state.activeTab ?? rememberedActiveTab };
 }
 
 // ピン留めを付け外しする。ピン留めしたタブは左のピン留めの並びの末尾へ、外したタブはピン留めの並びのすぐ右へ動かす。

@@ -92,15 +92,16 @@ export function ViewGroup(props: ViewGroupProps) {
     },
   } : {};
   const expanded = navigation.isExpanded(key, expandedByDefault);
-  // ドラッグ中に、畳んだ一覧の上にとどまったら開く（中の入れ子のノートブックへ落とせるように）。
+  // ドラッグ中に、畳んだノートブックの上にとどまったら開く（中の入れ子のノートブックへ落とせるように）。
+  // 「すべてのメモ」やゴミ箱は開かない（開くと、長い一覧がカーソルの下に出て、落としたいノートブックが押し出される）。
   const { setExpanded } = navigation;
   useEffect(() => {
-    if (!isDropTarget || expanded) {
+    if (!isDropTarget || expanded || notebookId === null) {
       return undefined;
     }
     const timer = setTimeout(() => setExpanded(key, true), EXPAND_ON_DRAG_HOVER_MILLISECONDS);
     return () => clearTimeout(timer);
-  }, [isDropTarget, expanded, key, setExpanded]);
+  }, [isDropTarget, expanded, notebookId, key, setExpanded]);
   const { noteSortOrder } = useDevicePreferences();
   const notes = selectNotes(summaries, { view, sortOrder: noteSortOrder });
   const isActive = viewKey(navigation.view) === key;

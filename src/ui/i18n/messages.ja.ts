@@ -170,6 +170,8 @@ export const japaneseMessages = {
   "toast.undo": "元に戻す",
   "toast.savedSearchRemoved": "保存した検索「{name}」を削除しました",
   "toast.dueRemoved": "「{title}」の期限を外しました",
+  "toast.emptyingTrash": "ゴミ箱を空にしています（{done}/{count}件）",
+  "toast.trashEmptied": "{count}件のメモを完全に削除しました",
   "sidebar.searchResults": "検索結果（{count}件）",
 
   "notebook.rename": "名前を変更",

@@ -54,7 +54,9 @@ describe("タブの開け閉め", () => {
   it("残した並びを戻すと、消えたメモのタブは捨て、ピン留めと選んでいたタブは戻る", () => {
     const remembered = { openTabs: ["pinned", "gone", "b"], pinnedTabs: ["pinned", "gone"], activeTab: "b" };
     expect(restoreTabsIn(NO_TABS, remembered, (tabId) => tabId !== "gone")).toMatchObject({ openTabs: ["pinned", "b"], pinnedTabs: ["pinned"], activeTab: "b" });
-    expect(restoreTabsIn(NO_TABS, { ...remembered, activeTab: "gone" }, (tabId) => tabId !== "gone").activeTab).toBeNull();
+    // 選んでいたタブが消えていたら、残ったタブの最後を選ぶ。残ったタブが無ければ、何も選ばない。
+    expect(restoreTabsIn(NO_TABS, { ...remembered, activeTab: "gone" }, (tabId) => tabId !== "gone").activeTab).toBe("b");
+    expect(restoreTabsIn(NO_TABS, { ...remembered, activeTab: "gone" }, () => false)).toMatchObject({ openTabs: [], activeTab: null });
   });
 
   it("残した並びを戻すまでの間に開いたタブは、右に足して開いたままにする", () => {

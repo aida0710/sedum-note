@@ -328,6 +328,13 @@ test("Ctrl と Shift で左の列のメモを複数選び、まとめてノー�
   const toast = page.getByRole("status").filter({ hasText: "2 件のメモをゴミ箱に入れました" });
   await toast.getByRole("button", { name: "元に戻す" }).click();
   await expect(trashCount).toHaveText("0");
+
+  // 選んだメモの 1 つで Delete を押すと、選んだメモがまとめてゴミ箱に入り、選択は外れる。
+  await row(3).click();
+  await row(1).click({ modifiers: ["ControlOrMeta"] });
+  await row(1).press("Delete");
+  await expect(trashCount).toHaveText("2");
+  await expect(page.locator(".tree-note.selected")).toHaveCount(0);
 });
 
 test("左の列は、↑↓ で行を移り、→← で一覧を開け閉めし、Enter でメモを開ける", async ({ page }) => {

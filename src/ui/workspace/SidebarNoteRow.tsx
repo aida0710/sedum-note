@@ -93,12 +93,20 @@ export function SidebarNoteRow({ note, view, listedNoteIds, depth, navigation, r
   // Delete: 選んだメモの 1 つなら選んだメモをまとめて、そうでなければこのメモを、ゴミ箱に入れる（ゴミ箱の中では、確かめてから完全に削除する）。
   // 消したあとは、次の行へフォーカスを移す（確認をやめたら、移さない）。
   const removeByKey = async (row: HTMLElement) => {
-    const noteIds = isSelected && !inTrash ? selection.noteIds : [note.id];
-    const nextRow = rowBesideNotesToRemove(row, noteIds);
-    const removed = inTrash ? await removePermanently() : await moveToTrash(noteIds).then(() => true);
-    if (removed) {
-      nextRow?.focus();
+    if (inTrash) {
+      const nextRow = rowBesideNotesToRemove(row, [note.id]);
+      if (await removePermanently()) {
+        nextRow?.focus();
+      }
+      return;
     }
+    // 選んだあとで消えたメモと、もうゴミ箱にあるメモは除く（右クリックのメニューと同じ）。
+    const noteIds = (isSelected ? selection.noteIds : [note.id]).filter((noteId) => repository.note(noteId)?.content.trashedAt === null);
+    const nextRow = rowBesideNotesToRemove(row, noteIds);
+    // 選択は外す。ゴミ箱に入れたメモを選んだままにすると、次のドラッグで一緒に運んで、ゴミ箱から戻してしまう。
+    resetNoteSelection();
+    await moveToTrash(noteIds);
+    nextRow?.focus();
   };
   return (
     <div className={`nav-row${isDragged ? " dragging" : ""}`} onContextMenu={(event) => { event.preventDefault(); setMenuAnchor(event.currentTarget); }}>

@@ -312,6 +312,16 @@ test("AI チャットを開くと入力欄にフォーカスが入り、Esc で�
   await expect(input).toBeFocused();
   await expect(input).toHaveValue("書きかけの質問");
 
+  // フォーカスモードの間に、チャットの欄のボタンの上で Esc を押しても、閉じるのはチャットの欄だけ（フォーカスモードは終わらない）。
+  await page.keyboard.press("Control+Alt+f");
+  await expect(page.locator(".sidebar")).toBeHidden();
+  await chat(page).getByRole("button", { name: "残した会話" }).focus();
+  await page.keyboard.press("Escape");
+  await expect(chat(page)).toHaveCount(0);
+  await expect(page.locator(".sidebar")).toBeHidden();
+  await page.keyboard.press("Control+Alt+f");
+  await page.keyboard.press("Control+Alt+a");
+
   // 「@」の候補が出ている間の Esc は、候補だけを閉じる。
   await input.fill("@旅行");
   await expect(chat(page).getByRole("listbox", { name: "指定するメモ" })).toBeVisible();

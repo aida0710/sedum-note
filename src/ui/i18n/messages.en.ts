@@ -172,6 +172,8 @@ export const englishMessages: Record<MessageKey, string> = {
   "toast.undo": "Undo",
   "toast.savedSearchRemoved": "Deleted the saved search “{name}”",
   "toast.dueRemoved": "Removed the due time from “{title}”",
+  "toast.emptyingTrash": "Emptying the trash ({done}/{count})",
+  "toast.trashEmptied": "Deleted {count} notes permanently",
   "sidebar.searchResults": "Search results ({count})",
 
   "notebook.rename": "Rename",

@@ -439,6 +439,7 @@ test("ゴミ箱の行のメニューから、件数を確かめてゴミ箱を�
   await page.getByRole("menuitem", { name: "ゴミ箱を空にする（2件）" }).click();
   await confirmation.getByRole("button", { name: "完全に削除" }).click();
   await expect(trashRow.locator(".count")).toHaveText("0");
+  await expect(page.getByRole("status").filter({ hasText: "2件のメモを完全に削除しました" })).toBeVisible();
   await expect(page.locator(".sidebar .tree-note", { hasText: "残すメモ" })).toHaveCount(1);
 });
 
