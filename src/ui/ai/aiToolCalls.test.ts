@@ -51,6 +51,16 @@ describe("1 つの答えのツールの呼び出し", () => {
     expect([lastStatusOf(search.id), lastStatusOf(created.id), lastStatusOf(notCreated.id)]).toEqual(["done", "done", "rejected"]);
   });
 
+  it("読むのも毎回聞く設定なら、検索や読み取りも承認を待ち、承認しなければ動かさない", async () => {
+    const { runToolCalls, approvals, lastStatusOf } = await runnerOver({ permissions: { read: "ask" } });
+    const search = toolCall("search_notes", {});
+    const [rejected] = await runToolCalls([search], new AbortController().signal);
+    expect(approvals.map((items) => items.map((item) => item.preview.kind))).toEqual([["searchNotes"]]);
+    expect(rejected).toMatchObject({ isError: true });
+    expect(rejected!.content).toContain("did not approve");
+    expect(lastStatusOf(search.id)).toBe("rejected");
+  });
+
   it("設定で許可していない種類と、読めない入力と、無いツールは、動かさずに失敗の結果にする", async () => {
     const { repository, runToolCalls, approvals } = await runnerOver({ permissions: { edit: "deny" } });
     const results = await runToolCalls([toolCall("create_note", { title: "作らない" }), toolCall("get_note", null), toolCall("no_such_tool", {})], new AbortController().signal);

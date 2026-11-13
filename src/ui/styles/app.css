@@ -240,6 +240,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ai-approval-item + .ai-approval-item { border-top: 1px solid var(--line); padding-top: 8px; }
 .ai-approval-description { font-weight: 600; overflow-wrap: anywhere; }
 .ai-approval-changes { margin: 0; padding-left: 18px; font-size: var(--font-size-small); overflow-wrap: anywhere; }
+.ai-approval .danger-text { color: var(--danger); }
 .ai-permissions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .ai-saved-chat { display: flex; align-items: center; gap: 4px; }
 .ai-saved-chat-open { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 8px; border-radius: var(--radius-row); text-align: left; }

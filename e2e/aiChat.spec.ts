@@ -410,7 +410,7 @@ const fruitEdit = (id: string) => (body: ChatRequestBody): ToolAnswer => ({
   text: "誤字を直します。",
   toolCalls: [{ id, name: "replace_note_body", input: { noteId: attachedNoteId(body), markdown: "りんご\n\nバナナ\n\nみかん\n\nぶどう" } }],
 });
-const approvalCard = (page: Page) => chat(page).getByRole("group", { name: "承認を待っている変更" });
+const approvalCard = (page: Page) => chat(page).getByRole("group", { name: "承認を待っている操作" });
 
 test("開いているメモの直しを頼むと、差分を承認してから直したブロックだけが入れ替わる。文字色は残り、エディタの取り消しで戻せる", async ({ page }) => {
   const requests = await mockClaudeApi(page, [fruitEdit("toolu_fruit"), "直しました。"]);
