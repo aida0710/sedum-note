@@ -1,8 +1,9 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, startLocalVault } from "./devices";
+import { createNoteOnDesktop, PHONE_VIEWPORT, startLocalVault } from "./devices";
 
 const SCREENSHOT_DIRECTORY = process.env.SCREENSHOT_DIRECTORY;
-const zoomBar = (page: Page) => page.getByRole("navigation", { name: "ズームしている所までの道筋" });
+// ズームしている間に左上に出る、戻るボタン。名前は「「戻り先」に戻る」。
+const zoomBackButton = (page: Page) => page.getByRole("button", { name: /^「.*」に戻る$/ });
 // 画面に出ている本文の行。
 const visibleLines = (page: Page) => page.locator(".ProseMirror p:visible");
 
@@ -19,7 +20,7 @@ async function placeCursorIn(page: Page, text: string): Promise<void> {
 async function zoomIntoItem(page: Page, text: string): Promise<void> {
   await placeCursorIn(page, text);
   await page.keyboard.press("Control+Alt+z");
-  await expect(zoomBar(page).locator("[aria-current]")).toHaveText(text);
+  await expect(visibleLines(page).first()).toHaveText(text);
 }
 
 // 「旅行 > 宿 > 駅前のホテル」「旅行 > 持ち物」の箇条書きと、その前後の段落を書く。カーソルは「駅前のホテル」に置く。
@@ -42,14 +43,22 @@ async function writeNestedList(page: Page): Promise<void> {
   await expect(page.locator(".ProseMirror p")).toHaveText(["はじめに", "旅行", "宿", "駅前のホテル", "持ち物", ""]);
 }
 
-test("箇条書きの項目にズームすると、その項目と子だけが出る。パンくずから上の階層と全体へ戻れる", async ({ page }) => {
+test("箇条書きの項目にズームすると、窓いっぱいにその項目と子だけが出る。左上の戻るボタンで 1 つずつ上の階層へ戻り、最後に全体へ戻る", async ({ page }) => {
   await writeNestedList(page);
   // カーソルのある「駅前のホテル」から、キーで 1 つ上の「宿」へ戻る形で確かめる。
   await zoomIntoItem(page, "駅前のホテル");
   await expect(visibleLines(page)).toHaveText(["駅前のホテル"]);
-  await expect(zoomBar(page)).toHaveText("全体旅行宿駅前のホテル");
+  await expect(zoomBackButton(page)).toHaveAccessibleName("「宿」に戻る");
+  // 題・ツールバーは出さず、メモの画面が窓いっぱいに広がって、左の列とタブを覆う。
+  await expect(page.getByPlaceholder("タイトル")).toHaveCount(0);
+  await expect(page.locator(".editor-bar")).toHaveCount(0);
+  expect(await page.locator(".note-editor.zoomed-view").boundingBox()).toEqual({ x: 0, y: 0, ...page.viewportSize()! });
+  const backBox = (await zoomBackButton(page).boundingBox())!;
+  expect(backBox.x).toBeLessThan(40);
+  expect(backBox.y).toBeLessThan(40);
   await page.keyboard.press("Control+Alt+Shift+z");
   await expect(visibleLines(page)).toHaveText(["宿", "駅前のホテル"]);
+  await expect(zoomBackButton(page)).toHaveAccessibleName("「旅行」に戻る");
   if (SCREENSHOT_DIRECTORY) {
     await page.screenshot({ path: `${SCREENSHOT_DIRECTORY}/zoomed-item.png` });
   }
@@ -59,10 +68,14 @@ test("箇条書きの項目にズームすると、その項目と子だけが�
   await page.keyboard.type("朝食つき");
   await expect(visibleLines(page)).toHaveText(["宿", "駅前のホテル", "朝食つき"]);
 
-  await zoomBar(page).getByRole("button", { name: "旅行" }).click();
+  await zoomBackButton(page).click();
   await expect(visibleLines(page)).toHaveText(["旅行", "宿", "駅前のホテル", "朝食つき", "持ち物"]);
-  await zoomBar(page).getByRole("button", { name: "全体" }).click();
-  await expect(zoomBar(page)).toHaveCount(0);
+  // いちばん上の項目からは、メモの題を添えて、メモ全体へ戻る。
+  await expect(zoomBackButton(page)).toHaveAccessibleName("「計画」に戻る");
+  await zoomBackButton(page).click();
+  await expect(zoomBackButton(page)).toHaveCount(0);
+  await expect(page.locator(".note-editor.zoomed-view")).toHaveCount(0);
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("計画");
   await expect(visibleLines(page)).toHaveText(["はじめに", "旅行", "宿", "駅前のホテル", "朝食つき", "持ち物", ""]);
 });
 
@@ -75,7 +88,9 @@ test("メモのメニューからもズームできる。ズームしている�
   // ズームしている間の全選択は、見えている項目の中だけを選ぶ。消しても、隠れている行は残る。
   await page.keyboard.press("Control+a");
   await page.keyboard.press("Delete");
-  await zoomBar(page).getByRole("button", { name: "全体" }).click();
+  await page.keyboard.press("Control+Alt+Shift+z");
+  await page.keyboard.press("Control+Alt+Shift+z");
+  await page.keyboard.press("Control+Alt+Shift+z");
   await expect(visibleLines(page)).toHaveText(["はじめに", "旅行", "宿", "", "持ち物", ""]);
 
   // 箇条書きの外にカーソルがあるときは、メニューにズームを出さない。
@@ -92,11 +107,12 @@ test("ズームしている項目の題の行で Enter を押すと、カーソ�
   await page.keyboard.press("Enter");
   await page.keyboard.type("予約する");
   await expect(visibleLines(page)).toHaveText(["宿", "予約する", "駅前のホテル"]);
-  await zoomBar(page).getByRole("button", { name: "全体" }).click();
+  await zoomBackButton(page).click();
+  await zoomBackButton(page).click();
   await expect(visibleLines(page)).toHaveText(["はじめに", "旅行", "宿", "予約する", "駅前のホテル", "持ち物", ""]);
 });
 
-test("ズームしている間に、ズームの外の見出しへ目次から移ると、ズームをやめて行き先を見せる", async ({ page }) => {
+test("ズームしている間に、メモの中の検索でズームの外の言葉へ移ると、ズームをやめて行き先を見せる", async ({ page }) => {
   await startLocalVault(page);
   await createNoteOnDesktop(page, "計画");
   await page.keyboard.type("## 行程");
@@ -104,9 +120,10 @@ test("ズームしている間に、ズームの外の見出しへ目次から�
   await page.keyboard.type("- 宿");
   await page.keyboard.press("Control+Alt+z");
   await expect(visibleLines(page)).toHaveText(["宿"]);
-  await page.getByRole("button", { name: "目次" }).click();
-  await page.getByRole("navigation", { name: "目次" }).getByRole("button", { name: "行程" }).click();
-  await expect(zoomBar(page)).toHaveCount(0);
+  await page.keyboard.press("Control+f");
+  await page.getByPlaceholder("このメモの中を検索").fill("行程");
+  await page.getByPlaceholder("このメモの中を検索").press("Enter");
+  await expect(zoomBackButton(page)).toHaveCount(0);
   await expect(page.locator(".ProseMirror h2")).toBeVisible();
 });
 
@@ -116,11 +133,11 @@ test("箇条書きの行頭の印を押すと、その項目にズームする",
   const lodging = page.locator(".ProseMirror li", { has: page.locator("> p", { hasText: /^宿$/ }) });
   const firstLine = (await lodging.locator("> p").boundingBox())!;
   await page.mouse.click(firstLine.x - 10, firstLine.y + firstLine.height / 2);
-  await expect(zoomBar(page).locator("[aria-current]")).toHaveText("宿");
   await expect(visibleLines(page)).toHaveText(["宿", "駅前のホテル"]);
+  await expect(zoomBackButton(page)).toHaveAccessibleName("「旅行」に戻る");
 });
 
-test("見出しの右端のボタンで、そのセクション（次の同じ段か上の段の見出しの前まで）にズームする。パンくずには上の段の見出しが並ぶ", async ({ page }) => {
+test("見出しの左のボタンで、そのセクション（次の同じ段か上の段の見出しの前まで）にズームする。戻るボタンで上の段の見出しのセクションへ戻る", async ({ page }) => {
   await startLocalVault(page);
   await createNoteOnDesktop(page, "章立て");
   for (const line of ["# 第1章", "前置き", "## 1.1 節", "節の本文", "### 1.1.1 項", "項の本文", "## 1.2 節", "次の節の本文", "# 第2章", "次の章の本文"]) {
@@ -128,22 +145,52 @@ test("見出しの右端のボタンで、そのセクション（次の同じ�
     await page.keyboard.press("Enter");
   }
   const section = page.locator(".ProseMirror h3", { hasText: "1.1.1 項" });
-  await page.locator(".ProseMirror h2", { hasText: "1.1 節" }).hover();
-  await page.locator(".ProseMirror h2", { hasText: "1.1 節" }).getByRole("button", { name: "このセクションにズーム" }).click();
+  const heading = page.locator(".ProseMirror h2", { hasText: "1.1 節" });
+  await heading.hover();
+  // ボタンは見出しの文字の左（本文の左の余白）に出る。
+  const zoomButton = heading.getByRole("button", { name: "このセクションにズーム" });
+  expect((await zoomButton.boundingBox())!.x + (await zoomButton.boundingBox())!.width).toBeLessThanOrEqual((await heading.boundingBox())!.x);
+  await zoomButton.click();
   await expect(page.locator(".ProseMirror > :visible")).toHaveText(["1.1 節", "節の本文", "1.1.1 項", "項の本文"]);
   await expect(section).toBeVisible();
-  await expect(zoomBar(page)).toHaveText("全体第1章1.1 節");
+  await expect(zoomBackButton(page)).toHaveAccessibleName("「第1章」に戻る");
 
-  // パンくずの「第1章」で、上の段の見出しのセクションへ出る。
-  await zoomBar(page).getByRole("button", { name: "第1章" }).click();
+  // 戻るボタンで、上の段の見出し「第1章」のセクションへ出る。
+  await zoomBackButton(page).click();
   await expect(page.locator(".ProseMirror > :visible")).toHaveText(["第1章", "前置き", "1.1 節", "節の本文", "1.1.1 項", "項の本文", "1.2 節", "次の節の本文"]);
 
   // カーソルのある見出しには、メモの「…」からもズームできる。
-  await zoomBar(page).getByRole("button", { name: "全体" }).click();
+  await zoomBackButton(page).click();
   await page.locator(".ProseMirror h1", { hasText: "第2章" }).click();
   await page.locator(".editor-bar").getByRole("button", { name: "その他の操作" }).click();
   await page.getByRole("menuitem", { name: "このセクションにズーム" }).click();
   await expect(page.locator(".ProseMirror > :visible").first()).toHaveText("第2章");
   await expect(page.locator(".ProseMirror p", { hasText: "次の章の本文" })).toBeVisible();
   await expect(page.locator(".ProseMirror p", { hasText: "前置き" })).toBeHidden();
+});
+
+test("スマホでは、ズームしている間は上の「戻る」が 1 つ上の階層へ戻るボタンになり、全体に戻ってからの「戻る」で一覧へ戻る", async ({ browser }) => {
+  const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await page.getByPlaceholder("タイトル").fill("計画");
+  await page.getByPlaceholder("タイトル").press("Enter");
+  await page.keyboard.type("- 旅行");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Tab");
+  await page.keyboard.type("宿");
+  await placeCursorIn(page, "宿");
+  await page.getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "この項目にズーム" }).click();
+
+  await expect(visibleLines(page)).toHaveText(["宿"]);
+  await expect(page.getByPlaceholder("タイトル")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "その他の操作" })).toHaveCount(0);
+  await zoomBackButton(page).click();
+  await expect(visibleLines(page)).toHaveText(["旅行", "宿"]);
+  await expect(zoomBackButton(page)).toHaveAccessibleName("「計画」に戻る");
+  await zoomBackButton(page).click();
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("計画");
+  await page.getByRole("button", { name: "戻る", exact: true }).click();
+  await expect(page.getByPlaceholder("タイトル")).toHaveCount(0);
 });

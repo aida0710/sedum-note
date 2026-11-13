@@ -46,7 +46,7 @@ import { currentTemplateTimeValues } from "./templateTimeValues";
 import { zoomIntoCursor, zoomTargetAtCursor } from "./zoom";
 import { useRememberedNoteView } from "./rememberedNoteView";
 import { insertDroppedNoteLink } from "./droppedNoteLink";
-import { NoteZoomBar } from "./NoteZoomBar";
+import { useIsZoomed, ZoomBackButton } from "./ZoomBackButton";
 import { convertBodyToOutline } from "./outlineConversion";
 import { registerFocusRestorer } from "../shared/focusReturn";
 import { revealBlock } from "./blockIds";
@@ -291,17 +291,26 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
     .map((template) => ({ id: template.id, title: template.content.title }));
   slashMenuController.actions = { pickImage, pickFile, pickNoteLink, pickBlockLink, pickBlockEmbed, scanDocument: () => scanInput.current?.click(), pickTaskDue: () => setDueTarget("task"), templates, insertTemplate };
 
+  // 項目か見出しにズームしている間は、その部分だけを出す（題・タグ・ツールバーなどを隠し、PC では画面いっぱいに広げる）。
+  // 戻るのは左上のボタンから。
+  const isZoomed = useIsZoomed(editor);
+
   const actionError = attachments.errorMessage ?? audioRecorder.errorMessage ?? pasteMarkdown.errorMessage ?? exportNote.errorMessage ?? print.errorMessage ?? openInNewWindow.errorMessage;
   if (!editor) {
     return null;
   }
   return (
-    <>
-      {!isMobile && <EditorToolbar editor={editor} {...toolbarActions} trailing={trailing} />}
+    <div className={`note-editor${isZoomed && !isMobile ? " zoomed-view" : ""}`}>
+      {!isMobile && !isZoomed && <EditorToolbar editor={editor} {...toolbarActions} trailing={trailing} />}
+      {!isMobile && isZoomed && (
+        <div className="zoomed-view-top"><ZoomBackButton editor={editor} noteTitle={note.content.title} className="zoom-back" /></div>
+      )}
       {isMobile && (
         <div className="phone-top">
-          <button className="phone-back" onClick={onBack}><ChevronLeft size={20} />{translate("editor.back")}</button>
-          <div className="phone-top-end">{trailing}</div>
+          {isZoomed
+            ? <ZoomBackButton editor={editor} noteTitle={note.content.title} className="phone-back zoom-back" />
+            : <button className="phone-back" onClick={onBack}><ChevronLeft size={20} />{translate("editor.back")}</button>}
+          {!isZoomed && <div className="phone-top-end">{trailing}</div>}
         </div>
       )}
       {findBarOpen && <FindBar editor={editor} request={findRequest} onClose={() => setFindBarOpen(false)} />}
@@ -324,43 +333,50 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
               </span>
             </div>
           )}
-          {note.content.isTemplate && !inTrash && <TemplateBanner templateId={noteId} repository={repository} onOpenNote={openNote} />}
+          {note.content.isTemplate && !inTrash && !isZoomed && <TemplateBanner templateId={noteId} repository={repository} onOpenNote={openNote} />}
           {actionError && <div className="form-error" role="alert">{actionError}</div>}
-          <div className="document-meta">
-            {noteNotebooks.map((notebook) => (
-              <span key={notebook.id} className="chip"><NotebookMark notebook={notebook} colors={notebookColors} />{notebook.content.name}</span>
-            ))}
-            {tags.map((tag) => <span key={tag} className="chip">#{tag}</span>)}
-            {note.content.dueAt !== null && (
-              <button type="button" className="chip due-chip" disabled={inTrash} onClick={() => setDueTarget("note")}>
-                <AlarmClock size={12} />{translate("due.chip", { time: formatDueTime(note.content.dueAt) })}
-              </button>
-            )}
-            {unsyncedIds.has(noteId) && <span className="chip unsynced">{translate("editor.unsynced")}</span>}
-            <NoteCharacterCount editor={editor} />
-            <span className="updated">{translate("editor.updatedAt", { time: formatDateTime(note.updatedAt) })}</span>
-          </div>
-          {/* 作ったばかりの空のメモは、すぐ打てるようにタイトルにカーソルを置く。 */}
-          <input ref={titleInput} className="title-input" value={title} placeholder={translate("editor.titlePlaceholder")} readOnly={inTrash}
-            autoFocus={note.content.title === "" && bodyPlainText(note.body) === "" && note.content.attachments.length === 0}
-            onChange={(event) => { setTitle(event.target.value); void repository.updateNote(noteId, { title: event.target.value }); }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !isImeKeyEvent(event.nativeEvent)) {
-                event.preventDefault();
-                // focus コマンドは次の描画まで待つので、続けて打った文字がタイトルに入る。
-                // その場で本文へ移す。
-                editor.view.focus();
-                editor.commands.setTextSelection(1);
-              }
-            }} />
-          <NoteProperties note={note} properties={propertiesOfNote(note, notebooks)} repository={repository} readOnly={inTrash} />
-          <NoteZoomBar editor={editor} />
+          {!isZoomed && (
+            <>
+              <div className="document-meta">
+                {noteNotebooks.map((notebook) => (
+                  <span key={notebook.id} className="chip"><NotebookMark notebook={notebook} colors={notebookColors} />{notebook.content.name}</span>
+                ))}
+                {tags.map((tag) => <span key={tag} className="chip">#{tag}</span>)}
+                {note.content.dueAt !== null && (
+                  <button type="button" className="chip due-chip" disabled={inTrash} onClick={() => setDueTarget("note")}>
+                    <AlarmClock size={12} />{translate("due.chip", { time: formatDueTime(note.content.dueAt) })}
+                  </button>
+                )}
+                {unsyncedIds.has(noteId) && <span className="chip unsynced">{translate("editor.unsynced")}</span>}
+                <NoteCharacterCount editor={editor} />
+                <span className="updated">{translate("editor.updatedAt", { time: formatDateTime(note.updatedAt) })}</span>
+              </div>
+              {/* 作ったばかりの空のメモは、すぐ打てるようにタイトルにカーソルを置く。 */}
+              <input ref={titleInput} className="title-input" value={title} placeholder={translate("editor.titlePlaceholder")} readOnly={inTrash}
+                autoFocus={note.content.title === "" && bodyPlainText(note.body) === "" && note.content.attachments.length === 0}
+                onChange={(event) => { setTitle(event.target.value); void repository.updateNote(noteId, { title: event.target.value }); }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !isImeKeyEvent(event.nativeEvent)) {
+                    event.preventDefault();
+                    // focus コマンドは次の描画まで待つので、続けて打った文字がタイトルに入る。
+                    // その場で本文へ移す。
+                    editor.view.focus();
+                    editor.commands.setTextSelection(1);
+                  }
+                }} />
+              <NoteProperties note={note} properties={propertiesOfNote(note, notebooks)} repository={repository} readOnly={inTrash} />
+            </>
+          )}
           <EditorContent editor={editor} />
-          <NoteFootnotes editor={editor} />
-          <NoteBacklinks note={note} backlinks={backlinks} unlinkedMentions={unlinkedMentions} repository={repository} onOpenNote={openNote} />
+          {!isZoomed && (
+            <>
+              <NoteFootnotes editor={editor} />
+              <NoteBacklinks note={note} backlinks={backlinks} unlinkedMentions={unlinkedMentions} repository={repository} onOpenNote={openNote} />
+            </>
+          )}
         </div>
       </div>
-      {!isMobile && showOutline && <NoteOutline editor={editor} />}
+      {!isMobile && showOutline && !isZoomed && <NoteOutline editor={editor} />}
       </div>
       {outlineAnchor && (
         <PopupMenu anchor={outlineAnchor} onClose={() => setOutlineAnchor(null)}>
@@ -431,6 +447,6 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
       {showingHistory && (
         <NoteHistoryDialog note={note} repository={repository} onClose={() => setShowingHistory(false)} />
       )}
-    </>
+    </div>
   );
 }

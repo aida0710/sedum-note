@@ -121,10 +121,11 @@ button:disabled { cursor: default; opacity: .55; }
 .pdf-preview-page canvas { background: #ffffff; box-shadow: 0 1px 4px var(--shadow); }
 /* ブロックをドラッグする持ち手。エディタを包む要素（EditorContent）の中に、位置を決めて置く。 */
 .document > div:has(> .ProseMirror) { position: relative; }
-.block-drag-handle { position: absolute; width: 14px; height: 1.7em; height: 1lh; cursor: grab; border-radius: var(--radius-inline); color: var(--muted); display: grid; place-items: center; user-select: none; }
+/* 大きさは blockDragHandle.ts の HANDLE_WIDTH・HANDLE_HEIGHT と同じ。位置（1 行目の縦の中心）は blockDragHandle.ts が入れる。 */
+.block-drag-handle { position: absolute; width: 20px; height: 24px; cursor: grab; border-radius: var(--radius-row); color: var(--muted); display: grid; place-items: center; user-select: none; opacity: .7; }
 .block-drag-handle[hidden] { display: none; }
-.block-drag-handle::before { content: "⠿"; font-size: 13px; line-height: 1; }
-.block-drag-handle:hover { background: var(--selected); color: var(--text); }
+.block-drag-handle:hover { background: var(--selected); color: var(--text); opacity: 1; }
+.block-drag-handle:active { cursor: grabbing; }
 .ProseMirror .columns { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 16px; margin: 10px 0; }
 .ProseMirror .column { min-width: 0; border: 1px dashed transparent; border-radius: var(--radius-control); padding: 2px 6px; }
 .ProseMirror-focused .column { border-color: var(--line); }
@@ -353,7 +354,9 @@ button:disabled { cursor: default; opacity: .55; }
 .outline-item { text-align: left; padding: 5px 8px; border-radius: var(--radius-row); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; }
 .outline-item:hover { background: var(--selected); color: var(--text); }
 .icon-button.active { background: var(--selected); color: var(--accent); }
-.document { padding: 28px 56px 80px; max-width: 760px; width: 100%; margin: 0 auto; }
+/* 左右の余白は、見出しの左に並ぶ持ち手・ズームのボタン・折りたたみの印（左へ 68px まで）が、左寄せのときも切れない幅にする。
+   文字の列の幅は 648px（792 − 72 × 2）。 */
+.document { padding: 28px 72px 80px; max-width: 792px; width: 100%; margin: 0 auto; }
 /* 本文の列の置き場所（メモごとか、表示の設定の既定）。中央は、上の margin のまま。 */
 .document.align-left { margin-left: 0; }
 .document.align-right { margin-right: 0; }
@@ -447,19 +450,28 @@ button:disabled { cursor: default; opacity: .55; }
 .ProseMirror li.zoom-path > .fold-toggle, .ProseMirror li.zoom-path > label, .ProseMirror li.zoomed-item > .fold-toggle { display: none; }
 /* ズームしている項目の行は、その画面の題として大きく出す（折りたたみの印が前に入るので、最初の段落を種類で選ぶ）。 */
 .ProseMirror li.zoomed-item > p:first-of-type, .ProseMirror li.zoomed-item > div > p:first-of-type { font-size: 1.3em; font-weight: 700; }
-.zoom-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin: 0 0 8px; color: var(--muted); font-size: var(--font-size-small); }
-.zoom-bar-entry { display: inline-flex; align-items: center; gap: 2px; min-width: 0; }
-.zoom-bar .text-button { color: var(--accent); padding: 2px 4px; border-radius: var(--radius-row); }
+/* 1 件のメモの編集画面（editor/NoteEditor.tsx）。ふだんは箱を作らず、中の部品が画面の枠（.pane、.phone）に直接並ぶ。
+   PC でズームしている間は、窓いっぱいに広げて、左の列・タブ・ほかの枠の上に重ねる（メニュー 20 とダイアログ 30 より下）。 */
+.note-editor { display: contents; }
+.note-editor.zoomed-view { position: fixed; inset: 0; z-index: 15; display: flex; flex-direction: column; background: var(--panel); }
+.zoomed-view-top { flex: none; display: flex; align-items: center; padding: 10px 14px 0; }
+/* ズームから戻るボタン。戻り先の名前が長いときは、1 行で切る。 */
+.zoom-back { display: inline-flex; align-items: center; gap: 2px; min-width: 0; max-width: min(480px, 100%); height: var(--control-height); padding: 0 10px 0 4px; border-radius: var(--radius-row); color: var(--muted); font-size: var(--font-size-ui); }
+.zoom-back > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zoom-back > svg { flex: none; }
+.zoom-back:hover { background: var(--selected); color: var(--text); }
+.phone-back.zoom-back { color: inherit; font-size: 16px; padding: 0; height: auto; max-width: 100%; }
 /* 箇条書きの行頭の印（・や番号）を押すと、その項目にズームする（editor/zoom.ts）。印のある左の余白だけ指の形にし、文字の上は文字の形のままにする。 */
 .ProseMirror ul:not([data-type="taskList"]), .ProseMirror ol { cursor: pointer; }
 .ProseMirror li > * { cursor: text; }
-/* 見出しの右端の、セクションにズームするボタン。ポインターを乗せた見出しにだけ出す（スマホは乗せられないので、薄く出したままにする）。 */
-/* 見出しのズームのボタン。vertical-align: middle では、大きい見出しで文字の中心より下に来るので、行の上端に付けてから行の高さの中心へ下げる。 */
-.ProseMirror .section-zoom { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: 6px; vertical-align: top; margin-top: calc((1lh - 22px) / 2); border-radius: var(--radius-row); color: var(--muted); opacity: 0; }
+/* 見出しの左の、セクションにズームするボタン。折りたたみの印のさらに左に置き、ポインターを乗せた見出しにだけ出す。
+   縦は、見出しの 1 行目の高さの中央にそろえる。 */
+.ProseMirror .section-zoom { position: absolute; left: -44px; top: calc((1lh - 20px) / 2); width: 20px; height: 20px; display: grid; place-items: center; border-radius: var(--radius-row); color: var(--muted); opacity: 0; }
+/* スマホは左の余白（18px）に折りたたみの印しか入らないので、右の余白に置き、乗せられない代わりに薄く出したままにする。 */
+.phone .ProseMirror .section-zoom { left: auto; right: -18px; width: 18px; }
 .ProseMirror :is(h1, h2, h3, h4, h5, h6):hover > .section-zoom, .ProseMirror .section-zoom:focus-visible { opacity: 1; }
 .ProseMirror .section-zoom:hover { background: var(--selected); color: var(--accent); }
 @media (hover: none) { .ProseMirror .section-zoom { opacity: .45; } }
-.zoom-bar .text-button:hover { background: var(--selected); }
 .ProseMirror li.collapsed-item > ul, .ProseMirror li.collapsed-item > ol, .ProseMirror li.collapsed-item > div > ul, .ProseMirror li.collapsed-item > div > ol { display: none; }
 .ProseMirror .folded-block { display: none; }
 .ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { font-size: 1em; margin: 12px 0 4px; }

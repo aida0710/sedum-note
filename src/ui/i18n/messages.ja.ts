@@ -404,7 +404,7 @@ export const japaneseMessages = {
   "editor.zoomIntoSection": "このセクションにズーム",
   "editor.zoomIntoCursor": "カーソルのある項目・セクションにズーム",
   "editor.zoomOutOneLevel": "ズームを 1 つ上の階層へ戻す",
-  "editor.zoomPath": "ズームしている所までの道筋",
+  "editor.zoomBackTo": "「{name}」に戻る",
   "editor.zoomWholeNote": "全体",
   "editor.zoomEmptyItem": "（空の項目）",
   "editor.drawing": "手書き・図形",

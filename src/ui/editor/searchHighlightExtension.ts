@@ -4,6 +4,7 @@
 import { Extension } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { DEFAULT_SEARCH_OPTIONS, findSearchMatches, type SearchMatch, type SearchOptions } from "./searchMatches";
+import { REVEAL_POSITION_META } from "./zoom";
 import { type EditorState, Plugin, PluginKey, type Transaction } from "@tiptap/pm/state";
 import { yUndoPluginKey } from "@tiptap/y-tiptap";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
@@ -74,8 +75,9 @@ export const SearchHighlight = Extension.create({
           return false;
         }
         const activeIndex = (current.activeIndex + direction + current.matches.length) % current.matches.length;
-        dispatch?.(tr.setMeta(searchHighlightKey, { activeIndex } satisfies SearchHighlightMeta));
         const match = current.matches[activeIndex];
+        // 当たりがズームの外なら、ズームをやめて見せる。
+        dispatch?.(tr.setMeta(searchHighlightKey, { activeIndex } satisfies SearchHighlightMeta).setMeta(REVEAL_POSITION_META, match?.from));
         if (match) {
           // 描き直しのあとで、選んだ当たりを見える所へ送る。
           requestAnimationFrame(() => (view.domAtPos(match.from).node as Element | Text).parentElement?.scrollIntoView({ block: "center" }));

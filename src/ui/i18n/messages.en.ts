@@ -406,7 +406,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "editor.zoomIntoSection": "Zoom into this section",
   "editor.zoomIntoCursor": "Zoom into the item or section at the cursor",
   "editor.zoomOutOneLevel": "Zoom out one level",
-  "editor.zoomPath": "Path to the zoomed part",
+  "editor.zoomBackTo": "Back to “{name}”",
   "editor.zoomWholeNote": "Whole note",
   "editor.zoomEmptyItem": "(empty item)",
   "editor.drawing": "Drawing",

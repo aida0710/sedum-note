@@ -649,6 +649,83 @@ test("ブロックにマウスを乗せると出る持ち手をドラッグす�
   await expect(paragraphs).toHaveText(["3 つ目", "1 つ目", "2 つ目"]);
 });
 
+test("箇条書きの項目を持ち手でドラッグすると、子の項目ごと動く", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "項目のドラッグ");
+  await page.keyboard.type("- A");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Tab");
+  await page.keyboard.type("A1");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.type("B");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("C");
+  const items = page.locator(".ProseMirror li > p");
+  await expect(items).toHaveText(["A", "A1", "B", "C"]);
+
+  const itemA = page.locator(".ProseMirror li", { has: page.locator("> p", { hasText: /^A$/ }) });
+  await itemA.locator("> p").hover();
+  const handle = page.getByRole("button", { name: "ドラッグしてブロックを動かす" });
+  const handleBox = (await handle.boundingBox())!;
+  const itemC = (await page.locator(".ProseMirror li > p", { hasText: /^C$/ }).boundingBox())!;
+  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+  await page.mouse.down();
+  // 「C」の項目の上へ落とす。項目の中に項目は入らないので、エディタは C の項目のすぐ後ろに入れる（落とす先の線もそこに出る）。
+  await page.mouse.move(itemC.x + 10, itemC.y + 3, { steps: 8 });
+  await page.mouse.up();
+  await expect(items).toHaveText(["B", "C", "A", "A1"]);
+  await expect(page.locator(".ProseMirror li", { has: page.locator("> p", { hasText: /^A$/ }) }).locator("li > p")).toHaveText(["A1"]);
+});
+
+test("持ち手は、本文から左の余白を通って近づいても消えず、1 行目の高さにそろう。見出しでは、ズームのボタンと折りたたみの印の左に出る", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "持ち手のメモ");
+  await page.keyboard.type("## 見出し");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("段落");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("- 項目");
+  const handle = page.getByRole("button", { name: "ドラッグしてブロックを動かす" });
+
+  for (const block of [page.locator(".ProseMirror > p", { hasText: "段落" }), page.locator(".ProseMirror h2"), page.locator(".ProseMirror li")]) {
+    const blockBox = (await block.boundingBox())!;
+    const y = blockBox.y + 12;
+    // 文字の上から、持ち手のある左の余白まで、少しずつ動かす。
+    await page.mouse.move(blockBox.x + 40, y);
+    await expect(handle).toBeVisible();
+    const handleBox = (await handle.boundingBox())!;
+    for (let x = blockBox.x + 40; x > handleBox.x + handleBox.width / 2; x -= 4) {
+      await page.mouse.move(x, y);
+    }
+    await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+    await expect(handle).toBeVisible();
+    expect(handleBox.width).toBeGreaterThanOrEqual(20);
+    expect(handleBox.height).toBeGreaterThanOrEqual(24);
+    // 持ち手の縦の中心は、ブロックの 1 行目の中にある。
+    const firstLine = (await block.locator("xpath=descendant-or-self::*[self::p or self::h2][1]").boundingBox())!;
+    expect(handleBox.y + handleBox.height / 2).toBeGreaterThan(firstLine.y);
+    expect(handleBox.y + handleBox.height / 2).toBeLessThan(firstLine.y + firstLine.height);
+  }
+
+  // 見出しでは、左から持ち手・ズームのボタン・折りたたみの印の順に並び、重ならない。
+  const heading = page.locator(".ProseMirror h2");
+  await heading.hover();
+  const handleBox = (await handle.boundingBox())!;
+  const zoomBox = (await heading.getByRole("button", { name: "このセクションにズーム" }).boundingBox())!;
+  const foldBox = (await heading.locator(".fold-toggle").boundingBox())!;
+  expect(handleBox.x + handleBox.width).toBeLessThanOrEqual(zoomBox.x);
+  expect(zoomBox.x + zoomBox.width).toBeLessThanOrEqual(foldBox.x);
+  expect(foldBox.x + foldBox.width).toBeLessThanOrEqual((await heading.boundingBox())!.x);
+
+  // 打ち始めると隠れ、マウスを動かすとまた出る。
+  await page.locator(".ProseMirror li").click();
+  await page.keyboard.type("を足す");
+  await expect(handle).toBeHidden();
+  await page.mouse.move(handleBox.x + 60, handleBox.y + 4);
+  await expect(handle).toBeVisible();
+});
+
 test("「- 」「1. 」などで書式に変わった直後の Backspace は、書式をやめて打った文字に戻す。そのあとは打ち続けても変わらない", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "変換のメモ");

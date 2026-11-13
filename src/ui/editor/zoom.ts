@@ -1,7 +1,8 @@
 // ズーム。箇条書きの項目か見出しのセクションを選ぶと、そこだけを画面に出す（アウトライナーと同じ）。
 //   箇条書きの項目: その項目と子。行頭の印（・や番号）を押すとズームする。
-//   見出しのセクション: その見出しから、次の同じ段か上の段の見出しの手前まで。見出しの右端のボタンを押すとズームする。
-// 上の階層は、本文の上のパンくず（NoteZoomBar.tsx）から戻れる。隠すのは表示だけで、本文は変えない。
+//   見出しのセクション: その見出しから、次の同じ段か上の段の見出しの手前まで。見出しの左のボタンを押すとズームする。
+// ズームしている間は、その部分だけを画面いっぱいに出し、左上の戻るボタン（ZoomBackButton.tsx）で 1 つ上の階層へ戻る。
+// 隠すのは表示だけで、本文は変えない。
 // どこにズームしているかは、メモを開いている間だけ覚える（同期しない）。
 //
 // ズームしている間は、見えていない所を知らないうちに書き換えないようにする。
@@ -23,6 +24,10 @@ const BEFORE_OTHER_KEYMAPS = 1100;
 
 // ズームしている項目か見出しの位置。していなければ null。
 const zoomKey = new PluginKey<number | null>("zoom");
+
+// 本文のある位置を見せたい変更（メモの中の検索で当たりへ移る、など）に付ける印。値はその位置。
+// カーソルを動かさずに見せる変更でも、その位置がズームの外なら、ズームをやめて全体を出す。
+export const REVEAL_POSITION_META = "revealPosition";
 
 function isListItem(node: ProseMirrorNode | null | undefined): node is ProseMirrorNode {
   return Boolean(node) && LIST_ITEM_TYPES.includes(node!.type.name);
@@ -116,7 +121,7 @@ function enclosingHeadingPositions(doc: ProseMirrorNode, headingPosition: number
   return positions;
 }
 
-// パンくずに出す名前。見出しはその文字、項目は最初の段落の文字。
+// 戻るボタンに出す名前。見出しはその文字、項目は最初の段落の文字。
 function entryText(node: ProseMirrorNode | null): string {
   if (!node) {
     return "";
@@ -124,7 +129,7 @@ function entryText(node: ProseMirrorNode | null): string {
   return isHeading(node) ? node.textContent : node.firstChild?.textContent ?? "";
 }
 
-// ズームしている所までの道筋（外側の項目や上の段の見出しから、ズームしている所まで）。パンくずに出す。
+// ズームしている所までの道筋（外側の項目や上の段の見出しから、ズームしている所まで）。戻るボタンが、1 つ上の名前と行き先に使う。
 export function zoomPath(state: EditorState): ZoomPathEntry[] {
   const zoomedPosition = zoomedItemPosition(state);
   if (zoomedPosition === null) {
@@ -138,7 +143,7 @@ export function zoomPath(state: EditorState): ZoomPathEntry[] {
 // 項目にズームする。position が null なら、ズームをやめて全体を出す。
 export function zoomToItem(editor: Editor, position: number | null): boolean {
   editor.view.dispatch(editor.state.tr.setMeta(zoomKey, { zoomedPosition: position }));
-  // メニューやパンくずから来たときも、続けて打てるよう、本文にカーソルを戻す。
+  // メニューや戻るボタンから来たときも、続けて打てるよう、本文にカーソルを戻す。
   editor.view.focus();
   return true;
 }
@@ -232,7 +237,7 @@ function zoomDecorations(doc: ProseMirrorNode, zoomedPosition: number): Decorati
   return DecorationSet.create(doc, decorations);
 }
 
-// 見出しの右端に出す、そのセクションにズームするボタン。ポインターを乗せたときに出す（CSS）。
+// 見出しの左（折りたたみの印のさらに左）に出す、そのセクションにズームするボタン。ポインターを乗せたときに出す（CSS）。
 const ZOOM_ICON_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>';
 
 function sectionZoomButton(view: EditorView, headingPosition: number): HTMLElement {
@@ -258,7 +263,7 @@ function sectionZoomButtons(doc: ProseMirrorNode, zoomedPosition: number | null)
     if (isHeading(node)) {
       // ズームしているセクションの見出しには出さない（もうそこにいるので）。
       if (position !== zoomedPosition) {
-        decorations.push(Decoration.widget(position + node.nodeSize - 1, (view) => sectionZoomButton(view, position), { side: 1, key: `section-zoom-${position}`, ignoreSelection: true }));
+        decorations.push(Decoration.widget(position + 1, (view) => sectionZoomButton(view, position), { side: -1, key: `section-zoom-${position}`, ignoreSelection: true }));
       }
       return false;
     }
@@ -320,10 +325,13 @@ export const Zoom = Extension.create({
             if (!range) {
               return null;
             }
-            // カーソルがズームの外へ移ったら（リンク・目次・検索から送られた）、行き先が見えるよう、全体を出す。
+            // カーソルがズームの外へ移ったら（リンク・目次から送られた）か、ズームの外の位置を見せる変更なら（検索の当たり）、
+            // 行き先が見えるよう、全体を出す。
+            const isInside = (from: number, to: number) => from > range.from && to < range.to;
             const { from, to } = transaction.selection;
-            const selectionIsInside = from > range.from && to < range.to;
-            return transaction.selectionSet && !selectionIsInside ? null : mapped.pos;
+            const revealedPosition = transaction.getMeta(REVEAL_POSITION_META) as number | undefined;
+            const leavesZoom = (transaction.selectionSet && !isInside(from, to)) || (revealedPosition !== undefined && !isInside(revealedPosition, revealedPosition));
+            return leavesZoom ? null : mapped.pos;
           },
         },
         props: {
