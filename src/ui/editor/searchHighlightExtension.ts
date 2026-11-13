@@ -7,9 +7,9 @@ import { DEFAULT_SEARCH_OPTIONS, findSearchMatches, type SearchMatch, type Searc
 import { REVEAL_POSITION_META } from "./zoom";
 import { collapsedPositionsHiding } from "./folding";
 import { revealPositionInBody } from "./bodyScroll";
+import { startNewUndoStep } from "./undoSteps";
 import { FOLDED_ATTRIBUTE } from "../../core/notes/bodyContentChange";
-import { type EditorState, Plugin, PluginKey, type Transaction } from "@tiptap/pm/state";
-import { yUndoPluginKey } from "@tiptap/y-tiptap";
+import { Plugin, PluginKey, type Transaction } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 
 export type SearchHighlightState = {
@@ -52,11 +52,6 @@ declare module "@tiptap/core" {
 function replaceMatch(transaction: Transaction, match: SearchMatch, replacement: string): Transaction {
   const text = match.replacementFor(replacement);
   return text === "" ? transaction.delete(match.from, match.to) : transaction.insertText(text, match.from, match.to);
-}
-
-// 置換を、直前の入力とは別の取り消しの単位にする（続けて行った変更は、既定では 1 回の取り消しにまとまる）。
-function startNewUndoStep(state: EditorState): void {
-  (yUndoPluginKey.getState(state) as { undoManager?: { stopCapturing: () => void } } | undefined)?.undoManager?.stopCapturing();
 }
 
 // 当たりを見せる変更にする。当たりが折りたたみの中なら開き、ズームの外なら、ズームをやめさせる。

@@ -2,6 +2,8 @@
 
 import type { Editor, JSONContent } from "@tiptap/react";
 import { type MarkdownImportContext, markdownToBodyBlocks } from "../markdown/markdownDocument";
+import { insertListAsSiblingItems } from "./pastedListItems";
+import { PASTED_CONTENT_META } from "./pasteUndoStep";
 
 // VS Code がコピーのときに付ける種類。中身は JSON で、mode にコピー元の言語が入る。
 const VSCODE_CLIPBOARD_TYPE = "vscode-editor-data";
@@ -57,5 +59,9 @@ export type PastedMarkdownContext = Pick<MarkdownImportContext, "noteExists">;
 export async function insertPastedMarkdown(editor: Editor, markdown: string, context: PastedMarkdownContext): Promise<void> {
   // 貼り付けた文字にファイルは付いてこないので、添付にできるリンク先は無い。
   const blocks = await markdownToBodyBlocks(markdown, { ...context, attachFile: async () => null }, "drop");
-  editor.chain().focus().insertContent(contentToInsert(blocks)).run();
+  editor.commands.focus();
+  if (insertListAsSiblingItems(editor, blocks)) {
+    return;
+  }
+  editor.chain().insertContent(contentToInsert(blocks)).setMeta(PASTED_CONTENT_META, true).run();
 }

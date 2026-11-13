@@ -55,6 +55,8 @@ import { TypewriterScroll } from "./typewriterScroll";
 import { readDevicePreferences } from "../preferences/devicePreferences";
 import type { SlashMenuController } from "./slashMenuController";
 import type { BlockMenuController } from "./blockMenuController";
+import { PlainTextPaste } from "./plainTextPaste";
+import { PasteUndoStep } from "./pasteUndoStep";
 
 // よく使われる言語（highlight.js の common の組）だけを入れる。言語の指定が無いコードは中身から推す。
 const codeHighlighter = createLowlight(common);
@@ -144,6 +146,8 @@ export function createEditorExtensions({ body, slashMenuController, blockMenuCon
     DateTimeShortcuts,
     TypewriterScroll.configure({ isEnabled: () => readDevicePreferences().typewriterMode }),
     SearchHighlight,
+    PlainTextPaste,
+    PasteUndoStep,
     // メモのツール（アプリ内の AI）が書いた本文も、エディタの取り消しで戻せるようにする。
     Collaboration.configure({ fragment: body, yUndoOptions: { trackedOrigins: [NOTE_TOOL_ORIGIN] } }),
     Placeholder.configure({ placeholder: translate("editor.bodyPlaceholder") }),
