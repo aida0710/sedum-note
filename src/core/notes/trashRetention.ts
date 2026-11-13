@@ -5,14 +5,19 @@
 // ゴミ箱から戻したメモを消してしまう。
 
 import type { NoteRepository } from "./noteRepository";
+import type { LiveNote } from "./noteRecords";
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
+// ゴミ箱に入れてから retentionDays 日がたったメモ。設定を変える前に、いま消える件数を見せるのにも使う。
+export function expiredTrashNotes(notes: LiveNote[], retentionDays: number, now: Date): LiveNote[] {
+  const expiresBefore = now.getTime() - retentionDays * MILLISECONDS_PER_DAY;
+  return notes.filter((note) => note.content.trashedAt !== null && new Date(note.content.trashedAt).getTime() <= expiresBefore);
+}
+
 // 消した件数を返す。
 export async function removeExpiredTrash(repository: NoteRepository, retentionDays: number, now: Date): Promise<number> {
-  const expiresBefore = now.getTime() - retentionDays * MILLISECONDS_PER_DAY;
-  const expired = repository.notes().filter((note) =>
-    note.content.trashedAt !== null && new Date(note.content.trashedAt).getTime() <= expiresBefore);
+  const expired = expiredTrashNotes(repository.notes(), retentionDays, now);
   for (const note of expired) {
     await repository.removeNotePermanently(note.id);
   }

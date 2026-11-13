@@ -44,7 +44,7 @@ test("ノートブックの色とアイコンを選ぶと、左の列の印が�
   await expect(page.locator(".nav-row", { hasText: "旅行" }).locator("svg.notebook-icon")).toHaveAttribute("stroke", "#2da44e");
 });
 
-test("ゴミ箱の自動削除は、既定ではオフ。日数を決めると、過ぎたメモがロック解除のときに完全に削除される", async ({ page }) => {
+test("ゴミ箱の自動削除は、既定ではオフ。日数は Enter か「保存」で決まり、いま消えるメモがあれば件数を出して確かめる", async ({ page }) => {
   await page.clock.install({ time: new Date("2026-11-01T09:00:00+09:00") });
   await startLocalVault(page);
   await page.getByRole("button", { name: "新しいメモ" }).click();
@@ -54,23 +54,34 @@ test("ゴミ箱の自動削除は、既定ではオフ。日数を決めると�
   const trashCount = page.locator(".nav-row", { hasText: "ゴミ箱" }).locator(".count");
   await expect(trashCount).toHaveText("1");
 
+  // 入れた直後は、30 日を過ぎたメモが無いので、聞かずに有効になる。
   await openSettingsPage(page, "一般");
   const autoDelete = page.getByLabel("ゴミ箱のメモを、日数がたったら完全に削除する");
   await expect(autoDelete).not.toBeChecked();
   await autoDelete.check();
-  await page.getByLabel("ゴミ箱に残す日数").fill("0");
+  await expect(page.getByText("今の設定は 30 日です")).toBeVisible();
+  const days = page.getByLabel("ゴミ箱に残す日数");
+  await days.fill("0");
   await expect(page.getByRole("alert")).toContainText("1〜3650 の整数");
 
-  // 捨ててから 5 日後に、日数を「7」と 1 文字ずつ打つ…のではなく「70」と打つ。途中の「7」では確定しない
-  // （確定していたら、まだ残すはずのメモは消えないが、「3」のような短い途中の値では消えてしまう）。
+  // 捨ててから 5 日後。打っただけ・欄を離れただけでは決まらない（「365」と打つ途中の「3」で消えないように）。
   await page.clock.fastForward(5 * 24 * 60 * 60 * 1000);
-  await page.getByLabel("ゴミ箱に残す日数").fill("");
-  await page.getByLabel("ゴミ箱に残す日数").pressSequentially("30");
+  await days.fill("3");
+  await days.blur();
   await page.clock.runFor(1_000);
-  // 途中の「3」（3 日）で確定していたら、5 日前に捨てたメモはここで消えている。
+  await expect(page.getByText("今の設定は 30 日です")).toBeVisible();
   await expect(trashCount).toHaveText("1");
-  await page.getByLabel("ゴミ箱に残す日数").fill("7");
-  await page.getByLabel("ゴミ箱に残す日数").blur();
+
+  // 「3」を Enter で決めようとすると、いま消える 1 件を出して確かめる。やめれば決まらず、メモも残る。
+  await days.press("Enter");
+  const confirmRemoval = page.getByRole("dialog", { name: /3 日を過ぎたメモが 1 件あり/ });
+  await confirmRemoval.getByRole("button", { name: "キャンセル" }).click();
+  await expect(page.getByText("今の設定は 30 日です")).toBeVisible();
+  await expect(trashCount).toHaveText("1");
+
+  // 消えるメモの無い日数は、聞かずに決まる。
+  await days.fill("7");
+  await page.getByRole("button", { name: "保存", exact: true }).click();
   await expect(page.getByText("今の設定は 7 日です")).toBeVisible();
   await page.clock.runFor(1_000);
   // まだ 7 日たっていないので残る。
@@ -83,6 +94,34 @@ test("ゴミ箱の自動削除は、既定ではオフ。日数を決めると�
   await expect(page.locator(".nav-row", { hasText: "ゴミ箱" }).locator(".count")).toHaveText("0");
 });
 
+test("プロパティの名前は Enter か「保存」で決まる。決めずに閉じるときと、消すときは確かめる", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "読書");
+  await page.locator(".nav-row", { has: page.locator(".nav", { hasText: "読書" }) }).getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "プロパティ" }).click();
+  const dialog = page.getByRole("dialog", { name: "プロパティ" });
+  await dialog.getByRole("button", { name: "プロパティを追加" }).click();
+  const name = dialog.getByRole("textbox", { name: "名前" });
+  await name.fill("著者");
+
+  // 決めずに閉じようとすると聞かれる。やめれば、打った名前は残る。
+  await dialog.getByRole("button", { name: "閉じる" }).click();
+  const discard = page.getByRole("dialog", { name: /保存していない名前や選択肢があります/ });
+  await discard.getByRole("button", { name: "キャンセル" }).click();
+  await expect(name).toHaveValue("著者");
+  await name.press("Enter");
+  await expect(dialog.getByRole("button", { name: "保存", exact: true })).toBeDisabled();
+
+  // 消すときは聞かれる。やめれば残り、消すと決めれば消える。
+  await dialog.getByRole("button", { name: "プロパティ「著者」を消す" }).click();
+  const confirmRemoval = page.getByRole("dialog", { name: /プロパティ「著者」を消しますか/ });
+  await confirmRemoval.getByRole("button", { name: "キャンセル" }).click();
+  await expect(name).toHaveValue("著者");
+  await dialog.getByRole("button", { name: "プロパティ「著者」を消す" }).click();
+  await confirmRemoval.getByRole("button", { name: "削除" }).click();
+  await expect(dialog.getByText("プロパティはまだありません")).toBeVisible();
+});
+
 test("ノートブックにプロパティを決めると、その中のメモに値を入れる欄が出て、開き直しても値が残る", async ({ page }) => {
   await startLocalVault(page);
   await addNotebookOnDesktop(page, "読書");
@@ -91,11 +130,13 @@ test("ノートブックにプロパティを決めると、その中のメモ�
   const dialog = page.getByRole("dialog", { name: "プロパティ" });
   await dialog.getByRole("button", { name: "プロパティを追加" }).click();
   await dialog.getByRole("textbox", { name: "名前" }).fill("状態");
+  await dialog.getByRole("textbox", { name: "名前" }).press("Enter");
   await dialog.getByRole("combobox", { name: "種類" }).selectOption("select");
   await dialog.getByRole("textbox", { name: "選択肢" }).fill("未読、読了");
-  await dialog.getByRole("textbox", { name: "選択肢" }).blur();
+  await dialog.getByRole("textbox", { name: "選択肢" }).press("Enter");
   await dialog.getByRole("button", { name: "プロパティを追加" }).click();
   await dialog.getByRole("textbox", { name: "名前" }).last().fill("ページ数");
+  await dialog.getByRole("button", { name: "保存" }).click();
   await dialog.getByRole("combobox", { name: "種類" }).last().selectOption("number");
   await dialog.getByRole("button", { name: "閉じる" }).click();
 
@@ -120,9 +161,10 @@ test("データベース表示で、ノートブックのメモをプロパテ�
   const dialog = page.getByRole("dialog", { name: "プロパティ" });
   await dialog.getByRole("button", { name: "プロパティを追加" }).click();
   await dialog.getByRole("textbox", { name: "名前" }).fill("状態");
+  await dialog.getByRole("textbox", { name: "名前" }).press("Enter");
   await dialog.getByRole("combobox", { name: "種類" }).selectOption("select");
   await dialog.getByRole("textbox", { name: "選択肢" }).fill("未読、読了");
-  await dialog.getByRole("textbox", { name: "選択肢" }).blur();
+  await dialog.getByRole("textbox", { name: "選択肢" }).press("Enter");
   await dialog.getByRole("button", { name: "閉じる" }).click();
 
   await page.locator(".nav", { hasText: "読書" }).click();
@@ -197,6 +239,7 @@ test("データベース表示の表では、キーボードだけで、下の�
   await expect(dialog.getByRole("textbox", { name: "名前" })).toBeFocused();
   await page.keyboard.type("著者");
   await expect(dialog.getByRole("textbox", { name: "名前" })).toHaveValue("著者");
+  await page.keyboard.press("Enter");
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(database.getByRole("columnheader", { name: "著者" })).toBeVisible();
@@ -212,9 +255,10 @@ test("データベース表示のボードでは、列の下の「新しいメ�
   const dialog = page.getByRole("dialog", { name: "プロパティ" });
   await dialog.getByRole("button", { name: "プロパティを追加" }).click();
   await dialog.getByRole("textbox", { name: "名前" }).fill("状態");
+  await dialog.getByRole("textbox", { name: "名前" }).press("Enter");
   await dialog.getByRole("combobox", { name: "種類" }).selectOption("select");
   await dialog.getByRole("textbox", { name: "選択肢" }).fill("未読、読了");
-  await dialog.getByRole("textbox", { name: "選択肢" }).blur();
+  await dialog.getByRole("textbox", { name: "選択肢" }).press("Enter");
   await dialog.getByRole("button", { name: "閉じる" }).click();
 
   await database.getByRole("radio", { name: "ボード" }).click();

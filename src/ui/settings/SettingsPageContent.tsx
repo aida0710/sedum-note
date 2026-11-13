@@ -35,7 +35,7 @@ export function SettingsPageContent({ page, session, vault }: SettingsPageConten
   const mcpSection = useContext(McpSectionSlot);
   switch (page) {
     case "general":
-      return <><DisplaySection /><DailyNoteSection notebooks={repository.notebooks()} /><RemindersSection /><TrashSection /><SpacesSection /></>;
+      return <><DisplaySection /><DailyNoteSection notebooks={repository.notebooks()} /><RemindersSection /><TrashSection repository={repository} /><SpacesSection /></>;
     case "appearance":
       return <><ThemeSection /><CustomCssSection /></>;
     case "sync":
