@@ -46,7 +46,7 @@ export function TableMenu({ editor, insideTable, iconSize }: TableMenuProps) {
   const dialogs = useDialogs();
   const rowFilter = tableRowFilterKey.getState(editor.state) ?? null;
   const askRowFilter = async () => {
-    const text = await dialogs.prompt({ message: translate("editor.table.filterRowsPrompt"), initialValue: rowFilter?.text ?? "" });
+    const text = await dialogs.prompt({ message: translate("editor.table.filterRowsPrompt"), confirmLabel: translate("common.apply"), initialValue: rowFilter?.text ?? "" });
     if (text !== null && text.trim() !== "") {
       editor.chain().focus().filterTableRows(text).run();
     } else if (text !== null) {
@@ -66,7 +66,7 @@ export function TableMenu({ editor, insideTable, iconSize }: TableMenuProps) {
         <Table size={iconSize} />
       </button>
       {anchor && (
-        <PopupMenu anchor={anchor} onClose={() => setAnchor(null)}>
+        <PopupMenu anchor={anchor} onClose={() => setAnchor(null)} align="start" takesFocus={false}>
           {!insideTable && item("editor.table.insert", Table, () =>
             commands().insertTable(NEW_TABLE_SIZE).run())}
           {insideTable && (

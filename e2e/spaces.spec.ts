@@ -10,7 +10,7 @@ async function addSpace(page: Page, name: string): Promise<void> {
   await page.getByRole("button", { name: "スペースを追加" }).click();
   const prompt = page.getByRole("dialog", { name: "スペースの名前" });
   await prompt.getByRole("textbox").fill(name);
-  await prompt.getByRole("button", { name: "保存" }).click();
+  await prompt.getByRole("button", { name: "追加" }).click();
 }
 
 async function switchSpace(page: Page, name: string): Promise<void> {

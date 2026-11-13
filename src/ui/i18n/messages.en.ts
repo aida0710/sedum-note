@@ -931,4 +931,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "common.save": "Save",
   "common.delete": "Delete",
   "common.close": "Close",
+  "common.add": "Add",
+  "common.create": "Create",
+  "common.apply": "Apply",
 };

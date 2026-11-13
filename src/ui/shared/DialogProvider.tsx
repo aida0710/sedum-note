@@ -1,19 +1,20 @@
 // 確認と 1 行の入力のダイアログ。window.confirm・prompt は WebView ごとに出方が違い
 // （Android の WebView では出ないことがある）、試験からも見えないので、画面の中に出す。
 
-import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
+import { createContext, type KeyboardEvent, type ReactNode, useCallback, useContext, useState } from "react";
 import { translate } from "../i18n/translate";
 import { ModalDialog } from "./ModalDialog";
 import { preventSubmitByImeKey } from "./imeKeyEvent";
 
 type ConfirmRequest = { kind: "confirm"; message: string; confirmLabel: string; cancelLabel: string; danger: boolean; resolve: (accepted: boolean) => void };
-type PromptRequest = { kind: "prompt"; message: string; initialValue: string; resolve: (value: string | null) => void };
+type PromptRequest = { kind: "prompt"; message: string; initialValue: string; confirmLabel: string; resolve: (value: string | null) => void };
 type DialogRequest = ConfirmRequest | PromptRequest;
 
 export type Dialogs = {
   // cancelLabel を渡すと、2 つの選択肢から選ぶ問いにできる（既定は「キャンセル」）。
   confirm: (input: { message: string; confirmLabel: string; cancelLabel?: string; danger?: boolean }) => Promise<boolean>;
-  prompt: (input: { message: string; initialValue?: string }) => Promise<string | null>;
+  // confirmLabel は、決めるボタンの名前（「追加」「設定」など、何を行うかを言う言葉）。
+  prompt: (input: { message: string; confirmLabel: string; initialValue?: string }) => Promise<string | null>;
 };
 
 const DialogContext = createContext<Dialogs | null>(null);
@@ -34,7 +35,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     [],
   );
   const prompt = useCallback<Dialogs["prompt"]>(
-    ({ message, initialValue = "" }) => new Promise((resolve) => setRequest({ kind: "prompt", message, initialValue, resolve })),
+    ({ message, confirmLabel, initialValue = "" }) => new Promise((resolve) => setRequest({ kind: "prompt", message, initialValue, confirmLabel, resolve })),
     [],
   );
   return (
@@ -55,21 +56,31 @@ function DialogView({ request, onDone }: { request: DialogRequest; onDone: () =>
     }
     onDone();
   };
+  // 戻せない操作の確認は「キャンセル」にフォーカスを置く。決めるボタンに置くと、開くときの Enter の続きでそのまま決まる。
+  const isDangerConfirm = request.kind === "confirm" && request.danger;
+  const ignoreHeldEnter = (event: KeyboardEvent<HTMLFormElement>) => {
+    // 押したままの Enter（キーの繰り返し）では決めない。ダイアログを開いた Enter を押し続けると、読む前に決まってしまう。
+    if (event.key === "Enter" && event.repeat) {
+      event.preventDefault();
+      return;
+    }
+    preventSubmitByImeKey(event);
+  };
   return (
     <ModalDialog label={request.message} onClose={() => finish(false)}>
       {/* Enter で決められるよう、中身をフォームにする。並べ方は枠（.dialog）のまま。 */}
-      <form className="dialog-form" onKeyDown={preventSubmitByImeKey} onSubmit={(event) => { event.preventDefault(); finish(true); }}>
+      <form className="dialog-form" onKeyDown={ignoreHeldEnter} onSubmit={(event) => { event.preventDefault(); finish(true); }}>
         <p>{request.message}</p>
         {request.kind === "prompt" && (
           <input className="dialog-input" autoFocus value={value} onChange={(event) => setValue(event.target.value)} spellCheck={false} />
         )}
         <div className="form-actions">
-          <button type="button" className="secondary-button" onClick={() => finish(false)}>
+          <button type="button" className="secondary-button" autoFocus={isDangerConfirm} onClick={() => finish(false)}>
             {request.kind === "confirm" ? request.cancelLabel : translate("common.cancel")}
           </button>
-          <button type="submit" autoFocus={request.kind === "confirm"}
-            className={request.kind === "confirm" && request.danger ? "danger-button filled" : "primary-button"}>
-            {request.kind === "confirm" ? request.confirmLabel : translate("common.save")}
+          <button type="submit" autoFocus={request.kind === "confirm" && !isDangerConfirm}
+            className={isDangerConfirm ? "danger-button filled" : "primary-button"}>
+            {request.confirmLabel}
           </button>
         </div>
       </form>

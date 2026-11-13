@@ -49,7 +49,7 @@ export function SelectionAiMenu({ editor, noteId, noteTitle }: SelectionAiMenuPr
         <Sparkles size={TOOL_ICON_SIZE} />
       </button>
       {anchor && (
-        <PopupMenu anchor={anchor} onClose={() => setAnchor(null)} align="start">
+        <PopupMenu anchor={anchor} onClose={() => setAnchor(null)} align="start" takesFocus={false}>
           {(Object.keys(AI_SELECTION_REQUESTS) as AiSelectionRequest[]).map((quickRequest) => {
             const Icon = REQUEST_ICONS[quickRequest];
             return (

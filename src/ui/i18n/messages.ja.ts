@@ -930,6 +930,9 @@ export const japaneseMessages = {
   "common.save": "保存",
   "common.delete": "削除",
   "common.close": "閉じる",
+  "common.add": "追加",
+  "common.create": "作成",
+  "common.apply": "適用",
 } as const;
 
 export type MessageKey = keyof typeof japaneseMessages;

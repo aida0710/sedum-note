@@ -252,7 +252,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
     setPickingNoteLink(false);
     editor?.chain().focus().insertContent({ type: NOTE_LINK_NODE, attrs: { noteId: linkedNoteId, blockId: linkedBlockId } }).run();
   };
-  const askLink = () => dialogs.prompt({ message: translate("editor.linkPrompt"), initialValue: "https://" });
+  const askLink = () => dialogs.prompt({ message: translate("editor.linkPrompt"), confirmLabel: translate("common.apply"), initialValue: "https://" });
   const { pickImage, pickFile } = attachments;
   const pickNoteLink = () => setPickingNoteLink(true);
   const pickBlockLink = () => setPickingBlockFor("link");

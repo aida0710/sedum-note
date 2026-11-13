@@ -25,7 +25,7 @@ export function ColorMenu({ label, icon, appearance, selected, onChoose }: Color
         {icon}
       </button>
       {anchor && (
-        <PopupMenu anchor={anchor} onClose={() => setAnchor(null)}>
+        <PopupMenu anchor={anchor} onClose={() => setAnchor(null)} takesFocus={false}>
           <ColorChoices appearance={appearance} selected={selected} onChoose={(colorName) => { setAnchor(null); onChoose(colorName); }} />
         </PopupMenu>
       )}
