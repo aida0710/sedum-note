@@ -400,6 +400,31 @@ test("コマンドパレットから、開いているメモをゴミ箱に入�
   await expect(page.locator(".sidebar .tree-note", { hasText: "買い物リスト" })).toHaveCount(0);
 });
 
+test("コマンドパレットから、開いているメモの名前の変更・複製と、ノートブックの追加ができる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "会議の記録", "");
+  const palette = page.getByRole("dialog", { name: "コマンドパレット" });
+  const runCommand = async (query: string, name: string) => {
+    await page.keyboard.press("Control+k");
+    await palette.getByRole("combobox").fill(`>${query}`);
+    await palette.getByRole("option", { name }).click();
+  };
+
+  await runCommand("名前", "開いているメモ: 名前を変更");
+  const prompt = page.getByRole("dialog").filter({ has: page.getByRole("textbox") });
+  await prompt.getByRole("textbox").fill("定例の記録");
+  await prompt.getByRole("button", { name: "保存" }).click();
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("定例の記録");
+
+  await runCommand("複製", "開いているメモ: 複製");
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("「定例の記録」のコピー");
+
+  await runCommand("ノートブック", "ノートブックを追加");
+  await prompt.getByRole("textbox").fill("会議");
+  await prompt.getByRole("button", { name: "作成" }).click();
+  await expect(page.locator(".sidebar .nav.active")).toContainText("会議");
+});
+
 test("コマンドパレットで打った言葉を題にして、新しいメモを作れる", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "会議の記録", "");

@@ -16,6 +16,7 @@ import { createNoteInView } from "./createNoteInView";
 import { CommandPalette } from "./CommandPalette";
 import { EmptyEditorPane } from "./EmptyEditorPane";
 import { openNoteCommands } from "./openNoteCommands";
+import { workspaceCommands } from "./workspaceCommands";
 import { useTrashWithUndo } from "./useTrashWithUndo";
 import { APP_SHORTCUT_IDS, useKeyboardShortcuts } from "./keyboardShortcuts";
 import { UpdateChip } from "../update/UpdateChip";
@@ -34,6 +35,11 @@ import { workspacePaletteCandidates } from "./workspacePaletteCandidates";
 import { useAiChatSession } from "../ai/aiChatSession";
 import { shortcutTextOf } from "../shortcuts/shortcutBindings";
 import { type AppShortcutId, shortcutDefinition } from "../shortcuts/shortcutCatalog";
+import { useDialogs } from "../shared/DialogProvider";
+import { useToast } from "../shared/ToastProvider";
+import { describeError } from "../i18n/describeError";
+import { useCurrentSpaceId } from "../session/currentSpace";
+import { useSpaceRegistry } from "../session/spaceRegistry";
 
 export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteWindow }: WorkspaceProps) {
   const { repository } = vault;
@@ -85,10 +91,19 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
   // 同期の失敗は、左下の同期の状態に出る（SyncStatusLine.tsx）ので、ここでは受けるだけにする。
   const syncNowFromPalette = () => void session.syncNow().catch(() => undefined);
   const moveToTrash = useTrashWithUndo(repository);
+  const dialogs = useDialogs();
+  const showToast = useToast();
+  const spaceId = useCurrentSpaceId();
+  const { spaces } = useSpaceRegistry();
   const paletteCommands = [
     ...APP_SHORTCUT_IDS.filter((id) => id !== "commandPalette")
       .map((id) => ({ id, label: translate(shortcutDefinition(id).label), shortcut: shortcutTextOf(id, shortcutOverrides) ?? "", run: shortcutHandlers[id] })),
-    ...openNoteCommands({ note: activeNote, navigation, repository, moveToTrash, syncNow: vault.syncEngine ? syncNowFromPalette : null }),
+    ...openNoteCommands({
+      note: activeNote, navigation, repository, dialogs, spaceId, moveToTrash, syncNow: vault.syncEngine ? syncNowFromPalette : null,
+      onActionFailed: (error) => showToast({ message: describeError(error) }),
+    }),
+    // メモを 1 つだけ開いた別のウィンドウは、開いたときのスペースのままにする（スペースを切り替えない）。
+    ...workspaceCommands({ repository, navigation, dialogs, spaces: isNoteWindow ? [] : spaces, currentSpaceId: spaceId }),
   ];
   // MCP の欄は PC 版（デスクトップのアプリ）にだけある。無い版では、パレットの設定の項目からも外す。
   const includesMcp = useContext(McpSectionSlot) !== null;
