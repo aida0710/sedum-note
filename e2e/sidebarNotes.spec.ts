@@ -478,3 +478,16 @@ test("ピン留めしたタブは、タブを閉じるキーでは閉じない�
   await page.keyboard.press("Control+Alt+w");
   await expect(tabs).toHaveText(["二", "一", "三"]);
 });
+
+test("左の列をいちばん狭くしても、上の行のボタンは列の外へはみ出さない", async ({ page }) => {
+  await startLocalVault(page);
+  const handle = (await page.locator(".sidebar-resize-handle").boundingBox())!;
+  await page.mouse.move(handle.x + handle.width / 2, 400);
+  await page.mouse.down();
+  await page.mouse.move(100, 400, { steps: 5 });
+  await page.mouse.up();
+  const sidebar = (await page.locator(".sidebar").boundingBox())!;
+  expect(sidebar.width).toBe(200);
+  const searchButton = (await page.locator(".sidebar-brand").getByRole("button", { name: "検索" }).boundingBox())!;
+  expect(searchButton.x + searchButton.width).toBeLessThanOrEqual(sidebar.x + sidebar.width);
+});

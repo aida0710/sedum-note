@@ -315,6 +315,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .sidebar-resize-handle:hover, .sidebar-resize-handle:active { background: color-mix(in srgb, var(--accent) 40%, transparent); }
 .sidebar-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; padding: 4px 8px 12px; white-space: nowrap; }
 .sidebar-brand > svg, .sidebar-brand-icon { flex: none; }
+/* 左の列を狭めたときは、右のボタンを列の外へ押し出さずに、名前を省略する。 */
+.sidebar-brand-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .sidebar-brand .icon-button { margin-left: auto; }
 .sidebar-search { display: flex; align-items: center; gap: 8px; height: var(--control-height); border-radius: var(--radius-control); background: var(--panel); border: 1px solid var(--line); padding: 0 10px; margin-bottom: 8px; color: var(--muted); }
 .sidebar-search input { border: 0; outline: 0; background: none; flex: 1; min-width: 0; color: var(--text); }

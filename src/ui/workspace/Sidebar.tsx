@@ -114,7 +114,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <img className="sidebar-brand-icon" src={APP_ICON_URL} alt="" width={18} height={18} />{translate("app.name")}
+        <img className="sidebar-brand-icon" src={APP_ICON_URL} alt="" width={18} height={18} /><span className="sidebar-brand-name">{translate("app.name")}</span>
         <span className="sidebar-brand-actions">
           <button className="icon-button" aria-label={translate("graph.title")} title={translate("graph.title")} onClick={onOpenGraph}>
             <Waypoints size={16} />
