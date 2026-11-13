@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { PHONE_VIEWPORT, startLocalVault } from "./devices";
 
 test("PC では左下の歯車で設定を開き、同期の状態を押すと同期のページが開く", async ({ page }) => {
@@ -42,4 +42,41 @@ test("スマホの設定は、ページの一覧から開いて「設定」で�
   // 設定へ戻ると、ページの一覧から始まる。
   await tabbar.getByRole("button", { name: "設定" }).click();
   await expect(settingsPages).toBeVisible();
+});
+
+// 設定の項目の、名前（label）と欄の位置。
+async function nameAndControlBoxes(page: Page, name: string) {
+  const nameBox = await page.locator("label", { hasText: name }).boundingBox();
+  const controlBox = await page.getByLabel(name).boundingBox();
+  if (!nameBox || !controlBox) {
+    throw new Error(`「${name}」の名前か欄が見えていない`);
+  }
+  return { nameBox, controlBox };
+}
+
+test("PC の広い画面では、選択欄とチェックを名前の右に並べる。説明は欄の説明として読み上げる", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "設定", exact: true }).click();
+  await expect(page.getByLabel("本文の配置の既定")).toHaveAccessibleDescription("メモの「…」の「本文の配置」で、メモごとに変えられます。");
+
+  for (const name of ["本文の配置の既定", "打っている行を中央に保つ（タイプライターモード）"]) {
+    const { nameBox, controlBox } = await nameAndControlBoxes(page, name);
+    expect(controlBox.x).toBeGreaterThan(nameBox.x + nameBox.width);
+    // 名前の縦の中央が、欄の上の端と下の端の間にある（同じ行に並んでいる）。
+    const nameMiddle = nameBox.y + nameBox.height / 2;
+    expect(nameMiddle).toBeGreaterThan(controlBox.y);
+    expect(nameMiddle).toBeLessThan(controlBox.y + controlBox.height);
+  }
+});
+
+test("スマホでは、選択欄を今までどおり名前の下に出し、チェックの印は名前の左に置く", async ({ browser }) => {
+  const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
+  await startLocalVault(page);
+  await page.locator(".tabbar").getByRole("button", { name: "設定" }).click();
+  await page.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: /一般/ }).click();
+
+  const alignment = await nameAndControlBoxes(page, "本文の配置の既定");
+  expect(alignment.controlBox.y).toBeGreaterThanOrEqual(alignment.nameBox.y + alignment.nameBox.height);
+  const typewriterMode = await nameAndControlBoxes(page, "打っている行を中央に保つ（タイプライターモード）");
+  expect(typewriterMode.controlBox.x + typewriterMode.controlBox.width).toBeLessThanOrEqual(typewriterMode.nameBox.x);
 });

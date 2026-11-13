@@ -38,7 +38,7 @@ export function useRevealSetting(request: SettingRevealRequest | null, container
     }
     element.scrollIntoView({ block: "center" });
     controlOf(element)?.focus({ preventScroll: true });
-    const highlighted = element.closest<HTMLElement>(".field, .checkbox-line") ?? element;
+    const highlighted = element.closest<HTMLElement>(".setting-row, .field, .checkbox-line") ?? element;
     highlighted.classList.add("settings-revealed");
     // 片付けで外すと、開発中（StrictMode）は作用が 2 回走って、すぐ消えてしまう。時間で外す。
     window.setTimeout(() => highlighted.classList.remove("settings-revealed"), HIGHLIGHT_MILLISECONDS);

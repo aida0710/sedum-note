@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { translate } from "../i18n/translate";
 import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
+import { SettingCheckboxRow } from "./SettingRow";
 
 const CSS_EDITOR_ROWS = 8;
 
@@ -13,10 +14,8 @@ export function CustomCssSection() {
     <section className="settings-section">
       <h2>{translate("settings.customCss")}</h2>
       <p>{translate("settings.customCssDescription")}</p>
-      <label className="checkbox-line">
-        <input type="checkbox" checked={customCssEnabled} onChange={(event) => updateDevicePreferences({ customCssEnabled: event.target.checked })} />
-        {translate("settings.customCssEnabled")}
-      </label>
+      <SettingCheckboxRow controlId="custom-css-enabled" label={translate("settings.customCssEnabled")} checked={customCssEnabled}
+        onChange={(enabled) => updateDevicePreferences({ customCssEnabled: enabled })} />
       <textarea className="code-input" rows={CSS_EDITOR_ROWS} spellCheck={false} value={draft} aria-label={translate("settings.customCss")}
         placeholder=".ProseMirror { line-height: 2; }" onChange={(event) => setDraft(event.target.value)} />
       <div className="form-actions">

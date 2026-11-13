@@ -4,6 +4,7 @@ import { useState } from "react";
 import { translate } from "../i18n/translate";
 import { isTrashRetentionDays, TRASH_RETENTION_DAYS_RANGE, updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
+import { SettingCheckboxRow, SettingRow } from "./SettingRow";
 
 // 自動削除を有効にしたときに、最初に入れておく日数。
 const INITIAL_RETENTION_DAYS = 30;
@@ -23,24 +24,22 @@ export function TrashSection() {
   return (
     <section className="settings-section">
       <h2>{translate("settings.trash")}</h2>
-      <label className="checkbox-line">
-        <input type="checkbox" checked={enabled}
-          onChange={(event) => updateDevicePreferences({ trashRetentionDays: event.target.checked && isTrashRetentionDays(typedDays) ? typedDays : null })} />
-        {translate("trash.autoDelete")}
-      </label>
+      <SettingCheckboxRow controlId="trash-auto-delete" label={translate("trash.autoDelete")} hint={translate("trash.autoDeleteDescription")} checked={enabled}
+        onChange={(checked) => updateDevicePreferences({ trashRetentionDays: checked && isTrashRetentionDays(typedDays) ? typedDays : null })} />
       {enabled && (
-        <div className="field">
-          <label htmlFor="trash-retention-days">{translate("trash.retentionDays")}</label>
-          <input id="trash-retention-days" type="number" inputMode="numeric" min={TRASH_RETENTION_DAYS_RANGE.minimum} max={TRASH_RETENTION_DAYS_RANGE.maximum}
-            value={daysText} onChange={(event) => setDaysText(event.target.value)} onBlur={commitDays}
-            onKeyDown={(event) => event.key === "Enter" && !isImeKeyEvent(event.nativeEvent) && commitDays()} />
-          <span className="hint">{translate("trash.retentionDaysHint", { days: trashRetentionDays })}</span>
+        <>
+          <SettingRow controlId="trash-retention-days" label={translate("trash.retentionDays")} hint={translate("trash.retentionDaysHint", { days: trashRetentionDays })}>
+            {(control) => (
+              <input {...control} type="number" inputMode="numeric" min={TRASH_RETENTION_DAYS_RANGE.minimum} max={TRASH_RETENTION_DAYS_RANGE.maximum}
+                value={daysText} onChange={(event) => setDaysText(event.target.value)} onBlur={commitDays}
+                onKeyDown={(event) => event.key === "Enter" && !isImeKeyEvent(event.nativeEvent) && commitDays()} />
+            )}
+          </SettingRow>
           {!isTrashRetentionDays(typedDays) && (
             <span className="form-error" role="alert">{translate("trash.retentionDaysInvalid", TRASH_RETENTION_DAYS_RANGE)}</span>
           )}
-        </div>
+        </>
       )}
-      <p>{translate("trash.autoDeleteDescription")}</p>
     </section>
   );
 }

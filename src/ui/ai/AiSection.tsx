@@ -8,6 +8,7 @@ import { translate } from "../i18n/translate";
 import { UserFacingError } from "../i18n/userFacingError";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 import { useAsyncAction } from "../shared/useAsyncAction";
+import { SettingCheckboxRow, SettingRow } from "../settings/SettingRow";
 import { chooseModel, fetchClaudeModels, fetchOpenAiCompatibleModels } from "./aiModelList";
 import { AiModelSelect } from "./AiModelSelect";
 import { useAiSettings } from "./aiSettingsAccess";
@@ -71,20 +72,18 @@ export function AiSection() {
       <h2>{translate("settings.ai")}</h2>
       <p>{translate("ai.description")}</p>
       <p>{translate("ai.privacyWarning")}</p>
-      <label className="checkbox-line">
-        <input type="checkbox" checked={settings.enabled} onChange={(event) => void toggle.run({ ...settings, enabled: event.target.checked })} />
-        {translate("ai.enable")}
-      </label>
+      <SettingCheckboxRow controlId="ai-enabled" label={translate("ai.enable")} checked={settings.enabled} onChange={(enabled) => void toggle.run({ ...settings, enabled })} />
       {toggle.errorMessage && <div className="form-error" role="alert">{toggle.errorMessage}</div>}
       {settings.enabled && (
         <>
           <form className="ai-connection" onKeyDown={preventSubmitByImeKey} onSubmit={(event) => { event.preventDefault(); void verify.run({ current: settings, connection: draft }); }}>
-            <div className="field">
-              <label htmlFor="ai-provider">{translate("ai.provider")}</label>
-              <select id="ai-provider" value={draft.provider} onChange={(event) => change({ provider: event.target.value as AiProvider })}>
-                {AI_PROVIDERS.map((provider) => <option key={provider} value={provider}>{translate(`ai.provider.${provider}`)}</option>)}
-              </select>
-            </div>
+            <SettingRow controlId="ai-provider" label={translate("ai.provider")}>
+              {(control) => (
+                <select {...control} value={draft.provider} onChange={(event) => change({ provider: event.target.value as AiProvider })}>
+                  {AI_PROVIDERS.map((provider) => <option key={provider} value={provider}>{translate(`ai.provider.${provider}`)}</option>)}
+                </select>
+              )}
+            </SettingRow>
             {draft.provider === "claude" ? (
               <div className="field">
                 <label htmlFor="ai-claude-key">{translate("ai.apiKey")}</label>
@@ -112,7 +111,7 @@ export function AiSection() {
             </div>
           </form>
           {draft.provider === settings.provider && (savedModels.length > 0
-            ? <div className="field"><AiModelSelect id="ai-model" /></div>
+            ? <SettingRow controlId="ai-model" label={translate("ai.model")}>{({ id }) => <AiModelSelect id={id} />}</SettingRow>
             : <p className="hint">{translate("ai.modelsNotLoaded")}</p>)}
         </>
       )}

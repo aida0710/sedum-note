@@ -14,6 +14,7 @@ import { useAsyncAction } from "../shared/useAsyncAction";
 import { SyncSetupExportDialog } from "../sync/SyncSetupExportDialog";
 import { SyncTargetFields } from "../sync/SyncTargetFields";
 import { useSyncTargetForm } from "../sync/useSyncTargetForm";
+import { SettingCheckboxRow } from "./SettingRow";
 import { SyncKeySection } from "./SyncKeySection";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 
@@ -128,11 +129,8 @@ function SyncOverview({ session }: { session: VaultSession }) {
   const syncNow = useAsyncAction(session.syncNow);
   return (
     <div className="sync-overview">
-      <label className="checkbox-line">
-        <input type="checkbox" checked={autoSync} onChange={(event) => updateDevicePreferences({ autoSync: event.target.checked })} />
-        {translate("settings.autoSync")}
-      </label>
-      <span className="hint">{translate("settings.autoSyncHint")}</span>
+      <SettingCheckboxRow controlId="sync-auto-sync" label={translate("settings.autoSync")} hint={translate("settings.autoSyncHint")} checked={autoSync}
+        onChange={(enabled) => updateDevicePreferences({ autoSync: enabled })} />
       <SyncStatusDetail status={session.syncStatus} autoSync={autoSync} />
       {syncNow.errorMessage && <div className="form-error" role="alert">{syncNow.errorMessage}</div>}
       <div className="form-actions">

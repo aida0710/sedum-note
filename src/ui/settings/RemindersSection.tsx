@@ -5,6 +5,7 @@ import { canStayResident, isAndroidApp } from "../platform/runtime";
 import { requestNotificationPermission, showNotification } from "../platform/systemNotifications";
 import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { useAsyncAction } from "../shared/useAsyncAction";
+import { SettingCheckboxRow } from "./SettingRow";
 
 class NotificationsNotPermittedError extends Error {}
 
@@ -37,20 +38,13 @@ export function RemindersSection() {
   return (
     <section className="settings-section">
       <h2>{translate("settings.reminders")}</h2>
-      <label className="checkbox-line">
-        <input type="checkbox" checked={dueNotifications} disabled={turnOn.busy} onChange={(event) => setDueNotifications(event.target.checked)} />
-        {translate("reminders.notify")}
-      </label>
+      <SettingCheckboxRow controlId="reminders-due-notifications" label={translate("reminders.notify")}
+        hint={translate(isAndroidApp() ? "reminders.descriptionAndroid" : "reminders.description")}
+        checked={dueNotifications} disabled={turnOn.busy} onChange={setDueNotifications} />
       {turnOn.errorMessage !== null && <div className="form-error" role="alert">{translate("reminders.notPermitted")}</div>}
-      <p>{translate(isAndroidApp() ? "reminders.descriptionAndroid" : "reminders.description")}</p>
       {canStayResident() && (
-        <>
-          <label className="checkbox-line">
-            <input type="checkbox" checked={stayResident} onChange={(event) => updateDevicePreferences({ stayResident: event.target.checked })} />
-            {translate("reminders.stayResident")}
-          </label>
-          <p>{translate("reminders.stayResidentDescription")}</p>
-        </>
+        <SettingCheckboxRow controlId="reminders-stay-resident" label={translate("reminders.stayResident")} hint={translate("reminders.stayResidentDescription")}
+          checked={stayResident} onChange={(enabled) => updateDevicePreferences({ stayResident: enabled })} />
       )}
     </section>
   );

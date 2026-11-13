@@ -7,7 +7,8 @@ import { useAiSettings } from "./aiSettingsAccess";
 
 type AiModelSelectProps = {
   id: string;
-  // true なら、見出しを出さずに、読み上げ用の名前だけを付ける（チャットの上の狭い所に置くとき）。
+  // true なら、チャットの上の狭い所に置く形にして、読み上げ用の名前を付ける。
+  // false なら、名前は呼び出し側の label が付ける（設定の画面の SettingRow）。
   compact?: boolean;
 };
 
@@ -28,7 +29,6 @@ export function AiModelSelect({ id, compact = false }: AiModelSelectProps) {
   const options: AiModelOption[] = model === "" || models.some((option) => option.id === model) ? models : [{ id: model, name: model, maxOutputTokens: null }, ...models];
   return (
     <>
-      {!compact && <label htmlFor={id}>{translate("ai.model")}</label>}
       <select id={id} className={compact ? "ai-model-select" : undefined} aria-label={compact ? translate("ai.model") : undefined}
         value={model} disabled={save.busy || options.length === 0} onChange={(event) => void save.run(withModel(settings, event.target.value))}>
         {options.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}

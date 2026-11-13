@@ -6,6 +6,7 @@ import { translate } from "../i18n/translate";
 import type { McpGatewayControl } from "./useMcpGateway";
 import { MCP_ENDPOINT_URL } from "../platform/mcpGateway";
 import { useAsyncAction } from "../shared/useAsyncAction";
+import { SettingCheckboxRow } from "../settings/SettingRow";
 
 export function McpSection({ gateway }: { gateway: McpGatewayControl }) {
   const { settings, errorMessage, saveSettings } = gateway;
@@ -21,10 +22,7 @@ export function McpSection({ gateway }: { gateway: McpGatewayControl }) {
       <h2>{translate("settings.mcp")}</h2>
       <p>{translate("mcp.description")}</p>
       <p>{translate("mcp.privacyWarning")}</p>
-      <label className="checkbox-line">
-        <input type="checkbox" checked={settings.enabled} onChange={(event) => change({ enabled: event.target.checked })} />
-        {translate("mcp.enable")}
-      </label>
+      <SettingCheckboxRow controlId="mcp-enabled" label={translate("mcp.enable")} checked={settings.enabled} onChange={(enabled) => change({ enabled })} />
       {(errorMessage ?? save.errorMessage) && <div className="form-error" role="alert">{translate("mcp.startFailed", { reason: errorMessage ?? save.errorMessage ?? "" })}</div>}
       {settings.enabled && (
         <>
@@ -40,11 +38,8 @@ export function McpSection({ gateway }: { gateway: McpGatewayControl }) {
             <button type="button" className="secondary-button" onClick={() => void navigator.clipboard.writeText(settings.token)}>{translate("mcp.copyToken")}</button>
             <button type="button" className="danger-button" onClick={() => change({ token: newMcpToken() })}>{translate("mcp.renewToken")}</button>
           </div>
-          <label className="checkbox-line">
-            <input type="checkbox" checked={settings.allowPermanentDelete} onChange={(event) => change({ allowPermanentDelete: event.target.checked })} />
-            {translate("mcp.allowPermanentDelete")}
-          </label>
-          <p>{translate("mcp.allowPermanentDeleteHint")}</p>
+          <SettingCheckboxRow controlId="mcp-allow-permanent-delete" label={translate("mcp.allowPermanentDelete")} hint={translate("mcp.allowPermanentDeleteHint")}
+            checked={settings.allowPermanentDelete} onChange={(allowPermanentDelete) => change({ allowPermanentDelete })} />
         </>
       )}
     </section>

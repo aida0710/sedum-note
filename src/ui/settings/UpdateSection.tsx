@@ -10,6 +10,7 @@ import { useAsyncAction } from "../shared/useAsyncAction";
 import { APP_VERSION } from "../update/appVersion";
 import type { AvailableUpdate } from "../update/availableUpdate";
 import { AvailableUpdateContext } from "../update/useAvailableUpdate";
+import { SettingCheckboxRow } from "./SettingRow";
 
 export function UpdateSection({ repository }: { repository: NoteRepository }) {
   const { checkForUpdates } = useDevicePreferences();
@@ -20,13 +21,8 @@ export function UpdateSection({ repository }: { repository: NoteRepository }) {
       <p>{translate("update.currentVersion", { version: APP_VERSION })}</p>
       {/* Web 版は、開くたびに最新のものが届くので、確かめる設定を出さない。 */}
       {isRunningInTauri() && (
-        <>
-          <label className="checkbox-line">
-            <input type="checkbox" checked={checkForUpdates} onChange={(event) => updateDevicePreferences({ checkForUpdates: event.target.checked })} />
-            {translate("update.checkOnStart")}
-          </label>
-          <p>{translate("update.checkDescription")}</p>
-        </>
+        <SettingCheckboxRow controlId="update-check-on-start" label={translate("update.checkOnStart")} hint={translate("update.checkDescription")}
+          checked={checkForUpdates} onChange={(enabled) => updateDevicePreferences({ checkForUpdates: enabled })} />
       )}
       {availableUpdate && <AvailableUpdateActions availableUpdate={availableUpdate} repository={repository} />}
     </section>
