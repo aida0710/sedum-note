@@ -22,20 +22,20 @@ async function answerLatestRelease(page: Page, firstAnswer: LatestReleaseAnswer)
   return github;
 }
 
-test("Web 版は、ロックを解除しても自分からは確かめず、「今すぐ確かめる」で確かめる。確かめられなければ、最新とは言わずにそう出す", async ({ page }) => {
+test("Web 版は、ロックを解除しても自分からは確かめず、「更新を確認する」で確かめる。確かめられなければ、最新とは言わずにそう出す", async ({ page }) => {
   const github = await answerLatestRelease(page, "offline");
   await startLocalVault(page);
   await openSettingsPage(page, "更新");
   expect(github.requests).toBe(0);
-  const checkNow = page.getByRole("button", { name: "今すぐ確かめる" });
+  const checkNow = page.getByRole("button", { name: "更新を確認する" });
 
   await checkNow.click();
-  await expect(page.getByRole("alert")).toContainText("新しいバージョンがあるかを確かめられませんでした");
+  await expect(page.getByRole("alert")).toContainText("新しいバージョンがあるかを確認できませんでした");
   await expect(page.getByText(/最新のバージョンです/)).toHaveCount(0);
 
   github.answer = OLDER_RELEASE;
   await checkNow.click();
-  await expect(page.getByRole("status")).toContainText(/最新のバージョンです（.+ に確かめました）/);
+  await expect(page.getByRole("status")).toContainText(/最新のバージョンです（.+ に確認しました）/);
   await expect(page.getByRole("alert")).toHaveCount(0);
   expect(github.requests).toBe(2);
 });
@@ -48,7 +48,7 @@ test("新しいバージョンがあれば、設定と左の列に知らせ、�
   await page.keyboard.type("読み込み直す直前に書いた文");
   await openSettingsPage(page, "更新");
 
-  await page.getByRole("button", { name: "今すぐ確かめる" }).click();
+  await page.getByRole("button", { name: "更新を確認する" }).click();
   await expect(page.locator(".settings-section .notice")).toHaveText("新しいバージョン 99.0.0 があります");
   await expect(page.locator(".update-chip")).toHaveText("新しいバージョン 99.0.0 があります");
   await page.getByRole("button", { name: "読み込み直して更新" }).click();

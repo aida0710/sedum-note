@@ -933,7 +933,7 @@ export const englishMessages: Record<MessageKey, string> = {
 
   "settings.update": "Updates",
   "update.currentVersion": "This app is version {version}.",
-  "update.checkNow": "Check now",
+  "update.checkNow": "Check for updates",
   "update.checking": "Checking…",
   "update.upToDate": "You have the latest version (checked {time}).",
   "update.checkFailed": "Couldn't check for a new version ({time}). Make sure you are connected to the internet, then try again in a little while.",

@@ -1,4 +1,4 @@
-// Linux 版のアプリ（組み立てたもの）で、設定の「更新」の「今すぐ確かめる」が、本物の GitHub に確かめて結果を出すかを見る。
+// Linux 版のアプリ（組み立てたもの）で、設定の「更新」の「更新を確認する」が、本物の GitHub に確かめて結果を出すかを見る。
 // ロックを解除したときの自動の確認は止めておき、押したときだけ確かめることも見る。手で流す確認の道具。GitHub へ、実際につなぐ。
 // 新しいバージョンがあるときの画面を見るには、package.json と src-tauri/tauri.conf.json の版を手元だけ下げて組み立てる。
 //
@@ -31,12 +31,12 @@ try {
 
   await app.click(await app.findByXPath("//button[@aria-label='設定']"));
   await app.click(await app.waitForXPath("//nav[@aria-label='設定のページ']//button[normalize-space()='更新']", 10_000));
-  const checkNow = await app.waitForXPath("//button[normalize-space()='今すぐ確かめる']", 10_000);
+  const checkNow = await app.waitForXPath("//button[normalize-space()='更新を確認する']", 10_000);
   console.log(`before pressing (the check on unlock is off):\n${await updateSectionText()}\n`);
   await capture("before");
 
   await app.click(checkNow);
-  await app.waitForXPath("//*[contains(@class,'settings-section')]//*[contains(., 'に確かめました') or contains(., 'があります') or contains(., '確かめられませんでした')]", CHECK_TIMEOUT_MILLISECONDS);
+  await app.waitForXPath("//*[contains(@class,'settings-section')]//*[contains(., 'に確認しました') or contains(., 'があります') or contains(., '確認できませんでした')]", CHECK_TIMEOUT_MILLISECONDS);
   console.log(`after pressing:\n${await updateSectionText()}\n`);
   await capture("after");
 } finally {

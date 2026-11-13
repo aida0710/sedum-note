@@ -896,7 +896,7 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .danger-button.filled:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 88%, var(--text)); }
 .danger-button.filled:active:not(:disabled) { background: color-mix(in srgb, var(--danger) 76%, var(--text)); }
 .form-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
-/* 設定の「更新」の、今すぐ確かめるボタンと、その結果の一文。 */
+/* 設定の「更新」の、更新を確認するボタンと、その結果の一文。 */
 .update-check { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 
 /* 設定 */
