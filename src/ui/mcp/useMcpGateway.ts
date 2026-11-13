@@ -1,11 +1,12 @@
 // ロックを解除している間、設定で有効にしてあれば MCP の窓口を開く。ロックすると（この hook が外れると）閉じる。
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { handleMcpRequest, type McpHttpRequest, type McpHttpResponse, type McpServerDefinition } from "../../core/mcp/mcpServer";
 import { type McpSettings, readMcpSettings, writeMcpSettings } from "../../core/vault/mcpSettings";
 import type { UnlockedVault } from "../../core/vault/vaultSession";
 import { describeError } from "../i18n/describeError";
 import { setMcpGatewayToken, startMcpGateway } from "../platform/mcpGateway";
+import { useStoredValue } from "../shared/useStoredValue";
 import { APP_VERSION } from "../update/appVersion";
 import { createMcpNoteTools, NOTE_SERVER_INSTRUCTIONS } from "./mcpNoteTools";
 
@@ -14,17 +15,18 @@ export type McpGatewayControl = {
   settings: McpSettings | null;
   // 開けなかった理由（ポートが使われている、など）。
   errorMessage: string | null;
-  saveSettings: (settings: McpSettings) => Promise<void>;
+  // 今の設定から次の設定を作って保存する（shared/useStoredValue.ts）。
+  updateSettings: (change: (current: McpSettings) => McpSettings) => Promise<void>;
 };
 
 export function useMcpGateway(vault: UnlockedVault): McpGatewayControl {
-  const [settings, setSettings] = useState<McpSettings | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { repository, masterKey, localStore } = vault;
-
-  useEffect(() => {
-    void readMcpSettings(localStore, masterKey).then(setSettings);
-  }, [localStore, masterKey]);
+  const source = useMemo(() => ({
+    read: () => readMcpSettings(localStore, masterKey),
+    write: (next: McpSettings) => writeMcpSettings(localStore, masterKey, next),
+  }), [localStore, masterKey]);
+  const { value: settings, update: updateSettings } = useStoredValue(source);
 
   // 窓口に答えるサーバーの中身（ツールの一覧）。設定やリポジトリが変わっても、窓口は開き直さずに中身だけ入れ替える
   // （開き直すと、クライアントがつないだままの接続に応答が返らなくなる）。
@@ -73,10 +75,5 @@ export function useMcpGateway(vault: UnlockedVault): McpGatewayControl {
     }
   }, [enabled, token]);
 
-  const saveSettings = useCallback(async (next: McpSettings) => {
-    await writeMcpSettings(localStore, masterKey, next);
-    setSettings(next);
-  }, [localStore, masterKey]);
-
-  return { settings, errorMessage, saveSettings };
+  return { settings, errorMessage, updateSettings };
 }

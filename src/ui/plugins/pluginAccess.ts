@@ -1,9 +1,10 @@
 // 取り込んだプラグインを、画面（設定の欄と、メモのメニュー）から読み書きするための入口。
 // ロックを解除した保管庫が要るので、解除したあとの画面の上で配る。
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useMemo } from "react";
 import { type InstalledPlugin, readInstalledPlugins, writeInstalledPlugins } from "../../core/plugins/installedPlugins";
 import type { UnlockedVault } from "../../core/vault/vaultSession";
+import { useStoredValue } from "../shared/useStoredValue";
 
 export type PluginAccess = {
   // 読み込みが済むまでは null。
@@ -21,27 +22,17 @@ const NO_PLUGINS: PluginAccess = {
 export const PluginAccessContext = createContext<PluginAccess>(NO_PLUGINS);
 
 export function usePluginsOfVault(vault: UnlockedVault): PluginAccess {
-  const [plugins, setPlugins] = useState<InstalledPlugin[] | null>(null);
-  useEffect(() => {
-    let current = true;
-    void readInstalledPlugins(vault.localStore, vault.masterKey).then((stored) => current && setPlugins(stored));
-    return () => { current = false; };
-  }, [vault]);
-  // いまの一覧。続けて操作しても、前の操作の結果の上に重ねられるように、描くのを待たずに持つ。
-  const latest = useRef<InstalledPlugin[]>([]);
-  latest.current = plugins ?? latest.current;
-  // 画面には先に反映し、そのあと手元に書く（チェックを付けた直後に、前の状態へ戻って見えないように）。
-  const save = useCallback(async (change: (installed: InstalledPlugin[]) => InstalledPlugin[]) => {
-    const next = change(latest.current);
-    latest.current = next;
-    setPlugins(next);
-    await writeInstalledPlugins(vault.localStore, vault.masterKey, next);
-  }, [vault]);
+  const source = useMemo(() => ({
+    read: () => readInstalledPlugins(vault.localStore, vault.masterKey),
+    write: (plugins: InstalledPlugin[]) => writeInstalledPlugins(vault.localStore, vault.masterKey, plugins),
+  }), [vault]);
+  // 続けて操作しても、前の操作の結果の上に重ねる（shared/useStoredValue.ts）。
+  const { value: plugins, update } = useStoredValue(source);
   return {
     plugins,
-    installPlugin: (plugin) => save((installed) => [...installed.filter((other) => other.manifest.id !== plugin.manifest.id), plugin]),
-    removePlugin: (pluginId) => save((installed) => installed.filter((plugin) => plugin.manifest.id !== pluginId)),
-    setPluginEnabled: (pluginId, enabled) => save((installed) => installed.map((plugin) => (plugin.manifest.id === pluginId ? { ...plugin, enabled } : plugin))),
+    installPlugin: (plugin) => update((installed) => [...installed.filter((other) => other.manifest.id !== plugin.manifest.id), plugin]),
+    removePlugin: (pluginId) => update((installed) => installed.filter((plugin) => plugin.manifest.id !== pluginId)),
+    setPluginEnabled: (pluginId, enabled) => update((installed) => installed.map((plugin) => (plugin.manifest.id === pluginId ? { ...plugin, enabled } : plugin))),
   };
 }
 

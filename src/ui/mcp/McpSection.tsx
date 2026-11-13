@@ -9,13 +9,13 @@ import { useAsyncAction } from "../shared/useAsyncAction";
 import { SettingCheckboxRow } from "../settings/SettingRow";
 
 export function McpSection({ gateway }: { gateway: McpGatewayControl }) {
-  const { settings, errorMessage, saveSettings } = gateway;
+  const { settings, errorMessage, updateSettings } = gateway;
   const [tokenShown, setTokenShown] = useState(false);
-  const save = useAsyncAction(saveSettings);
+  const save = useAsyncAction(updateSettings);
   if (settings === null) {
     return null;
   }
-  const change = (changes: Partial<McpSettings>) => void save.run({ ...settings, ...changes });
+  const change = (changes: Partial<McpSettings>) => void save.run((current) => ({ ...current, ...changes }));
   const authorizationHeader = `Authorization: Bearer ${tokenShown ? settings.token : "•".repeat(12)}`;
   return (
     <section className="settings-section">
