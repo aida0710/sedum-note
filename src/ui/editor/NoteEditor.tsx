@@ -9,6 +9,7 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { bodyPlainText, BLOCK_EMBED_NODE, NOTE_LINK_NODE, plainTextHashtags } from "../../core/notes/bodyText";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
+import type { InstalledPlugin } from "../../core/plugins/installedPlugins";
 import { replaceTemplateVariablesInNodes } from "../../core/notes/templateVariables";
 import { isCursorInTaskItem, setTaskDueAtCursor, taskDueAtCursor } from "./dueMarks";
 import { DueDateDialog } from "../shared/DueDateDialog";
@@ -26,6 +27,7 @@ import { printPage } from "../platform/printPage";
 import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { useDialogs } from "../shared/DialogProvider";
 import { PopupMenu } from "../shared/PopupMenu";
+import { ProgressStatus } from "../shared/ProgressStatus";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { formatDateTime } from "../shared/formatTime";
 import { assignNotebookColors, NotebookMark } from "../shared/notebookAppearance";
@@ -231,15 +233,26 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
   // 有効なプラグインのコマンド。実行できなかったら、理由を知らせる。プラグインが返した知らせも、ここで出す。
   const { plugins } = usePlugins();
   const showToast = useToast();
+  // 失敗はプラグインの名前つきで知らせに出すので、ここで受け止める。実行中は、もう一度押しても重ねて流さない。
+  const pluginRun = useAsyncAction(async ({ plugin, commandId }: { plugin: InstalledPlugin; commandId: string }) => {
+    if (!editor) {
+      return;
+    }
+    try {
+      const message = await runPluginCommand({ plugin, commandId, note, editor, repository });
+      if (message !== null) {
+        showToast({ message });
+      }
+    } catch (error) {
+      showToast({ message: translate("plugin.runFailed", { name: plugin.manifest.name, reason: describePluginRunError(error) }) });
+    }
+  });
   const pluginCommands = (plugins ?? []).filter((plugin) => plugin.enabled).flatMap((plugin) => plugin.manifest.commands.map((command) => ({
     key: `${plugin.manifest.id}:${command.id}`,
     title: command.title,
     run: () => {
-      if (editor) {
-        void runPluginCommand({ plugin, commandId: command.id, note, editor, repository }).then(
-          (message) => message !== null && showToast({ message }),
-          (error: unknown) => showToast({ message: translate("plugin.runFailed", { name: plugin.manifest.name, reason: describePluginRunError(error) }) }),
-        );
+      if (!pluginRun.busy) {
+        void pluginRun.run({ plugin, commandId: command.id });
       }
     },
   })));
@@ -336,6 +349,13 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
 
   // 題も本文も添付も無い、作ったばかりのメモか。
   const isNewEmptyNote = note.content.title === "" && bodyPlainText(note.body) === "" && note.content.attachments.length === 0;
+  // 時間のかかる操作の間に、本文の上に出す文。
+  const runningAction = [
+    { running: attachments.progress !== null, label: translate("editor.attaching"), progress: attachments.progress },
+    { running: exportNote.busy, label: translate("markdown.exporting"), progress: exportNote.progress },
+    { running: print.busy, label: translate("editor.preparingPrint"), progress: null },
+    { running: pluginRun.busy, label: translate("plugin.commandRunning"), progress: null },
+  ].find((action) => action.running);
   const actionError = attachments.errorMessage ?? audioRecorder.errorMessage ?? pasteMarkdown.errorMessage ?? exportNote.errorMessage ?? print.errorMessage ?? openInNewWindow.errorMessage
     ?? openWebLink.errorMessage;
   // Ctrl（Mac は ⌘）を押しながら本文のリンクを押したら、外のブラウザで開く。
@@ -392,6 +412,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
           )}
           {note.content.isTemplate && !inTrash && !isZoomed && <TemplateBanner templateId={noteId} repository={repository} onOpenNote={openNote} />}
           {actionError && <div className="form-error" role="alert">{actionError}</div>}
+          {runningAction && <ProgressStatus label={runningAction.label} progress={runningAction.progress} />}
           {!isZoomed && (
             <>
               <div className="document-meta">

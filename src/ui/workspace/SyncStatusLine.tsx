@@ -4,9 +4,11 @@
 import { TriangleAlert } from "lucide-react";
 import { useContext, useEffect, useState } from "react";
 import type { SyncStatus } from "../../core/sync/autoSync";
+import type { SyncProgress } from "../../core/sync/syncEngine";
 import { describeError } from "../i18n/describeError";
 import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
+import { formatCount } from "../shared/formatCount";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 
 // 「n分前」を更新する間隔。
@@ -34,7 +36,7 @@ function syncStatusTextOf({ status, now, unsyncedCount, automatic }: SyncStatusI
     return { text: translate("sync.delegated"), dotClass: "off" };
   }
   if (status.state === "syncing") {
-    return { text: translate("sync.syncing"), dotClass: "syncing" };
+    return { text: syncingTextOf(status.progress), dotClass: "syncing" };
   }
   if (status.state === "failed") {
     // 直らない失敗で自動の同期を止めているときは、そう言う（待っても同期されない）。
@@ -52,6 +54,15 @@ function syncStatusTextOf({ status, now, unsyncedCount, automatic }: SyncStatusI
   const minutes = Math.floor((now.getTime() - status.lastSyncedAt.getTime()) / MILLISECONDS_PER_MINUTE);
   const time = minutes < 1 ? translate("sync.justNow") : translate("sync.minutesAgo", { count: minutes });
   return { text: translate("sync.synced", { time }), dotClass: "" };
+}
+
+// 同期中の文。件数の分かる段階（受信・送信）に入っていれば、件数も出す（最初の同期は数千件になることがある）。
+function syncingTextOf(progress: SyncProgress | null): string {
+  if (progress === null || progress.total === 0) {
+    return translate("sync.syncing");
+  }
+  const counts = { done: formatCount(progress.done), total: formatCount(progress.total) };
+  return translate(progress.direction === "receiving" ? "sync.receivingCount" : "sync.sendingCount", counts);
 }
 
 export function SyncStatusLine({ status, onOpenSyncSettings }: { status: SyncStatus | null; onOpenSyncSettings: () => void }) {

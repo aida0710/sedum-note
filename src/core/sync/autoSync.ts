@@ -8,7 +8,7 @@
 //   直すまで自動では繰り返さない
 
 import { isPermanentSyncFailure } from "./syncFailure";
-import type { SyncEngine } from "./syncEngine";
+import type { SyncEngine, SyncProgress } from "./syncEngine";
 
 // 打ち続けている間に何度も送らないよう、最後の編集からこれだけ待って送る。
 export const PUSH_DELAY_MILLISECONDS = 2_000;
@@ -21,7 +21,8 @@ export type SyncStatus =
   // 同じ vault を開いている、ほかのウィンドウが同期を受け持っている。
   | { state: "delegated" }
   | { state: "idle"; lastSyncedAt: Date | null }
-  | { state: "syncing"; lastSyncedAt: Date | null }
+  // progress は、件数の分かる段階（受信・送信）に入ってからの進み具合。それまでは null。
+  | { state: "syncing"; lastSyncedAt: Date | null; progress: SyncProgress | null }
   // willRetry が false なら、待っても直らない失敗で、自動の同期を止めている。
   | { state: "failed"; lastSyncedAt: Date | null; error: unknown; willRetry: boolean };
 
@@ -112,9 +113,9 @@ export class AutoSync {
 
   async #sync(): Promise<void> {
     this.#clearTimers();
-    this.#onStatus({ state: "syncing", lastSyncedAt: this.#lastSyncedAt });
+    this.#onStatus({ state: "syncing", lastSyncedAt: this.#lastSyncedAt, progress: null });
     try {
-      await this.#engine.syncOnce();
+      await this.#engine.syncOnce((progress) => this.#onStatus({ state: "syncing", lastSyncedAt: this.#lastSyncedAt, progress }));
       this.#lastSyncedAt = new Date();
       this.#consecutiveFailures = 0;
       this.#onStatus({ state: "idle", lastSyncedAt: this.#lastSyncedAt });

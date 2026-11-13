@@ -43,6 +43,26 @@ describe("SyncEngine", () => {
     expect(phone.repository.notebooks().map((item) => item.content.name)).toEqual(["旅行"]);
   });
 
+  it("送受信の件数を進み具合で知らせ、画面への変更の知らせは 1 件ごとではなく束ごとにまとまる", async () => {
+    const { laptop, phone } = await twoDevices();
+    for (const title of ["一", "二", "三"]) {
+      await laptop.repository.createNote({ title });
+    }
+    const sent: string[] = [];
+    await laptop.syncEngine!.syncOnce(({ direction, done, total }) => sent.push(`${direction} ${done}/${total}`));
+    expect(sent).toEqual(["sending 0/3", "sending 1/3", "sending 2/3", "sending 3/3"]);
+
+    let phoneNotificationCount = 0;
+    phone.repository.subscribe(() => {
+      phoneNotificationCount += 1;
+    });
+    const received: string[] = [];
+    await phone.syncEngine!.syncOnce(({ direction, done, total }) => received.push(`${direction} ${done}/${total}`));
+    expect(received).toEqual(["receiving 0/3", "receiving 1/3", "receiving 2/3", "receiving 3/3"]);
+    expect(phone.repository.notes()).toHaveLength(3);
+    expect(phoneNotificationCount).toBe(1);
+  });
+
   it("ほかのデバイスの変更を取り込む前の状態を、履歴に 1 つだけ残す", async () => {
     const { laptop, phone } = await twoDevices();
     const note = await laptop.repository.createNote({ title: "議事録" });

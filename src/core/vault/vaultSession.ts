@@ -14,6 +14,7 @@ import type { RecordChangeChannel } from "../notes/recordChangeChannel";
 import { DATA_FORMAT_VERSION, ensureDataFormatSupported } from "../format/dataFormat";
 import { migrationsBetween } from "../format/dataFormatMigrations";
 import { NoteRepository } from "../notes/noteRepository";
+import type { ReportProgress } from "../progress/taskProgress";
 import { ensureConditionalWrites } from "../remote/conditionalWriteCheck";
 import type { ObjectStore } from "../remote/objectStore";
 import { ObjectStoreError, PreconditionFailedError } from "../remote/objectStore";
@@ -287,7 +288,7 @@ async function migrateLocalDataFormat(environment: VaultSessionEnvironment, migr
 export async function connectRemote(
   environment: VaultSessionEnvironment,
   unlocked: UnlockedVault,
-  input: { syncTarget: SyncTargetChoice; passphrase: string | null },
+  input: { syncTarget: SyncTargetChoice; passphrase: string | null; reportProgress?: ReportProgress },
 ): Promise<VaultEntry> {
   const { remoteConfig, inspected } = input.syncTarget;
   const document = await readLocalVaultDocument(environment.localStore);
@@ -312,7 +313,7 @@ export async function connectRemote(
     await environment.localStore.markAllBlobsForUpload();
     await environment.localStore.markAllVersionsForUpload();
     if (unlocked.remoteConfig) {
-      await copyRemoteBlobs(environment.createObjectStore(unlocked.remoteConfig), environment.createObjectStore(remoteConfig));
+      await copyRemoteBlobs(environment.createObjectStore(unlocked.remoteConfig), environment.createObjectStore(remoteConfig), input.reportProgress);
     }
   }
   await saveVaultLocally(environment.localStore, { document, masterKey: unlocked.masterKey, remoteConfig });
@@ -323,9 +324,11 @@ export async function connectRemote(
 // 添付（ほかのデバイスが貼って、ここではまだ開いていないもの）は、手元から送り直せない。
 // 添付はマスターキーで暗号化してあり、マスターキーは同じなので、暗号文のまま写せば読める。
 // 前の同期先につながらなければ、写さずに進む（手元にある添付は、同期で送り直す）。
-async function copyRemoteBlobs(previous: ObjectStore, next: ObjectStore): Promise<void> {
+async function copyRemoteBlobs(previous: ObjectStore, next: ObjectStore, reportProgress: ReportProgress | undefined): Promise<void> {
   try {
-    for (const { key } of await previous.list(BLOBS_PREFIX)) {
+    const blobs = await previous.list(BLOBS_PREFIX);
+    for (const [index, { key }] of blobs.entries()) {
+      reportProgress?.({ done: index, total: blobs.length });
       const stored = await previous.get(key);
       if (stored !== null) {
         await next.put(key, stored.body, { ifAbsent: true }).catch((error: unknown) => {

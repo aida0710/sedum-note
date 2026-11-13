@@ -9,6 +9,7 @@ import { translate } from "../i18n/translate";
 import { UserFacingError } from "../i18n/userFacingError";
 import { saveFile } from "../platform/saveFile";
 import { formatByteSize } from "../shared/formatByteSize";
+import { ProgressStatus } from "../shared/ProgressStatus";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { AttachmentReaderContext, useAttachmentUrl } from "./attachmentReader";
 import { AttachmentUnavailable } from "./AttachmentUnavailable";
@@ -49,7 +50,9 @@ function AttachmentFileView({ node }: ReactNodeViewProps) {
     <NodeViewWrapper className={`attachment-file${previewShown || playerShown ? " with-preview" : ""}`} data-drag-handle>
       <FileText size={20} className="attachment-file-icon" />
       <span className="attachment-file-name">{attributes.fileName}</span>
-      <span className="attachment-file-size">{save.errorMessage ?? formatByteSize(attributes.byteLength)}</span>
+      {save.busy
+        ? <ProgressStatus label={translate("editor.fileSaving")} progress={null} />
+        : <span className="attachment-file-size">{save.errorMessage ?? formatByteSize(attributes.byteLength)}</span>}
       <button type="button" className="icon-button" disabled={save.busy} aria-label={translate("editor.saveFile", { name: attributes.fileName })}
         onClick={() => void save.run(undefined)}>
         <Download size={16} />

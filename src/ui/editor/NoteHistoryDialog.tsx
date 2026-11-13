@@ -9,6 +9,7 @@ import { moveFocusAmongItems } from "../shared/arrowKeyFocus";
 import { formatDateTime } from "../shared/formatTime";
 import { ModalDialog } from "../shared/ModalDialog";
 import { useToast } from "../shared/ToastProvider";
+import { ProgressStatus } from "../shared/ProgressStatus";
 import { useAsyncAction } from "../shared/useAsyncAction";
 
 type NoteHistoryDialogProps = {
@@ -24,6 +25,8 @@ export function NoteHistoryDialog({ note, repository, onClose }: NoteHistoryDial
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // ほかのデバイスが残した履歴を、同期先から取ってこられなかった（オフラインなど）。手元にある分だけを出している。
   const [remoteUnavailable, setRemoteUnavailable] = useState(false);
+  // 同期先の版を取ってくる間（同期していなければすぐ終わる）。
+  const [downloading, setDownloading] = useState(true);
   useEffect(() => {
     let closed = false;
     const showVersions = async () => {
@@ -36,7 +39,8 @@ export function NoteHistoryDialog({ note, repository, onClose }: NoteHistoryDial
     // まず手元にある分を出し、同期先の分が届いたら出し直す。
     void showVersions()
       .then(() => repository.downloadNoteVersions(note.id))
-      .then(showVersions, () => !closed && setRemoteUnavailable(true));
+      .then(showVersions, () => !closed && setRemoteUnavailable(true))
+      .finally(() => !closed && setDownloading(false));
     return () => {
       closed = true;
     };
@@ -79,6 +83,7 @@ export function NoteHistoryDialog({ note, repository, onClose }: NoteHistoryDial
         )}
         {restore.errorMessage && <div className="form-error" role="alert">{restore.errorMessage}</div>}
         <div className="form-actions">
+          {downloading && <ProgressStatus label={translate("history.loading")} progress={null} />}
           <button type="button" className="secondary-button" onClick={onClose}>{translate("common.close")}</button>
           {selected && (
             <button type="button" className="primary-button" disabled={restore.busy} onClick={() => void restore.run(selected)}>

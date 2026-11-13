@@ -20,11 +20,11 @@ export type NoteFileExportAction = AsyncAction<NoteFileExportRequest> & {
 
 export function useNoteFileExport(repository: NoteRepository): NoteFileExportAction {
   const [saved, setSaved] = useState<NoteFileExport | null>(null);
-  const action = useAsyncAction(async ({ notes, format }: NoteFileExportRequest) => {
+  const action = useAsyncAction(async ({ notes, format }: NoteFileExportRequest, { reportProgress }) => {
     setSaved(null);
     await repository.flush();
     const exported = await exportNotesAsFiles({
-      repository, notes, format, language: languageInUse(), untitledName: translate("sidebar.untitled"), archiveName: exportArchiveName(format, new Date()),
+      repository, notes, format, language: languageInUse(), untitledName: translate("sidebar.untitled"), archiveName: exportArchiveName(format, new Date()), reportProgress,
     });
     if (await saveFile({ suggestedName: exported.suggestedName, parts: [exported.bytes], mimeType: exported.mimeType })) {
       setSaved(exported);

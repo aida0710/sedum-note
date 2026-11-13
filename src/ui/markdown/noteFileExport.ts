@@ -5,6 +5,7 @@
 import { zipSync, type Zippable } from "fflate";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
+import type { ReportProgress } from "../../core/progress/taskProgress";
 import { withFrontMatter } from "./frontMatter";
 import { bodyPlainText } from "../../core/notes/bodyText";
 import { bodyToHtml, noteAsHtmlFile } from "./htmlDocument";
@@ -69,9 +70,11 @@ type ExportNotesInput = {
   untitledName: string;
   // zip にするときのファイル名（拡張子なし）。
   archiveName: string;
+  // 書き出したメモの数を渡す。
+  reportProgress?: ReportProgress;
 };
 
-export async function exportNotesAsFiles({ repository, notes, format, language, untitledName, archiveName }: ExportNotesInput): Promise<NoteFileExport> {
+export async function exportNotesAsFiles({ repository, notes, format, language, untitledName, archiveName, reportProgress }: ExportNotesInput): Promise<NoteFileExport> {
   const writer = NOTE_FILE_WRITERS[format];
   const paths = new UniquePaths();
   const notebooks = repository.notebooks();
@@ -81,7 +84,8 @@ export async function exportNotesAsFiles({ repository, notes, format, language, 
   const textEncoder = new TextEncoder();
   let missingAttachmentCount = 0;
 
-  for (const note of notes) {
+  for (const [index, note] of notes.entries()) {
+    reportProgress?.({ done: index, total: notes.length });
     const directory = note.content.notebookIds.map((notebookId) => notebookDirectories.get(notebookId)).find((path) => path !== undefined) ?? "";
     const notePath = paths.claim(directory, safeFileName(note.content.title, untitledName), writer.extension);
     for (const attachment of writer.includesAttachments ? note.content.attachments : []) {
@@ -106,6 +110,7 @@ export async function exportNotesAsFiles({ repository, notes, format, language, 
     }));
   }
 
+  reportProgress?.({ done: notes.length, total: notes.length });
   const filePaths = Object.keys(files);
   const onlyPath = filePaths.length === 1 ? filePaths[0] : undefined;
   if (onlyPath !== undefined) {

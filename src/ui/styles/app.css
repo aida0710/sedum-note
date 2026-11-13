@@ -962,6 +962,11 @@ input[type="checkbox"].switch:focus-visible { outline: 2px solid var(--accent); 
 input[type="checkbox"].switch:disabled { cursor: default; opacity: .55; }
 .form-error { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); border-radius: var(--radius-control); padding: 8px 10px; line-height: 1.5; }
 .form-success { color: var(--ok); }
+/* 時間のかかる処理の間に出す文と、件数の分かる処理の棒（shared/ProgressStatus.tsx）。棒の幅は、ボタンの横に並べても行が折れにくい長さ。 */
+.progress-status { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--muted); font-size: var(--font-size-small); line-height: 1.5; }
+.progress-bar { --progress-bar-height: 4px; flex: none; width: 96px; height: var(--progress-bar-height); border-radius: calc(var(--progress-bar-height) / 2); background: var(--line); overflow: hidden; }
+.progress-bar-fill { display: block; height: 100%; background: var(--accent); }
+.document > .progress-status { margin-bottom: 14px; }
 .form-notice { background: var(--accent-soft); border-radius: var(--radius-control); padding: 8px 10px; line-height: 1.5; }
 .sync-target-result, .sync-overview { display: flex; flex-direction: column; gap: 10px; }
 .sync-target-result .hint, .sync-overview .hint { line-height: 1.6; }
@@ -1232,7 +1237,7 @@ details summary { cursor: pointer; color: var(--accent); }
   .document { max-width: none; padding: 0; }
   /* 段組みの左右の負の余白は、本文の余白に重ねて前後の段落と文字の左端をそろえるため。紙には本文の余白が無いので、はみ出す。 */
   .ProseMirror .columns { margin-left: 0; margin-right: 0; }
-  .section-zoom, .selection-toolbar, .web-link-popover, .block-insert-button, .image-resize-handle, .sidebar, .tabs-bar, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
+  .section-zoom, .selection-toolbar, .web-link-popover, .block-insert-button, .image-resize-handle, .sidebar, .tabs-bar, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error, .progress-status,
   .document-meta .unsynced, .update-chip { display: none !important; }
   .search-match, .search-match.active { background: none; color: inherit; }
   .ProseMirror p.empty-column::before { content: none; }

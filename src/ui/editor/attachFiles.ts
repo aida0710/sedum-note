@@ -4,6 +4,7 @@
 import type { Editor } from "@tiptap/react";
 import { ATTACHMENT_FILE_NODE, ATTACHMENT_IMAGE_NODE } from "../../core/notes/bodyText";
 import type { NoteRepository } from "../../core/notes/noteRepository";
+import type { ReportProgress } from "../../core/progress/taskProgress";
 import { translate } from "../i18n/translate";
 import { UserFacingError } from "../i18n/userFacingError";
 import { formatByteSize } from "../shared/formatByteSize";
@@ -19,10 +20,13 @@ type AttachFilesInput = {
   reduceImages: boolean;
   editor: Editor;
   repository: NoteRepository;
+  // 添付し終えたファイルの数を渡す（大きな動画や PDF は、暗号化に数秒かかる）。
+  reportProgress?: ReportProgress;
 };
 
-export async function attachFiles({ files, reduceImages, editor, repository }: AttachFilesInput): Promise<void> {
-  for (const pickedFile of files) {
+export async function attachFiles({ files, reduceImages, editor, repository, reportProgress }: AttachFilesInput): Promise<void> {
+  for (const [index, pickedFile] of files.entries()) {
+    reportProgress?.({ done: index, total: files.length });
     const file = reduceImages ? await reduceImageFile(pickedFile) : pickedFile;
     if (file.size > MAX_ATTACHMENT_BYTES) {
       throw new UserFacingError(translate("editor.fileTooLarge", { name: file.name, limit: formatByteSize(MAX_ATTACHMENT_BYTES) }));

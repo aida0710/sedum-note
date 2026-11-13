@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { translate } from "../i18n/translate";
 import { ModalDialog } from "../shared/ModalDialog";
+import { ProgressStatus } from "../shared/ProgressStatus";
 import { readQrCodeFromVideoFrame } from "./syncSetupQrCode";
 
 // 映像から QR を探す間隔。短いほど早く読めるが、スマホが熱くなる。
@@ -20,6 +21,8 @@ type QrCodeScannerDialogProps = {
 export function QrCodeScannerDialog({ onRead, onClose, onPickQrCodeImage, onPickFile }: QrCodeScannerDialogProps) {
   const video = useRef<HTMLVideoElement>(null);
   const [cameraProblem, setCameraProblem] = useState<string | null>(null);
+  // カメラが映像を出し始めたか。許可を聞く間や、カメラの起動を待つ間は false。
+  const [cameraStarted, setCameraStarted] = useState(false);
   // 読めたときの処理は、開いている間に変わっても、カメラを開き直さない。
   const onReadRef = useRef(onRead);
   onReadRef.current = onRead;
@@ -37,6 +40,7 @@ export function QrCodeScannerDialog({ onRead, onClose, onPickQrCodeImage, onPick
           return;
         }
         stream = opened;
+        setCameraStarted(true);
         const element = video.current;
         if (!element) {
           return;
@@ -72,6 +76,7 @@ export function QrCodeScannerDialog({ onRead, onClose, onPickQrCodeImage, onPick
       {cameraProblem === null ? (
         <>
           <p>{translate("syncSetup.scanDescription")}</p>
+          {!cameraStarted && <ProgressStatus label={translate("syncSetup.cameraStarting")} progress={null} />}
           {/* playsInline が無いと、iPhone では全画面の再生に切り替わる。 */}
           <video ref={video} className="qr-code-scanner-video" playsInline muted autoPlay />
         </>

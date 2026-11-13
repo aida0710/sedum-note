@@ -9,8 +9,9 @@ import type { UnlockedVault } from "../../core/vault/vaultSession";
 import { describeError } from "../i18n/describeError";
 import { translate } from "../i18n/translate";
 import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
-import type { VaultSession } from "../session/useVaultSession";
+import type { SyncTargetConnection, VaultSession } from "../session/useVaultSession";
 import { formatDateTime } from "../shared/formatTime";
+import { ProgressStatus } from "../shared/ProgressStatus";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { SyncSetupExportDialog } from "../sync/SyncSetupExportDialog";
 import { SyncSetupImport } from "../sync/SyncSetupImport";
@@ -68,7 +69,7 @@ function SyncTargetEditor({ session, vault, onClose }: SyncTargetEditorProps) {
   const [initialRemoteConfig] = useState(form.remoteConfig);
   useUnsavedSettingsDraft("syncTarget", JSON.stringify(form.remoteConfig) !== JSON.stringify(initialRemoteConfig) || form.checked !== null || passphrase !== "");
   const [problem, setProblem] = useState<string | null>(null);
-  const save = useAsyncAction(session.connectSyncTarget);
+  const save = useAsyncAction((input: SyncTargetConnection, { reportProgress }) => session.connectSyncTarget({ ...input, reportProgress }));
   const placesNewVault = form.checked?.inspected.state === "empty";
   // 確かめた同期先が、このデバイスのメモと同じ vault のものか。
   const isOwnVault = (checked: SyncTargetCheck) => checked.inspected.state === "existing" && checked.inspected.vaultId === vault.vaultId;
@@ -106,6 +107,7 @@ function SyncTargetEditor({ session, vault, onClose }: SyncTargetEditorProps) {
       )}
       {message && <div className="form-error" role="alert">{message}</div>}
       <div className="form-actions">
+        {save.busy && <ProgressStatus label={translate("settings.syncSaving")} progress={save.progress} />}
         {form.checked === null && <span className="hint">{translate("syncTarget.checkFirst")}</span>}
         {onClose && <button type="button" className="secondary-button" onClick={onClose}>{translate("common.cancel")}</button>}
         <button type="submit" className="primary-button" disabled={save.busy || form.checked === null || holdsOtherVault}>{translate("settings.syncSave")}</button>
@@ -124,6 +126,7 @@ function SyncSetupExport({ session }: { session: VaultSession }) {
       <span className="hint">{translate("syncSetup.exportHint")}</span>
       {exportSetup.errorMessage && <div className="form-error" role="alert">{exportSetup.errorMessage}</div>}
       <div className="form-actions">
+        {exportSetup.busy && <ProgressStatus label={translate("syncSetup.preparing")} progress={null} />}
         <button type="button" className="secondary-button" disabled={exportSetup.busy} onClick={() => void exportSetup.run(undefined)}>{translate("syncSetup.export")}</button>
       </div>
       {setup !== null && <SyncSetupExportDialog setup={setup} onClose={() => setSetup(null)} />}
@@ -169,6 +172,10 @@ function SyncStatusDetail({ status, autoSync, onOpenUpdatePage }: SyncStatusDeta
   const lastSynced = status.lastSyncedAt === null
     ? translate("sync.never")
     : translate("settings.lastSyncedAt", { time: formatDateTime(status.lastSyncedAt.toISOString()) });
+  if (status.state === "syncing" && status.progress !== null) {
+    const label = translate(status.progress.direction === "receiving" ? "sync.receiving" : "sync.sending");
+    return <div><ProgressStatus label={label} progress={status.progress} /></div>;
+  }
   if (status.state !== "failed") {
     return <p className="hint" role="status">{lastSynced}</p>;
   }

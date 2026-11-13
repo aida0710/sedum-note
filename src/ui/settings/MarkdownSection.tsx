@@ -6,15 +6,16 @@ import { translate } from "../i18n/translate";
 import { importMarkdownNotes, readImportSources } from "../markdown/markdownImport";
 import { useNoteFileExport } from "../markdown/useNoteFileExport";
 import { useDialogs } from "../shared/DialogProvider";
+import { ProgressStatus } from "../shared/ProgressStatus";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import type { NoteFileFormat } from "../markdown/noteFileExport";
 
 export function MarkdownSection({ repository }: { repository: NoteRepository }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [importedCount, setImportedCount] = useState<number | null>(null);
-  const importFiles = useAsyncAction(async (files: File[]) => {
+  const importFiles = useAsyncAction(async (files: File[], { reportProgress }) => {
     setImportedCount(null);
-    setImportedCount((await importMarkdownNotes(repository, await readImportSources(files))).noteCount);
+    setImportedCount((await importMarkdownNotes(repository, await readImportSources(files), reportProgress)).noteCount);
   });
   const exportNotes = useNoteFileExport(repository);
   const dialogs = useDialogs();
@@ -43,6 +44,8 @@ export function MarkdownSection({ repository }: { repository: NoteRepository }) 
           }
         }} />
       <div className="settings-actions">
+        {importFiles.busy && <ProgressStatus label={translate("markdown.importing")} progress={importFiles.progress} />}
+        {exportNotes.busy && <ProgressStatus label={translate("markdown.exporting")} progress={exportNotes.progress} />}
         {importedCount !== null && <span className="form-success">{translate("settings.markdownImported", { count: importedCount })}</span>}
         {exportNotes.saved && <span className="form-success">{translate("settings.markdownExported", { count: exportNotes.saved.noteCount })}</span>}
         <button type="button" className="secondary-button" disabled={importFiles.busy} onClick={() => fileInput.current?.click()}>

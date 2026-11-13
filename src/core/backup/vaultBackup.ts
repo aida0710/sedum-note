@@ -3,6 +3,7 @@
 import { newRandomId } from "../crypto/randomId";
 import type { LocalStore } from "../local/localStore";
 import type { NoteRepository } from "../notes/noteRepository";
+import type { ReportProgress } from "../progress/taskProgress";
 import { DATA_FORMAT_VERSION, ensureDataFormatSupported } from "../format/dataFormat";
 import { unlockVault, type VaultDocument } from "../vault/vaultDocument";
 import { type BackupEntry, decodeBackup, encodeBackup } from "./backupFile";
@@ -15,7 +16,15 @@ export type BackupExport = {
   missingAttachmentCount: number;
 };
 
-export async function exportBackup(localStore: LocalStore, repository: NoteRepository, now: Date): Promise<BackupExport> {
+type BackupExportInput = {
+  localStore: LocalStore;
+  repository: NoteRepository;
+  now: Date;
+  // 進み具合は、バックアップに入れる記録と添付の数で数える（手元に無い添付は同期先から取るので、添付の数で時間が決まる）。
+  reportProgress?: ReportProgress;
+};
+
+export async function exportBackup({ localStore, repository, now, reportProgress }: BackupExportInput): Promise<BackupExport> {
   await repository.flush();
   const vault = await localStore.readSetting<VaultDocument>("vault");
   if (!vault) {
@@ -25,6 +34,8 @@ export async function exportBackup(localStore: LocalStore, repository: NoteRepos
   let missingAttachmentCount = 0;
   const attachmentIds = new Set(repository.notes().flatMap((note) => note.content.attachments.map((attachment) => attachment.id)));
   const entries: BackupEntry[] = (await localStore.listRecordEntries()).map((entry) => ({ kind: "record", id: entry.id, sealed: entry.sealed }));
+  const total = entries.length + attachmentIds.size;
+  reportProgress?.({ done: entries.length, total });
   for (const id of attachmentIds) {
     if (!(await localStore.getBlob(id))) {
       await repository.readAttachment(id).catch(() => null);
@@ -35,6 +46,7 @@ export async function exportBackup(localStore: LocalStore, repository: NoteRepos
     } else {
       missingAttachmentCount += 1;
     }
+    reportProgress?.({ done: entries.length + missingAttachmentCount, total });
   }
   return {
     parts: encodeBackup({ vault, createdAt: now.toISOString(), entries }),
@@ -46,7 +58,15 @@ export async function exportBackup(localStore: LocalStore, repository: NoteRepos
 // 空のデバイスに、バックアップの中身を入れる。パスフレーズが違えば WrongPassphraseError を投げ、何も書かない。
 // 同期の設定は入れない（戻したあとで「設定」から足す）。記録はすべて「送っていない」にするので、
 // あとで同期先を足すと、同期先の内容とマージされる。
-export async function restoreBackup(localStore: LocalStore, file: Uint8Array, passphrase: string): Promise<void> {
+type BackupRestoreInput = {
+  localStore: LocalStore;
+  file: Uint8Array;
+  passphrase: string;
+  // 進み具合は、手元に書いた記録と添付の数で数える。
+  reportProgress?: ReportProgress;
+};
+
+export async function restoreBackup({ localStore, file, passphrase, reportProgress }: BackupRestoreInput): Promise<void> {
   const contents = decodeBackup(file);
   await unlockVault(contents.vault, passphrase);
   // 手元に書く前に確かめる（新しいアプリのバックアップを書いてから断ると、開けない vault が残る）。
@@ -55,11 +75,13 @@ export async function restoreBackup(localStore: LocalStore, file: Uint8Array, pa
   await localStore.writeSetting("vault", contents.vault);
   // 項目の書き込みはデバイスの ID ごとに持つので、このデバイスの ID をここで決めて保存する。
   await localStore.writeSetting("deviceId", newRandomId());
-  for (const entry of contents.entries) {
+  for (const [index, entry] of contents.entries.entries()) {
+    reportProgress?.({ done: index, total: contents.entries.length });
     if (entry.kind === "record") {
       await localStore.putRecordEntry({ id: entry.id, sealed: entry.sealed, remoteEtag: null, waitingForPush: true });
     } else {
       await localStore.putBlob({ id: entry.id, sealed: entry.sealed, uploaded: false });
     }
   }
+  reportProgress?.({ done: contents.entries.length, total: contents.entries.length });
 }

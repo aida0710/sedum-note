@@ -4,6 +4,7 @@
 import type { Editor } from "@tiptap/react";
 import { type ReactNode, useRef } from "react";
 import type { NoteRepository } from "../../core/notes/noteRepository";
+import type { TaskProgress } from "../../core/progress/taskProgress";
 import { translate } from "../i18n/translate";
 import { deleteCapturedPhotos } from "../platform/capturedPhotos";
 import { readDevicePreferences } from "../preferences/devicePreferences";
@@ -21,6 +22,8 @@ export type NoteAttachments = {
   pickFile: () => void;
   capturePhoto: () => void;
   errorMessage: string | null;
+  // 添付している間の進み具合（ファイルの数）。添付していなければ null。
+  progress: TaskProgress | null;
   // 画面には出ない、ファイルを選ぶための入力欄。
   fileInputs: ReactNode;
 };
@@ -32,7 +35,7 @@ export function useNoteAttachments(repository: NoteRepository): NoteAttachments 
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
 
-  const attach = useAsyncAction(async (files: File[]) => {
+  const attach = useAsyncAction(async (files: File[], { reportProgress }) => {
     if (!editor.current) {
       return;
     }
@@ -45,7 +48,7 @@ export function useNoteAttachments(repository: NoteRepository): NoteAttachments 
       })
       : imageAttachment === "reduced";
     try {
-      await attachFiles({ files, reduceImages, editor: editor.current, repository });
+      await attachFiles({ files, reduceImages, editor: editor.current, repository, reportProgress });
     } finally {
       // Android のカメラで撮った写真は、暗号化されない一時ファイルで届く。添付にしたら消す。
       deleteCapturedPhotos();
@@ -71,6 +74,7 @@ export function useNoteAttachments(repository: NoteRepository): NoteAttachments 
     pickFile: () => fileInput.current?.click(),
     capturePhoto: () => cameraInput.current?.click(),
     errorMessage: attach.errorMessage,
+    progress: attach.progress,
     fileInputs: (
       <>
         <input ref={imageInput} type="file" accept="image/*" multiple hidden onChange={takePickedFiles} />

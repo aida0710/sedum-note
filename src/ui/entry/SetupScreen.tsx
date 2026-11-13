@@ -12,6 +12,7 @@ import type { VaultSession } from "../session/useVaultSession";
 import { EntryBrand } from "./EntryBrand";
 import { BACKUP_FILE_EXTENSION } from "../platform/saveFile";
 import { PassphraseGenerator } from "../shared/PassphraseGenerator";
+import { ProgressStatus } from "../shared/ProgressStatus";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { SyncSetupImport } from "../sync/SyncSetupImport";
 import { SyncTargetFields } from "../sync/SyncTargetFields";
@@ -44,9 +45,9 @@ export function SetupScreen({ session, spaceId }: { session: VaultSession; space
   const [inputProblem, setInputProblem] = useState<string | null>(null);
   const [backupFile, setBackupFile] = useState<File | null>(null);
   const backupFileInput = useRef<HTMLInputElement>(null);
-  const action = useAsyncAction(async (input: SetupInput) => {
+  const action = useAsyncAction(async (input: SetupInput, { reportProgress }) => {
     if (input.mode === "restore") {
-      await session.restoreBackup({ file: new Uint8Array(await input.backupFile.arrayBuffer()), passphrase: input.passphrase });
+      await session.restoreBackup({ file: new Uint8Array(await input.backupFile.arrayBuffer()), passphrase: input.passphrase, reportProgress });
     } else {
       await session.startVault({ passphrase: input.passphrase, syncTarget: input.syncTarget });
     }
@@ -141,7 +142,9 @@ export function SetupScreen({ session, spaceId }: { session: VaultSession; space
         {usesSync && <SyncTargetFields form={syncTargetForm} />}
         {message && <div className="form-error" role="alert">{message}</div>}
         <div className="form-actions">
-          {action.busy && <span className="hint">{translate("setup.working")}</span>}
+          {action.busy && (mode === "restore"
+            ? <ProgressStatus label={translate("setup.restoring")} progress={action.progress} />
+            : <span className="hint">{translate("setup.working")}</span>)}
           {usesSync && syncTargetForm.checked === null && !action.busy && <span className="hint">{translate("syncTarget.checkFirst")}</span>}
           {addedSpace !== null && (
             <button type="button" className="secondary-button" disabled={action.busy || cancelAddedSpace.busy} onClick={() => void cancelAddedSpace.run(undefined)}>

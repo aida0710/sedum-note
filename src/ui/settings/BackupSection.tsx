@@ -5,13 +5,14 @@ import { translate } from "../i18n/translate";
 import { fileNameDate } from "../platform/fileNameDate";
 import { BACKUP_FILE_EXTENSION, saveFile } from "../platform/saveFile";
 import type { VaultSession } from "../session/useVaultSession";
+import { ProgressStatus } from "../shared/ProgressStatus";
 import { useAsyncAction } from "../shared/useAsyncAction";
 
 export function BackupSection({ session }: { session: VaultSession }) {
   const [result, setResult] = useState<{ noteCount: number; missingAttachmentCount: number } | null>(null);
-  const exportToFile = useAsyncAction(async () => {
+  const exportToFile = useAsyncAction(async (_: undefined, { reportProgress }) => {
     setResult(null);
-    const backup = await session.exportBackup();
+    const backup = await session.exportBackup(reportProgress);
     const saved = await saveFile({ suggestedName: backupFileName(new Date()), parts: backup.parts, mimeType: "application/octet-stream" });
     if (saved) {
       setResult(backup);
@@ -26,6 +27,7 @@ export function BackupSection({ session }: { session: VaultSession }) {
         <div className="form-error" role="alert">{translate("settings.backupMissingAttachments", { count: result.missingAttachmentCount })}</div>
       )}
       <div className="form-actions">
+        {exportToFile.busy && <ProgressStatus label={translate("settings.backupExporting")} progress={exportToFile.progress} />}
         {result && <span className="form-success">{translate("settings.backupExported", { count: result.noteCount })}</span>}
         <button type="button" className="secondary-button" disabled={exportToFile.busy} onClick={() => void exportToFile.run(undefined)}>
           {translate("settings.backupExport")}

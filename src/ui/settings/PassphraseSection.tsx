@@ -6,6 +6,7 @@ import { translate } from "../i18n/translate";
 import type { VaultSession } from "../session/useVaultSession";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 import { PassphraseGenerator } from "../shared/PassphraseGenerator";
+import { ProgressStatus } from "../shared/ProgressStatus";
 import { useAsyncAction } from "../shared/useAsyncAction";
 
 export function PassphraseSection({ session }: { session: VaultSession }) {
@@ -39,6 +40,7 @@ export function PassphraseSection({ session }: { session: VaultSession }) {
       <PassphraseGenerator passphrase={next} onGenerate={setNext} />
       {change.errorMessage && <div className="form-error" role="alert">{change.errorMessage}</div>}
       <div className="form-actions">
+        {change.busy && <ProgressStatus label={translate("settings.passphraseChanging")} progress={null} />}
         {changed && <span className="form-success">{translate("settings.passphraseChanged")}</span>}
         <button type="submit" className="secondary-button" disabled={change.busy}>{translate("settings.passphrase")}</button>
       </div>

@@ -12,6 +12,7 @@
 import type { LocalRecordEntry, LocalStore } from "../local/localStore";
 import { ensureDataFormatSupported } from "../format/dataFormat";
 import type { NoteRepository } from "../notes/noteRepository";
+import type { TaskProgress } from "../progress/taskProgress";
 import { type ObjectStore, PreconditionFailedError, type WriteCondition } from "../remote/objectStore";
 import { readRemoteVault, writeRemoteVault } from "../vault/remoteVault";
 import type { VaultDocument } from "../vault/vaultDocument";
@@ -28,10 +29,14 @@ export class VaultReplacedError extends Error {
 }
 
 // 同期先から一度に取ってくる記録の数。束ごとに vault.json を読み直すので、読み直しの回数と、取り込む前に手元に持つ
-// 暗号文の量の釣り合いで決めた。
-const PULL_BATCH_SIZE = 50;
+// 暗号文の量の釣り合いで決めた。送るときも、同じ数ごとに画面へ知らせる。
+const SYNC_BATCH_SIZE = 50;
 
 type FetchedRecord = { id: string; body: Uint8Array; etag: string };
+
+// 同期の進み具合。受信（同期先の変更を取り込む）と送信（手元の変更を送る）で、それぞれ件数を数える。
+export type SyncProgress = TaskProgress & { direction: "receiving" | "sending" };
+export type ReportSyncProgress = (progress: SyncProgress) => void;
 
 export type SyncReport = {
   // 同期先から取り込んだ記録の数。
@@ -40,6 +45,9 @@ export type SyncReport = {
   // 開けなかった記録（壊れている、または別のキーで暗号化されている）。
   unreadableIds: string[];
 };
+
+// 受信と送信の 1 回分に渡すもの。remoteEtags は、この同期の始めに取った同期先の一覧（記録の ID と ETag）。
+type SyncPassInput = { remoteEtags: Map<string, string>; report: SyncReport; reportProgress: ReportSyncProgress | undefined };
 
 export type SyncEngineDependencies = {
   localStore: LocalStore;
@@ -65,21 +73,21 @@ export class SyncEngine {
     });
   }
 
-  // 同期中にもう一度呼ばれたら、走っている方の結果を返す。
-  syncOnce(): Promise<SyncReport> {
-    this.#running ??= this.#sync().finally(() => {
+  // 同期中にもう一度呼ばれたら、走っている方の結果を返す（進み具合は、先に呼んだ方へ渡す）。
+  syncOnce(reportProgress?: ReportSyncProgress): Promise<SyncReport> {
+    this.#running ??= this.#sync(reportProgress).finally(() => {
       this.#running = null;
     });
     return this.#running;
   }
 
-  async #sync(): Promise<SyncReport> {
+  async #sync(reportProgress: ReportSyncProgress | undefined): Promise<SyncReport> {
     const report: SyncReport = { pulledCount: 0, pushedCount: 0, unreadableIds: [] };
     await this.#checkRemoteVault();
     await this.#uploadWaitingBlobs();
     const remoteEtags = await this.#listRemoteRecords();
-    await this.#pullChangedRecords(remoteEtags, report);
-    await this.#pushWaitingRecords(remoteEtags, report);
+    await this.#pullChangedRecords({ remoteEtags, report, reportProgress });
+    await this.#pushWaitingRecords({ remoteEtags, report, reportProgress });
     // 記録を送る間に貼られた添付や、削除の印の上へ送り直すことになった添付を送る。
     await this.#uploadWaitingBlobs();
     await this.#versionSync.uploadWaitingVersions();
@@ -135,19 +143,24 @@ export class SyncEngine {
     return remoteEtags;
   }
 
-  async #pullChangedRecords(remoteEtags: Map<string, string>, report: SyncReport): Promise<void> {
+  async #pullChangedRecords({ remoteEtags, report, reportProgress }: SyncPassInput): Promise<void> {
     const { localStore, repository } = this.#dependencies;
     // 件数が多くても軽いよう、暗号文は読まずに ETag だけを比べる。
     const localEntries = new Map((await localStore.listRecordStates()).map((entry) => [entry.id, entry]));
     const changedIds = [...remoteEtags].filter(([id, etag]) => localEntries.get(id)?.remoteEtag !== etag).map(([id]) => id);
-    for (let start = 0; start < changedIds.length; start += PULL_BATCH_SIZE) {
-      const fetched = await this.#fetchRecords(changedIds.slice(start, start + PULL_BATCH_SIZE));
+    for (let start = 0; start < changedIds.length; start += SYNC_BATCH_SIZE) {
+      const fetched = await this.#fetchRecords(changedIds.slice(start, start + SYNC_BATCH_SIZE), (fetchedCount) => {
+        reportProgress?.({ direction: "receiving", done: start + fetchedCount, total: changedIds.length });
+      });
       await this.#ensureRemoteDataFormatSupported();
-      for (const record of fetched) {
-        if (await this.#merge(record, report)) {
-          report.pulledCount += 1;
+      // 束の中の記録は、取り込み終えてから画面へ 1 回知らせる（1 件ごとに知らせると、件数の 2 乗の時間がかかる）。
+      await repository.holdChangeNotifications(async () => {
+        for (const record of fetched) {
+          if (await this.#merge(record, report)) {
+            report.pulledCount += 1;
+          }
         }
-      }
+      });
     }
     for (const entry of localEntries.values()) {
       if (entry.remoteEtag !== null && !remoteEtags.has(entry.id)) {
@@ -157,14 +170,17 @@ export class SyncEngine {
   }
 
   // 同期先の記録を取ってくる（手元へはまだ入れない）。取ってくる間に消えていた記録は飛ばす。
-  async #fetchRecords(ids: string[]): Promise<FetchedRecord[]> {
+  // onProgress には、ids のうち取りにいき終えた数を渡す。
+  async #fetchRecords(ids: string[], onProgress?: (fetchedCount: number) => void): Promise<FetchedRecord[]> {
     const fetched: FetchedRecord[] = [];
-    for (const id of ids) {
+    for (const [index, id] of ids.entries()) {
+      onProgress?.(index);
       const remote = await this.#dependencies.objectStore.get(recordObjectKey(id));
       if (remote !== null) {
         fetched.push({ id, body: remote.body, etag: remote.etag });
       }
     }
+    onProgress?.(ids.length);
     return fetched;
   }
 
@@ -202,34 +218,49 @@ export class SyncEngine {
     return this.#merge(record, report);
   }
 
-  async #pushWaitingRecords(remoteEtags: Map<string, string>, report: SyncReport): Promise<void> {
+  async #pushWaitingRecords({ remoteEtags, report, reportProgress }: SyncPassInput): Promise<void> {
     const { repository } = this.#dependencies;
-    for (const entry of await repository.entriesWaitingForPush()) {
-      try {
-        await this.#pushEntry(entry, remoteEtags.has(entry.id));
-        report.pushedCount += 1;
-      } catch (error) {
-        if (!(error instanceof PreconditionFailedError)) {
-          throw error;
+    const waiting = await repository.entriesWaitingForPush();
+    for (let start = 0; start < waiting.length; start += SYNC_BATCH_SIZE) {
+      // 送り終えた印は 1 件ごとに画面へ知らせるので、束ごとにまとめる（1 件ごとだと、件数の 2 乗の時間がかかる）。
+      await repository.holdChangeNotifications(async () => {
+        for (const [index, entry] of waiting.slice(start, start + SYNC_BATCH_SIZE).entries()) {
+          reportProgress?.({ direction: "sending", done: start + index, total: waiting.length });
+          await this.#pushOrMergeAndRetry(entry, { existsRemotely: remoteEtags.has(entry.id), report });
         }
-        // 一覧を取ったあとに、ほかのデバイスが先に書いた。取り込んでマージし、その上へ送り直す。
-        // それも先を越されたら、次の周回に回す。
-        if (!(await this.#fetchAndMerge(entry.id, report))) {
-          continue;
-        }
-        report.pulledCount += 1;
-        const merged = (await repository.entriesWaitingForPush()).find((candidate) => candidate.id === entry.id);
-        if (!merged) {
-          continue;
-        }
-        try {
-          await this.#pushEntry(merged, true);
-          report.pushedCount += 1;
-        } catch (retryError) {
-          if (!(retryError instanceof PreconditionFailedError)) {
-            throw retryError;
-          }
-        }
+      });
+    }
+    if (waiting.length > 0) {
+      reportProgress?.({ direction: "sending", done: waiting.length, total: waiting.length });
+    }
+  }
+
+  // 1 件を送る。一覧を取ったあとに、ほかのデバイスが先に書いていたら、取り込んでマージし、その上へ送り直す。
+  // それも先を越されたら、次の周回に回す。
+  async #pushOrMergeAndRetry(entry: LocalRecordEntry, { existsRemotely, report }: { existsRemotely: boolean; report: SyncReport }): Promise<void> {
+    try {
+      await this.#pushEntry(entry, existsRemotely);
+      report.pushedCount += 1;
+      return;
+    } catch (error) {
+      if (!(error instanceof PreconditionFailedError)) {
+        throw error;
+      }
+    }
+    if (!(await this.#fetchAndMerge(entry.id, report))) {
+      return;
+    }
+    report.pulledCount += 1;
+    const merged = (await this.#dependencies.repository.entriesWaitingForPush()).find((candidate) => candidate.id === entry.id);
+    if (!merged) {
+      return;
+    }
+    try {
+      await this.#pushEntry(merged, true);
+      report.pushedCount += 1;
+    } catch (retryError) {
+      if (!(retryError instanceof PreconditionFailedError)) {
+        throw retryError;
       }
     }
   }

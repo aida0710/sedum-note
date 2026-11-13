@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { translate } from "../i18n/translate";
 import type { VaultSession } from "../session/useVaultSession";
+import { ProgressStatus } from "../shared/ProgressStatus";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { chosenSyncKey, findNewSyncKeyProblem, GENERATED_SYNC_KEY, NewSyncKeyChoice } from "../sync/NewSyncKeyChoice";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
@@ -43,6 +44,7 @@ export function SyncKeySection({ session }: { session: VaultSession }) {
       </label>
       {message && <div className="form-error" role="alert">{message}</div>}
       <div className="form-actions">
+        {replace.busy && <ProgressStatus label={translate("settings.syncKeyReplacing")} progress={null} />}
         {replaced && <span className="form-success">{translate("settings.syncKeyReplaced")}</span>}
         <button type="submit" className="secondary-button" disabled={replace.busy || !confirmed}>{translate("settings.syncKeyReplace")}</button>
       </div>

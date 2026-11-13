@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type BackupExport, exportBackup, restoreBackup } from "../../core/backup/vaultBackup";
 import { DATA_FORMAT_VERSION } from "../../core/format/dataFormat";
+import type { ReportProgress } from "../../core/progress/taskProgress";
 import type { RemoteConfig } from "../../core/remote/remoteConfig";
 import { AutoSync, type SyncStatus } from "../../core/sync/autoSync";
 import { exportSyncSetup } from "../../core/vault/syncSetupFile";
@@ -34,6 +35,13 @@ export type VaultPhase =
   | { phase: "locked" }
   | { phase: "unlocked"; vault: UnlockedVault };
 
+export type SyncTargetConnection = {
+  syncTarget: SyncTargetChoice;
+  passphrase: string | null;
+  // 前の同期先から新しい同期先へ添付を写す進み具合（同期先を変えたときだけ）。
+  reportProgress?: ReportProgress;
+};
+
 export type VaultSession = {
   state: VaultPhase;
   syncStatus: SyncStatus | null;
@@ -47,7 +55,7 @@ export type VaultSession = {
   // 同期先の今の状態を確かめる（画面の「接続を確認」）。何も保存しない。
   checkSyncTarget: (remoteConfig: RemoteConfig) => Promise<SyncTargetCheck>;
   // 確かめた同期先を保存して、同期を始める。空の同期先に置くときは、このデバイスのパスフレーズが要る。
-  connectSyncTarget: (input: { syncTarget: SyncTargetChoice; passphrase: string | null }) => Promise<void>;
+  connectSyncTarget: (input: SyncTargetConnection) => Promise<void>;
   replaceSyncKey: (input: { passphrase: string; syncKey: string | null }) => Promise<void>;
   // 同期の設定を、ほかのデバイスへ渡すための文書にする（暗号化キーが無いと読めない）。
   exportSyncSetup: () => Promise<string>;
@@ -56,9 +64,9 @@ export type VaultSession = {
   dismissGeneratedSyncKey: () => void;
   changePassphrase: (passphrases: { current: string; next: string }) => Promise<void>;
   syncNow: () => Promise<void>;
-  exportBackup: () => Promise<BackupExport>;
+  exportBackup: (reportProgress?: ReportProgress) => Promise<BackupExport>;
   // 空のデバイスにバックアップを戻し、そのままロックを解除する。
-  restoreBackup: (input: { file: Uint8Array; passphrase: string }) => Promise<void>;
+  restoreBackup: (input: { file: Uint8Array; passphrase: string; reportProgress?: ReportProgress }) => Promise<void>;
   summarizeDeviceData: () => Promise<DeviceDataSummary>;
   // このデバイスのデータと表示の設定を消し、最初の画面から始め直す。ロック中でも使える。
   wipeDeviceData: () => Promise<void>;
@@ -235,16 +243,16 @@ export function useVaultSession(spaceId: string): VaultSession {
       return exportSyncSetup(environment, vault);
     },
     changePassphrase: changePassphraseOfAllSpaces,
-    exportBackup: () => {
+    exportBackup: (reportProgress) => {
       if (!vault) {
         throw new Error("the vault is locked");
       }
-      return exportBackup(environment.localStore, vault.repository, new Date());
+      return exportBackup({ localStore: environment.localStore, repository: vault.repository, now: new Date(), reportProgress });
     },
-    restoreBackup: async ({ file, passphrase }) => {
+    restoreBackup: async ({ file, passphrase, reportProgress }) => {
       // バックアップを戻すと、このスペースのパスフレーズは、バックアップのパスフレーズになる。ほかのスペースと同じものだけを受け付ける。
       await verifyPassphraseOfOtherSpaces(spaceId, passphrase);
-      await restoreBackup(environment.localStore, file, passphrase);
+      await restoreBackup({ localStore: environment.localStore, file, passphrase, reportProgress });
       enter(await unlockLocalVault(environment, passphrase));
     },
     // 消すのは全部のスペースなので、失われるものも全部のスペースで数える。
