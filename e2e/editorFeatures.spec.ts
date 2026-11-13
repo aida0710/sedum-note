@@ -343,6 +343,9 @@ test("テンプレートの @date・@time・@title は、新しいメモを作�
 
   // 「/」で入れるときは、@title は入れる先のメモの題になる。
   await newNote(page, "週次の振り返り");
+  // CI で 1 度、続けて打った「/日報」で候補が出なかった（手元では再現しない）。本文にカーソルを置いたのを確かめてから打つ。
+  await placeCursorAtBodyEnd(page);
+  await expect(page.locator(".ProseMirror")).toBeFocused();
   await page.keyboard.type("/日報");
   await expect(page.getByRole("listbox", { name: "ブロックの種類" }).getByRole("option")).toHaveText(["テンプレート: @date の日報"]);
   await page.keyboard.press("Enter");
