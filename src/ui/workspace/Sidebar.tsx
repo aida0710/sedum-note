@@ -76,7 +76,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
   // 今の検索（言葉と範囲）に名前を付けて保存する。
   const saveSearch = async () => {
     const searchText = navigation.searchText.trim();
-    const name = await dialogs.prompt({ message: translate("sidebar.saveSearchPrompt"), confirmLabel: translate("common.save"), initialValue: searchText });
+    const name = await dialogs.prompt({ title: translate("sidebar.saveSearch"), message: translate("sidebar.saveSearchPrompt"), confirmLabel: translate("common.save"), initialValue: searchText });
     if (name?.trim()) {
       await repository.createSavedSearch({
         name: name.trim(), searchText,

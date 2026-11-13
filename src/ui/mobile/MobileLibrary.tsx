@@ -25,7 +25,7 @@ export function MobileLibrary({ snapshot, repository, onPick, onOpenSavedSearch,
   const tags = countTags(snapshot.summaries);
   const notebookColors = assignNotebookColors(snapshot.notebooks);
   const addNotebook = async () => {
-    const name = (await dialogs.prompt({ message: translate("sidebar.newNotebookPlaceholder"), confirmLabel: translate("common.create") }))?.trim();
+    const name = (await dialogs.prompt({ title: translate("sidebar.newNotebook"), message: translate("sidebar.newNotebookPlaceholder"), confirmLabel: translate("common.create") }))?.trim();
     if (name) {
       await repository.createNotebook(name);
     }

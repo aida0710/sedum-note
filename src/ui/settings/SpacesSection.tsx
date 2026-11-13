@@ -13,14 +13,14 @@ export function SpacesSection() {
   const dialogs = useDialogs();
   const confirmPassphrase = useConfirmPassphrase();
   const add = async () => {
-    const name = (await dialogs.prompt({ message: translate("space.namePrompt"), confirmLabel: translate("common.add") }))?.trim();
+    const name = (await dialogs.prompt({ title: translate("space.add"), message: translate("space.namePrompt"), confirmLabel: translate("common.add") }))?.trim();
     if (name) {
       // 足したスペースに切り替わり、そのスペースの最初の設定（パスフレーズの確認と、同期するか）の画面になる。
       addSpace(name);
     }
   };
   const rename = async (space: Space) => {
-    const name = (await dialogs.prompt({ message: translate("space.namePrompt"), confirmLabel: translate("notebook.rename"), initialValue: space.name }))?.trim();
+    const name = (await dialogs.prompt({ title: translate("notebook.rename"), message: translate("space.namePrompt"), confirmLabel: translate("notebook.rename"), initialValue: space.name }))?.trim();
     if (name) {
       renameSpace(space.id, name);
     }

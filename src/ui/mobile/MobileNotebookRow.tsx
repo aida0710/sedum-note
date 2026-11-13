@@ -34,13 +34,13 @@ export function MobileNotebookRow({ notebook, depth, noteCount, notebookColors, 
   const [openDialog, setOpenDialog] = useState<NotebookDialog | null>(null);
   const { name } = notebook.content;
   const rename = async () => {
-    const newName = (await dialogs.prompt({ message: translate("notebook.rename"), confirmLabel: translate("common.save"), initialValue: name }))?.trim();
+    const newName = (await dialogs.prompt({ title: translate("notebook.rename"), message: translate("sidebar.newNotebookPlaceholder"), confirmLabel: translate("common.save"), initialValue: name }))?.trim();
     if (newName && newName !== name) {
       await repository.updateNotebook(notebook.id, { name: newName });
     }
   };
   const addChild = async () => {
-    const childName = (await dialogs.prompt({ message: translate("sidebar.newNotebookPlaceholder"), confirmLabel: translate("common.create") }))?.trim();
+    const childName = (await dialogs.prompt({ title: translate("notebook.addChild"), message: translate("sidebar.newNotebookPlaceholder"), confirmLabel: translate("common.create") }))?.trim();
     if (childName) {
       await repository.createNotebook(childName, notebook.id);
     }

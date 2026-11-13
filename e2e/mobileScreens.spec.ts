@@ -133,13 +133,13 @@ async function selectPhoneTab(page: Page, name: string): Promise<void> {
 // 「ノートブック」タブの上のボタンから、ノートブックを足す。
 async function addNotebookOnPhone(page: Page, name: string): Promise<void> {
   await page.getByRole("button", { name: "ノートブックを追加" }).click();
-  await fillPrompt(page, "ノートブックの名前", name, "作成");
+  await fillPrompt(page, "ノートブックを追加", name, "作成");
 }
 
-// 1 行の入力のダイアログに文字を入れて決める。
+// 1 行の入力のダイアログ（見出しが dialogName）に文字を入れて決める。
 async function fillPrompt(page: Page, dialogName: string, text: string, confirmLabel: string): Promise<void> {
   const dialog = page.getByRole("dialog", { name: dialogName });
-  await dialog.getByRole("textbox").fill(text);
+  await dialog.getByRole("textbox", { name: "ノートブックの名前" }).fill(text);
   await dialog.getByRole("button", { name: confirmLabel }).click();
 }
 
@@ -157,7 +157,7 @@ test("スマホのノートブックの行の「…」から、名前の変更�
 
   await openNotebookMenu(page, "旅行");
   await page.getByRole("menuitem", { name: "中にノートブックを追加" }).click();
-  await fillPrompt(page, "ノートブックの名前", "京都", "作成");
+  await fillPrompt(page, "中にノートブックを追加", "京都", "作成");
   // 名前の順（仕事 → 旅行）に並び、子は親のすぐ下に、親より右へ寄せて出る。
   await expect(page.locator(".notebook-row .library-row-label")).toHaveText(["仕事", "旅行", "京都"]);
   const labelLeft = async (name: string) => (await notebookRow(page, name).locator(".library-row-label").boundingBox())!.x;

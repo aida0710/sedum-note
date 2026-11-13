@@ -46,7 +46,7 @@ export function TableMenu({ editor, insideTable, iconSize }: TableMenuProps) {
   const dialogs = useDialogs();
   const rowFilter = tableRowFilterKey.getState(editor.state) ?? null;
   const askRowFilter = async () => {
-    const text = await dialogs.prompt({ message: translate("editor.table.filterRowsPrompt"), confirmLabel: translate("common.apply"), initialValue: rowFilter?.text ?? "" });
+    const text = await dialogs.prompt({ title: translate("editor.table.filterRows"), message: translate("editor.table.filterRowsPrompt"), confirmLabel: translate("common.apply"), initialValue: rowFilter?.text ?? "" });
     if (text !== null && text.trim() !== "") {
       editor.chain().focus().filterTableRows(text).run();
     } else if (text !== null) {

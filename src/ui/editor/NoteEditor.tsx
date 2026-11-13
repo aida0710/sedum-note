@@ -302,7 +302,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
     editor?.chain().focus().insertContent({ type: NOTE_LINK_NODE, attrs: { noteId: linkedNoteId, blockId: linkedBlockId } }).run();
   };
   // リンク先を聞く。今のリンク先（リンクを編集するとき）があれば、それを入れておく。
-  const askLink = (currentUrl: string = NEW_LINK_URL) => dialogs.prompt({ message: translate("editor.linkPrompt"), confirmLabel: translate("common.apply"), initialValue: currentUrl });
+  const askLink = (currentUrl: string = NEW_LINK_URL) => dialogs.prompt({ title: translate("editor.link"), message: translate("editor.linkPrompt"), confirmLabel: translate("common.apply"), initialValue: currentUrl });
   const openWebLink = useAsyncAction(openExternalUrl);
   const { pickImage, pickFile } = attachments;
   const pickNoteLink = () => setPickingNoteLink(true);

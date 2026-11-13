@@ -8,8 +8,9 @@ const noteInList = (page: Page, title: string) => page.locator(".tree-note", { h
 async function addSpace(page: Page, name: string): Promise<void> {
   await openSettingsPage(page, "一般");
   await page.getByRole("button", { name: "スペースを追加" }).click();
-  const prompt = page.getByRole("dialog", { name: "スペースの名前" });
-  await prompt.getByRole("textbox").fill(name);
+  const prompt = page.getByRole("dialog", { name: "スペースを追加" });
+  await expect(prompt.getByRole("heading", { name: "スペースを追加" })).toBeVisible();
+  await prompt.getByRole("textbox", { name: "スペースの名前" }).fill(name);
   await prompt.getByRole("button", { name: "追加" }).click();
 }
 
