@@ -34,6 +34,7 @@ export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
   { label: "settings.sync", page: "sync" },
   { label: "settings.autoSync", page: "sync" },
   { label: "syncSetup.export", page: "sync" },
+  { label: "syncSetup.pickFile", page: "sync" },
   { label: "settings.syncKey", page: "sync" },
   { label: "settings.backup", page: "data" },
   { label: "settings.markdown", page: "data" },
