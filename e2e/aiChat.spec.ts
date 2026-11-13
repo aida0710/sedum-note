@@ -434,7 +434,7 @@ test("開いているメモの直しを頼むと、差分を承認してから�
   // 承認するまでは、メモは変わらない。
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかん"]);
 
-  await card.getByRole("button", { name: "行う", exact: true }).click();
+  await card.getByRole("button", { name: "許可", exact: true }).click();
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "バナナ", "みかん", "ぶどう"]);
   await expect(page.locator('.ProseMirror [data-text-color="red"]')).toHaveText("りんご");
   await expect(card).toHaveCount(0);
@@ -473,7 +473,7 @@ test("承認を待つ間にメモを書き換えると、その変更は行わ�
   await page.locator(".ProseMirror p").last().click();
   await page.keyboard.press("End");
   await page.keyboard.type("とレモン");
-  await approvalCard(page).getByRole("button", { name: "行う", exact: true }).click();
+  await approvalCard(page).getByRole("button", { name: "許可", exact: true }).click();
   await expect(chat(page).locator(".ai-tool-activity")).toContainText("承認を待つ間に対象が変わったため、行いませんでした");
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text").last()).toHaveText("書き換えられたので、直しませんでした。");
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかんとレモン"]);
@@ -486,8 +486,8 @@ test("承認を待つ間にメモを書き換えると、その変更は行わ�
 
   // ゴミ箱に入れるのは、作る・直すとは別の許可（既定は毎回聞く）。
   await expect(approvalCard(page)).toContainText("「果物」をゴミ箱に入れる");
-  await approvalCard(page).getByRole("button", { name: "行わない" }).click();
-  await expect(chat(page).locator(".ai-tool-activity").last()).toContainText("承認しなかったため、行いませんでした");
+  await approvalCard(page).getByRole("button", { name: "拒否", exact: true }).click();
+  await expect(chat(page).locator(".ai-tool-activity").last()).toContainText("拒否したため、行いませんでした");
   await expect(page.locator(".tree-note", { hasText: "果物" })).toBeVisible();
 
   // 承認を待たない切り替えは、その会話だけ。設定は毎回聞くのままで、新しい会話では外れる。
@@ -524,7 +524,7 @@ test("開いていないメモも、検索して読み、差分を承認して�
   await expect(activities.nth(0)).toContainText("「沖縄」で検索");
   await expect(activities.nth(0)).toContainText("1 件");
   await expect(activities.nth(1)).toContainText("「沖縄旅行」を読む");
-  await approvalCard(page).getByRole("button", { name: "行う", exact: true }).click();
+  await approvalCard(page).getByRole("button", { name: "許可", exact: true }).click();
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text").last()).toHaveText("直しました。");
   expect(requests).toHaveLength(4);
 
@@ -617,7 +617,7 @@ test("AI が本文をそのまま返したブロックは、Markdown に出し�
   await expect(card.getByLabel("足す行")).toHaveText(["ぶどう"]);
   await expect(card.getByLabel("消す行")).toHaveCount(0);
 
-  await card.getByRole("button", { name: "行う", exact: true }).click();
+  await card.getByRole("button", { name: "許可", exact: true }).click();
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["足しました。"]);
   await expect(page.locator(".ProseMirror > *").last()).toHaveText("ぶどう");
   const kindsAfter = await blockKinds.evaluateAll((blocks) => blocks.map((block) => block.className || block.tagName));
@@ -687,7 +687,7 @@ test("OpenAI 互換で、1 つの答えに 2 つの呼び出しがあれば 1 �
   const card = approvalCard(page);
   await expect(card.getByRole("checkbox")).toHaveCount(2);
   await card.getByRole("checkbox", { name: "メモ「やること」を作る" }).uncheck();
-  await card.getByRole("button", { name: "選んだものを行う" }).click();
+  await card.getByRole("button", { name: "選んだものを許可" }).click();
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["1 つ作りました。"]);
   await expect(page.locator(".tree-note", { hasText: "買うもの" })).toBeVisible();
   await expect(page.locator(".tree-note", { hasText: "やること" })).toHaveCount(0);
