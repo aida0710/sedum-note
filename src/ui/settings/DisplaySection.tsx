@@ -1,4 +1,4 @@
-// 設定: このデバイスの表示（言語、メモの並び順、本文の文字の組み方、本文の配置の既定、写真を貼るときの大きさ、タイプライターモード）。
+// 設定: このデバイスの表示（言語、メモの並び順、本文の文字の組み方、本文の配置の既定（PC だけ）、写真を貼るときの大きさ、タイプライターモード）。
 
 import { NOTE_SORT_ORDERS, type NoteSortOrder } from "../../core/notes/noteQueries";
 import { PAGE_ALIGNMENTS, type PageAlignment } from "../../core/notes/noteRecords";
@@ -12,7 +12,12 @@ import { SettingCheckboxRow, SettingRow } from "./SettingRow";
 // 言語の名前は、画面の言語に関わらずその言語で書く（読めない言語に変えても戻せるように）。
 const LANGUAGE_NAMES: Record<Language, string> = { ja: "日本語", en: "English" };
 
-export function DisplaySection() {
+type DisplaySectionProps = {
+  // 本文の配置の既定を出すか。スマホでは本文が画面の幅いっぱいで、メモごとに配置を選ぶ所（メモの「…」）も無いので出さない。
+  showsPageAlignment: boolean;
+};
+
+export function DisplaySection({ showsPageAlignment }: DisplaySectionProps) {
   const preferences = useDevicePreferences();
   return (
     <section className="settings-section">
@@ -36,13 +41,15 @@ export function DisplaySection() {
         )}
       </SettingRow>
       <EditorTypographySettings />
-      <SettingRow controlId="display-page-alignment" label={translate("settings.pageAlignment")} hint={translate("settings.pageAlignmentHint")}>
-        {(control) => (
-          <select {...control} value={preferences.pageAlignment} onChange={(event) => updateDevicePreferences({ pageAlignment: event.target.value as PageAlignment })}>
-            {PAGE_ALIGNMENTS.map((alignment) => <option key={alignment} value={alignment}>{translate(`pageAlignment.${alignment}`)}</option>)}
-          </select>
-        )}
-      </SettingRow>
+      {showsPageAlignment && (
+        <SettingRow controlId="display-page-alignment" label={translate("settings.pageAlignment")} hint={translate("settings.pageAlignmentHint")}>
+          {(control) => (
+            <select {...control} value={preferences.pageAlignment} onChange={(event) => updateDevicePreferences({ pageAlignment: event.target.value as PageAlignment })}>
+              {PAGE_ALIGNMENTS.map((alignment) => <option key={alignment} value={alignment}>{translate(`pageAlignment.${alignment}`)}</option>)}
+            </select>
+          )}
+        </SettingRow>
+      )}
       <SettingRow controlId="display-image-attachment" label={translate("settings.imageAttachment")}
         hint={translate("settings.imageAttachmentHint", { edge: REDUCED_IMAGE_MAX_EDGE })}>
         {(control) => (

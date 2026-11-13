@@ -29,15 +29,17 @@ type SettingsPageContentProps = {
   vault: UnlockedVault;
   // 設定のほかのページへ移る（「アプリの更新が必要」の知らせから「更新」のページへ、など）。
   onSelectPage: (page: SettingsPage) => void;
+  // スマホの組み方か。スマホに無い機能の欄（本文の配置の既定）を出さない。
+  isMobile: boolean;
 };
 
-export function SettingsPageContent({ page, session, vault, onSelectPage }: SettingsPageContentProps) {
+export function SettingsPageContent({ page, session, vault, onSelectPage, isMobile }: SettingsPageContentProps) {
   const { repository } = vault;
   // PC 版では MCP の欄が入っている。Web 版と Android のアプリでは null。
   const mcpSection = useContext(McpSectionSlot);
   switch (page) {
     case "general":
-      return <><DisplaySection /><TemplateSection /><RemindersSection /><TrashSection repository={repository} /><SpacesSection /></>;
+      return <><DisplaySection showsPageAlignment={!isMobile} /><TemplateSection /><RemindersSection /><TrashSection repository={repository} /><SpacesSection /></>;
     case "appearance":
       return <><ThemeSection /><CustomCssSection /></>;
     case "sync":

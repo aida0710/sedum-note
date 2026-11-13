@@ -69,14 +69,15 @@ test("PC の広い画面では、選択欄とチェックを名前の右に並�
   }
 });
 
-test("スマホでは、選択欄を今までどおり名前の下に出し、チェックの印は名前の左に置く", async ({ browser }) => {
+test("スマホでは、選択欄を今までどおり名前の下に出し、チェックの印は名前の左に置く。スマホに無い「本文の配置」の既定は出さない", async ({ browser }) => {
   const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
   await startLocalVault(page);
   await page.locator(".tabbar").getByRole("button", { name: "設定" }).click();
   await page.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: /一般/ }).click();
 
-  const alignment = await nameAndControlBoxes(page, "本文の配置の既定");
-  expect(alignment.controlBox.y).toBeGreaterThanOrEqual(alignment.nameBox.y + alignment.nameBox.height);
+  const sortOrder = await nameAndControlBoxes(page, "メモの並び順");
+  expect(sortOrder.controlBox.y).toBeGreaterThanOrEqual(sortOrder.nameBox.y + sortOrder.nameBox.height);
+  await expect(page.getByLabel("本文の配置の既定")).toHaveCount(0);
   const typewriterMode = await nameAndControlBoxes(page, "打っている行を中央に保つ（タイプライターモード）");
   expect(typewriterMode.controlBox.x + typewriterMode.controlBox.width).toBeLessThanOrEqual(typewriterMode.nameBox.x);
 });
