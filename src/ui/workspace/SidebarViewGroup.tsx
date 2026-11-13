@@ -4,6 +4,8 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { type NoteSummary, type NoteView, selectNotes } from "../../core/notes/noteQueries";
+import { parseNoteSearchQuery } from "../../core/notes/noteSearchQuery";
+import { type SearchSnippet, searchSnippetOf } from "../../core/notes/noteSearchSnippet";
 import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import type { NoteRepository } from "../../core/notes/noteRepository";
@@ -103,26 +105,38 @@ export function ViewGroup({ view, icon, label, summaries, navigation, repository
   return <>{row}{contents}</>;
 }
 
-type NoteRowsProps = { notes: NoteSummary[]; view: NoteView; navigation: WorkspaceNavigation; repository: NoteRepository; depth: number };
+type NoteRowsProps = {
+  notes: NoteSummary[];
+  view: NoteView;
+  navigation: WorkspaceNavigation;
+  repository: NoteRepository;
+  depth: number;
+  // 検索の結果なら、行に添える本文の一部（当たった所）。
+  snippetOf?: (summary: NoteSummary) => SearchSnippet | null;
+};
 
-export function NoteRows({ notes, view, navigation, repository, depth }: NoteRowsProps) {
+export function NoteRows({ notes, view, navigation, repository, depth, snippetOf }: NoteRowsProps) {
   const paddingLeft = NOTE_ROW_PADDING_LEFT + depth * TREE_INDENT_STEP;
   if (notes.length === 0) {
     return <div className="tree-empty" style={{ paddingLeft }}>{translate("sidebar.noNotes")}</div>;
   }
   const listedNoteIds = notes.map(({ note }) => note.id);
-  return notes.map(({ note }) => (
-    <SidebarNoteRow key={note.id} note={note} view={view} listedNoteIds={listedNoteIds} paddingLeft={paddingLeft} navigation={navigation} repository={repository} />
+  return notes.map((summary) => (
+    <SidebarNoteRow key={summary.note.id} note={summary.note} view={view} listedNoteIds={listedNoteIds} paddingLeft={paddingLeft} navigation={navigation} repository={repository}
+      snippet={snippetOf?.(summary) ?? null} />
   ));
 }
 
 type SearchResultsProps = { summaries: NoteSummary[]; view: NoteView; navigation: WorkspaceNavigation; repository: NoteRepository };
 
+// 検索の結果。行ごとに、本文の中で当たった所と、その前後の文を添える。
 export function SearchResults({ summaries, view, navigation, repository }: SearchResultsProps) {
+  const { words } = parseNoteSearchQuery(navigation.searchText);
   return (
     <>
       <div className="section-title">{translate("sidebar.searchResults", { count: summaries.length })}</div>
-      <NoteRows notes={summaries} view={view} navigation={navigation} repository={repository} depth={-1} />
+      <NoteRows notes={summaries} view={view} navigation={navigation} repository={repository} depth={-1}
+        snippetOf={(summary) => searchSnippetOf(summary.plainText, words)} />
     </>
   );
 }

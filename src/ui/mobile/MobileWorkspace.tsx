@@ -102,7 +102,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
       {tab !== "settings" && <UpdateChip onOpenSettings={() => { selectTab("settings"); navigation.selectSettingsPage("update"); }} />}
       {(tab === "notes" || tab === "bookmarked") && (
         <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, { view, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNameOf: notebookNameLookup(snapshot.notebooks) })}
-          notebooks={snapshot.notebooks.map((notebook) => ({ id: notebook.id, name: notebook.content.name }))}
+          notebooks={snapshot.notebooks}
           view={view} showChips={tab === "notes"} navigation={navigation} repository={repository} onOpen={navigation.openNote}
           onPullToSync={syncFromPull} />
       )}

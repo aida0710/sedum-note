@@ -129,9 +129,12 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
         {searching ? (
           <>
             {scopedView && (
-              <button className="search-scope" onClick={() => setSearchEverywhere(!searchEverywhere)}>
-                {searchEverywhere ? translate("sidebar.searchOnlyIn", { name: scopeName }) : translate("sidebar.searchingIn", { name: scopeName })}
-              </button>
+              <div className="search-scope-switch" role="radiogroup" aria-label={translate("sidebar.searchScope")}>
+                <button type="button" role="radio" aria-checked={!searchEverywhere} title={scopeName} onClick={() => setSearchEverywhere(false)}>
+                  {translate("sidebar.searchScopeIn", { name: scopeName })}
+                </button>
+                <button type="button" role="radio" aria-checked={searchEverywhere} onClick={() => setSearchEverywhere(true)}>{translate("sidebar.searchScopeAll")}</button>
+              </div>
             )}
             <button className="search-scope" onClick={() => void saveSearch()}><Bookmark size={13} />{translate("sidebar.saveSearch")}</button>
             <SearchResults summaries={selectNotes(summaries, { view: searchView, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNameOf: notebookNameLookup(snapshot.notebooks) })}
@@ -152,6 +155,11 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
                 <span className="count">{dueItemsOf(summaries).filter((item) => !item.done).length}</span>
               </button>
             </div>
+            {/* テンプレートとゴミ箱も、メモの並びの 1 つとして、上のまとまりに置く（タグの見出しの下に置くと、タグの 1 つに見える）。 */}
+            {summaries.some((summary) => summary.note.content.isTemplate && summary.note.content.trashedAt === null) && (
+              <ViewGroup view={{ kind: "templates" }} icon={<LayoutTemplate size={15} />} label={translate("sidebar.templates")} summaries={summaries} navigation={navigation} repository={repository} />
+            )}
+            <ViewGroup view={{ kind: "trash" }} icon={<Trash2 size={15} />} label={translate("sidebar.trash")} summaries={summaries} navigation={navigation} repository={repository} />
             <div className="section-title">
               {translate("sidebar.notebooks")}
               <button className="icon-button" aria-label={translate("sidebar.newNotebook")} onClick={() => setAddingNotebook(true)}><Plus size={14} /></button>
@@ -181,10 +189,6 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onOpen
             {tags.map(({ tag }) => (
               <ViewGroup key={tag} view={{ kind: "tag", tag }} icon={<Hash size={15} />} label={tag} summaries={summaries} navigation={navigation} repository={repository} />
             ))}
-            {summaries.some((summary) => summary.note.content.isTemplate && summary.note.content.trashedAt === null) && (
-              <ViewGroup view={{ kind: "templates" }} icon={<LayoutTemplate size={15} />} label={translate("sidebar.templates")} summaries={summaries} navigation={navigation} repository={repository} />
-            )}
-            <ViewGroup view={{ kind: "trash" }} icon={<Trash2 size={15} />} label={translate("sidebar.trash")} summaries={summaries} navigation={navigation} repository={repository} />
           </>
         )}
       </div>

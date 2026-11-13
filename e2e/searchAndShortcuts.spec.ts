@@ -36,9 +36,15 @@ test("一覧の検索で開いたメモは、探した言葉に色が付く。�
   await page.keyboard.press("Control+Shift+f");
   await page.getByPlaceholder("メモを検索").fill("持ち物");
   await expect(page.getByText("検索結果（1件）")).toBeVisible();
-  await page.getByRole("button", { name: /「旅行」の中を検索しています/ }).click();
+  const scope = page.getByRole("radiogroup", { name: "検索する範囲" });
+  await expect(scope.getByRole("radio", { name: "「旅行」の中" })).toBeChecked();
+  await scope.getByRole("radio", { name: "すべてのメモ" }).click();
   await expect(page.getByText("検索結果（2件）")).toBeVisible();
-  await page.locator(".tree-note", { hasText: "ノートブックの外" }).click();
+  // 検索の結果には、本文の中で当たった所を、前後の文と一緒に出す。
+  const outside = page.locator(".tree-note", { hasText: "ノートブックの外" });
+  await expect(outside.locator(".tree-note-snippet")).toHaveText("持ち物の一覧");
+  await expect(outside.locator(".tree-note-snippet mark")).toHaveText("持ち物");
+  await outside.click();
   await expect(page.locator(".ProseMirror .search-match")).toHaveText("持ち物");
 });
 
@@ -316,4 +322,25 @@ test("検索を名前を付けて保存でき、左の列から同じ検索を�
   await savedSearch.hover();
   await page.getByRole("button", { name: "保存した検索「旅の準備」を消す" }).click();
   await expect(savedSearch).toHaveCount(0);
+});
+
+test("タブが多くても、開いたタブは見える所まで送られる", async ({ page }) => {
+  await startLocalVault(page);
+  for (let index = 1; index <= 9; index += 1) {
+    await newNote(page, `とても長い題のメモ その ${index}`, "本文");
+  }
+  await page.locator(".tree-note", { hasText: "とても長い題のメモ その 1" }).first().click();
+  await page.locator(".tree-note", { hasText: "とても長い題のメモ その 9" }).first().click();
+  const strip = await page.getByRole("tablist").boundingBox();
+  const active = await page.getByRole("tab", { selected: true }).boundingBox();
+  expect(active!.x).toBeGreaterThanOrEqual(strip!.x - 1);
+  expect(active!.x + active!.width).toBeLessThanOrEqual(strip!.x + strip!.width + 1);
+});
+
+test("左の列では、テンプレートとゴミ箱は、すべてのメモ・お気に入りと同じまとまりに並び、タグの見出しの下には並ばない", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "タグのあるメモ", "本文 #todo");
+  const order = await page.locator(".sidebar-scroll").evaluate((list) => [...list.querySelectorAll(".section-title, .nav-label")].map((element) => element.textContent?.trim() ?? ""));
+  expect(order.indexOf("ゴミ箱")).toBeLessThan(order.findIndex((text) => text.startsWith("ノートブック")));
+  expect(order.indexOf("ゴミ箱")).toBeLessThan(order.indexOf("タグ"));
 });

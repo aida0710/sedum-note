@@ -124,6 +124,8 @@ export function measureScreen() {
     // 枠の無い文字だけのリンクは、行の中の文字なので比べない。
     if (control.matches("a") && getComputedStyle(control).display === "inline") continue;
     if (control.closest(".katex, .ProseMirror")) continue;
+    // 題と本文の一部の 2 行を出す、検索の結果の行（2 行が正しい形）。
+    if (control.matches(".tree-note.with-snippet")) continue;
     const textRects = textLineRects(control);
     if (textRects.length === 0) continue;
     const lines = groupIntoLines(textRects);

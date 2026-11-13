@@ -4,12 +4,24 @@
 // 右端のボタンで開いているタブの一覧を出す（タブが多くて隠れたときに選べるように）。
 
 import { Check, ChevronDown, Columns2, Pin, PinOff, RotateCcw, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { showDragPreview } from "../shared/dragPreview";
 import { PopupMenu } from "../shared/PopupMenu";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { GRAPH_TAB, notebookIdOfDatabaseTab, REMINDERS_TAB, SETTINGS_TAB, type WorkspaceNavigation } from "./useWorkspaceNavigation";
+
+// タブが並びの外にはみ出していれば、並びだけを横に送って見せる。scrollIntoView は、並びを縦にも送り（中身が 1px 高い）、
+// 外側の画面まで送ることがあるので使わない。
+function scrollTabIntoStrip(strip: HTMLElement, tab: HTMLElement): void {
+  const stripBox = strip.getBoundingClientRect();
+  const tabBox = tab.getBoundingClientRect();
+  if (tabBox.left < stripBox.left) {
+    strip.scrollLeft -= stripBox.left - tabBox.left;
+  } else if (tabBox.right > stripBox.right) {
+    strip.scrollLeft += tabBox.right - stripBox.right;
+  }
+}
 
 // タブのドラッグのデータの種類。メモのドラッグ（左の列）と区別する。
 const TAB_DRAG_TYPE = "application/x-sedum-note-tab";
@@ -21,6 +33,16 @@ export function NoteTabs({ navigation, repository }: { navigation: WorkspaceNavi
   // 右クリックしたタブのメニューと、タブの一覧のメニュー。
   const [tabMenu, setTabMenu] = useState<{ tabId: string; anchor: HTMLElement } | null>(null);
   const [tabListAnchor, setTabListAnchor] = useState<HTMLElement | null>(null);
+  const tabStrip = useRef<HTMLDivElement>(null);
+  // 開いたタブ（切り替えたタブ）が、タブの並びの外に隠れていたら、見える所まで送る。並びは横に送れるが、
+  // 送るためのバーを隠しているので、送らないと右端で切れたままになる。
+  useEffect(() => {
+    const strip = tabStrip.current;
+    const activeTab = strip?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+    if (strip && activeTab) {
+      scrollTabIntoStrip(strip, activeTab);
+    }
+  }, [navigation.activeTab, navigation.openTabs.length]);
   const endTabDrag = () => {
     setDraggedTabId(null);
     setDropTargetTabId(null);
@@ -46,7 +68,7 @@ export function NoteTabs({ navigation, repository }: { navigation: WorkspaceNavi
   };
   return (
     <div className="tabs-bar">
-    <div className="tabs" role="tablist">
+    <div ref={tabStrip} className="tabs" role="tablist">
       {navigation.openTabs.map((tabId) => {
         const label = labelOf(tabId);
         const isPinned = navigation.pinnedTabs.includes(tabId);

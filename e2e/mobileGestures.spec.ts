@@ -116,3 +116,18 @@ test("同期先があれば、スマホの一覧を上から引いて離すと�
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await expect(phone.getByRole("status").filter({ hasText: "同期に失敗しました" })).toBeVisible({ timeout: 20_000 });
 });
+
+test("スマホの一覧の行と上のチップに、ノートブックの色の印が出る", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "ノートブックを追加" }).click();
+  await page.getByPlaceholder("ノートブックの名前").fill("旅行");
+  await page.getByPlaceholder("ノートブックの名前").press("Enter");
+  await page.getByRole("button", { name: /^旅行/ }).click();
+  await createNoteOnDesktop(page, "沖縄の持ち物");
+  await page.setViewportSize(PHONE_VIEWPORT);
+  await page.getByRole("button", { name: "戻る" }).click();
+  const notebookOfItem = page.locator(".note-item", { hasText: "沖縄の持ち物" }).locator(".meta-notebook");
+  await expect(notebookOfItem).toHaveText("旅行");
+  await expect(notebookOfItem.locator(".dot")).toBeVisible();
+  await expect(page.locator(".chips .chip", { hasText: "旅行" }).locator(".dot")).toBeVisible();
+});

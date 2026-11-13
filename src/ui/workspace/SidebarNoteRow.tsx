@@ -4,6 +4,7 @@
 import { MoreHorizontal, Pencil, Pin, PinOff, RotateCcw, Star, StarOff, Trash2 } from "lucide-react";
 import { useContext, useState } from "react";
 import type { NoteView } from "../../core/notes/noteQueries";
+import type { SearchSnippet } from "../../core/notes/noteSearchSnippet";
 import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
@@ -29,9 +30,11 @@ type SidebarNoteRowProps = {
   paddingLeft: number;
   navigation: WorkspaceNavigation;
   repository: NoteRepository;
+  // 検索の結果の行に添える、本文の中で当たった所。無ければ題だけの 1 行。
+  snippet?: SearchSnippet | null;
 };
 
-export function SidebarNoteRow({ note, view, listedNoteIds, paddingLeft, navigation, repository }: SidebarNoteRowProps) {
+export function SidebarNoteRow({ note, view, listedNoteIds, paddingLeft, navigation, repository, snippet = null }: SidebarNoteRowProps) {
   const unsyncedIds = useContext(UnsyncedRecordsContext);
   const dialogs = useDialogs();
   const moveToTrash = useTrashWithUndo(repository);
@@ -81,7 +84,7 @@ export function SidebarNoteRow({ note, view, listedNoteIds, paddingLeft, navigat
   };
   // 選んだメモの 1 つを右クリックしたら、選んだメモをまとめて扱うメニューを出す。
   const opensSelectionMenu = isSelected && selection.noteIds.length > 1;
-  const rowClassName = ["tree-note", navigation.activeTab === note.id && "active", isSelected && "selected"].filter(Boolean).join(" ");
+  const rowClassName = ["tree-note", navigation.activeTab === note.id && "active", isSelected && "selected", snippet && "with-snippet"].filter(Boolean).join(" ");
   return (
     <div className={`nav-row${isDragged ? " dragging" : ""}`} onContextMenu={(event) => { event.preventDefault(); setMenuAnchor(event.currentTarget); }}>
       <button className={rowClassName} style={{ paddingLeft }} aria-pressed={selection.noteIds.length > 0 ? isSelected : undefined}
@@ -93,7 +96,12 @@ export function SidebarNoteRow({ note, view, listedNoteIds, paddingLeft, navigat
           }
         }}>
         {unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}
-        {title}
+        {snippet ? (
+          <>
+            <span className="tree-note-title">{title}</span>
+            <span className="tree-note-snippet">{snippet.before}<mark>{snippet.match}</mark>{snippet.after}</span>
+          </>
+        ) : title}
       </button>
       <span className="row-actions">
         <button className="icon-button" aria-label={translate("sidebar.noteActions", { title })} aria-haspopup="menu"

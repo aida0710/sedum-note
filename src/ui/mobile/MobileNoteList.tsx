@@ -4,11 +4,13 @@
 import { Pin, PinOff, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useContext } from "react";
 import type { NoteSummary, NoteView } from "../../core/notes/noteQueries";
+import type { LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { useAttachmentUrl } from "../editor/attachmentReader";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { formatShortDate } from "../shared/formatTime";
+import { assignNotebookColors, NotebookMark, type NotebookColors } from "../shared/notebookAppearance";
 import { useTrashWithUndo } from "../workspace/useTrashWithUndo";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
 import { type PullState, usePullToSync } from "./usePullToSync";
@@ -25,12 +27,10 @@ export function listTitle(view: NoteView, notebooks: WorkspaceProps["snapshot"][
   return translate(titles[view.kind]);
 }
 
-export type NotebookChoice = { id: string; name: string };
-
 type NoteListProps = {
   title: string;
   summaries: NoteSummary[];
-  notebooks: NotebookChoice[];
+  notebooks: LiveNotebook[];
   view: NoteView;
   showChips: boolean;
   navigation: WorkspaceProps["navigation"];
@@ -44,6 +44,7 @@ const PULL_MESSAGES = { idle: "mobile.pullToSync", pulling: "mobile.pullToSync",
 
 export function NoteList({ title, summaries, notebooks, view, showChips, navigation, repository, onOpen, onPullToSync }: NoteListProps) {
   const { listRef, scrollRef, indicatorRef, pullState } = usePullToSync(onPullToSync);
+  const notebookColors = assignNotebookColors(notebooks);
   return (
     <>
       <div className="phone-top"><h2>{title}</h2></div>
@@ -56,7 +57,7 @@ export function NoteList({ title, summaries, notebooks, view, showChips, navigat
           <button className={`chip${view.kind === "all" ? " on" : ""}`} onClick={() => navigation.selectView({ kind: "all" })}>{translate("mobile.all")}</button>
           {notebooks.map((notebook) => (
             <button key={notebook.id} className={`chip${view.kind === "notebook" && view.notebookId === notebook.id ? " on" : ""}`}
-              onClick={() => navigation.selectView({ kind: "notebook", notebookId: notebook.id })}>{notebook.name}</button>
+              onClick={() => navigation.selectView({ kind: "notebook", notebookId: notebook.id })}><NotebookMark notebook={notebook} colors={notebookColors} />{notebook.content.name}</button>
           ))}
         </div>
       )}
@@ -68,16 +69,16 @@ export function NoteList({ title, summaries, notebooks, view, showChips, navigat
         )}
         <div ref={scrollRef} className="phone-scroll">
           {summaries.length === 0 && <div className="empty-state">{translate("sidebar.noNotes")}</div>}
-          {summaries.map((summary) => <NoteListItem key={summary.note.id} summary={summary} notebooks={notebooks} repository={repository} onOpen={onOpen} />)}
+          {summaries.map((summary) => <NoteListItem key={summary.note.id} summary={summary} notebooks={notebooks} notebookColors={notebookColors} repository={repository} onOpen={onOpen} />)}
         </div>
       </div>
     </>
   );
 }
 
-type NoteListItemProps = { summary: NoteSummary; notebooks: NotebookChoice[]; repository: NoteRepository; onOpen: (noteId: string) => void };
+type NoteListItemProps = { summary: NoteSummary; notebooks: LiveNotebook[]; notebookColors: NotebookColors; repository: NoteRepository; onOpen: (noteId: string) => void };
 
-function NoteListItem({ summary, notebooks, repository, onOpen }: NoteListItemProps) {
+function NoteListItem({ summary, notebooks, notebookColors, repository, onOpen }: NoteListItemProps) {
   const { note, plainText } = summary;
   const { pinned, isTemplate, trashedAt } = note.content;
   const unsyncedIds = useContext(UnsyncedRecordsContext);
@@ -89,7 +90,7 @@ function NoteListItem({ summary, notebooks, repository, onOpen }: NoteListItemPr
   });
   const firstImage = note.content.attachments.find((attachment) => attachment.mimeType.startsWith("image/")) ?? null;
   const thumbnail = useAttachmentUrl(firstImage?.id ?? null, firstImage?.mimeType);
-  const notebookNames = notebooks.filter((notebook) => note.content.notebookIds.includes(notebook.id)).map((notebook) => notebook.name);
+  const noteNotebooks = notebooks.filter((notebook) => note.content.notebookIds.includes(notebook.id));
   return (
     <div ref={swipe.rowRef} className="note-item-row">
       <span className="swipe-action swipe-action-right" aria-hidden="true">
@@ -100,7 +101,13 @@ function NoteListItem({ summary, notebooks, repository, onOpen }: NoteListItemPr
         <h3>{unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}{pinned && <Pin size={13} className="pin" />}{note.content.title || translate("sidebar.untitled")}</h3>
         {firstImage && thumbnail.state === "ready" && <img className="thumb" src={thumbnail.url} alt="" />}
         <p>{plainText}</p>
-        <span className="meta">{[formatShortDate(note.updatedAt), ...notebookNames].join(" · ")}</span>
+        {/* ノートブックは、PC の左の列と同じ色の印を付けて出す（どのノートブックのメモかを、色でも見分けられる）。 */}
+        <span className="meta">
+          {formatShortDate(note.updatedAt)}
+          {noteNotebooks.map((notebook) => (
+            <span key={notebook.id} className="meta-notebook"><NotebookMark notebook={notebook} colors={notebookColors} />{notebook.content.name}</span>
+          ))}
+        </span>
       </button>
     </div>
   );
