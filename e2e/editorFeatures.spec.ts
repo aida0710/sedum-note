@@ -45,7 +45,7 @@ test("2 台で同じ表に行と列を同時に足しても、両方が同じ表
   expect(new Set(shape.map((row) => row.length)).size).toBe(1);
 });
 
-test("スマホの幅では、広い表と長いコードの行が画面をはみ出さない。表は表の中で横に送れる", async ({ browser }) => {
+test("スマホの幅では、広い表と長いコードの行が画面をはみ出さない。表とコードは、それぞれの枠の中で横に送れる", async ({ browser }) => {
   const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
   await startLocalVault(page);
   await page.locator(".fab").click();
@@ -71,8 +71,9 @@ test("スマホの幅では、広い表と長いコードの行が画面をは�
   expect(overflow.page).toBe(0);
   expect(overflow.scroller).toBe(0);
   expect(overflow.table).toBeGreaterThan(0);
-  // 長いコードの行は折り返す。
+  // 長いコードの行は折り返さず、コードの枠の中で横に送る。
   await expect(page.locator(".ProseMirror pre")).toContainText("veryLongLine");
+  expect(await page.locator(".ProseMirror pre").evaluate((code) => code.scrollWidth - code.clientWidth)).toBeGreaterThan(0);
 });
 
 test("コードのブロックは、言語を書かなくても色が付く", async ({ page }) => {

@@ -140,18 +140,18 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 .database-new-note-button:hover { background: var(--selected); color: var(--text); }
 .database-new-note { max-width: 320px; }
 .database-column .database-new-note-button, .database-column .database-new-note { width: 100%; max-width: none; }
-.note-query { border: 1px solid var(--line); border-radius: var(--radius-control); margin: 10px 0; overflow: hidden; }
+.note-query { border: 1px solid var(--line); border-radius: var(--radius-control); overflow: hidden; }
 .note-query-conditions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px; background: var(--tag); color: var(--muted); }
 /* 狭い所に置く小さな選択欄と入力欄（保存した検索の条件、AI チャットの上のモデル）。 */
 .note-query-conditions select, .note-query-conditions input, .ai-model-select { height: var(--control-height-compact); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 6px; background: var(--panel); color: var(--text); font-size: var(--font-size-small); min-width: 0; }
 .note-query-results { padding: 4px; display: flex; flex-direction: column; }
 .math-inline .math-rendered, .math-block .math-rendered { cursor: pointer; border-radius: var(--radius-inline); }
-.math-block { margin: 10px 0; text-align: center; overflow-x: auto; }
+.math-block { text-align: center; overflow-x: auto; }
 .math.selected .math-rendered, .math-rendered:hover { background: var(--accent-soft); }
 .math-input { font-family: var(--font-mono); font-size: var(--font-size-ui); border: 1px solid var(--accent); border-radius: var(--radius-control); padding: 4px 8px; background: var(--panel); color: var(--text); resize: vertical; vertical-align: middle; }
 .math-block .math-input { width: 100%; }
 .ProseMirror pre.mermaid-source-hidden { display: none; }
-.mermaid-diagram { margin: 10px 0; padding: 8px; border: 1px solid var(--line); border-radius: var(--radius-control); text-align: center; overflow-x: auto; cursor: pointer; color: var(--muted); font-size: var(--font-size-small); }
+.mermaid-diagram { padding: 8px; border: 1px solid var(--line); border-radius: var(--radius-control); text-align: center; overflow-x: auto; cursor: pointer; color: var(--muted); font-size: var(--font-size-small); }
 .mermaid-diagram svg { max-width: 100%; height: auto; }
 .mermaid-diagram.failed { color: var(--danger); text-align: left; white-space: pre-wrap; }
 .attachment-file.with-preview { flex-wrap: wrap; }
@@ -171,7 +171,8 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 .block-drag-handle[hidden], .block-insert-button[hidden] { display: none; }
 .block-drag-handle:hover, .block-insert-button:hover { background: var(--selected); color: var(--text); opacity: 1; }
 .block-drag-handle:active { cursor: grabbing; }
-.ProseMirror .columns { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 16px; margin: 10px 0; }
+/* 段の枠（1px）と中の余白（6px）の分だけ左右へ出して、段の中の文字の左端を、前後の段落とそろえる。 */
+.ProseMirror .columns { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 16px; margin-left: -7px; margin-right: -7px; }
 .ProseMirror .column { min-width: 0; border: 1px dashed transparent; border-radius: var(--radius-control); padding: 2px 6px; }
 .ProseMirror-focused .column { border-color: var(--line); }
 .ProseMirror { counter-reset: footnote; }
@@ -186,7 +187,7 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 .footnote input { flex: 1; min-width: 0; height: var(--control-height-compact); border: 1px solid transparent; border-radius: var(--radius-control); padding: 0 8px; background: none; color: var(--text); }
 .footnote input:hover, .footnote input:focus { border-color: var(--line); }
 /* ブロックの埋め込み。左の線で、ほかのメモから来た中身だと分かるようにする。 */
-.block-embed { margin: 10px 0; padding: 2px 0 2px 12px; border-left: 3px solid var(--accent-soft); }
+.block-embed { padding: 2px 0 2px 12px; border-left: 3px solid var(--accent-soft); }
 .block-embed-source { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: var(--font-size-small); }
 .block-embed-source:hover { color: var(--accent); }
 .block-embed .ProseMirror { padding: 0; min-height: 0; }
@@ -200,12 +201,10 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 .document-scan-photo polygon { fill: color-mix(in srgb, var(--accent) 18%, transparent); stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
 .document-scan-photo circle { fill: var(--accent); stroke: var(--panel); stroke-width: 2; vector-effect: non-scaling-stroke; cursor: grab; }
 /* 手書き・図形。線は文字の色（か選んだ色）で出るので、ライトでもダークでも見える。 */
-.drawing { margin: 10px 0; }
 .drawing-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 4px; }
 .drawing-canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--panel); cursor: crosshair; touch-action: none; }
 .drawing-canvas.erasing { cursor: pointer; }
 .drawing-stroke { fill: none; stroke-linecap: round; stroke-linejoin: round; }
-.embed { margin: 10px 0; }
 .embed-card { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: var(--radius-control); padding: 8px 12px; }
 .embed-url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: var(--font-size-small); }
 .embed-url-input { width: 100%; height: var(--control-height); border: 1px solid var(--accent); border-radius: var(--radius-control); padding: 0 10px; background: var(--panel); color: var(--text); }
@@ -544,7 +543,18 @@ button.ai-tool-activity:hover { background: var(--selected); }
 /* 大きさ・字の間・行の間は、設定の「表示」で変えられる（preferences/editorTypography.ts。値は theme/applyAppearance.ts が入れる）。 */
 .ProseMirror { outline: 0; font-size: var(--editor-font-size); line-height: var(--editor-line-height, 1.85); letter-spacing: var(--editor-letter-spacing, .02em); min-height: 240px; }
 /* 段落と段落の間を少しあける（1 行ずつ書いたメモが詰まって見えないように）。 */
-.ProseMirror > p + p { margin-top: .3em; }
+/* ブロックの上下の間は 2 段にそろえる（本文の文字の大きさに比例させる）。
+     狭い間: 段落どうしと、箇条書きの前後。
+     広い間: 本文の流れから切り離して見せるブロック（コード、表、引用、コールアウト、写真、添付、数式、図、段組み、埋め込み、手書き、クエリ）の前後。
+   区切り線の前後は、広い間の 1.5 倍。入れ物（引用、コールアウト、セル、段）と本文の、最初と最後のブロックは、外側の余白と重ねない。 */
+.ProseMirror { --block-gap: calc(var(--editor-font-size) * .3); --block-gap-loose: var(--editor-font-size); --list-indent: 24px; }
+.ProseMirror p + p { margin-top: var(--block-gap); }
+.ProseMirror :is(ul, ol) { margin: var(--block-gap) 0; }
+.ProseMirror li :is(ul, ol) { margin: 0; }
+.ProseMirror :is(pre, blockquote, .tableWrapper, .callout, .columns, .math-block, .mermaid-diagram, .note-query, .block-embed, .drawing, .embed, .attachment-image, .attachment-file) { margin-top: var(--block-gap-loose); margin-bottom: var(--block-gap-loose); }
+.ProseMirror hr { border: 0; border-top: 1px solid var(--line); margin: calc(var(--block-gap-loose) * 1.5) 0; }
+.ProseMirror > :first-child, .ProseMirror :is(blockquote, .callout, td, th, .column) > :first-child { margin-top: 0; }
+.ProseMirror :is(blockquote, .callout, td, th, .column) > :last-child { margin-bottom: 0; }
 .ProseMirror p.is-editor-empty:first-child::before, .ProseMirror p.empty-column::before { content: attr(data-placeholder); color: var(--muted); opacity: .6; float: left; height: 0; pointer-events: none; }
 /* 見出しは本文の文字の大きさに比例させる（本文 16px のとき 25.6・20.8・17.9px）。上の余白を広くとって、まとまりの切れ目を見せる。 */
 .ProseMirror h1 { font-size: 1.6em; margin: 1.5em 0 .4em; letter-spacing: .02em; }
@@ -599,7 +609,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { font-size: 1em; margin: 12px 0 4px; }
 .ProseMirror h5 { color: var(--muted); }
 .ProseMirror h6 { color: var(--muted); font-weight: 600; }
-.ProseMirror ul, .ProseMirror ol { padding-left: 22px; }
+/* 点・番号の字下げは、チェックリスト（チェックボックス 16px と間 8px）と同じ幅にして、同じ段の文字の左端をそろえる。 */
+.ProseMirror ul, .ProseMirror ol { padding-left: var(--list-indent); }
 .ProseMirror li { margin: .1em 0; }
 /* 箇条書きを深くするたびに、行頭の印を変える（Google ドキュメントや Word と同じ慣習）。番号は 1. → a. → i.、点は ● → ○ → ■ の順で、
    4 段目からは同じ順にくり返す。深さは、外側にある箇条書きの数で数える（番号付きの中の点の箇条書きも 2 段目）。 */
@@ -621,17 +632,21 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ProseMirror ul[data-type="taskList"] li { display: flex; gap: 8px; align-items: flex-start; }
 /* チェックボックスを、1 行ぶんの高さの中央に置く（行の文字と縦の中心をそろえる）。lh を知らないブラウザでは、本文の行の高さに近い 1.7em にする。 */
 .ProseMirror ul[data-type="taskList"] li > label { flex: none; display: flex; align-items: center; height: 1.7em; height: 1lh; }
-.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div { color: var(--muted); text-decoration: line-through; }
+/* 取り消し線と薄い色は、チェックした項目の行だけに付ける（下にある、まだの子の項目には付けない）。 */
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div > p { color: var(--muted); text-decoration: line-through; }
 .ProseMirror ul[data-type="taskList"] li > div { flex: 1; }
-.ProseMirror .callout { border-left: 3px solid var(--callout-color); background: color-mix(in srgb, var(--callout-color) 12%, transparent); border-radius: var(--radius-control); padding: 6px 12px; margin: 10px 0; }
+.ProseMirror .callout { border-left: 3px solid var(--callout-color); background: color-mix(in srgb, var(--callout-color) 12%, transparent); border-radius: var(--radius-control); padding: 6px 12px; }
 .ProseMirror .callout[data-callout="note"] { --callout-color: #2f6fde; }
 .ProseMirror .callout[data-callout="tip"] { --callout-color: #2da44e; }
 .ProseMirror .callout[data-callout="warning"] { --callout-color: #d4a017; }
 .ProseMirror .callout[data-callout="danger"] { --callout-color: #d1242f; }
-.ProseMirror blockquote { border-left: 3px solid var(--line); padding: 2px 0 2px 16px; margin: .6em 0; color: var(--muted); }
+.ProseMirror blockquote { border-left: 3px solid var(--line); padding: 2px 0 2px 16px; color: var(--muted); }
 .ProseMirror code { font-family: var(--font-mono); background: var(--tag); border-radius: var(--radius-inline); padding: 2px 6px; font-size: .86em; }
-.ProseMirror pre { font-family: var(--font-mono); background: var(--tag); border-radius: var(--radius-control); padding: 10px 14px; overflow-x: auto; }
-.ProseMirror pre code { background: none; padding: 0; }
+/* コードは本文より小さい字と狭い行の間にし、長い行は折り返さずに、枠の中で横に送る。 */
+.ProseMirror pre { font-family: var(--font-mono); background: var(--tag); border-radius: var(--radius-control); padding: 10px 14px; overflow-x: auto; font-size: .875em; line-height: 1.6; }
+/* エディタ（Tiptap）が自分で入れる `.ProseMirror pre { white-space: pre-wrap }` より強い書き方にする。 */
+.document .ProseMirror pre { white-space: pre; }
+.ProseMirror pre code { background: none; padding: 0; font-size: inherit; }
 .ProseMirror a { color: var(--accent); }
 /* コードの色付け（highlight.js のクラス）。どのテーマでも読めるよう、テーマの色から作る。 */
 .ProseMirror pre .hljs-comment, .ProseMirror pre .hljs-quote { color: var(--muted); font-style: italic; }
@@ -641,7 +656,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ProseMirror pre .hljs-title, .ProseMirror pre .hljs-section, .ProseMirror pre .hljs-attr, .ProseMirror pre .hljs-attribute { color: color-mix(in srgb, var(--accent) 60%, var(--text)); font-weight: 600; }
 /* 枠を重ねる表（border-collapse）は、外側の枠の半分が表の箱の外に出る。横に送る箱（overflow）がそれを切り落とし、
    画面の倍率によっては左や上の枠が消えていたので、箱の内側に 1px の余白を空ける。 */
-.ProseMirror .tableWrapper { overflow-x: auto; margin: 12px 0; padding: 1px; }
+.ProseMirror .tableWrapper { overflow-x: auto; padding: 1px; }
 .ProseMirror table { border-collapse: collapse; min-width: 100%; }
 .ProseMirror th, .ProseMirror td { border: 1px solid var(--line); padding: 5px 10px; min-width: 72px; vertical-align: top; text-align: left; position: relative; }
 .ProseMirror th { background: var(--tag); font-weight: 600; }
@@ -755,11 +770,11 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
   .ProseMirror .columns { grid-auto-flow: row; }
   .note-history-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(90px, 30%) minmax(0, 1fr); }
 }
-.attachment-image { margin: 14px 0; border-radius: var(--radius-control); overflow: hidden; position: relative; background: var(--tag); min-height: 60px; }
+.attachment-image { border-radius: var(--radius-control); overflow: hidden; position: relative; background: var(--tag); min-height: 60px; }
 .attachment-image img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
 .attachment-image .file-name { position: absolute; left: 10px; bottom: 8px; color: var(--caption-text); font-size: var(--font-size-caption); background: var(--caption-background); padding: 2px 6px; border-radius: var(--radius-inline); }
 .attachment-image .placeholder { padding: 20px; color: var(--muted); text-align: center; }
-.attachment-file { margin: 10px 0; display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: var(--radius-control); padding: 8px 8px 8px 12px; background: var(--canvas); }
+.attachment-file { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: var(--radius-control); padding: 8px 8px 8px 12px; background: var(--canvas); }
 .attachment-file-icon { color: var(--muted); flex: none; }
 .attachment-file-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .attachment-file-size { color: var(--muted); font-size: var(--font-size-small); margin-left: auto; white-space: nowrap; }
@@ -1090,4 +1105,6 @@ details summary { cursor: pointer; color: var(--accent); }
   .search-match, .search-match.active { background: none; color: inherit; }
   .ProseMirror p.empty-column::before { content: none; }
   .ProseMirror pre, .ProseMirror table, .attachment-image, .attachment-file { break-inside: avoid; }
+  /* 紙では横に送れないので、コードの長い行は折り返す。 */
+  .document .ProseMirror pre { white-space: pre-wrap; }
 }
