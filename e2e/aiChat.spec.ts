@@ -423,9 +423,6 @@ test("開いているメモの直しを頼むと、差分を承認してから�
   await expect(card.getByLabel("消す行")).toHaveText(["ばなな"]);
   await expect(card.getByLabel("足す行")).toHaveText(["バナナ", "ぶどう"]);
   await expect(card.locator(".ai-diff-collapsed")).toHaveText(["変更のない 1 行", "変更のない 1 行"]);
-  // 行の番号（前と後）は CSS で出す。消す「ばなな」は前の 2 行目、足す「ぶどう」は後の 4 行目。
-  await expect(card.getByLabel("消す行").locator(".ai-diff-number").first()).toHaveAttribute("data-number", "2");
-  await expect(card.getByLabel("足す行").last().locator(".ai-diff-number").last()).toHaveAttribute("data-number", "4");
   await expect(chat(page).locator(".ai-tool-activity")).toContainText("承認を待っています");
   // 承認するまでは、メモは変わらない。
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかん"]);

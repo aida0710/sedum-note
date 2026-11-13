@@ -7,17 +7,17 @@ const proposal = (baseBlocks: string[], newBlockMarkdowns: string[], hunks: Body
 });
 
 describe("承認のカードの差分の行", () => {
-  it("変わらないブロックは行の数だけにし、変わった行には前と後の行の番号を付ける", () => {
+  it("変わらないブロックは行の数だけにし、変わった行は消す行と足す行にする", () => {
     const rows = bodyChangeRows(proposal(["りんご", "ばなな", "みかん"], ["りんご", "バナナ", "みかん", "ぶどう"], [
       { oldStart: 1, oldEnd: 2, newStart: 1, newEnd: 2 },
       { oldStart: 3, oldEnd: 3, newStart: 3, newEnd: 4 },
     ]));
     expect(rows).toEqual([
       { kind: "collapsed", lineCount: 1 },
-      { kind: "removed", oldNumber: 2, newNumber: null, text: "ばなな" },
-      { kind: "added", oldNumber: null, newNumber: 2, text: "バナナ" },
+      { kind: "removed", text: "ばなな" },
+      { kind: "added", text: "バナナ" },
       { kind: "collapsed", lineCount: 1 },
-      { kind: "added", oldNumber: null, newNumber: 4, text: "ぶどう" },
+      { kind: "added", text: "ぶどう" },
     ]);
   });
 
@@ -27,11 +27,11 @@ describe("承認のカードの差分の行", () => {
     ]));
     expect(rows).toEqual([
       { kind: "collapsed", lineCount: 1 },
-      { kind: "removed", oldNumber: 2, newNumber: null, text: "8 月 3 日に出発すろ。" },
-      { kind: "added", oldNumber: null, newNumber: 2, text: "8 月 3 日に出発する。" },
-      { kind: "context", oldNumber: 3, newNumber: 3, text: "- 日焼け止め" },
-      { kind: "context", oldNumber: 4, newNumber: 4, text: "- 水着" },
-      { kind: "added", oldNumber: null, newNumber: 5, text: "- サングラス" },
+      { kind: "removed", text: "8 月 3 日に出発すろ。" },
+      { kind: "added", text: "8 月 3 日に出発する。" },
+      { kind: "context", text: "- 日焼け止め" },
+      { kind: "context", text: "- 水着" },
+      { kind: "added", text: "- サングラス" },
     ]);
   });
 

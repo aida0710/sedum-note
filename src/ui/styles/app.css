@@ -107,7 +107,8 @@ button:disabled { cursor: default; opacity: .55; }
 .database-column .database-new-note-button, .database-column .database-new-note { width: 100%; max-width: none; }
 .note-query { border: 1px solid var(--line); border-radius: var(--radius-control); margin: 10px 0; overflow: hidden; }
 .note-query-conditions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px; background: var(--tag); color: var(--muted); }
-.note-query-conditions select, .note-query-conditions input { height: var(--control-height-compact); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 6px; background: var(--panel); color: var(--text); font-size: var(--font-size-small); min-width: 0; }
+/* 狭い所に置く小さな選択欄と入力欄（保存した検索の条件、AI チャットの上のモデル）。 */
+.note-query-conditions select, .note-query-conditions input, .ai-model-select { height: var(--control-height-compact); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 6px; background: var(--panel); color: var(--text); font-size: var(--font-size-small); min-width: 0; }
 .note-query-results { padding: 4px; display: flex; flex-direction: column; }
 .math-inline .math-rendered, .math-block .math-rendered { cursor: pointer; border-radius: var(--radius-inline); }
 .math-block { margin: 10px 0; text-align: center; overflow-x: auto; }
@@ -212,27 +213,23 @@ button:disabled { cursor: default; opacity: .55; }
 .ai-composer-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
 .ai-send-button { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); flex: none; }
 .ai-send-button:disabled { opacity: 0.4; cursor: default; }
-.ai-model-select { flex: 0 1 auto; min-width: 0; max-width: 140px; height: var(--control-height-compact); font-size: var(--font-size-small); }
+.ai-model-select { flex: 0 1 auto; max-width: 140px; }
 .ai-connection { display: flex; flex-direction: column; gap: 12px; }
 .ai-edit { border: 1px solid var(--line); border-radius: var(--radius-panel); padding: 8px 10px; display: flex; flex-direction: column; gap: 8px; background: var(--panel); }
 .ai-edit-summary { display: flex; align-items: center; gap: 6px; font-weight: 600; }
 .ai-edit-summary svg { flex: none; color: var(--accent); }
-/* 本文の差分。行ごとに、前と後の行の番号、印（消す行は「-」、足す行は「+」）、文を、1 つの枠の中に詰めて並べる。
-   番号と印は CSS で出す（文字に入れないので、コピーしたときに文だけになる）。 */
-.ai-edit-diff { --diff-number-width: calc(var(--diff-number-digits, 2) * 1ch + 10px); max-height: 320px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-row); padding: 2px 0; font-size: var(--font-size-small); line-height: 1.35; }
-.ai-diff-row { display: grid; grid-template-columns: var(--diff-number-width) var(--diff-number-width) 1fr; text-decoration: none; font-family: var(--font-mono); }
+/* 本文の差分。行ごとに、印（消す行は「-」、足す行は「+」）と文を、1 つの枠の中に詰めて並べる。
+   印は CSS で出す（文字に入れないので、コピーしたときに文だけになる）。 */
+.ai-edit-diff { max-height: 320px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-row); padding: 2px 0; font-size: var(--font-size-small); line-height: 1.35; }
+.ai-diff-row { display: block; position: relative; padding: 0 8px 0 22px; text-decoration: none; font-family: var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* 空の行（コードの中の空行など）も 1 行の高さを取る。 */
+.ai-diff-row:empty::after { content: "\200b"; }
+.ai-diff-row::before { position: absolute; left: 8px; font-weight: 700; }
 .ai-edit-removed { background: color-mix(in srgb, var(--danger) 12%, transparent); }
 .ai-edit-added { background: color-mix(in srgb, var(--ok) 14%, transparent); }
-.ai-diff-number { padding-right: 6px; text-align: right; color: var(--muted); user-select: none; }
-.ai-diff-number + .ai-diff-number { border-right: 1px solid var(--line); }
-.ai-diff-number::before { content: attr(data-number); }
-.ai-diff-text { position: relative; min-width: 0; padding: 0 8px 0 18px; white-space: pre-wrap; overflow-wrap: anywhere; }
-/* 空の行（コードの中の空行など）も 1 行の高さを取る。 */
-.ai-diff-text:empty::after { content: "\200b"; }
-.ai-diff-text::before { position: absolute; left: 6px; font-weight: 700; }
-.ai-edit-removed .ai-diff-text::before { content: "-"; color: var(--danger); }
-.ai-edit-added .ai-diff-text::before { content: "+"; color: var(--ok); }
-.ai-diff-collapsed { color: var(--muted); padding: 1px 8px 1px calc(var(--diff-number-width) * 2 + 18px); }
+.ai-edit-removed::before { content: "-"; color: var(--danger); }
+.ai-edit-added::before { content: "+"; color: var(--ok); }
+.ai-diff-collapsed { color: var(--muted); padding: 1px 8px 1px 22px; }
 .ai-edit-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
 .ai-auto-apply { font-size: var(--font-size-small); color: var(--muted); }
 /* 答えの中の、ツールの呼び出しの 1 行。対象のメモがあれば押して開ける。 */
