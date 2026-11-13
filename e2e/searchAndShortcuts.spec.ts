@@ -417,7 +417,7 @@ test("コマンドパレットは、メモの本文・ノートブック・設�
   await expect(page.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: "同期", exact: true })).toHaveAttribute("aria-current", "page");
 });
 
-test("検索を名前を付けて保存でき、左の列から同じ検索を開ける。消すこともできる", async ({ page }) => {
+test("検索を名前を付けて保存でき、左の列から同じ検索を開ける。消したあとは「元に戻す」で戻せ、キーボードでも消すボタンに届く", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "旅行の持ち物", "パスポート");
   await newNote(page, "買い物", "牛乳");
@@ -437,6 +437,18 @@ test("検索を名前を付けて保存でき、左の列から同じ検索を�
   await page.getByPlaceholder("メモを検索").fill("");
   await savedSearch.hover();
   await page.getByRole("button", { name: "保存した検索「旅の準備」を消す" }).click();
+  await expect(savedSearch).toHaveCount(0);
+  const toast = page.getByRole("status").filter({ hasText: "保存した検索「旅の準備」を削除しました" });
+  await toast.getByRole("button", { name: "元に戻す" }).click();
+  await savedSearch.click();
+  await expect(page.getByPlaceholder("メモを検索")).toHaveValue("パスポート");
+
+  // 行にフォーカスを置いて Tab を押すと、その行の消すボタンへ移る。
+  await page.getByPlaceholder("メモを検索").fill("");
+  await savedSearch.focus();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "保存した検索「旅の準備」を消す" })).toBeFocused();
+  await page.keyboard.press("Enter");
   await expect(savedSearch).toHaveCount(0);
 });
 

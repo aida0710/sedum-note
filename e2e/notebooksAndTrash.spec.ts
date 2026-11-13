@@ -414,3 +414,30 @@ test("ノートブックが多くても、選ぶダイアログは画面の中�
   const phoneDialog = await expectDialogFitsViewport();
   await expect(phoneDialog.getByRole("checkbox", { name: "ノート 30", exact: true })).toBeChecked();
 });
+
+test("ゴミ箱の行のメニューから、件数を確かめてゴミ箱を空にできる", async ({ page }) => {
+  await startLocalVault(page);
+  for (const title of ["捨てる一", "捨てる二"]) {
+    await createNoteOnDesktop(page, title);
+    await page.getByRole("button", { name: "その他の操作" }).click();
+    await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+  }
+  await createNoteOnDesktop(page, "残すメモ");
+  const trashRow = page.locator(".nav-row", { hasText: "ゴミ箱" });
+  await expect(trashRow.locator(".count")).toHaveText("2");
+
+  // やめると、何も消えない。
+  await trashRow.hover();
+  await page.getByRole("button", { name: "ゴミ箱の操作" }).click();
+  await page.getByRole("menuitem", { name: "ゴミ箱を空にする（2件）" }).click();
+  const confirmation = page.getByRole("dialog").filter({ hasText: "ゴミ箱のメモ2件を完全に削除しますか？" });
+  await confirmation.getByRole("button", { name: "キャンセル" }).click();
+  await expect(trashRow.locator(".count")).toHaveText("2");
+
+  await trashRow.hover();
+  await page.getByRole("button", { name: "ゴミ箱の操作" }).click();
+  await page.getByRole("menuitem", { name: "ゴミ箱を空にする（2件）" }).click();
+  await confirmation.getByRole("button", { name: "完全に削除" }).click();
+  await expect(trashRow.locator(".count")).toHaveText("0");
+  await expect(page.locator(".sidebar .tree-note", { hasText: "残すメモ" })).toHaveCount(1);
+});

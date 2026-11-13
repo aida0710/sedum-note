@@ -11,8 +11,9 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { insertPastedMarkdown } from "../editor/pastedMarkdown";
 import { translate } from "../i18n/translate";
 import { appendMarkdownToBody } from "../markdown/appendMarkdown";
+import { useDialogs } from "../shared/DialogProvider";
 import { AiApprovalCard } from "./AiApprovalCard";
-import { type ActiveNoteEditor, useAiChatSession } from "./aiChatSession";
+import { type ActiveNoteEditor, type SavedChat, useAiChatSession } from "./aiChatSession";
 import { AiChatMessageView, type AnswerActions } from "./AiChatMessageView";
 import { AI_QUICK_REQUESTS, type AiAttachment, type AiQuickRequest } from "./aiConversation";
 import { AiModelSelect } from "./AiModelSelect";
@@ -63,6 +64,7 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNot
     messages, conversationSettings: settings, setConversationOverrides, activeNote, savedChats, startNewChat, openSavedChat, deleteSavedChat,
     running, startingToolName, errorMessage, setErrorMessage, pendingApproval, send, stop,
   } = useAiChatSession();
+  const dialogs = useDialogs();
   // true なら、会話の代わりに、残した会話の一覧を出す。
   const [showsHistory, setShowsHistory] = useState(false);
   const [input, setInput] = useState("");
@@ -127,6 +129,13 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNot
       },
     };
   };
+  // 残した会話は手元にしか無く、消すと戻せないので、確かめてから消す。
+  const deleteSavedChatAfterConfirming = async (chat: SavedChat) => {
+    const title = chat.title || translate("ai.untitledChat");
+    if (await dialogs.confirm({ message: translate("ai.deleteChatConfirm", { title }), confirmLabel: translate("common.delete"), danger: true })) {
+      await deleteSavedChat(chat.id);
+    }
+  };
   const sendQuickRequest = (quickRequest: AiQuickRequest) => {
     if (openNote) {
       void send(translate(`ai.task.${quickRequest}`), [noteAttachment(openNote, true)], quickRequest);
@@ -160,7 +169,7 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNot
             setErrorMessage(null);
             setShowsHistory(false);
           }}
-          onDelete={(chatId) => void deleteSavedChat(chatId)} />
+          onDelete={(chat) => void deleteSavedChatAfterConfirming(chat)} />
       ) : (
       <>
       <div className="ai-chat-messages">

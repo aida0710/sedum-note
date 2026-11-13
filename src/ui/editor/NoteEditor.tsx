@@ -125,6 +125,14 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   const noteId = note.id;
   const inTrash = note.content.trashedAt !== null;
 
+  // 結合は、選んだメモの本文をこのメモに足して、選んだメモをゴミ箱に入れる。選んだだけで進めず、確かめてから行う。
+  const mergeAfterConfirming = async (pickedNoteId: string) => {
+    const title = repository.note(pickedNoteId)?.content.title || translate("sidebar.untitled");
+    if (await dialogs.confirm({ message: translate("editor.mergeNoteConfirm", { title }), confirmLabel: translate("editor.mergeNoteSubmit") })) {
+      await repository.mergeNoteInto(noteId, pickedNoteId);
+    }
+  };
+
   const pasteMarkdown = useAsyncAction(async (markdown: string) => {
     if (editorOfPaste.current) {
       await insertPastedMarkdown(editorOfPaste.current, markdown, { noteExists: (id) => repository.note(id) !== undefined });
@@ -412,7 +420,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
       )}
       {pickingNoteToMerge && (
         <NotePicker title={translate("editor.mergeNotePickerTitle")} description={translate("editor.mergeNotePickerDescription")} candidates={otherNotes()}
-          onPick={(pickedNoteId) => { setPickingNoteToMerge(false); void repository.mergeNoteInto(noteId, pickedNoteId); }}
+          onPick={(pickedNoteId) => { setPickingNoteToMerge(false); void mergeAfterConfirming(pickedNoteId); }}
           onCancel={() => setPickingNoteToMerge(false)} />
       )}
       {menuAnchor && (

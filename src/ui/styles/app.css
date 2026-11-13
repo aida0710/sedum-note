@@ -328,14 +328,13 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .sidebar-scroll :is(.nav, .tree-note):focus-visible { outline-offset: -2px; }
 .nav-row .row-actions { position: absolute; right: 4px; display: none; }
 .nav-row:hover .row-actions, .nav-row:focus-within .row-actions { display: flex; }
-.nav-row:hover .count, .nav-row:focus-within .count { visibility: hidden; }
+/* 件数を隠すのは、その場所に行の操作（「…」）が出る行だけ。操作の無い行（ビュー、タグ）では件数を出したままにする。 */
+.nav-row:has(.row-actions):hover .count, .nav-row:has(.row-actions):focus-within .count { visibility: hidden; }
 .section-title { color: var(--muted); font-size: var(--font-size-caption); font-weight: 600; letter-spacing: .04em; padding: 14px 8px 4px; display: flex; align-items: center; }
 .section-title .icon-button { margin-left: auto; }
 /* ノートブックを一番上の段へ移す落とし先（「ノートブック」の見出し）。 */
 .section-title.drop-target { background: var(--accent-soft); outline: 1px dashed var(--accent); outline-offset: -1px; border-radius: var(--radius-row); }
 .saved-search-row { display: flex; align-items: center; }
-.saved-search-row .row-action { visibility: hidden; flex: none; }
-.saved-search-row:hover .row-action, .saved-search-row .row-action:focus-visible { visibility: visible; }
 .search-scope svg { vertical-align: -1px; margin-right: 4px; }
 .dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
 .tree-note { padding: 5px 8px; color: var(--muted); border-radius: var(--radius-row); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; width: 100%; min-height: 27px; }

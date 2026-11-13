@@ -351,7 +351,7 @@ test("答えを受け取っている間は、送るボタンが止めるボタ�
   await expect(chat(page).getByRole("alert")).toHaveCount(0);
 });
 
-test("会話は残り、ロックして開き直しても「残した会話」から開いて続きを話せる。消すこともできる", async ({ page }) => {
+test("会話は残り、ロックして開き直しても「残した会話」から開いて続きを話せる。確かめてから消すこともできる", async ({ page }) => {
   const requests = await mockClaudeApi(page, ["8 月 3 日です。", "朝 9 時の便です。"]);
   await startLocalVault(page);
   await createNoteOnDesktop(page, "旅行の計画");
@@ -387,7 +387,14 @@ test("会話は残り、ロックして開き直しても「残した会話」�
   expect(sentText(requests[1]!.body.messages[0]!.content)).toContain("出発は 8 月 3 日の朝 9 時。");
   await chat(page).getByRole("button", { name: "残した会話" }).click();
   await expect(savedChats).toHaveCount(1);
+  await expect(chat(page).getByText("会話は新しい順に50件まで保存します。")).toBeVisible();
+  // 消すと戻せないので、確かめる。やめると残る。
   await savedChats.first().getByRole("button", { name: "「出発はいつ？」を消す" }).click();
+  const confirmation = page.getByRole("dialog").filter({ hasText: "会話「出発はいつ？」を削除しますか？" });
+  await confirmation.getByRole("button", { name: "キャンセル" }).click();
+  await expect(savedChats).toHaveCount(1);
+  await savedChats.first().getByRole("button", { name: "「出発はいつ？」を消す" }).click();
+  await confirmation.getByRole("button", { name: "削除" }).click();
   await expect(savedChats).toHaveCount(0);
   await expect(chat(page).getByText("まだ残した会話がありません。")).toBeVisible();
 });

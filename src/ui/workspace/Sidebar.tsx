@@ -1,7 +1,7 @@
 // 案C の左の列: 一覧（すべて・お気に入り・ノートブック・タグ・ゴミ箱）を木にして、
 // 開いた所にメモを並べる。
 
-import { AlarmClock, Bookmark, FileText, Hash, LayoutTemplate, Maximize2, Plus, Search, Star, Trash2, Waypoints, X } from "lucide-react";
+import { AlarmClock, Bookmark, FileText, Hash, LayoutTemplate, Maximize2, MoreHorizontal, Plus, Search, Star, Trash2, Waypoints, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { buildNotebookTree, countTags, notebookNameLookup, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
@@ -24,6 +24,8 @@ import { SpaceSwitcher } from "./SpaceSwitcher";
 import { REMINDERS_TAB } from "./useWorkspaceNavigation";
 import { dueItemsOf } from "../../core/notes/dueItems";
 import { useDialogs } from "../shared/DialogProvider";
+import { useToast } from "../shared/ToastProvider";
+import { TrashActionsMenu } from "./TrashActionsMenu";
 import type { LiveSavedSearch } from "../../core/notes/noteRecords";
 
 // アプリのアイコン（public/app-icon.svg。Web の favicon と同じもの）。Web 版は /sedum-note/ の下に置くので、置き場所の頭を付ける。
@@ -67,6 +69,9 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
     : scopedView?.kind === "tag" ? `#${scopedView.tag}` : "";
 
   const dialogs = useDialogs();
+  const showToast = useToast();
+  const [trashMenuAnchor, setTrashMenuAnchor] = useState<HTMLElement | null>(null);
+  const trashedNoteIds = summaries.filter((summary) => summary.note.content.trashedAt !== null).map((summary) => summary.note.id);
   // 今の検索（言葉と範囲）に名前を付けて保存する。
   const saveSearch = async () => {
     const searchText = navigation.searchText.trim();
@@ -87,6 +92,18 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
     setSearchEverywhere(scope === null);
     setSearchOpen(true);
     navigation.setSearchText(content.searchText);
+  };
+
+  // 保存した検索は同期される記録なので、消したらすぐ戻せるようにする。戻すときは、同じ中身で作り直す。
+  const removeSavedSearch = async ({ id, content }: LiveSavedSearch) => {
+    await repository.removeSavedSearch(id);
+    showToast({
+      message: translate("toast.savedSearchRemoved", { name: content.name }),
+      action: {
+        label: translate("toast.undo"),
+        run: () => void repository.createSavedSearch({ name: content.name, searchText: content.searchText, notebookId: content.notebookId, tag: content.tag }),
+      },
+    });
   };
 
   const closeSearch = () => {
@@ -157,7 +174,14 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
             {summaries.some((summary) => summary.note.content.isTemplate && summary.note.content.trashedAt === null) && (
               <ViewGroup view={{ kind: "templates" }} icon={<LayoutTemplate size={15} />} label={translate("sidebar.templates")} summaries={summaries} navigation={navigation} repository={repository} />
             )}
-            <ViewGroup view={{ kind: "trash" }} icon={<Trash2 size={15} />} label={translate("sidebar.trash")} summaries={summaries} navigation={navigation} repository={repository} />
+            <ViewGroup view={{ kind: "trash" }} icon={<Trash2 size={15} />} label={translate("sidebar.trash")} summaries={summaries} navigation={navigation} repository={repository}
+              onContextMenu={setTrashMenuAnchor}
+              actions={
+                <button className="icon-button" aria-label={translate("sidebar.trashActions")} aria-haspopup="menu" onClick={(event) => setTrashMenuAnchor(event.currentTarget)}>
+                  <MoreHorizontal size={14} />
+                </button>
+              } />
+            {trashMenuAnchor && <TrashActionsMenu anchor={trashMenuAnchor} trashedNoteIds={trashedNoteIds} repository={repository} onClose={() => setTrashMenuAnchor(null)} />}
             <NotebookSectionTitle repository={repository} onAddNotebook={() => setAddingNotebook(true)} />
             {addingNotebook && (
               <InlineNameInput placeholder={translate("sidebar.newNotebookPlaceholder")} onDone={(name) => {
@@ -176,8 +200,10 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
                 <button className="nav" onClick={() => openSavedSearch(savedSearch)}>
                   <Bookmark size={15} /><span className="nav-label">{savedSearch.content.name}</span>
                 </button>
-                <button className="icon-button row-action" aria-label={translate("sidebar.removeSavedSearch", { name: savedSearch.content.name })}
-                  onClick={() => void repository.removeSavedSearch(savedSearch.id)}><X size={13} /></button>
+                <span className="row-actions">
+                  <button className="icon-button" aria-label={translate("sidebar.removeSavedSearch", { name: savedSearch.content.name })}
+                    onClick={() => void removeSavedSearch(savedSearch)}><X size={14} /></button>
+                </span>
               </div>
             ))}
             {tags.length > 0 && <div className="section-title">{translate("sidebar.tags")}</div>}
