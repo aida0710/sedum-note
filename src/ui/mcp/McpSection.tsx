@@ -31,7 +31,9 @@ export function McpSection({ gateway }: { gateway: McpGatewayControl }) {
       <p>{translate("mcp.description")}</p>
       <p>{translate("mcp.privacyWarning")}</p>
       <SettingCheckboxRow controlId="mcp-enabled" label={translate("mcp.enable")} checked={settings.enabled} onChange={(enabled) => change({ enabled })} />
-      {(errorMessage ?? save.errorMessage) && <div className="form-error" role="alert">{translate("mcp.startFailed", { reason: errorMessage ?? save.errorMessage ?? "" })}</div>}
+      {/* 設定を保存できなかった失敗は、窓口を開けなかった失敗と分けて、そのままの文で出す。 */}
+      {errorMessage && <div className="form-error" role="alert">{translate("mcp.startFailed", { reason: errorMessage })}</div>}
+      {save.errorMessage && <div className="form-error" role="alert">{save.errorMessage}</div>}
       {settings.enabled && (
         <>
           <div className="field">

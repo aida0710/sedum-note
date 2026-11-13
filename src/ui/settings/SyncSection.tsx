@@ -6,7 +6,7 @@ import { AppUpdateRequiredError } from "../../core/format/dataFormat";
 import type { SyncStatus } from "../../core/sync/autoSync";
 import type { SyncTargetCheck } from "../../core/vault/syncTarget";
 import type { UnlockedVault } from "../../core/vault/vaultSession";
-import { describeError } from "../i18n/describeError";
+import { describeErrorReason } from "../i18n/describeError";
 import { translate } from "../i18n/translate";
 import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import type { SyncTargetConnection, VaultSession } from "../session/useVaultSession";
@@ -183,7 +183,7 @@ function SyncStatusDetail({ status, autoSync, onOpenUpdatePage }: SyncStatusDeta
   const next = status.willRetry ? translate("settings.syncWillRetry") : autoSync ? translate("settings.syncStopped") : "";
   return (
     <>
-      <div className="form-error" role="alert">{translate("settings.lastSyncFailed", { reason: describeError(status.error) })} {next}</div>
+      <div className="form-error" role="alert">{translate("settings.lastSyncFailed", { reason: describeErrorReason(status.error) })} {next}</div>
       {/* 「アプリを更新してください」と言うだけで終わらせず、更新のページへのボタンを添える。 */}
       {status.error instanceof AppUpdateRequiredError && (
         <div><button type="button" className="secondary-button" onClick={onOpenUpdatePage}>{translate("settings.syncOpenUpdatePage")}</button></div>

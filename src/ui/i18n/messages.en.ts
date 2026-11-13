@@ -133,7 +133,9 @@ export const englishMessages: Record<MessageKey, string> = {
   "error.storage.etag_missing": "The WebDAV server does not return ETags. Use a server that supports ETags",
   "error.storage.conditional_writes_unsupported": "This storage does not honor conditional writes (If-Match, If-None-Match), so simultaneous writes would lose changes. Use another storage",
   "error.storage.unexpected_response": "Unexpected response from the storage: {detail}",
-  "error.unknown": "The operation failed: {detail}",
+  "error.unknown": "Something went wrong. Try again ({detail})",
+  "error.network": "Could not connect. Check that you are online and try again",
+  "error.quotaExceeded": "There is not enough storage space on this device. Delete notes or attachments you no longer need and try again",
 
   "sidebar.search": "Search",
   "sidebar.searchPlaceholder": "Search notes",

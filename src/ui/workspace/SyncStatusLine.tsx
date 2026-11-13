@@ -5,7 +5,7 @@ import { TriangleAlert } from "lucide-react";
 import { useContext, useEffect, useState } from "react";
 import type { SyncStatus } from "../../core/sync/autoSync";
 import type { SyncProgress } from "../../core/sync/syncEngine";
-import { describeError } from "../i18n/describeError";
+import { describeErrorReason } from "../i18n/describeError";
 import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import { formatCount } from "../shared/formatCount";
@@ -24,7 +24,7 @@ type SyncStatusDescription = { text: string; dotClass: string; failureReason: st
 
 export function describeSyncStatus(input: SyncStatusInput): SyncStatusDescription {
   const { status } = input;
-  const failureReason = status?.state === "failed" ? describeError(status.error) : null;
+  const failureReason = status?.state === "failed" ? describeErrorReason(status.error) : null;
   return { ...syncStatusTextOf(input), failureReason };
 }
 

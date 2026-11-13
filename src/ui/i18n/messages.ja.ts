@@ -131,7 +131,9 @@ export const japaneseMessages = {
   "error.storage.etag_missing": "WebDAVサーバーがETagを返していません。ETagに対応したサーバーを使ってください",
   "error.storage.conditional_writes_unsupported": "このストレージは条件付きの書き込み（If-Match・If-None-Match）を守らないため、同時に書くと変更が消えます。別のストレージを使ってください",
   "error.storage.unexpected_response": "ストレージから予期しない応答がありました: {detail}",
-  "error.unknown": "処理に失敗しました: {detail}",
+  "error.unknown": "処理に失敗しました。もう一度試してください（{detail}）",
+  "error.network": "接続できませんでした。インターネットにつながっているかを確認して、もう一度試してください",
+  "error.quotaExceeded": "このデバイスに保存できる容量が足りません。不要なメモや添付を削除してから、もう一度試してください",
 
   "sidebar.search": "検索",
   "sidebar.searchPlaceholder": "メモを検索",

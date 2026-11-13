@@ -16,7 +16,26 @@ import { isRunningInTauri } from "../platform/runtime";
 import { translate } from "./translate";
 import { UserFacingError } from "./userFacingError";
 
+// ブラウザが、通信できなかった fetch に付けるメッセージ（Chromium・Firefox・WebKit の順）。
+const NETWORK_FAILURE_MESSAGE = /^(Failed to fetch|NetworkError when attempting to fetch resource\.?|Load failed)$/;
+
+// 失敗を、それだけで読む文にする（失敗の欄、知らせ）。
 export function describeError(error: unknown): string {
+  return knownErrorMessage(error) ?? translate("error.unknown", { detail: errorDetail(error) });
+}
+
+// 失敗を、ほかの文の理由（「最後の同期に失敗しました: {reason}」など）に入れる形にする。
+// 中身の分からない失敗は、「処理に失敗しました」を重ねず、元のメッセージだけにする。
+export function describeErrorReason(error: unknown): string {
+  return knownErrorMessage(error) ?? errorDetail(error);
+}
+
+function errorDetail(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+// 利用者に見せる文の決まっている失敗なら、その文。決まっていなければ null。
+function knownErrorMessage(error: unknown): string | null {
   if (error instanceof WrongPassphraseError) {
     return translate("error.wrongPassphrase");
   }
@@ -69,5 +88,12 @@ export function describeError(error: unknown): string {
   if (error instanceof ObjectStoreError) {
     return translate(`error.storage.${error.reason}`, { detail: error.message });
   }
-  return translate("error.unknown", { detail: error instanceof Error ? error.message : String(error) });
+  if (error instanceof TypeError && NETWORK_FAILURE_MESSAGE.test(error.message)) {
+    return translate("error.network");
+  }
+  // このデバイスの保存（IndexedDB）が、容量の上限に達した。
+  if (error instanceof DOMException && error.name === "QuotaExceededError") {
+    return translate("error.quotaExceeded");
+  }
+  return null;
 }

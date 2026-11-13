@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { handleMcpRequest, type McpHttpRequest, type McpHttpResponse, type McpServerDefinition } from "../../core/mcp/mcpServer";
 import { type McpSettings, readMcpSettings, writeMcpSettings } from "../../core/vault/mcpSettings";
 import type { UnlockedVault } from "../../core/vault/vaultSession";
-import { describeError } from "../i18n/describeError";
+import { describeErrorReason } from "../i18n/describeError";
 import { setMcpGatewayToken, startMcpGateway } from "../platform/mcpGateway";
 import { useStoredValue } from "../shared/useStoredValue";
 import { APP_VERSION } from "../update/appVersion";
@@ -60,7 +60,7 @@ export function useMcpGateway(vault: UnlockedVault): McpGatewayControl {
           stop = started;
         }
       },
-      (error: unknown) => setErrorMessage(describeError(error)),
+      (error: unknown) => setErrorMessage(describeErrorReason(error)),
     );
     return () => {
       cancelled = true;

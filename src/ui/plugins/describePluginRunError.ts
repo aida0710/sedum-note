@@ -2,7 +2,7 @@
 
 import { PluginModuleError } from "../../core/plugins/pluginModule";
 import { PluginResultError } from "../../core/plugins/pluginRun";
-import { describeError } from "../i18n/describeError";
+import { describeErrorReason } from "../i18n/describeError";
 import { translate } from "../i18n/translate";
 import { PluginChangedError } from "./runPluginCommand";
 import { PluginTimeoutError } from "./runPluginModule";
@@ -20,5 +20,5 @@ export function describePluginRunError(error: unknown): string {
   if (error instanceof PluginModuleError) {
     return translate("plugin.moduleProblem", { problem: error.problem });
   }
-  return describeError(error);
+  return describeErrorReason(error);
 }
