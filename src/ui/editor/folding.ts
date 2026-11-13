@@ -7,6 +7,7 @@ import { type Editor, Extension } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
+import { FOLDED_ATTRIBUTE } from "../../core/notes/bodyContentChange";
 import { type MessageKey, translate } from "../i18n/translate";
 import { editorKeymapName, type ShortcutKeys } from "../shared/shortcutKeys";
 
@@ -147,7 +148,7 @@ export const Folding = Extension.create({
     return [{
       types: FOLDABLE_TYPES,
       attributes: {
-        collapsed: {
+        [FOLDED_ATTRIBUTE]: {
           default: false,
           parseHTML: (element) => element.getAttribute("data-collapsed") === "true",
           renderHTML: (attributes) => (attributes.collapsed ? { "data-collapsed": "true" } : {}),

@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
-import { createNoteOnDesktop, insertFromSlashMenu, openSettingsPage, openSyncedDevice, PHONE_VIEWPORT, placeCursorAtBodyEnd, startLocalVault, syncNowOnDesktop } from "./devices";
+import { createNoteOnDesktop, insertFromSlashMenu, openSettingsPage, openSyncedDevice, PASSPHRASE, PHONE_VIEWPORT, placeCursorAtBodyEnd, startLocalVault, syncNowOnDesktop } from "./devices";
 
 const newNote = createNoteOnDesktop;
 
@@ -626,6 +626,33 @@ test("子の項目を持つ箇条書きと、見出しを折りたためる。�
   await expect(body.getByText("次の見出し")).toBeVisible();
   await expect(body.getByText("残る段落")).toBeVisible();
   await expect(shopping.locator(".fold-toggle")).toHaveAttribute("aria-expanded", "false");
+});
+
+test("見出しを折りたたんでも、メモを編集したことにはならず、「更新した順」の並びは変わらない", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "折りたたむメモ");
+  await page.locator(".ProseMirror").click();
+  await pasteText(page, { "text/plain": "## 決まったこと\n\n見積もりを出す\n" });
+  await newNote(page, "あとで作ったメモ");
+  const titles = page.locator(".tree-note");
+  await expect(titles).toHaveText(["あとで作ったメモ", "折りたたむメモ"]);
+
+  await page.getByRole("tab", { name: /折りたたむメモ/ }).click();
+  const heading = page.locator(".ProseMirror h2", { hasText: "決まったこと" });
+  await heading.hover();
+  await heading.locator(".fold-toggle").click();
+  await expect(page.locator(".ProseMirror").getByText("見積もりを出す")).toBeHidden();
+
+  await expect(titles).toHaveText(["あとで作ったメモ", "折りたたむメモ"]);
+
+  // 開け閉めは保存される。開き直しても折りたたんだままで、並びも変わらない（保存のあとの並びを見る）。
+  await page.waitForTimeout(500);
+  await page.reload();
+  await page.getByLabel("パスフレーズ").fill(PASSPHRASE);
+  await page.getByRole("button", { name: "解除" }).click();
+  await expect(titles).toHaveText(["あとで作ったメモ", "折りたたむメモ"]);
+  await titles.filter({ hasText: "折りたたむメモ" }).click();
+  await expect(page.locator(".ProseMirror h2", { hasText: "決まったこと" }).locator(".fold-toggle")).toHaveAttribute("aria-expanded", "false");
 });
 
 test("ブロックにマウスを乗せると出る持ち手をドラッグすると、そのブロックを別の位置へ動かせる", async ({ page }) => {

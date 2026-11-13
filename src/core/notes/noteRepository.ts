@@ -12,6 +12,7 @@ import { open, seal } from "../crypto/sealedBox";
 import type { LocalRecordEntry, LocalStore } from "../local/localStore";
 import type { WriteQueue } from "../local/serialQueue";
 import { blobBinding } from "../sync/remoteLayout";
+import { changesBodyContent } from "./bodyContentChange";
 import { copyBodyBlocks, replaceBodyWithCopyOf } from "./bodyCopy";
 import { bodyAttachments } from "./bodyText";
 import { databaseViewFromField } from "./databaseView";
@@ -93,7 +94,7 @@ type LiveHolder = {
   lastStoredSealed: Uint8Array | null;
   revision: number;
   cachedView: LiveRecord | null;
-  // 本文を変えて、まだ「編集した時刻」を書いていない。
+  // 本文の中身を変えて、まだ「編集した時刻」を書いていない（折りたたみなどの、中身を変えない属性だけの変更は入らない）。
   bodyEdited: boolean;
 };
 type RemovedHolder = { state: "removed"; removedAt: string; attachmentIds: string[] };
@@ -586,7 +587,7 @@ export class NoteRepository {
 
   // このデバイスでの変更（エディタの入力と項目の書き込み）を見張り、保存を予約する。
   #watch(id: string, doc: Y.Doc): void {
-    doc.on("update", (_update: Uint8Array, origin: unknown) => {
+    doc.on("update", (_update: Uint8Array, origin: unknown, _doc: Y.Doc, transaction: Y.Transaction) => {
       const holder = this.#holders.get(id);
       if (origin === REMOTE_ORIGIN || holder?.state !== "live") {
         return;
@@ -595,7 +596,7 @@ export class NoteRepository {
       if (origin === OTHER_WINDOW_ORIGIN) {
         return;
       }
-      if (origin !== FIELD_ORIGIN && origin !== MIGRATION_ORIGIN) {
+      if (origin !== FIELD_ORIGIN && origin !== MIGRATION_ORIGIN && changesBodyContent(transaction)) {
         holder.bodyEdited = true;
       }
       if (this.#closed) {
