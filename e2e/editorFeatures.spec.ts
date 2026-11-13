@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
 import { createNoteOnDesktop, insertFromSlashMenu, openSettingsPage, openSyncedDevice, PHONE_VIEWPORT, placeCursorAtBodyEnd, startLocalVault, syncNowOnDesktop } from "./devices";
 
@@ -882,6 +882,16 @@ test("行の左の「＋」を押すと、すぐ下に行を足して「/」の�
   await expect(body.locator("> *")).toHaveText(["上の行", "足した見出し", "下の行"]);
 });
 
+// 描き直されている間は位置が取れない（boundingBox が null になる）部品の、位置が取れるまで待った位置。
+async function boxAfterRendering(locator: Locator): Promise<NonNullable<Awaited<ReturnType<Locator["boundingBox"]>>>> {
+  let box = await locator.boundingBox();
+  await expect.poll(async () => {
+    box = await locator.boundingBox();
+    return box !== null;
+  }).toBe(true);
+  return box!;
+}
+
 test("写真の右下の持ち手をドラッグすると幅が変わり、ダブルクリックで本文の幅に合わせる形に戻る", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "写真の大きさ");
@@ -904,7 +914,8 @@ test("写真の右下の持ち手をドラッグすると幅が変わり、ダ�
   await expect.poll(imageWidth).toBe(startWidth);
   await image.hover();
   const handle = page.getByRole("button", { name: /写真の大きさを変える/ });
-  const handleBox = (await handle.boundingBox())!;
+  // 持ち手も写真と一緒に描き直されるので、描き直しの間は位置が取れない（CI で落ちた）。取れるまで待つ。
+  const handleBox = await boxAfterRendering(handle);
   await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
   await page.mouse.down();
   // 写真は中央に置くので、左へ 100px 動かすと、幅は 200px 狭くなる。
