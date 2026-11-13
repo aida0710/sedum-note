@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { basename } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { PAGE_ORIGIN } from "./devServer";
 import { insertFromSlashMenu, openSettingsPage } from "./devices";
@@ -64,7 +65,13 @@ test("バックアップを書き出し、別のデバイスの最初の画面�
   const target = await (await browser.newContext({ viewport: { width: 1280, height: 820 } })).newPage();
   await target.goto("/");
   await target.getByRole("tab", { name: "バックアップから戻す" }).click();
-  await target.getByLabel("バックアップのファイル").setInputFiles(backupPath);
+  // ファイルは、アプリのボタンから選ぶ（ブラウザの既定のファイル選択は出さない）。選ぶと、ファイルの名前が横に出る。
+  await expect(target.getByLabel("バックアップのファイル")).toBeHidden();
+  await expect(target.locator(".file-choice")).toHaveText("ファイルを選択選択されていません");
+  const fileChooser = target.waitForEvent("filechooser");
+  await target.getByRole("button", { name: "ファイルを選択" }).click();
+  await (await fileChooser).setFiles(backupPath);
+  await expect(target.locator(".file-choice-name")).toHaveText(basename(backupPath));
   await target.getByLabel("パスフレーズ", { exact: true }).fill("a wrong passphrase");
   await target.getByRole("button", { name: "戻す" }).click();
   await expect(target.getByRole("alert")).toContainText("パスフレーズが違います");
@@ -241,4 +248,14 @@ test("録音のボタンで録り始め、止めると音声が添付される�
 
   await attachment.getByRole("button", { name: /を再生$/ }).click();
   await expect(attachment.locator("audio")).toHaveAttribute("src", /^blob:/);
+});
+
+test("最初の画面で「始める」の入力の誤りを出したあと、「バックアップから戻す」に切り替えると、誤りは消える", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("パスフレーズ", { exact: true }).fill("correct horse battery");
+  await page.getByLabel("パスフレーズ（確認）").fill("a different passphrase");
+  await page.getByRole("button", { name: "作成" }).click();
+  await expect(page.getByRole("alert")).toHaveText("確認のパスフレーズが一致しません");
+  await page.getByRole("tab", { name: "バックアップから戻す" }).click();
+  await expect(page.getByRole("alert")).toHaveCount(0);
 });

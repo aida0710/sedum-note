@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { isSyncSetup, openSyncSetup } from "../../core/vault/syncSetupFile";
 import { translate } from "../i18n/translate";
 import { UserFacingError } from "../i18n/userFacingError";
+import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { SYNC_SETUP_FILE_EXTENSION } from "./syncSetupFileName";
 import { QrCodeScannerDialog } from "./QrCodeScannerDialog";
@@ -53,6 +54,7 @@ export function SyncSetupImport({ form }: { form: SyncTargetForm }) {
     setSetup(null);
     setSyncKey("");
   });
+  const canImport = !importSetup.busy && syncKey !== "";
   const message = take.errorMessage ?? importSetup.errorMessage;
   return (
     <div className="sync-setup-import">
@@ -71,10 +73,20 @@ export function SyncSetupImport({ form }: { form: SyncTargetForm }) {
         <div className="field">
           <p className="form-notice" role="status">{translate("syncSetup.loaded")}</p>
           <label htmlFor="sync-setup-key">{translate("syncTarget.syncKey")}</label>
-          <input id="sync-setup-key" type="password" value={syncKey} onChange={(event) => setSyncKey(event.target.value)} autoComplete="off" autoCapitalize="off" spellCheck={false} />
+          {/* この欄は最初の画面の大きなフォームの中にある。Enter は、画面全体の「作成／参加」ではなく、この欄の「取り込む」に使う。 */}
+          <input id="sync-setup-key" type="password" value={syncKey} onChange={(event) => setSyncKey(event.target.value)} autoComplete="off" autoCapitalize="off" spellCheck={false}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" || isImeKeyEvent(event.nativeEvent)) {
+                return;
+              }
+              event.preventDefault();
+              if (canImport) {
+                void importSetup.run(undefined);
+              }
+            }} />
           <div className="form-actions">
             {importSetup.busy && <span className="hint">{translate("syncTarget.checking")}</span>}
-            <button type="button" className="secondary-button" disabled={importSetup.busy || syncKey === ""} onClick={() => void importSetup.run(undefined)}>{translate("syncSetup.import")}</button>
+            <button type="button" className="secondary-button" disabled={!canImport} onClick={() => void importSetup.run(undefined)}>{translate("syncSetup.import")}</button>
           </div>
         </div>
       )}

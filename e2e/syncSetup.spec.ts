@@ -244,8 +244,9 @@ test("同期の設定を、暗号化キーを入力せずに書き出せる。�
     await device.getByRole("button", { name: "取り込む" }).click();
     await expect(device.getByRole("alert")).toContainText("暗号化キーが違います");
     await expect(device.getByLabel("バケット")).toHaveValue("");
+    // Enter は、画面全体の「作成」ではなく、この欄の「取り込む」に効く。
     await device.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
-    await device.getByRole("button", { name: "取り込む" }).click();
+    await device.getByLabel("暗号化キー", { exact: true }).press("Enter");
     // 同期先が入り、確かめまで済んで、暗号化キーも入っている。あとは参加を押すだけ。
     await expect(device.getByText("同期の設定を取り込みました")).toBeVisible();
     await expect(device.getByLabel("バケット")).toHaveValue(remoteConfig.bucket);

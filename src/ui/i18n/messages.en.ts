@@ -10,6 +10,8 @@ export const englishMessages: Record<MessageKey, string> = {
   "setup.mode.start": "Start",
   "setup.mode.restore": "Restore a backup",
   "setup.backupFile": "Backup file",
+  "setup.chooseBackupFile": "Choose a file",
+  "setup.noBackupFileChosen": "No file chosen",
   "setup.backupPassphraseHint": "The passphrase in use when the backup was exported",
   "setup.backupFileMissing": "Choose a backup file",
   "setup.submitRestore": "Restore",

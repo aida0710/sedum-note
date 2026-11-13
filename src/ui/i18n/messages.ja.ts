@@ -8,6 +8,8 @@ export const japaneseMessages = {
   "setup.mode.start": "始める",
   "setup.mode.restore": "バックアップから戻す",
   "setup.backupFile": "バックアップのファイル",
+  "setup.chooseBackupFile": "ファイルを選択",
+  "setup.noBackupFileChosen": "選択されていません",
   "setup.backupPassphraseHint": "バックアップを書き出したときのパスフレーズ",
   "setup.backupFileMissing": "バックアップのファイルを選んでください",
   "setup.submitRestore": "戻す",

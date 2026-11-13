@@ -813,6 +813,9 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .field input:not([type="checkbox"]), .setting-row input:not([type="checkbox"]) { min-width: 0; width: 100%; height: var(--control-height); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 10px; background: var(--panel); }
 .field select, .setting-row select { min-width: 0; width: 100%; height: var(--control-height); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 8px; background: var(--panel); }
 .field input[type="file"] { height: auto; padding: 6px 8px; }
+/* ファイルを選ぶボタンと、選んだファイルの名前（最初の画面のバックアップ）。 */
+.file-choice { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.file-choice-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: var(--font-size-small); }
 .field input:not([type="checkbox"]):focus, .setting-row input:not([type="checkbox"]):focus { border-color: var(--accent); outline: 0; }
 .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 /* ラベルが 2 行に折れても、チェックは 1 行目の高さに置く。 */
