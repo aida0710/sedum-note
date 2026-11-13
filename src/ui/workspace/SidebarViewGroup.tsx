@@ -15,6 +15,7 @@ import { acceptsNoteDrop, canDropDraggedNote, dropNoteOnView, isNoteDrag } from 
 import { markSidebarDropTarget, useSidebarDragState } from "./sidebarDragState";
 import { expandOrCollapseViewRow } from "./sidebarKeyboard";
 import { SidebarNoteRow } from "./SidebarNoteRow";
+import { useMovedNotesToast } from "./useMovedNotesToast";
 import { useTrashWithUndo } from "./useTrashWithUndo";
 import { viewKey, type WorkspaceNavigation } from "./useWorkspaceNavigation";
 
@@ -50,6 +51,7 @@ export type ViewGroupProps = {
 export function ViewGroup(props: ViewGroupProps) {
   const { view, icon, label, summaries, navigation, repository, depth = 0, actions, onContextMenu, childBranches, expandedByDefault = false, dropsOnWholeGroup = false, onDragStart } = props;
   const moveToTrash = useTrashWithUndo(repository);
+  const showMovedNotesToast = useMovedNotesToast(repository);
   const key = viewKey(view);
   const dragState = useSidebarDragState();
   // ノートブックを落とせるのは、ノートブックの一覧だけ（その中へ移す）。
@@ -80,7 +82,8 @@ export function ViewGroup(props: ViewGroupProps) {
         void dropNotebook(event, notebookId, repository).then((moved) => moved && navigation.setExpanded(key, true));
         return;
       }
-      void dropNoteOnView(event, view, { repository, moveToTrash });
+      // 落としたメモが見えるよう、落とし先のノートブックを開く。
+      void dropNoteOnView(event, view, { repository, moveToTrash, onMoved: showMovedNotesToast }).then(() => notebookId !== null && navigation.setExpanded(key, true));
     },
   } : {};
   const expanded = navigation.isExpanded(key, expandedByDefault);

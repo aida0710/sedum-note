@@ -48,6 +48,28 @@ test("メモを別のノートブックの中のメモの上へ落としても�
   await expect(page.locator(".nav-row.dragging")).toHaveCount(0);
 });
 
+test("メモを畳んだノートブックへ落とすと、移した先を知らせて開き、「元に戻す」で元のノートブックへ戻る", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "仕事");
+  await addNotebookOnDesktop(page, "旅行");
+  await viewRow(page, "仕事").locator(".nav").click();
+  await createNoteOnDesktop(page, "議事録");
+  // 落とし先を畳んでおく（選んでから、もう一度押すと畳む）。
+  const travelRow = viewRow(page, "旅行").locator(".nav");
+  await travelRow.click();
+  await travelRow.click();
+  await expect(travelRow).toHaveAttribute("aria-expanded", "false");
+
+  await noteRow(page, "議事録").locator(".tree-note").dragTo(travelRow);
+  await expect(viewRow(page, "旅行").locator(".count")).toHaveText("1");
+  await expect(viewRow(page, "仕事").locator(".count")).toHaveText("0");
+  await expect(travelRow).toHaveAttribute("aria-expanded", "true");
+  const toast = page.getByRole("status").filter({ hasText: "「議事録」を「旅行」に移動しました" });
+  await toast.getByRole("button", { name: "元に戻す" }).click();
+  await expect(viewRow(page, "旅行").locator(".count")).toHaveText("0");
+  await expect(viewRow(page, "仕事").locator(".count")).toHaveText("1");
+});
+
 // ノートブックの中（入れ子の一覧と中のメモの範囲）にある、別のノートブックの行。
 function notebookRowsInside(page: Page, notebookName: string) {
   return page.locator(".view-group", { has: page.locator(":scope > .nav-row .nav", { hasText: notebookName }) }).locator(".view-group .nav-label");
