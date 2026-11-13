@@ -750,6 +750,7 @@ export const japaneseMessages = {
   "ai.error.rateLimited": "利用の上限に達しました。少し待ってからやり直してください。",
   "ai.error.connection": "つなぎ先につながりませんでした。URL と、ネットワークを確かめてください。",
   "ai.error.api": "つなぎ先がエラーを返しました（{status}）: {reason}",
+  "ai.error.unreadableAnswer": "AI の答えを読み取れませんでした。もう一度送ってください。",
   "settings.shortcuts": "キーボードショートカット",
   "settings.shortcuts.inTable": "表の中",
   "settings.shortcuts.inSidebar": "左の列",

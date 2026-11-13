@@ -751,6 +751,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "ai.error.rateLimited": "The usage limit was reached. Wait a little and try again.",
   "ai.error.connection": "Could not connect to the provider. Check the URL and the network.",
   "ai.error.api": "The provider returned an error ({status}): {reason}",
+  "ai.error.unreadableAnswer": "The answer from the AI could not be read. Send the message again.",
   "settings.shortcuts": "Keyboard shortcuts",
   "settings.shortcuts.inTable": "In a table",
   "settings.shortcuts.inSidebar": "In the sidebar",
