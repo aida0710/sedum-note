@@ -1,6 +1,8 @@
-// ブロックをドラッグして並べ替える持ち手。本文の直下のブロック（段落、見出し、表など）か、箇条書きの項目に
-// マウスを乗せると、左に持ち手を出す。持ち手をつかんで動かすと、そのブロックごと（項目は子ごと）移る
-// （落とす位置の線は、エディタの既定のものが出る）。マウスで使うもので、スマホの画面では出ない。
+// ブロックをドラッグして並べ替える持ち手と、その左の「＋」。本文の直下のブロック（段落、見出し、表など）か、
+// 箇条書きの項目にマウスを乗せると、左に出す。マウスで使うもので、スマホの画面では出ない。
+//   持ち手: つかんで動かすと、そのブロックごと（項目は子ごと）移る（落とす位置の線は、エディタの既定のものが出る）。
+//           押すと、ブロックのメニュー（BlockMenu.tsx）を開く。
+//   ＋: すぐ下に行を足して「/」の候補を開く（blockOperations.ts の startBlockBelow）。
 //
 // マウスの動きは、本文の左の余白も含む、本文の列全体（.document-scroll）で見る。エディタの要素だけで見ると、
 // 持ち手へ向かって本文の左へ出た所で、持ち手に届く前に消えてしまう。
@@ -10,20 +12,25 @@ import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { NodeSelection, Plugin } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
 import { translate } from "../i18n/translate";
+import type { BlockMenuController } from "./blockMenuController";
+import { blockAt, startBlockBelow } from "./blockOperations";
 
 const HANDLE_CLASS = "block-drag-handle";
-// 持ち手の大きさ（px）。CSS（.block-drag-handle）と同じ値。つかみやすいよう、本文の 1 行ぶんの高さにする。
-const HANDLE_WIDTH = 20;
+const INSERT_BUTTON_CLASS = "block-insert-button";
+// 持ち手と「＋」の大きさ（px）。CSS（.block-drag-handle、.block-insert-button）と同じ値。押しやすいよう、本文の 1 行ぶんの高さにする。
+const HANDLE_WIDTH = 18;
 const HANDLE_HEIGHT = 24;
-// 持ち手の右端と、ブロックの左端との間（px）。間に出る印をよける。
-//   見出し: 折りたたみの印（左へ 20px まで）と、ズームのボタン（左へ 44px まで）。
+// 持ち手の右端と、ブロックの左端との間（px）。間に出る印をよける。「＋」は持ち手のすぐ左に置く。
+//   見出し: 折りたたみの印（左へ 20px まで）と、ズームのボタン（左へ 42px まで）。
 //   箇条書きの項目: 行頭の印と、折りたたみの印（左へ 34px まで）。
-const HANDLE_GAP = { heading: 48, listItem: 38, other: 6 };
+const HANDLE_GAP = { heading: 44, listItem: 38, other: 6 };
 // 持ち手を探す本文の列。無いとき（本文だけを出す画面）は、エディタを包む要素で見る。
 const HOVER_AREA_SELECTOR = ".document-scroll";
 
 const LIST_ITEM_TYPES = ["listItem", "taskItem"];
 
+// ＋。lucide の plus と同じ形。
+const PLUS_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
 // 持ち手（6 つの点）。lucide の grip-vertical と同じ形。
 const GRIP_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="5" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="9" cy="19" r="1.6"/><circle cx="15" cy="5" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="15" cy="19" r="1.6"/></svg>';
 
@@ -91,15 +98,38 @@ function createHandle(): HTMLElement {
   handle.contentEditable = "false";
   handle.setAttribute("role", "button");
   handle.setAttribute("aria-label", translate("editor.dragBlock"));
-  handle.title = translate("editor.dragBlock");
+  handle.setAttribute("aria-haspopup", "menu");
+  handle.title = translate("editor.dragBlockOrOpenMenu");
   handle.innerHTML = GRIP_ICON_SVG;
   handle.hidden = true;
   return handle;
 }
 
-export const BlockDragHandle = Extension.create({
+function createInsertButton(): HTMLElement {
+  const button = document.createElement("div");
+  button.className = INSERT_BUTTON_CLASS;
+  button.contentEditable = "false";
+  button.setAttribute("role", "button");
+  button.setAttribute("aria-label", translate("editor.block.insert"));
+  button.title = translate("editor.block.insert");
+  button.innerHTML = PLUS_ICON_SVG;
+  button.hidden = true;
+  return button;
+}
+
+type BlockDragHandleOptions = {
+  // 持ち手を押したときに開くメニュー。渡さなければ、持ち手はドラッグだけに使う。
+  blockMenu: BlockMenuController | null;
+};
+
+export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
   name: "blockDragHandle",
+  addOptions() {
+    return { blockMenu: null };
+  },
   addProseMirrorPlugins() {
+    const { editor } = this;
+    const { blockMenu } = this.options;
     return [
       new Plugin({
         view: (view) => {
@@ -109,7 +139,8 @@ export const BlockDragHandle = Extension.create({
           }
           const hoverArea = container.closest<HTMLElement>(HOVER_AREA_SELECTOR) ?? container;
           const handle = createHandle();
-          container.appendChild(handle);
+          const insertButton = createInsertButton();
+          container.append(insertButton, handle);
           // 持ち手を出しているブロックの位置。ドラッグを始めるときに、このブロックを選ぶ。
           let hoveredPosition: number | null = null;
           // 最後にマウスがあった位置と、打ち始めて隠したか。打って本文の形が変わると、マウスが止まっていても
@@ -119,6 +150,7 @@ export const BlockDragHandle = Extension.create({
 
           const hideHandle = () => {
             handle.hidden = true;
+            insertButton.hidden = true;
             hoveredPosition = null;
           };
           const hideForTyping = () => {
@@ -132,8 +164,8 @@ export const BlockDragHandle = Extension.create({
               return;
             }
             hiddenForTyping = false;
-            // 持ち手の上では、いま出しているブロックのままにする（持ち手は本文の左の外にあり、そこから探すと別のブロックに当たる）。
-            if (event.target instanceof Node && handle.contains(event.target)) {
+            // 持ち手と「＋」の上では、いま出しているブロックのままにする（どちらも本文の左の外にあり、そこから探すと別のブロックに当たる）。
+            if (event.target instanceof Node && (handle.contains(event.target) || insertButton.contains(event.target))) {
               return;
             }
             const block = view.editable ? draggableBlockAt(view, event) : null;
@@ -144,9 +176,14 @@ export const BlockDragHandle = Extension.create({
             hoveredPosition = block.position;
             const containerBox = container.getBoundingClientRect();
             const blockBox = block.element.getBoundingClientRect();
-            handle.style.top = `${firstLineMiddle(view, block) - HANDLE_HEIGHT / 2 - containerBox.top}px`;
-            handle.style.left = `${blockBox.left - containerBox.left - handleGapOf(block.node) - HANDLE_WIDTH}px`;
+            const top = `${firstLineMiddle(view, block) - HANDLE_HEIGHT / 2 - containerBox.top}px`;
+            const handleLeft = blockBox.left - containerBox.left - handleGapOf(block.node) - HANDLE_WIDTH;
+            handle.style.top = top;
+            handle.style.left = `${handleLeft}px`;
+            insertButton.style.top = top;
+            insertButton.style.left = `${handleLeft - HANDLE_WIDTH}px`;
             handle.hidden = false;
+            insertButton.hidden = false;
           };
           const startDragging = (event: DragEvent) => {
             if (hoveredPosition === null || !event.dataTransfer) {
@@ -165,6 +202,22 @@ export const BlockDragHandle = Extension.create({
             view.dragging = { slice: selection.content(), move: true };
           };
 
+          // 持ち手を押した（ドラッグしなかった）ときは、ブロックのメニューを開く。
+          const openBlockMenu = () => {
+            if (hoveredPosition !== null && blockMenu) {
+              blockMenu.open({ anchor: handle, position: hoveredPosition });
+            }
+          };
+          const startBlockBelowHovered = () => {
+            const block = hoveredPosition === null ? null : blockAt(view.state, hoveredPosition);
+            if (block) {
+              hideHandle();
+              startBlockBelow(editor, block);
+            }
+          };
+          // 押しても、本文のカーソルと選択を動かさない（メニューの「変換」は、選んでいる何行かに効かせるため）。
+          const keepEditorSelection = (event: MouseEvent) => event.preventDefault();
+
           hoverArea.addEventListener("mousemove", showHandleAt);
           hoverArea.addEventListener("mouseleave", hideHandle);
           // 打っている間は、文字の邪魔にならないよう隠す（マウスを動かすとまた出る）。日本語の変換で入る文字は
@@ -173,6 +226,9 @@ export const BlockDragHandle = Extension.create({
           view.dom.addEventListener("input", hideForTyping);
           handle.addEventListener("dragstart", startDragging);
           handle.addEventListener("dragend", hideHandle);
+          handle.addEventListener("click", openBlockMenu);
+          insertButton.addEventListener("mousedown", keepEditorSelection);
+          insertButton.addEventListener("click", startBlockBelowHovered);
           return {
             destroy: () => {
               hoverArea.removeEventListener("mousemove", showHandleAt);
@@ -180,6 +236,7 @@ export const BlockDragHandle = Extension.create({
               view.dom.removeEventListener("keydown", hideForTyping);
               view.dom.removeEventListener("input", hideForTyping);
               handle.remove();
+              insertButton.remove();
             },
           };
         },

@@ -7,7 +7,7 @@ export function isApplePlatform(): boolean {
   return /Mac|iPhone|iPad/.test(navigator.platform);
 }
 
-const KEY_NAMES: Record<string, string> = { ArrowRight: "→", ArrowLeft: "←", Enter: "Enter" };
+const KEY_NAMES: Record<string, string> = { ArrowRight: "→", ArrowLeft: "←", ArrowUp: "↑", ArrowDown: "↓", Enter: "Enter" };
 
 // 設定の一覧に出す表記（例: Ctrl + Alt + N、⌘ + ⌥ + N）。
 export function shortcutText(keys: ShortcutKeys): string {

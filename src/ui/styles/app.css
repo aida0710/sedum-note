@@ -121,10 +121,12 @@ button:disabled { cursor: default; opacity: .55; }
 .pdf-preview-page canvas { background: #ffffff; box-shadow: 0 1px 4px var(--shadow); }
 /* ブロックをドラッグする持ち手。エディタを包む要素（EditorContent）の中に、位置を決めて置く。 */
 .document > div:has(> .ProseMirror) { position: relative; }
-/* 大きさは blockDragHandle.ts の HANDLE_WIDTH・HANDLE_HEIGHT と同じ。位置（1 行目の縦の中心）は blockDragHandle.ts が入れる。 */
-.block-drag-handle { position: absolute; width: 20px; height: 24px; cursor: grab; border-radius: var(--radius-row); color: var(--muted); display: grid; place-items: center; user-select: none; opacity: .7; }
-.block-drag-handle[hidden] { display: none; }
-.block-drag-handle:hover { background: var(--selected); color: var(--text); opacity: 1; }
+/* 持ち手と、その左の「＋」。大きさは blockDragHandle.ts の HANDLE_WIDTH・HANDLE_HEIGHT と同じ。位置（1 行目の縦の中心）は blockDragHandle.ts が入れる。 */
+.block-drag-handle, .block-insert-button { position: absolute; width: 18px; height: 24px; border-radius: var(--radius-row); color: var(--muted); display: grid; place-items: center; user-select: none; opacity: .7; }
+.block-drag-handle { cursor: grab; }
+.block-insert-button { cursor: pointer; }
+.block-drag-handle[hidden], .block-insert-button[hidden] { display: none; }
+.block-drag-handle:hover, .block-insert-button:hover { background: var(--selected); color: var(--text); opacity: 1; }
 .block-drag-handle:active { cursor: grabbing; }
 .ProseMirror .columns { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 16px; margin: 10px 0; }
 .ProseMirror .column { min-width: 0; border: 1px dashed transparent; border-radius: var(--radius-control); padding: 2px 6px; }
@@ -361,9 +363,9 @@ button:disabled { cursor: default; opacity: .55; }
 .outline-item { text-align: left; padding: 5px 8px; border-radius: var(--radius-row); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; }
 .outline-item:hover { background: var(--selected); color: var(--text); }
 .icon-button.active { background: var(--selected); color: var(--accent); }
-/* 左右の余白は、見出しの左に並ぶ持ち手・ズームのボタン・折りたたみの印（左へ 68px まで）が、左寄せのときも切れない幅にする。
-   文字の列の幅は 648px（792 − 72 × 2）。 */
-.document { padding: 48px 72px 80px; max-width: 792px; width: 100%; margin: 0 auto; }
+/* 左右の余白は、見出しの左に並ぶ「＋」・持ち手・ズームのボタン・折りたたみの印（左へ 80px まで）が、左寄せのときも切れない幅にする。
+   文字の列の幅は 648px（816 − 84 × 2）。 */
+.document { padding: 48px 84px 80px; max-width: 816px; width: 100%; margin: 0 auto; }
 /* 本文の列の置き場所（メモごとか、表示の設定の既定）。中央は、上の margin のまま。 */
 .document.align-left { margin-left: 0; }
 .document.align-right { margin-right: 0; }
@@ -478,7 +480,7 @@ button:disabled { cursor: default; opacity: .55; }
 .ProseMirror li > * { cursor: text; }
 /* 見出しの左の、セクションにズームするボタン。折りたたみの印のさらに左に置き、ポインターを乗せた見出しにだけ出す。
    縦は、見出しの 1 行目の高さの中央にそろえる。 */
-.ProseMirror .section-zoom { position: absolute; left: -44px; top: calc((1lh - 20px) / 2); width: 20px; height: 20px; display: grid; place-items: center; border-radius: var(--radius-row); color: var(--muted); opacity: 0; }
+.ProseMirror .section-zoom { position: absolute; left: -42px; top: calc((1lh - 20px) / 2); width: 20px; height: 20px; display: grid; place-items: center; border-radius: var(--radius-row); color: var(--muted); opacity: 0; }
 /* スマホは左の余白（18px）に折りたたみの印しか入らないので、見出しの右端に置き（その分、見出しの文字は右を空ける）、
    乗せられない代わりに薄く出したままにする。 */
 .phone .ProseMirror .section-zoom { left: auto; right: 0; width: 18px; }
@@ -860,7 +862,7 @@ details summary { cursor: pointer; color: var(--accent); }
   .workspace, .phone, .main, .document-area { display: block; height: auto; overflow: visible; }
   .document-scroll { overflow: visible; }
   .document { max-width: none; padding: 0; }
-  .section-zoom, .selection-toolbar, .sidebar, .tabs-bar, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
+  .section-zoom, .selection-toolbar, .block-insert-button, .sidebar, .tabs-bar, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
   .document-meta .unsynced, .update-chip { display: none !important; }
   .search-match, .search-match.active { background: none; color: inherit; }
   .ProseMirror p.empty-column::before { content: none; }

@@ -60,6 +60,8 @@ import { insertPastedMarkdown, markdownInClipboard } from "./pastedMarkdown";
 import { SlashMenu } from "./SlashMenu";
 import { useNoteAttachments } from "./useNoteAttachments";
 import { SlashMenuController } from "./slashMenuController";
+import { BlockMenuController } from "./blockMenuController";
+import { BlockMenu } from "./BlockMenu";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { NoteCharacterCount } from "./NoteCharacterCount";
 import { NoteBacklinks } from "./NoteBacklinks";
@@ -117,6 +119,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   // 貼り付けの処理が使うエディタ。エディタを作るときに貼り付けの処理を渡すので、作ったあとに入れる。
   const editorOfPaste = useRef<Editor | null>(null);
   const slashMenuController = useMemo(() => new SlashMenuController(), []);
+  const blockMenuController = useMemo(() => new BlockMenuController(), []);
   const unsyncedIds = useContext(UnsyncedRecordsContext);
   const noteId = note.id;
   const inTrash = note.content.trashedAt !== null;
@@ -140,7 +143,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   // 本文は、メモの Yjs の文書をエディタが直接読み書きする。保存と同期は NoteRepository が文書の
   // 変更を見て行い、ほかのデバイスの変更も同じ文書に入るので、開いたまま画面に出る。
   const editor = useEditor({
-    extensions: createEditorExtensions({ body: note.body, slashMenuController }),
+    extensions: createEditorExtensions({ body: note.body, slashMenuController, blockMenuController }),
     editable: !inTrash,
     editorProps: {
       handlePaste: (_view, event) => attachments.takeFiles(Array.from(event.clipboardData?.files ?? [])) || takeMarkdown(event.clipboardData),
@@ -396,6 +399,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
           onScanned={(straightened) => { setPhotoToScan(null); attachments.takeFiles([straightened]); }} />
       )}
       <SlashMenu controller={slashMenuController} />
+      {!isMobile && <BlockMenu editor={editor} controller={blockMenuController} />}
       {pickingNoteLink && (
         <NotePicker title={translate("editor.noteLinkPickerTitle")} candidates={otherNotes()}
           onPick={(pickedNoteId) => insertNoteLink(pickedNoteId)} onCancel={() => setPickingNoteLink(false)} />

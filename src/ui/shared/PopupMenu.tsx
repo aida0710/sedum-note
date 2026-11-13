@@ -7,12 +7,15 @@ type PopupMenuProps = {
   anchor: HTMLElement;
   onClose: () => void;
   children: ReactNode;
+  // メニューの右端をボタンの右端にそろえる（end、既定）か、左端をボタンの左端にそろえる（start）か。
+  // 画面の左の端にあるボタン（本文の左の持ち手など）では start にして、メニューを右へ開く。
+  align?: "start" | "end";
 };
 
 // 画面の端からこれだけ離して置く。
 const VIEWPORT_MARGIN = 8;
 
-export function PopupMenu({ anchor, onClose, children }: PopupMenuProps) {
+export function PopupMenu({ anchor, onClose, children, align = "end" }: PopupMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
@@ -21,11 +24,12 @@ export function PopupMenu({ anchor, onClose, children }: PopupMenuProps) {
     const menuBox = menuRef.current?.getBoundingClientRect();
     const width = menuBox?.width ?? 200;
     const height = menuBox?.height ?? 0;
-    const left = Math.min(Math.max(VIEWPORT_MARGIN, anchorBox.right - width), window.innerWidth - width - VIEWPORT_MARGIN);
+    const preferredLeft = align === "start" ? anchorBox.left : anchorBox.right - width;
+    const left = Math.min(Math.max(VIEWPORT_MARGIN, preferredLeft), window.innerWidth - width - VIEWPORT_MARGIN);
     const below = anchorBox.bottom + 4;
     const top = below + height > window.innerHeight - VIEWPORT_MARGIN ? Math.max(VIEWPORT_MARGIN, anchorBox.top - height - 4) : below;
     setPosition({ top, left });
-  }, [anchor]);
+  }, [anchor, align]);
 
   useEffect(() => {
     const closeOnOutside = (event: PointerEvent) => {

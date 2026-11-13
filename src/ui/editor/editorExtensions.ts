@@ -34,6 +34,7 @@ import { MarkdownShortcutUndo } from "./markdownShortcutUndo";
 import { KeepTabInEditor } from "./keepTabInEditor";
 import { JapaneseListShortcuts } from "./japaneseListShortcuts";
 import { ZoomOutOnEscape } from "./zoomOutOnEscape";
+import { BlockKeys } from "./blockKeys";
 import { BlockEmbed } from "./blockEmbedNode";
 import { BlockIds } from "./blockIds";
 import { ColoredTableCell, ColoredTableHeader } from "./tableCellBackground";
@@ -44,6 +45,7 @@ import { DueMarks } from "./dueMarks";
 import { TypewriterScroll } from "./typewriterScroll";
 import { readDevicePreferences } from "../preferences/devicePreferences";
 import type { SlashMenuController } from "./slashMenuController";
+import type { BlockMenuController } from "./blockMenuController";
 
 // よく使われる言語（highlight.js の common の組）だけを入れる。言語の指定が無いコードは中身から推す。
 const codeHighlighter = createLowlight(common);
@@ -92,9 +94,9 @@ export function documentExtensions() {
   ];
 }
 
-type EditorExtensionsInput = { body: Y.XmlFragment; slashMenuController: SlashMenuController };
+type EditorExtensionsInput = { body: Y.XmlFragment; slashMenuController: SlashMenuController; blockMenuController: BlockMenuController };
 
-export function createEditorExtensions({ body, slashMenuController }: EditorExtensionsInput) {
+export function createEditorExtensions({ body, slashMenuController, blockMenuController }: EditorExtensionsInput) {
   return [
     ...documentExtensions(),
     SlashCommands.configure({ controller: slashMenuController }),
@@ -105,9 +107,10 @@ export function createEditorExtensions({ body, slashMenuController }: EditorExte
     TableShortcuts,
     TableRowFilterExtension,
     MermaidDiagrams,
-    BlockDragHandle,
+    BlockDragHandle.configure({ blockMenu: blockMenuController }),
     Zoom,
     ZoomOutOnEscape,
+    BlockKeys,
     DateTimeShortcuts,
     TypewriterScroll.configure({ isEnabled: () => readDevicePreferences().typewriterMode, scrollContainerSelector: ".document-scroll" }),
     SearchHighlight,

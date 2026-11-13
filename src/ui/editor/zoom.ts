@@ -72,6 +72,14 @@ export function zoomedItemPosition(state: EditorState): number | null {
   return zoomKey.getState(state) ?? null;
 }
 
+// 本文の範囲（from〜to）が、ズームして見せている所の中にあるか。ズームしている項目や見出しそのものは中に入れない。
+// ズームしていなければ、いつも true。
+export function isInsideZoom(state: EditorState, from: number, to: number): boolean {
+  const zoomedPosition = zoomedItemPosition(state);
+  const range = zoomedPosition === null ? null : zoomedRange(state.doc, zoomedPosition);
+  return range === null || (from > range.from && to <= range.to);
+}
+
 // position より外側にある箇条書きの項目の位置。外側のものから順に並べる。
 function enclosingItemPositions(resolved: ResolvedPos): number[] {
   const positions: number[] = [];

@@ -787,6 +787,101 @@ test("すべて折りたたむ・すべて開くで、子のある項目と見�
   await expect(body.locator("[data-collapsed]")).toHaveCount(0);
 });
 
+test("Ctrl+Shift+↑↓ でブロックを上下に動かし（箇条書きの項目は子ごと）、Ctrl+D ですぐ下に複製する", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "ブロックのキー");
+  const body = page.locator(".ProseMirror");
+  await page.keyboard.type("一");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("二");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("三");
+  await expect(body.locator("> p")).toHaveText(["一", "二", "三"]);
+  await page.keyboard.press("ControlOrMeta+Shift+ArrowUp");
+  await expect(body.locator("> p")).toHaveText(["一", "三", "二"]);
+  await page.keyboard.press("ControlOrMeta+Shift+ArrowUp");
+  await page.keyboard.press("ControlOrMeta+Shift+ArrowUp");
+  await expect(body.locator("> p")).toHaveText(["三", "一", "二"]);
+  // カーソルは動かしたブロックと一緒に動き、続けて打てる。
+  await page.keyboard.type("!");
+  await expect(body.locator("> p").first()).toHaveText("三!");
+  await page.keyboard.press("ControlOrMeta+d");
+  await expect(body.locator("> p")).toHaveText(["三!", "三!", "一", "二"]);
+  await page.keyboard.type("?");
+  await expect(body.locator("> p")).toHaveText(["三!", "三!?", "一", "二"]);
+
+  await placeCursorAtBodyEnd(page);
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("- A");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Tab");
+  await page.keyboard.type("A1");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.type("B");
+  await page.keyboard.press("ControlOrMeta+Shift+ArrowUp");
+  await expect(body.locator("ul > li > p")).toHaveText(["B", "A", "A1"]);
+});
+
+test("持ち手を押すとブロックのメニューが開き、変換・動かす・複製・削除ができる。何行かを選んでいれば、まとめて変換する", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "持ち手のメニュー");
+  const body = page.locator(".ProseMirror");
+  for (const line of ["一", "二", "三"]) {
+    await page.keyboard.type(line);
+    await page.keyboard.press("Enter");
+  }
+  const handle = page.getByRole("button", { name: "ドラッグしてブロックを動かす" });
+  const openMenuOf = async (text: string) => {
+    await body.locator("p, h2", { hasText: new RegExp(`^${text}$`) }).first().hover();
+    await handle.click();
+    return page.getByRole("menu");
+  };
+
+  let menu = await openMenuOf("二");
+  await expect(menu.getByRole("menuitemradio", { name: "本文" })).toHaveAttribute("aria-checked", "true");
+  await menu.getByRole("menuitemradio", { name: "見出し 2" }).click();
+  await expect(body.locator("h2")).toHaveText("二");
+
+  menu = await openMenuOf("三");
+  await menu.getByRole("menuitem", { name: /ブロックを複製/ }).click();
+  await expect(body.locator("> p")).toHaveText(["一", "三", "三", ""]);
+  menu = await openMenuOf("一");
+  await menu.getByRole("menuitem", { name: /ブロックを削除/ }).click();
+  await expect(body.locator("> p")).toHaveText(["三", "三", ""]);
+
+  menu = await openMenuOf("二");
+  await menu.getByRole("menuitemradio", { name: "本文" }).click();
+  await expect(body.locator("> p")).toHaveText(["二", "三", "三", ""]);
+
+  // 何行かを選んでから、そのうちの 1 行の持ち手で「箇条書き」を選ぶと、選んだ行が全部 1 つの箇条書きになる。
+  await page.keyboard.press("ControlOrMeta+a");
+  menu = await openMenuOf("三");
+  await menu.getByRole("menuitemradio", { name: "箇条書き" }).click();
+  await expect(body.locator("ul")).toHaveCount(1);
+  await expect(body.locator("ul > li > p").first()).toHaveText("二");
+});
+
+test("行の左の「＋」を押すと、すぐ下に行を足して「/」の候補を開く", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "＋のメモ");
+  await page.keyboard.type("上の行");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("下の行");
+  const body = page.locator(".ProseMirror");
+  await body.locator("p", { hasText: "上の行" }).hover();
+  const handleBox = (await page.getByRole("button", { name: "ドラッグしてブロックを動かす" }).boundingBox())!;
+  const insertButton = page.getByRole("button", { name: "下にブロックを足す" });
+  const insertBox = (await insertButton.boundingBox())!;
+  expect(insertBox.x + insertBox.width).toBeLessThanOrEqual(handleBox.x + 1);
+  await insertButton.click();
+  const slashMenu = page.getByRole("listbox", { name: "ブロックの種類" });
+  await expect(slashMenu).toBeVisible();
+  await slashMenu.getByRole("option", { name: "見出し 2", exact: true }).click();
+  await page.keyboard.type("足した見出し");
+  await expect(body.locator("> *")).toHaveText(["上の行", "足した見出し", "下の行"]);
+});
+
 test("PC では、書式のボタンを上に並べず、文字を選んだときだけその上に出す。表のメニューは表の中にいる間だけ上のバーに出る", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "書式のメモ");
@@ -841,7 +936,7 @@ test("持ち手は、本文から左の余白を通って近づいても消え�
     }
     await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
     await expect(handle).toBeVisible();
-    expect(handleBox.width).toBeGreaterThanOrEqual(20);
+    expect(handleBox.width).toBeGreaterThanOrEqual(18);
     expect(handleBox.height).toBeGreaterThanOrEqual(24);
     // 持ち手の縦の中心は、ブロックの 1 行目の中にある。
     const firstLine = (await block.locator("xpath=descendant-or-self::*[self::p or self::h2][1]").boundingBox())!;
