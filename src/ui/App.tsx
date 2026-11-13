@@ -47,7 +47,7 @@ export function App() {
   // URL のスペースが一覧に無ければ（消したスペースなど）、開いているスペースを使う。
   const spaceId = windowSpaceId !== null && spaces.some((space) => space.id === windowSpaceId) ? windowSpaceId : activeSpaceId;
   // 言語を変えたら、ここから下を描き直して文言を入れ替える。
-  const { language, editorFontSize, sidebarWidth, stayResident } = useDevicePreferences();
+  const { language, editorTypography, sidebarWidth, stayResident } = useDevicePreferences();
   // 常駐の設定は、ロックを解除する前から効かせる（言語を変えたら、アイコンのメニューの文言も入れ替える）。
   useEffect(() => {
     if (canStayResident()) {
@@ -58,7 +58,7 @@ export function App() {
     document.documentElement.lang = languageInUse();
   }, [language]);
   const theme = useThemeInUse();
-  useEffect(() => applyAppearance({ theme, editorFontSize, sidebarWidth }), [theme, editorFontSize, sidebarWidth]);
+  useEffect(() => applyAppearance({ theme, editorTypography, sidebarWidth }), [theme, editorTypography, sidebarWidth]);
   // スペースを切り替えたら、そのスペースの画面を最初から作り直す（前のスペースのメモを、メモリから手放す）。
   return (
     <DialogProvider>

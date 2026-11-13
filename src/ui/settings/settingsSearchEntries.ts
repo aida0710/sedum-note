@@ -16,6 +16,8 @@ export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
   { label: "settings.language", page: "general" },
   { label: "settings.noteSortOrder", page: "general" },
   { label: "settings.editorFontSize", page: "general" },
+  { label: "settings.editorLetterSpacing", page: "general" },
+  { label: "settings.editorLineHeight", page: "general" },
   { label: "settings.pageAlignment", page: "general" },
   { label: "settings.imageAttachment", page: "general" },
   { label: "settings.typewriterMode", page: "general" },

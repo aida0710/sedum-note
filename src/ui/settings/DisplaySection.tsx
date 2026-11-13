@@ -1,11 +1,12 @@
-// 設定: このデバイスの表示（言語、メモの並び順、本文の文字の大きさ、本文の配置の既定、写真を貼るときの大きさ、タイプライターモード）。
+// 設定: このデバイスの表示（言語、メモの並び順、本文の文字の組み方、本文の配置の既定、写真を貼るときの大きさ、タイプライターモード）。
 
 import { NOTE_SORT_ORDERS, type NoteSortOrder } from "../../core/notes/noteQueries";
 import { PAGE_ALIGNMENTS, type PageAlignment } from "../../core/notes/noteRecords";
 import { REDUCED_IMAGE_MAX_EDGE } from "../editor/reduceImage";
 import { type Language } from "../i18n/languageInUse";
 import { translate } from "../i18n/translate";
-import { EDITOR_FONT_SIZES, type EditorFontSize, IMAGE_ATTACHMENT_CHOICES, type ImageAttachmentChoice, LANGUAGE_CHOICES, type LanguageChoice, updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
+import { IMAGE_ATTACHMENT_CHOICES, type ImageAttachmentChoice, LANGUAGE_CHOICES, type LanguageChoice, updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
+import { EditorTypographySettings } from "./EditorTypographySettings";
 import { SettingCheckboxRow, SettingRow } from "./SettingRow";
 
 // 言語の名前は、画面の言語に関わらずその言語で書く（読めない言語に変えても戻せるように）。
@@ -34,13 +35,7 @@ export function DisplaySection() {
           </select>
         )}
       </SettingRow>
-      <SettingRow controlId="display-editor-font-size" label={translate("settings.editorFontSize")}>
-        {(control) => (
-          <select {...control} value={preferences.editorFontSize} onChange={(event) => updateDevicePreferences({ editorFontSize: event.target.value as EditorFontSize })}>
-            {EDITOR_FONT_SIZES.map((size) => <option key={size} value={size}>{translate(`settings.editorFontSize.${size}`)}</option>)}
-          </select>
-        )}
-      </SettingRow>
+      <EditorTypographySettings />
       <SettingRow controlId="display-page-alignment" label={translate("settings.pageAlignment")} hint={translate("settings.pageAlignmentHint")}>
         {(control) => (
           <select {...control} value={preferences.pageAlignment} onChange={(event) => updateDevicePreferences({ pageAlignment: event.target.value as PageAlignment })}>

@@ -49,12 +49,27 @@ test("自作のテーマは、読めない色の組み合わせでは保存で�
   expect(await cssVariable(page, "--accent")).toBe("#2f6fde");
 });
 
-test("本文の文字の大きさを変えると、エディタの文字が大きくなる", async ({ page }) => {
+test("本文の文字の大きさ・字の間・行の間を変えると、見本とエディタの文字に当たり、標準にも戻せる", async ({ page }) => {
   await startLocalVault(page);
   await openSettingsPage(page, "一般");
-  await page.getByLabel("本文の文字の大きさ").selectOption("large");
+  await page.getByLabel("本文の文字の大きさ").fill("20");
+  await page.getByLabel("本文の字の間").fill("0.08");
+  await page.getByLabel("本文の行の間").fill("2.2");
+  const sample = page.locator(".typography-preview p");
+  await expect(sample).toHaveCSS("font-size", "20px");
+  await expect(sample).toHaveCSS("letter-spacing", "1.6px");
+  await expect(sample).toHaveCSS("line-height", "44px");
+
   await page.getByRole("button", { name: "新しいメモ" }).click();
-  await expect(page.locator(".ProseMirror")).toHaveCSS("font-size", "18px");
+  const body = page.locator(".ProseMirror");
+  await expect(body).toHaveCSS("font-size", "20px");
+  await expect(body).toHaveCSS("letter-spacing", "1.6px");
+  await expect(body).toHaveCSS("line-height", "44px");
+
+  await openSettingsPage(page, "一般");
+  await page.getByRole("button", { name: "文字の大きさと間を標準に戻す" }).click();
+  await expect(sample).toHaveCSS("font-size", "16px");
+  await expect(page.getByRole("button", { name: "文字の大きさと間を標準に戻す" })).toBeDisabled();
 });
 
 test("カスタム CSS は、ロックを解除している間だけ当たり、ロック解除の画面でオフにできる", async ({ page }) => {

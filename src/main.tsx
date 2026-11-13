@@ -22,7 +22,7 @@ deleteCapturedPhotos();
 const preferences = readDevicePreferences();
 applyAppearance({
   theme: resolveTheme(preferences, window.matchMedia(SYSTEM_DARK_QUERY).matches),
-  editorFontSize: preferences.editorFontSize,
+  editorTypography: preferences.editorTypography,
   sidebarWidth: preferences.sidebarWidth,
 });
 
