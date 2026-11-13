@@ -159,8 +159,10 @@ export function SearchResults({ summaries, view, navigation, repository }: Searc
   return (
     <>
       <div className="section-title">{translate("sidebar.searchResults", { count: summaries.length })}</div>
-      <NoteRows notes={summaries} view={view} navigation={navigation} repository={repository} depth={null}
-        snippetOf={(summary) => searchSnippetOf(summary.plainText, words)} />
+      {/* 当たりが無いときは、「メモはありません」ではなく、検索の結果だと分かる文にする。 */}
+      {summaries.length === 0 && <div className="tree-empty unindented">{translate("sidebar.noSearchResults", { query: navigation.searchText.trim() })}</div>}
+      {summaries.length > 0 && <NoteRows notes={summaries} view={view} navigation={navigation} repository={repository} depth={null}
+        snippetOf={(summary) => searchSnippetOf(summary.plainText, words)} />}
     </>
   );
 }

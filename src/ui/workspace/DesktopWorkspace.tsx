@@ -14,6 +14,7 @@ import { SyncStatusLine } from "./SyncStatusLine";
 import { useExitFocusModeOnEscape } from "./useExitFocusModeOnEscape";
 import { createNoteInView } from "./createNoteInView";
 import { CommandPalette } from "./CommandPalette";
+import { EmptyEditorPane } from "./EmptyEditorPane";
 import { APP_SHORTCUT_IDS, useKeyboardShortcuts } from "./keyboardShortcuts";
 import { UpdateChip } from "../update/UpdateChip";
 import { NotebookDatabaseView } from "./NotebookDatabaseView";
@@ -135,7 +136,9 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
         )}
         {showsGraph && <NoteGraphView summaries={snapshot.summaries} onOpenNote={navigation.openNote} />}
         {showsReminders && <RemindersView summaries={snapshot.summaries} repository={repository} onOpenNote={navigation.openNote} />}
-        {!activeNote && !databaseNotebook && !showsGraph && !showsReminders && navigation.activeTab !== SETTINGS_TAB && <div className="empty-state">{translate("editor.empty")}</div>}
+        {!activeNote && !databaseNotebook && !showsGraph && !showsReminders && navigation.activeTab !== SETTINGS_TAB && (
+          <EmptyEditorPane view={navigation.view} trashHasNotes={snapshot.notes.some((note) => note.content.trashedAt !== null)} onCreateNote={() => void createNote()} />
+        )}
         </div>
         {splitNote && <SplitNotePane note={splitNote} snapshot={snapshot} repository={repository} navigation={navigation} />}
         </div>

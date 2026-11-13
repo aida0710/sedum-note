@@ -62,7 +62,7 @@ export function NotebookDatabaseView({ notebook, notes, repository, onOpenNote }
         </div>
         {/* メモが無くても表とボードを出す。最初のメモを、ここの「新しいメモ」から足せるように。 */}
         {view.layout === "table" && <DatabaseTable {...content} onSort={changeView} onEditProperties={() => setEditingProperties(true)} />}
-        {view.layout === "board" && <DatabaseBoard {...content} onChooseGroup={(groupBy) => changeView({ groupBy })} />}
+        {view.layout === "board" && <DatabaseBoard {...content} onChooseGroup={(groupBy) => changeView({ groupBy })} onEditProperties={() => setEditingProperties(true)} />}
       </div>
       {/* 表の「＋」は、ノートブックのメニューの「プロパティ」と同じダイアログを開く。名前・種類・選択肢をまとめて決められるのがそこなので。 */}
       {editingProperties && <NotebookPropertiesDialog notebook={notebook} repository={repository} autoFocusAddButton onClose={() => setEditingProperties(false)} />}
@@ -144,10 +144,21 @@ function DatabaseTable({ notes, properties, view, repository, notebookView, titl
 
 const NO_GROUP_PROPERTY = "";
 
-function DatabaseBoard({ notes, properties, view, repository, notebookView, titleOf, onOpenNote, onChooseGroup }: DatabaseContentProps & { onChooseGroup: (propertyId: string) => void }) {
+type DatabaseBoardProps = DatabaseContentProps & {
+  onChooseGroup: (propertyId: string) => void;
+  onEditProperties: () => void;
+};
+
+function DatabaseBoard({ notes, properties, view, repository, notebookView, titleOf, onOpenNote, onChooseGroup, onEditProperties }: DatabaseBoardProps) {
   const groupProperty = boardGroupProperty(properties, view.groupBy);
   if (!groupProperty) {
-    return <div className="tree-empty">{translate("database.boardNeedsSelect")}</div>;
+    // 選択肢のプロパティが無いと列を作れない。足す所（プロパティのダイアログ）へのボタンを添える。
+    return (
+      <div className="database-board-needs-select">
+        <p>{translate("database.boardNeedsSelect")}</p>
+        <button type="button" className="secondary-button" onClick={onEditProperties}><Plus size={ICON_SIZE} />{translate("property.add")}</button>
+      </div>
+    );
   }
   // 列の「新しいメモ」では、その列の選択肢の値を入れたメモを作る。「未設定」の列（option が null）では値を入れない。
   const createCard = async (title: string, option: string | null) => {

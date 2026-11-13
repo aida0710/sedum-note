@@ -441,3 +441,13 @@ test("ゴミ箱の行のメニューから、件数を確かめてゴミ箱を�
   await expect(trashRow.locator(".count")).toHaveText("0");
   await expect(page.locator(".sidebar .tree-note", { hasText: "残すメモ" })).toHaveCount(1);
 });
+
+test("選択肢のプロパティが無いノートブックをボードにすると、案内の下の「プロパティを追加」からプロパティのダイアログを開ける", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "読書");
+  const database = await openDatabaseView(page, "読書");
+  await database.getByRole("radio", { name: "ボード" }).click();
+  await expect(database.getByText("ボードは、選択肢のプロパティで列を分けます。")).toBeVisible();
+  await database.getByRole("button", { name: "プロパティを追加" }).click();
+  await expect(page.getByRole("dialog", { name: "プロパティ" })).toBeVisible();
+});

@@ -134,6 +134,8 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 .database-add-property .icon-button:hover { color: var(--text); }
 /* 表の下の「新しいメモ」の行は、枠を付けず、表の左の端にそろえる。 */
 .database-table tfoot td { border: 0; padding: 4px 0 0; }
+.database-board-needs-select { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; color: var(--muted); font-size: var(--font-size-small); line-height: 1.6; }
+.database-board-needs-select .secondary-button { display: inline-flex; align-items: center; gap: 6px; }
 .database-new-note-button { display: inline-flex; align-items: center; gap: 4px; height: var(--control-height-compact); padding: 0 8px; border-radius: var(--radius-row); color: var(--muted); font-size: var(--font-size-ui); }
 .database-new-note-button:hover { background: var(--selected); color: var(--text); }
 .database-new-note { max-width: 320px; }
@@ -371,7 +373,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .sidebar-scroll .tree-note { min-height: var(--sidebar-row-height); padding-block: 0; padding-left: calc(var(--tree-label-offset) + var(--depth, 0) * var(--tree-indent-step)); }
 .sidebar-scroll .tree-note.with-snippet { padding-block: 5px; }
 /* 検索の結果は木の中に無いので、見出しと同じ左端に置く。 */
-.sidebar-scroll .tree-note.unindented { padding-left: 8px; }
+.sidebar-scroll :is(.tree-note, .tree-empty).unindented { padding-left: 8px; }
 .sidebar-scroll .tree-empty { min-height: var(--sidebar-row-height); padding-block: 0; padding-left: calc(var(--tree-label-offset) + var(--depth, 0) * var(--tree-indent-step)); display: flex; align-items: center; }
 /* 行の操作（「…」）が出ている間は、その幅だけ右を空けて、名前の省略の「…」と重ならないようにする。 */
 .sidebar-scroll .nav-row:has(.row-actions):is(:hover, :focus-within) .nav { padding-right: 32px; }
@@ -527,7 +529,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .template-banner { flex-wrap: wrap; }
 .template-banner-text { flex: 1 1 240px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .template-banner .hint { color: inherit; line-height: 1.6; }
-.empty-state { margin: auto; color: var(--muted); text-align: center; padding: 40px; }
+.empty-state { margin: auto; color: var(--muted); text-align: center; padding: 40px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.empty-state .primary-button { display: inline-flex; align-items: center; gap: 6px; }
 
 /* Tiptap の本文 */
 /* 本文の文字。日本語の長い文を読みやすいよう、行の間と字の間を少し広げる（書く画面の案 B、2026-11-13）。 */

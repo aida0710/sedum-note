@@ -474,3 +474,24 @@ test("左の列では、テンプレートとゴミ箱は、すべてのメモ�
   expect(order.indexOf("ゴミ箱")).toBeLessThan(order.findIndex((text) => text.startsWith("ノートブック")));
   expect(order.indexOf("ゴミ箱")).toBeLessThan(order.indexOf("タグ"));
 });
+
+test("検索で当たりが無いときは、検索の結果だと分かる文を出す", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "買い物", "牛乳");
+  await page.keyboard.press("Control+Shift+f");
+  await page.getByPlaceholder("メモを検索").fill("どこにも無い言葉");
+  await expect(page.getByText("検索結果（0件）")).toBeVisible();
+  await expect(page.locator(".sidebar")).toContainText("「どこにも無い言葉」に一致するメモはありません");
+  await expect(page.locator(".sidebar").getByText("メモはありません", { exact: true })).toHaveCount(0);
+});
+
+test("タブを 1 つも開いていない本文の欄には、メモを作るボタンとキーの案内がある。空のゴミ箱を選ぶと、空だと伝える", async ({ page }) => {
+  await startLocalVault(page);
+  const emptyPane = page.locator(".main .empty-state");
+  await expect(emptyPane).toContainText("Ctrl + Alt + N");
+  await emptyPane.getByRole("button", { name: "メモを作成" }).click();
+  await expect(page.getByRole("tab")).toHaveCount(1);
+  await page.getByRole("tab").getByRole("button", { name: "タブを閉じる" }).click();
+  await page.locator('.sidebar [data-view-key="trash"]').click();
+  await expect(emptyPane).toHaveText("ゴミ箱は空です");
+});
