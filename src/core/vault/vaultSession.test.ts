@@ -77,6 +77,7 @@ describe("データの形の版", () => {
 
 // y-tiptap 3.0.x が文書に書いた、カーソルの位置を移す記録の名前（format/dataFormatMigrations.ts）。
 const LEGACY_POSITION_MIGRATIONS = "__tiptap_position_migrations:default";
+const VERSION_BEFORE_CLEARING_POSITION_MIGRATIONS = 13;
 
 // 記録を取ってくるたびに onRecordFetched を呼ぶ同期先（取ってくる途中で、ほかのデバイスが何かした状況を作る）。
 function storeWatchingRecordFetches(store: MemoryObjectStore, onRecordFetched: () => Promise<void>): ObjectStore {
@@ -99,7 +100,8 @@ function storeWatchingRecordFetches(store: MemoryObjectStore, onRecordFetched: (
 describe("データの形の移し替え", () => {
   it("古い版の手元のデータを開くと、記録を新しい形にしてから版を引き上げる。更新日時と履歴は変わらない", async () => {
     const store = new MemoryObjectStore();
-    const olderApp = { ...environment(store), dataFormatVersion: DATA_FORMAT_VERSION - 1 };
+    // カーソルの位置を移す記録を消す手順は、版 14 へ上げるときに流れる。その前の版 13 のアプリが書いたデータを開く。
+    const olderApp = { ...environment(store), dataFormatVersion: VERSION_BEFORE_CLEARING_POSITION_MIGRATIONS };
     const older = await createLocalVault(olderApp, "correct horse battery");
     const note = await older.repository.createNote({ title: "古い版で書いたメモ" });
     older.repository.note(note.id)!.body.doc!.getMap(LEGACY_POSITION_MIGRATIONS).set("position", "moved");

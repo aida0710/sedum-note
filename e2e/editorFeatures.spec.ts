@@ -882,6 +882,47 @@ test("行の左の「＋」を押すと、すぐ下に行を足して「/」の�
   await expect(body.locator("> *")).toHaveText(["上の行", "足した見出し", "下の行"]);
 });
 
+test("写真の右下の持ち手をドラッグすると幅が変わり、ダブルクリックで本文の幅に合わせる形に戻る", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "写真の大きさ");
+  const photo = await page.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 640;
+    canvas.height = 360;
+    const context = canvas.getContext("2d")!;
+    context.fillStyle = "#3d7fd6";
+    context.fillRect(0, 0, 640, 360);
+    return canvas.toDataURL("image/png");
+  });
+  await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "空.png", mimeType: "image/png", buffer: Buffer.from(photo.split(",")[1]!, "base64") });
+  const image = page.locator(".attachment-image img");
+  await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0).catch(() => false)).toBe(true);
+  // 写真の要素は、幅を変えると描き直されて一瞬見えなくなるので、見えないときは 0 として待ち直す。
+  const imageWidth = async () => Math.round((await image.boundingBox())?.width ?? 0);
+  // 写真は幅 640px で、本文の列（648px）に収まるので、そのままの幅で出る。
+  const startWidth = 640;
+  await expect.poll(imageWidth).toBe(startWidth);
+  await image.hover();
+  const handle = page.getByRole("button", { name: /写真の大きさを変える/ });
+  const handleBox = (await handle.boundingBox())!;
+  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+  await page.mouse.down();
+  // 写真は中央に置くので、左へ 100px 動かすと、幅は 200px 狭くなる。
+  await page.mouse.move(handleBox.x + handleBox.width / 2 - 100, handleBox.y + handleBox.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(imageWidth).toBe(startWidth - 200);
+  const storedWidth = () => page.evaluate(() => {
+    const editor = (document.querySelector(".ProseMirror") as HTMLElement & { editor: { getJSON: () => { content: Array<{ type: string; attrs?: { width?: number | null } }> } } }).editor;
+    return editor.getJSON().content.find((block) => block.type === "attachmentImage")?.attrs?.width ?? null;
+  });
+  expect(await storedWidth()).toBe(startWidth - 200);
+
+  await image.hover();
+  await handle.dblclick();
+  await expect.poll(storedWidth).toBe(null);
+  await expect.poll(imageWidth).toBe(startWidth);
+});
+
 test("PC では、書式のボタンを上に並べず、文字を選んだときだけその上に出す。表のメニューは表の中にいる間だけ上のバーに出る", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "書式のメモ");

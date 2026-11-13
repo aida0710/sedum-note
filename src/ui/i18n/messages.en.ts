@@ -400,6 +400,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "editor.templateNamed": "Template: {title}",
   "editor.outline": "Outline",
   "editor.dragBlock": "Drag to move the block",
+  "editor.resizeImage": "Drag to resize the photo (double-click to reset)",
   "editor.dragBlockOrOpenMenu": "Drag to move, click to open the menu",
   "editor.zoomIntoItem": "Zoom into this item",
   "editor.zoomIntoSection": "Zoom into this section",

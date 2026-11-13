@@ -398,6 +398,7 @@ export const japaneseMessages = {
   "editor.templateNamed": "テンプレート: {title}",
   "editor.outline": "目次",
   "editor.dragBlock": "ドラッグしてブロックを動かす",
+  "editor.resizeImage": "ドラッグで写真の大きさを変える（ダブルクリックで元に戻す）",
   "editor.dragBlockOrOpenMenu": "ドラッグで動かす・押してメニューを開く",
   "editor.zoomIntoItem": "この項目にズーム",
   "editor.zoomIntoSection": "このセクションにズーム",

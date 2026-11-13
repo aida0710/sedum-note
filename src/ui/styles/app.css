@@ -646,6 +646,12 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .attachment-file-size { color: var(--muted); font-size: var(--font-size-small); margin-left: auto; white-space: nowrap; }
 .attachment-file.ProseMirror-selectednode { outline: 2px solid var(--accent); }
 .attachment-image.ProseMirror-selectednode { outline: 2px solid var(--accent); }
+/* 幅を決めた写真は、枠を写真の幅に合わせて列の中央に置く（枠の地の色が写真の横に出ないように）。 */
+.attachment-image.sized { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
+.attachment-image.sized img { max-width: 100%; }
+/* 写真の右下の、大きさを変える持ち手。ポインターを乗せたときと、写真を選んだときに出す（スマホは選んだとき）。 */
+.image-resize-handle { position: absolute; right: 6px; bottom: 6px; width: 16px; height: 16px; border-radius: 4px; background: var(--panel); border: 2px solid var(--accent); cursor: nwse-resize; opacity: 0; touch-action: none; }
+.attachment-image:hover .image-resize-handle, .attachment-image.selected .image-resize-handle, .image-resize-handle:focus-visible { opacity: 1; }
 
 /* メニュー */
 /* メニューはツールバーの中に置くこともあるので、文字の色を親（補助の色）から引き継がない。 */
@@ -862,7 +868,7 @@ details summary { cursor: pointer; color: var(--accent); }
   .workspace, .phone, .main, .document-area { display: block; height: auto; overflow: visible; }
   .document-scroll { overflow: visible; }
   .document { max-width: none; padding: 0; }
-  .section-zoom, .selection-toolbar, .block-insert-button, .sidebar, .tabs-bar, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
+  .section-zoom, .selection-toolbar, .block-insert-button, .image-resize-handle, .sidebar, .tabs-bar, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
   .document-meta .unsynced, .update-chip { display: none !important; }
   .search-match, .search-match.active { background: none; color: inherit; }
   .ProseMirror p.empty-column::before { content: none; }

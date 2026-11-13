@@ -27,7 +27,9 @@
 // 14: エディタと Yjs をつなぐ部品（@tiptap/y-tiptap）を 3.0.10 から 3.3.0 にした。3.0.x は、構造を変える編集と
 //     元に戻す操作のたびに、カーソルの位置を移す記録を文書に書き足し、文書が膨らむ。新しい版はこの記録を書かない。
 //     古いアプリが書き続けないよう、版を上げて止める。手元に残った記録は、移し替えの手順で消す。
-export const DATA_FORMAT_VERSION = 14;
+// 15: 写真のブロックに幅（width）の属性を足した。古いアプリのエディタは知らない属性を落とし、写真を動かしたときなどに
+//     幅の記録を消してしまうので、版を上げて止める。手元の記録を書き換える手順は要らない。
+export const DATA_FORMAT_VERSION = 15;
 
 export class AppUpdateRequiredError extends Error {
   constructor() {
