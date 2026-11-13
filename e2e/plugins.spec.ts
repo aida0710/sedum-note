@@ -85,6 +85,14 @@ test("GitHub からプラグインを取り込むと、できることを確か�
   await page.getByRole("tab", { name: "買い物" }).click();
   await page.getByRole("button", { name: "その他の操作" }).last().click();
   await expect(page.getByRole("menuitem", { name: "Count characters" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  // 外すボタンと確認は、入れるときの言葉に合わせて「アンインストール」と呼ぶ。
+  await page.getByRole("tab", { name: "設定" }).click();
+  await page.locator(".plugin-list li").getByRole("button", { name: "アンインストール" }).click();
+  const confirmation = page.getByRole("dialog").filter({ hasText: "プラグイン「Text tools」をアンインストールしますか？" });
+  await confirmation.getByRole("button", { name: "アンインストール" }).click();
+  await expect(page.locator(".plugin-list li")).toHaveCount(0);
 });
 
 test("外の関数を使おうとするプラグインは、入れられない", async ({ page }) => {

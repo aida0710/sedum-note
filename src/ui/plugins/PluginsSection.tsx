@@ -82,7 +82,7 @@ export function PluginsSection() {
     }
   });
   const remove = async (plugin: InstalledPlugin) => {
-    if (await dialogs.confirm({ message: translate("plugin.removeConfirm", { name: plugin.manifest.name }), confirmLabel: translate("common.delete"), danger: true })) {
+    if (await dialogs.confirm({ message: translate("plugin.uninstallConfirm", { name: plugin.manifest.name }), confirmLabel: translate("plugin.uninstall"), danger: true })) {
       await removePlugin(plugin.manifest.id);
     }
   };
@@ -116,7 +116,7 @@ export function PluginsSection() {
               {translate("plugin.enabled")}
             </label>
             <button type="button" className="secondary-button" disabled={checkForUpdate.busy} onClick={() => void checkForUpdate.run(plugin)}>{translate("plugin.checkForUpdate")}</button>
-            <button type="button" className="danger-button" onClick={() => void remove(plugin)}>{translate("common.delete")}</button>
+            <button type="button" className="danger-button" onClick={() => void remove(plugin)}>{translate("plugin.uninstall")}</button>
           </li>
         ))}
       </ul>
