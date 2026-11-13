@@ -717,6 +717,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "ai.baseUrlHint": "Enter the URL up to, but not including, /chat/completions (for example http://127.0.0.1:11434/v1 for Ollama, https://api.openai.com/v1 for OpenAI). To reach a local server from the web version, the server must allow connections from this page (CORS).",
   "ai.assistant": "AI chat",
   "ai.notEnabled": "AI in the app is not turned on yet. Turn it on and enter a provider on the AI page of Settings.",
+  "ai.openSettings": "Open AI settings",
   "ai.task.summarize": "Summarize",
   "ai.task.rewrite": "Rewrite",
   "ai.waiting": "Waiting for the answer…",

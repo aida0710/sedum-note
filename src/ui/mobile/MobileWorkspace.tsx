@@ -47,6 +47,13 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
   // 積んだ履歴をここで外す（残すと、次の「戻る」が 1 回空振りする）。
   const settingsPageOpen = openNote === undefined && tab === "settings" && navigation.settingsPage !== null;
   const closeSettingsPage = useBackGestureToClose(settingsPageOpen, () => navigation.selectSettingsPage(null));
+  // AI のチャットの案内から、設定の「AI」のページへ移る。開いているメモは「戻る」と同じく閉じる（積んだ履歴も外す）。
+  const openAiSettings = () => {
+    aiChat.setOpen(false);
+    setTab("settings");
+    navigation.selectSettingsPage("ai");
+    goBack();
+  };
 
   if (showsReminders) {
     return (
@@ -66,7 +73,8 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
         </NoteLinkTargetsContext.Provider>
         {aiChat.open && (
           <ModalDialog label={translate("ai.chat")} className="ai-chat-dialog" onClose={() => aiChat.setOpen(false)}>
-            <AiChat repository={repository} notes={snapshot.notes.filter((note) => note.content.trashedAt === null)} onClose={() => aiChat.setOpen(false)} />
+            <AiChat repository={repository} notes={snapshot.notes.filter((note) => note.content.trashedAt === null)} onClose={() => aiChat.setOpen(false)}
+              onOpenAiSettings={openAiSettings} />
           </ModalDialog>
         )}
       </div>

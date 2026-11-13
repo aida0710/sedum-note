@@ -186,6 +186,8 @@ button:disabled { cursor: default; opacity: .55; }
 .ai-chat .text-button:hover { background: var(--selected); }
 .ai-chat-messages { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
 .ai-chat-notice { color: var(--muted); padding: 12px 14px; }
+/* まだ有効にしていないときの案内。文のあとに、設定を開くボタンを左寄せで置く。 */
+.ai-chat > .ai-chat-notice { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; line-height: 1.6; }
 .ai-chat-messages .ai-chat-notice { padding: 0; }
 .ai-message { display: flex; flex-direction: column; gap: 4px; }
 .ai-message.user { align-self: flex-end; max-width: 92%; background: var(--accent-soft); border-radius: var(--radius-panel); padding: 8px 10px; }

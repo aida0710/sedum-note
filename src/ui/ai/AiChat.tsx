@@ -36,6 +36,8 @@ type AiChatProps = {
   // 「@」で指定できるメモ（ゴミ箱の外）。
   notes: LiveNote[];
   onClose: () => void;
+  // 設定の「AI」のページを開く。まだ有効にしていないときの案内から使う。
+  onOpenAiSettings: () => void;
 };
 
 function streamCompletion(settings: AiSettings, input: { conversation: AiConversation; onText: (text: string) => void; signal: AbortSignal }): Promise<AiToolCall | null> {
@@ -72,7 +74,7 @@ function useSelectedText(activeNote: ActiveNoteEditor | null): string {
   return selectedText;
 }
 
-export function AiChat({ repository, notes, onClose }: AiChatProps) {
+export function AiChat({ repository, notes, onClose, onOpenAiSettings }: AiChatProps) {
   const { settings, saveSettings } = useAiSettings();
   const { messages, setMessages, activeNote, savedChats, saveChat, startNewChat, openSavedChat, deleteSavedChat, editProposals, rememberEditProposal } = useAiChatSession();
   // 適用している直しの案の、道具の呼び出しの ID。
@@ -202,7 +204,10 @@ export function AiChat({ repository, notes, onClose }: AiChatProps) {
     return (
       <section className="ai-chat" aria-label={translate("ai.chat")}>
         <ChatHeader showsModel={false} canStartNewChat={false} onStartNewChat={() => undefined} showsHistory={null} onToggleHistory={() => undefined} onClose={onClose} />
-        <p className="ai-chat-notice">{translate("ai.notEnabled")}</p>
+        <div className="ai-chat-notice">
+          <p>{translate("ai.notEnabled")}</p>
+          <button type="button" className="primary-button" onClick={onOpenAiSettings}>{translate("ai.openSettings")}</button>
+        </div>
       </section>
     );
   }

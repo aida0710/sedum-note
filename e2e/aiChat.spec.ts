@@ -1,5 +1,5 @@
 import { expect, type Page, type Route, test } from "@playwright/test";
-import { createNoteOnDesktop, openSettingsPage, PASSPHRASE, startLocalVault } from "./devices";
+import { createNoteOnDesktop, openSettingsPage, PASSPHRASE, PHONE_VIEWPORT, startLocalVault } from "./devices";
 
 // 試験では AI の提供元へつながない。届いた要求を覚えて、ストリーミングの形の決まった答えを返す。
 
@@ -99,13 +99,33 @@ async function mockClaudeApi(page: Page, answers: Array<string | EditAnswer>): P
   return requests;
 }
 
-test("AI チャットは、設定で有効にするまで使えない", async ({ page }) => {
+test("AI チャットは、設定で有効にするまで使えない。案内のボタンから設定の「AI」のページを開ける", async ({ page }) => {
   await startLocalVault(page);
   await createNoteOnDesktop(page, "買い物");
   await page.getByRole("button", { name: "その他の操作" }).last().click();
   await page.getByRole("menuitem", { name: "AI チャット" }).click();
   await expect(chat(page)).toContainText("アプリ内の AI は、まだ有効になっていません");
   await expect(chat(page).getByRole("textbox")).toHaveCount(0);
+
+  await chat(page).getByRole("button", { name: "AI の設定を開く" }).click();
+  await page.getByRole("checkbox", { name: "アプリ内の AI を使う" }).check();
+  await expect(chat(page).getByRole("textbox")).toBeVisible();
+});
+
+test("スマホでも、AI チャットの案内のボタンでメモを閉じて設定の「AI」のページへ移り、端末の「戻る」で設定のページの一覧へ戻る", async ({ browser }) => {
+  const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await page.getByPlaceholder("タイトル").fill("買い物");
+  await page.getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "AI チャット" }).click();
+  await chat(page).getByRole("button", { name: "AI の設定を開く" }).click();
+
+  await expect(page.getByRole("checkbox", { name: "アプリ内の AI を使う" })).toBeVisible();
+  await expect(page.getByPlaceholder("タイトル")).toHaveCount(0);
+  await page.goBack();
+  await expect(page.getByRole("checkbox", { name: "アプリ内の AI を使う" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "AI", exact: true })).toBeVisible();
 });
 
 test("Claude の API をつなぎ先にして会話を続けられ、答えをメモのカーソルの位置に入れられる", async ({ page }) => {
