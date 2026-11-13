@@ -1,7 +1,7 @@
 // 案C の PC の組み方: 左にノートブックの木、右にタブとエディタ。
 
-import { Minimize2, Settings } from "lucide-react";
-import { useContext, useState } from "react";
+import { ChevronLeft, Settings } from "lucide-react";
+import { useCallback, useContext, useState } from "react";
 import { languageInUse } from "../i18n/languageInUse";
 import { translate } from "../i18n/translate";
 import { readDevicePreferences, updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
@@ -13,6 +13,7 @@ import type { WorkspaceProps } from "./workspaceProps";
 import { NoteTabs } from "./NoteTabs";
 import { Sidebar } from "./Sidebar";
 import { SyncStatusLine } from "./SyncStatusLine";
+import { useExitFocusModeOnEscape } from "./useExitFocusModeOnEscape";
 import { createNoteInView } from "./createNoteInView";
 import { CommandPalette } from "./CommandPalette";
 import { APP_SHORTCUT_IDS, useKeyboardShortcuts } from "./keyboardShortcuts";
@@ -50,6 +51,8 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
   };
   // フォーカスモード: 左の列・タブ・ツールバーを隠して、本文だけにする。開き直すと戻る。
   const [focusMode, setFocusMode] = useState(false);
+  const exitFocusMode = useCallback(() => setFocusMode(false), []);
+  useExitFocusModeOnEscape(focusMode, exitFocusMode);
   const { typewriterMode, shortcutOverrides } = useDevicePreferences();
   const openNeighborTab = (step: 1 | -1) => {
     const { openTabs, activeTab } = navigation;
@@ -90,8 +93,8 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
   return (
     <div className={`workspace${isNoteWindow ? " note-window" : ""}${isNoteWindow && navigation.openTabs.length <= 1 ? " single-note" : ""}${focusMode ? " focus-mode" : ""}${typewriterMode ? " typewriter-mode" : ""}${aiChat.open ? " with-ai-chat" : ""}`}>
       {focusMode && (
-        <button className="icon-button focus-mode-exit" aria-label={translate("workspace.exitFocusMode")} title={translate("workspace.exitFocusMode")}
-          onClick={() => setFocusMode(false)}><Minimize2 size={16} /></button>
+        <button type="button" className="zoom-back focus-mode-exit" aria-label={translate("workspace.exitFocusMode")} title={translate("workspace.exitFocusModeHint")}
+          onClick={exitFocusMode}><ChevronLeft size={20} /><span>{translate("workspace.exitFocusMode")}</span></button>
       )}
       <Sidebar snapshot={snapshot} repository={repository} navigation={navigation} onCreateNote={() => void createNote()}
         onOpenDailyNote={() => void openDailyNote()} onEnterFocusMode={() => setFocusMode(true)} onOpenGraph={() => navigation.openTab(GRAPH_TAB)} onOpenReminders={() => navigation.openTab(REMINDERS_TAB)}

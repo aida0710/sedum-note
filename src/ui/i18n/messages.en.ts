@@ -847,6 +847,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "shortcut.clickWith": "{keys} + click",
   "shortcut.typewriterMode": "Typewriter mode",
   "workspace.exitFocusMode": "Exit focus mode",
+  "workspace.exitFocusModeHint": "Exit focus mode (Esc)",
   "settings.dailyNote": "Daily note",
   "settings.dailyNoteDescription": "Opens the note titled with today's date, creating it if needed.",
   "settings.dailyNoteTitleFormat": "Title format",

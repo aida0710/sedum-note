@@ -846,6 +846,7 @@ export const japaneseMessages = {
   "shortcut.clickWith": "{keys} + クリック",
   "shortcut.typewriterMode": "タイプライターモード",
   "workspace.exitFocusMode": "フォーカスモードを終わる",
+  "workspace.exitFocusModeHint": "フォーカスモードを終わる（Esc）",
   "settings.dailyNote": "デイリーノート",
   "settings.dailyNoteDescription": "今日の日付を題にしたメモを開きます。無ければ作ります。",
   "settings.dailyNoteTitleFormat": "題の形式",

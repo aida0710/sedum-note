@@ -7,19 +7,12 @@
 import { Extension } from "@tiptap/core";
 import type { Editor } from "@tiptap/react";
 import { type RefObject, useEffect } from "react";
+import { isEscapeOwnedElsewhere, isMenuOpen } from "../shared/escapeOwners";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { zoomOutOneLevel } from "./zoom";
 
 // 「/」の候補（既定の 100）が Esc で閉じるのを先にする。
 const AFTER_SLASH_MENU = 50;
-
-// Esc をそちらに任せる所（入力欄、ダイアログ、メモの中の検索の欄）。
-const OWN_ESCAPE_SELECTOR = 'input, textarea, select, [role="dialog"], .find-bar';
-
-// 開いているメニュー（「…」、文字を選んだときの色の見本など）があるか。あれば、Esc はそのメニューを閉じる（PopupMenu.tsx）。
-function isMenuOpen(): boolean {
-  return document.querySelector(".menu") !== null;
-}
 
 export const ZoomOutOnEscape = Extension.create({
   name: "zoomOutOnEscape",
@@ -42,7 +35,7 @@ export function useZoomOutOnEscape({ editor, isZoomed, noteArea }: { editor: Edi
       const isInThisNote = target === document.body || (target !== null && noteArea.current?.contains(target) === true);
       // 本文の中の Esc は、ZoomOutOnEscape が受ける。
       const isInBody = target !== null && editor.view.dom.contains(target);
-      if (!isInThisNote || isInBody || target?.closest(OWN_ESCAPE_SELECTOR) || isMenuOpen()) {
+      if (!isInThisNote || isInBody || isEscapeOwnedElsewhere(target)) {
         return;
       }
       event.preventDefault();

@@ -54,7 +54,8 @@ button:disabled { cursor: default; opacity: .55; }
 .workspace.note-window.with-ai-chat { grid-template-columns: 1fr var(--ai-chat-width); }
 .note-window .sidebar, .note-window.single-note .tabs-bar { display: none; }
 .focus-mode .sidebar, .focus-mode .tabs-bar, .focus-mode .editor-bar { display: none; }
-.focus-mode-exit { position: fixed; top: 10px; right: 14px; z-index: 6; }
+/* フォーカスモードを終わるボタン。ズームの戻るボタン（.zoom-back）と同じ形で、同じ左上に置く。 */
+.focus-mode-exit { position: fixed; top: 10px; left: 14px; z-index: 6; background: var(--panel); }
 .typewriter-mode .document { padding-bottom: 50vh; }
 /* 設定の、本文の文字の組み方のつまみ（EditorTypographySettings.tsx）。つまみの右に今の値を出す。 */
 .setting-slider { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }

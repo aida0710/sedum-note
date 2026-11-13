@@ -256,7 +256,7 @@ test("デイリーノートのボタンで今日のメモを作り、もう一�
   await expect(page.locator(".ProseMirror")).toHaveText("朝の記録");
 });
 
-test("フォーカスモードでは左の列・タブ・ツールバーが隠れ、ボタンかショートカットで戻る", async ({ page }) => {
+test("フォーカスモードでは左の列・タブ・ツールバーが隠れ、左上の戻るボタン・Esc・ショートカットで戻る", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "集中して書く", "本文");
   await page.getByRole("button", { name: "フォーカスモード", exact: true }).click();
@@ -265,10 +265,28 @@ test("フォーカスモードでは左の列・タブ・ツールバーが隠�
   await expect(page.locator(".editor-bar")).toBeHidden();
   await expect(page.locator(".ProseMirror")).toHaveText("本文");
 
-  await page.getByRole("button", { name: "フォーカスモードを終わる" }).click();
+  // 戻るボタンは、ズームの戻るボタンと同じ左上に置く。
+  const exitButton = page.getByRole("button", { name: "フォーカスモードを終わる" });
+  const exitBox = await exitButton.boundingBox();
+  expect(exitBox!.x).toBeLessThan(40);
+  expect(exitBox!.y).toBeLessThan(40);
+  await exitButton.click();
   await expect(page.locator(".sidebar")).toBeVisible();
+
   await page.keyboard.press("Control+Alt+f");
   await expect(page.locator(".sidebar")).toBeHidden();
+  // 「/」の候補を開いているときの Esc は、候補を閉じるだけで、フォーカスモードは終わらない。
+  await page.locator(".ProseMirror").click();
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("/");
+  await expect(page.getByRole("listbox", { name: "ブロックの種類" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("listbox", { name: "ブロックの種類" })).toBeHidden();
+  await expect(page.locator(".sidebar")).toBeHidden();
+  // 本文の中の Esc で、フォーカスモードを終わる。
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".sidebar")).toBeVisible();
 });
 
 test("タイプライターモードでは、打っている行が本文の領域の中央あたりに保たれる", async ({ page }) => {
