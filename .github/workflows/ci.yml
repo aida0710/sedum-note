@@ -55,15 +55,17 @@ jobs:
           fi
 
   # 画面の試験。macOS のアプリは WebKit（WKWebView）で動くので、Chromium と WebKit の両方で流す。
-  # 1 つの job で続けて流すと 4 分かかるので、ブラウザごとに分ける。
+  # CI を 5 分ほどで終えるため、ブラウザごとに分け、さらに試験を 3 つに分けて同時に流す（WebKit を 1 つの job で
+  # 流すと、211 件で 10 分を超えた）。
   e2e:
-    name: E2E (${{ matrix.browser }})
+    name: E2E (${{ matrix.browser }} ${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
         browser: [chromium, webkit]
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
@@ -81,7 +83,7 @@ jobs:
           playwright_version=$(node -p "require('@playwright/test/package.json').version")
           docker run --rm --network host --ipc=host -v "$PWD:$PWD" -w "$PWD" -e CI -e E2E_WEBKIT=1 \
             "mcr.microsoft.com/playwright:v$playwright_version-noble" \
-            npx playwright test --project=${{ matrix.browser }}
+            npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/3
 
   desktop:
     name: Desktop (${{ matrix.name }})
