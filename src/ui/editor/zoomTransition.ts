@@ -4,6 +4,7 @@
 
 import type { Editor } from "@tiptap/react";
 import { type RefObject, useEffect } from "react";
+import { prefersReducedMotion } from "../shared/reducedMotion";
 import { zoomedItemPosition, zoomPath } from "./zoom";
 
 // 切り替わったと分かり、待たされたとは感じない長さ。
@@ -12,7 +13,6 @@ const ZOOM_TRANSITION_EASING = "cubic-bezier(0.2, 0, 0, 1)";
 // 動き始めの大きさ。大きく動かすと、読んでいた所を見失う。
 const ZOOM_IN_START_SCALE = 0.97;
 const ZOOM_OUT_START_SCALE = 1.03;
-const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 type ZoomTransitionInput = { editor: Editor | null; target: RefObject<HTMLElement | null> };
 
@@ -34,7 +34,7 @@ export function useZoomTransition({ editor, target }: ZoomTransitionInput): void
       const zoomedIn = depth > shown.depth;
       shown = { position, depth };
       const element = target.current;
-      if (!element || window.matchMedia(REDUCED_MOTION_QUERY).matches) {
+      if (!element || prefersReducedMotion()) {
         return;
       }
       element.animate(

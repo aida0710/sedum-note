@@ -2,6 +2,7 @@
 
 import { type Editor, useEditorState } from "@tiptap/react";
 import { translate } from "../i18n/translate";
+import { scrollBehaviorForMotionPreference } from "../shared/reducedMotion";
 
 type OutlineHeading = { level: number; text: string; position: number };
 
@@ -26,7 +27,7 @@ export function NoteOutline({ editor, onPick }: { editor: Editor; onPick?: () =>
   const headings = JSON.parse(serialized) as OutlineHeading[];
   const goTo = (heading: OutlineHeading) => {
     editor.chain().setTextSelection(heading.position + 1).run();
-    (editor.view.nodeDOM(heading.position) as HTMLElement | null)?.scrollIntoView({ block: "start", behavior: "smooth" });
+    (editor.view.nodeDOM(heading.position) as HTMLElement | null)?.scrollIntoView({ block: "start", behavior: scrollBehaviorForMotionPreference() });
     onPick?.();
   };
   return (

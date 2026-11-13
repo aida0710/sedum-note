@@ -3,6 +3,7 @@
 import { type Editor, useEditorState } from "@tiptap/react";
 import { useEffect, useRef } from "react";
 import { translate } from "../i18n/translate";
+import { scrollBehaviorForMotionPreference } from "../shared/reducedMotion";
 import { type Footnote, footnoteInputId, footnotesOf } from "./footnoteNode";
 
 export function NoteFootnotes({ editor }: { editor: Editor }) {
@@ -23,7 +24,7 @@ export function NoteFootnotes({ editor }: { editor: Editor }) {
   }
   const goToReference = (footnote: Footnote) => {
     editor.chain().focus().setNodeSelection(footnote.position).run();
-    (editor.view.nodeDOM(footnote.position) as HTMLElement | null)?.scrollIntoView({ block: "center", behavior: "smooth" });
+    (editor.view.nodeDOM(footnote.position) as HTMLElement | null)?.scrollIntoView({ block: "center", behavior: scrollBehaviorForMotionPreference() });
   };
   return (
     <section className="footnotes" aria-label={translate("editor.footnotes")}>
