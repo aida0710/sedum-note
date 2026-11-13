@@ -880,12 +880,17 @@ export const englishMessages: Record<MessageKey, string> = {
 
   "settings.update": "Updates",
   "update.currentVersion": "This app is version {version}.",
+  "update.checkNow": "Check now",
+  "update.checking": "Checking…",
+  "update.upToDate": "You have the latest version (checked {time}).",
+  "update.checkFailed": "Couldn't check for a new version ({time}). Make sure you are connected to the internet, then try again in a little while.",
   "update.checkOnStart": "Check for a new version when unlocking",
   "update.checkDescription": "Checking connects to GitHub, where this app is distributed. Only the app version and the kind of OS are sent; your notes are not.",
   "update.available": "Version {version} is available",
   "update.openReleasePage": "Open the release page",
   "update.installAndRelaunch": "Update and restart",
   "update.installing": "Downloading the update…",
+  "update.reloadToUpdate": "Reload to update",
 
   "wipe.title": "Erase this device's data",
   "wipe.description": "Erases every note, attachment, sync setting and display setting stored on this device and returns to the first screen. Notes in the storage are not erased.",

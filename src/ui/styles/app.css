@@ -758,6 +758,8 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 /* アイコンと文字を並べたボタンで、アイコンが文字より上にずれないよう、縦の中央でそろえる。 */
 .primary-button, .secondary-button, .danger-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .form-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
+/* 設定の「更新」の、今すぐ確かめるボタンと、その結果の一文。 */
+.update-check { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 
 /* 設定 */
 .settings { padding: 28px 56px 80px; max-width: 860px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 28px; }

@@ -1,9 +1,8 @@
 // 新しいバージョンがあるかを確かめる。
 //
 // デスクトップのアプリは、Tauri の更新のプラグインで確かめる。あれば、その場でダウンロードして
-// 入れ替えられる（署名を確かめてから入れる）。Android と、プラグインが使えなかったときは、
+// 入れ替えられる（署名を確かめてから入れる）。Android と Web 版と、プラグインで見つからなかったときは、
 // GitHub のリリースの一覧で確かめ、あればリリースのページを開けるようにする。
-// Web 版は、開くたびに置いてある最新のものが届くので確かめない。
 //
 // どちらも、送るのはアプリの今のバージョンと OS の種類だけで、メモの中身や vault の情報は送らない。
 
@@ -24,47 +23,63 @@ export type AvailableUpdate = {
   releasePageUrl: string;
 };
 
-export async function findAvailableUpdate(): Promise<AvailableUpdate | null> {
-  if (!isRunningInTauri()) {
-    return null;
+// failed は、回線が無い・GitHub が断った（回数の制限など）・答えが読めないなどで、新しいバージョンがあるかが分からなかったこと。
+export type UpdateCheckResult =
+  | { kind: "available"; update: AvailableUpdate }
+  | { kind: "upToDate" }
+  | { kind: "failed" };
+
+const UP_TO_DATE: UpdateCheckResult = { kind: "upToDate" };
+const FAILED: UpdateCheckResult = { kind: "failed" };
+
+export async function checkForUpdate(): Promise<UpdateCheckResult> {
+  const selfUpdate = isRunningInTauri() ? await checkSelfUpdate() : null;
+  if (selfUpdate?.kind === "available") {
+    return selfUpdate;
   }
-  const selfUpdate = await findSelfUpdate();
-  return selfUpdate ?? findNewerRelease();
+  const latestRelease = await checkLatestRelease();
+  // GitHub に聞けなくても、更新のプラグインが新しいものは無いと答えていれば、最新とみなす。
+  return latestRelease.kind === "failed" && selfUpdate?.kind === "upToDate" ? selfUpdate : latestRelease;
 }
 
-// 更新のプラグインが無い（Android）・この入れ方の更新が置かれていない・回線が無いときは null。
-async function findSelfUpdate(): Promise<AvailableUpdate | null> {
+// 更新のプラグインが無い（Android）・この入れ方の更新が置かれていない・回線が無いときは failed。
+async function checkSelfUpdate(): Promise<UpdateCheckResult> {
   try {
     const update = await check();
     if (update === null) {
-      return null;
+      return UP_TO_DATE;
     }
     return {
-      version: update.version,
-      releasePageUrl: `${RELEASE_PAGE_URL_PREFIX}tag/v${update.version}`,
-      installAndRelaunch: async () => {
-        await update.downloadAndInstall();
-        await relaunch();
+      kind: "available",
+      update: {
+        version: update.version,
+        releasePageUrl: `${RELEASE_PAGE_URL_PREFIX}tag/v${update.version}`,
+        installAndRelaunch: async () => {
+          await update.downloadAndInstall();
+          await relaunch();
+        },
       },
     };
   } catch {
-    return null;
+    return FAILED;
   }
 }
 
-async function findNewerRelease(): Promise<AvailableUpdate | null> {
+async function checkLatestRelease(): Promise<UpdateCheckResult> {
   try {
     const response = await fetch(LATEST_RELEASE_API_URL, { headers: { Accept: "application/vnd.github+json" } });
     if (!response.ok) {
-      return null;
+      return FAILED;
     }
     const release = (await response.json()) as { tag_name?: unknown; html_url?: unknown };
-    if (typeof release.tag_name !== "string" || typeof release.html_url !== "string" ||
-      !release.html_url.startsWith(RELEASE_PAGE_URL_PREFIX) || compareVersions(release.tag_name, APP_VERSION) <= 0) {
-      return null;
+    if (typeof release.tag_name !== "string" || typeof release.html_url !== "string" || !release.html_url.startsWith(RELEASE_PAGE_URL_PREFIX)) {
+      return FAILED;
     }
-    return { version: release.tag_name.replace(/^v/, ""), releasePageUrl: release.html_url, installAndRelaunch: null };
+    if (compareVersions(release.tag_name, APP_VERSION) <= 0) {
+      return UP_TO_DATE;
+    }
+    return { kind: "available", update: { version: release.tag_name.replace(/^v/, ""), releasePageUrl: release.html_url, installAndRelaunch: null } };
   } catch {
-    return null;
+    return FAILED;
   }
 }

@@ -3,10 +3,10 @@
 import { ArrowUpCircle } from "lucide-react";
 import { useContext } from "react";
 import { translate } from "../i18n/translate";
-import { AvailableUpdateContext } from "./useAvailableUpdate";
+import { availableUpdateOf, UpdateCheckContext } from "./useUpdateCheck";
 
 export function UpdateChip({ onOpenSettings }: { onOpenSettings: () => void }) {
-  const availableUpdate = useContext(AvailableUpdateContext);
+  const availableUpdate = availableUpdateOf(useContext(UpdateCheckContext));
   if (availableUpdate === null) {
     return null;
   }

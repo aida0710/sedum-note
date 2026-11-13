@@ -8,7 +8,7 @@ import { useLaunchRequests } from "./share/useLaunchRequests";
 import { isRunningInTauri } from "./platform/runtime";
 import { applyAppearance } from "./theme/applyAppearance";
 import { useThemeInUse } from "./theme/themeInUse";
-import { AvailableUpdateContext, useAvailableUpdate } from "./update/useAvailableUpdate";
+import { UpdateCheckContext, useUpdateCheck } from "./update/useUpdateCheck";
 import { SetupScreen } from "./entry/SetupScreen";
 import { UnlockScreen } from "./entry/UnlockScreen";
 import { DialogProvider } from "./shared/DialogProvider";
@@ -112,7 +112,7 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   }, [isNoteWindow, windowNoteTitle]);
   const isMobile = useMediaQuery(MOBILE_LAYOUT_QUERY);
   useLaunchRequests(vault.repository, navigation.openNote);
-  const availableUpdate = useAvailableUpdate();
+  const updateCheck = useUpdateCheck();
   useTrashRetention(vault, session.syncStatus);
   const aiSettings = useAiSettingsOfVault(vault);
   const plugins = usePluginsOfVault(vault);
@@ -126,7 +126,7 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   return (
     <AttachmentReaderContext.Provider value={vault.repository.readAttachment.bind(vault.repository)}>
       <UnsyncedRecordsContext.Provider value={vault.syncEngine ? snapshot.unsyncedIds : NO_UNSYNCED_RECORDS}>
-        <AvailableUpdateContext.Provider value={availableUpdate}>
+        <UpdateCheckContext.Provider value={updateCheck}>
           <AiSettingsContext.Provider value={aiSettings}>
           <AiChatSessionProvider vault={vault}>
           <PluginAccessContext.Provider value={plugins}>
@@ -139,7 +139,7 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
           </PluginAccessContext.Provider>
           </AiChatSessionProvider>
           </AiSettingsContext.Provider>
-        </AvailableUpdateContext.Provider>
+        </UpdateCheckContext.Provider>
       </UnsyncedRecordsContext.Provider>
     </AttachmentReaderContext.Provider>
   );

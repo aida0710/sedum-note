@@ -45,5 +45,6 @@ export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
   { label: "settings.mcp", page: "ai", desktopAppOnly: true },
   { label: "settings.ai", page: "ai" },
   { label: "settings.update", page: "update" },
+  { label: "update.checkNow", page: "update" },
   { label: "update.checkOnStart", page: "update" },
 ];
