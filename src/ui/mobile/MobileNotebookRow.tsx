@@ -1,6 +1,6 @@
 // スマホの「ノートブック」タブの、ノートブックの 1 行。押すと中のメモの一覧を開く。
 // 行の「…」（Android では長押しでも）から、PC の左の列と同じメニュー（中へのメモと子の追加・名前の変更・色とアイコン・
-// プロパティ・削除）を開く。名前は、行の中の入力欄ではなく 1 行のダイアログで聞く。
+// プロパティ・移動・削除）を開く。名前は、行の中の入力欄ではなく 1 行のダイアログで聞く。
 
 import { MoreHorizontal } from "lucide-react";
 import { type CSSProperties, useState } from "react";
@@ -13,6 +13,7 @@ import { createNoteInView } from "../workspace/createNoteInView";
 import { NotebookActionsMenu } from "../workspace/NotebookActionsMenu";
 import { NotebookAppearanceDialog } from "../workspace/NotebookAppearanceDialog";
 import { NotebookPropertiesDialog } from "../workspace/NotebookPropertiesDialog";
+import { MoveNotebookDialog } from "../workspace/MoveNotebookDialog";
 
 type MobileNotebookRowProps = {
   notebook: LiveNotebook;
@@ -25,7 +26,7 @@ type MobileNotebookRowProps = {
   onOpenNote: (noteId: string) => void;
 };
 
-type NotebookDialog = "appearance" | "properties";
+type NotebookDialog = "appearance" | "properties" | "move";
 
 export function MobileNotebookRow({ notebook, depth, noteCount, notebookColors, repository, onOpen, onOpenNote }: MobileNotebookRowProps) {
   const dialogs = useDialogs();
@@ -62,6 +63,7 @@ export function MobileNotebookRow({ notebook, depth, noteCount, notebookColors, 
       {menuAnchor && (
         <NotebookActionsMenu anchor={menuAnchor} notebook={notebook} repository={repository} onClose={() => setMenuAnchor(null)}
           onRename={() => void rename()}
+          onMove={() => setOpenDialog("move")}
           onChooseAppearance={() => setOpenDialog("appearance")}
           onEditProperties={() => setOpenDialog("properties")}
           onAddNote={() => void addNote()}
@@ -69,6 +71,7 @@ export function MobileNotebookRow({ notebook, depth, noteCount, notebookColors, 
       )}
       {openDialog === "appearance" && <NotebookAppearanceDialog notebook={notebook} repository={repository} onClose={() => setOpenDialog(null)} />}
       {openDialog === "properties" && <NotebookPropertiesDialog notebook={notebook} repository={repository} onClose={() => setOpenDialog(null)} />}
+      {openDialog === "move" && <MoveNotebookDialog notebook={notebook} repository={repository} onClose={() => setOpenDialog(null)} />}
     </div>
   );
 }

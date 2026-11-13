@@ -17,6 +17,7 @@ import { ViewGroup } from "./SidebarViewGroup";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
 import type { NotesInView } from "./useNotesByView";
 import { NotebookPropertiesDialog } from "./NotebookPropertiesDialog";
+import { MoveNotebookDialog } from "./MoveNotebookDialog";
 import { databaseTabId, viewKey } from "./useWorkspaceNavigation";
 
 export type NotebookBranchProps = {
@@ -36,6 +37,7 @@ export function NotebookBranch({ node, depth, notesInView, repository, navigatio
   const [addingChild, setAddingChild] = useState(false);
   const [choosingAppearance, setChoosingAppearance] = useState(false);
   const [editingProperties, setEditingProperties] = useState(false);
+  const [choosingMoveTarget, setChoosingMoveTarget] = useState(false);
   const rowButton = useRowFocusAfterNaming(renaming);
   const renameTo = (name: string | null) => {
     setRenaming(false);
@@ -75,6 +77,7 @@ export function NotebookBranch({ node, depth, notesInView, repository, navigatio
       {menuAnchor && (
         <NotebookActionsMenu anchor={menuAnchor} notebook={notebook} repository={repository} onClose={() => setMenuAnchor(null)}
           onRename={() => setRenaming(true)}
+          onMove={() => setChoosingMoveTarget(true)}
           onChooseAppearance={() => setChoosingAppearance(true)}
           onEditProperties={() => setEditingProperties(true)}
           onOpenDatabase={() => navigation.openTab(databaseTabId(notebook.id))}
@@ -90,6 +93,11 @@ export function NotebookBranch({ node, depth, notesInView, repository, navigatio
       )}
       {choosingAppearance && <NotebookAppearanceDialog notebook={notebook} repository={repository} onClose={() => setChoosingAppearance(false)} />}
       {editingProperties && <NotebookPropertiesDialog notebook={notebook} repository={repository} onClose={() => setEditingProperties(false)} />}
+      {/* 移したノートブックが見えるよう、移し先を開く（ドラッグで落としたときと同じ）。 */}
+      {choosingMoveTarget && (
+        <MoveNotebookDialog notebook={notebook} repository={repository} onClose={() => setChoosingMoveTarget(false)}
+          onMoved={(parentId) => parentId !== null && navigation.setExpanded(viewKey({ kind: "notebook", notebookId: parentId }), true)} />
+      )}
     </>
   );
 }

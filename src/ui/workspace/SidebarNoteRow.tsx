@@ -16,7 +16,7 @@ import { startNoteDrag } from "./noteDrag";
 import { useSidebarDragState } from "./sidebarDragState";
 import { resetNoteSelection, selectNoteRange, toggleNoteSelection, useNoteSelection } from "./noteSelection";
 import { SelectedNotesMenu } from "./SelectedNotesMenu";
-import { focusViewRowOfNote, isUnmodifiedKey, rowBesideNotesToRemove } from "./sidebarKeyboard";
+import { extendNoteSelectionByKey, focusViewRowOfNote, isUnmodifiedKey, rowBesideNotesToRemove } from "./sidebarKeyboard";
 import { SidebarNameRow } from "./SidebarNameRow";
 import { treeDepthStyle } from "./treeDepthStyle";
 import { useRowFocusAfterNaming } from "./useRowFocusAfterNaming";
@@ -128,6 +128,7 @@ function SidebarNoteRowContent({ note, view, listedNoteIds, depth, activeTab, op
         draggable onDragStart={(event) => startNoteDrag(event, { noteId: note.id, title, fromView: view })}
         onClick={selectOrOpen} onDoubleClick={() => setRenaming(true)} onKeyDown={(event) => {
           focusViewRowOfNote(event, viewKey(view));
+          extendNoteSelectionByKey(event, { noteId: note.id, listedNoteIds });
           if (event.key === "Escape") {
             resetNoteSelection(note.id);
           } else if (isUnmodifiedKey(event, "F2")) {

@@ -5,6 +5,7 @@ import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import type { NoteVersion } from "../../core/notes/noteVersions";
 import { translate } from "../i18n/translate";
+import { moveFocusAmongItems } from "../shared/arrowKeyFocus";
 import { formatDateTime } from "../shared/formatTime";
 import { ModalDialog } from "../shared/ModalDialog";
 import { useToast } from "../shared/ToastProvider";
@@ -54,10 +55,11 @@ export function NoteHistoryDialog({ note, repository, onClose }: NoteHistoryDial
         {versions?.length === 0 && <p>{translate("history.empty")}</p>}
         {versions && versions.length > 0 && (
           <div className="note-history-body">
-            <div className="note-history-list" role="listbox" aria-label={translate("editor.history")}>
+            {/* ↑ ↓ Home End で版を移り、移った版の中身を右に出す（フォーカスした版を選ぶ）。Tab で止まるのは選んでいる版だけ。 */}
+            <div className="note-history-list" role="listbox" aria-label={translate("editor.history")} onKeyDown={(event) => moveFocusAmongItems(event, "[role=option]")}>
               {versions.map((version) => (
-                <button key={version.id} type="button" role="option" aria-selected={version.id === selectedId}
-                  className={`menu-item${version.id === selectedId ? " on" : ""}`} onClick={() => setSelectedId(version.id)}>
+                <button key={version.id} type="button" role="option" aria-selected={version.id === selectedId} tabIndex={version.id === selectedId ? 0 : -1}
+                  className={`menu-item${version.id === selectedId ? " on" : ""}`} onClick={() => setSelectedId(version.id)} onFocus={() => setSelectedId(version.id)}>
                   <span>
                     {formatDateTime(version.updatedAt)}
                     <span className="hint">{translate(`history.reason.${version.reason}`)}</span>

@@ -156,3 +156,33 @@ test.describe("スマホの幅", () => {
     expect(box.x + box.width).toBeLessThanOrEqual(PHONE_VIEWPORT.width);
   });
 });
+
+test("履歴の一覧は ↑↓・Home・End で版を移れ、移った版の中身が右に出る。Tab で止まるのは選んでいる版だけ", async ({ page }) => {
+  await page.clock.install({ time: new Date("2026-11-11T09:00:00+09:00") });
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "議事録");
+  // 間隔（10 分）を空けて書き直すたびに、書き直す前の状態が履歴に残る。
+  for (const text of ["一回目の文", "二回目の文", "三回目の文"]) {
+    await page.locator(".ProseMirror").click();
+    await page.keyboard.press("Control+A");
+    await page.keyboard.type(text);
+    await page.clock.runFor(1_000);
+    await page.clock.runFor(11 * 60_000);
+  }
+  await noteMenuButton(page).click();
+  await page.getByRole("menuitem", { name: "履歴" }).click();
+  const history = page.getByRole("dialog", { name: "履歴" });
+  const options = history.getByRole("option");
+  await expect(options).toHaveCount(2);
+  await expect(options.first()).toHaveAttribute("tabindex", "0");
+  await expect(options.last()).toHaveAttribute("tabindex", "-1");
+
+  await options.first().focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(options.last()).toBeFocused();
+  await expect(options.last()).toHaveAttribute("aria-selected", "true");
+  await expect(history.locator(".note-history-preview")).toContainText("一回目の文");
+  await page.keyboard.press("Home");
+  await expect(options.first()).toBeFocused();
+  await expect(history.locator(".note-history-preview")).toContainText("二回目の文");
+});

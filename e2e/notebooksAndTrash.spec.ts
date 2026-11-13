@@ -375,6 +375,36 @@ test("ノートブックを選ぶダイアログは、キーボードだけで�
   await expect(notebookChipsOfNote(page)).toHaveText(["旅行"]);
 });
 
+test("ノートブックを選ぶダイアログでは、↓ で一覧へ移って ↑↓ で移れ、一覧に無い名前を打てば作成して追加できる", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "仕事");
+  await addNotebookOnDesktop(page, "旅行");
+  await notebookRow(page, "すべてのメモ").locator(".nav").click();
+  await createNoteOnDesktop(page, "持ち物");
+
+  const dialog = await openNotebookPicker(page);
+  const checkboxOf = (name: string) => dialog.getByRole("checkbox", { name, exact: true });
+  await page.keyboard.press("ArrowDown");
+  await expect(checkboxOf("仕事")).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(checkboxOf("旅行")).toBeFocused();
+  await page.keyboard.press("Home");
+  await expect(checkboxOf("仕事")).toBeFocused();
+
+  // 一覧に無い名前を打つと、その名前で作って、このメモを入れる行が出る。
+  await dialog.getByPlaceholder("ノートブックを名前で絞り込む").focus();
+  await page.keyboard.type("買い物");
+  await expect(dialog.getByText("当てはまるノートブックがありません")).toBeVisible();
+  await page.keyboard.press("ArrowDown");
+  const create = dialog.getByRole("button", { name: "「買い物」を作成して追加" });
+  await expect(create).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(checkboxOf("買い物")).toBeChecked();
+  await expect(create).toHaveCount(0);
+  await expect(notebookChipsOfNote(page)).toHaveText(["買い物"]);
+  await expect(notebookRow(page, "買い物")).toBeVisible();
+});
+
 test("ノートブックが多くても、選ぶダイアログは画面の中に収まって一覧だけを送り、スマホの幅でも横にはみ出さない", async ({ page }) => {
   await startLocalVault(page);
   const longName = "とても長い名前のノートブック".repeat(4);

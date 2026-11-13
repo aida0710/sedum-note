@@ -498,3 +498,84 @@ test("左の列をいちばん狭くしても、上の行のボタンは列の�
   const searchButton = (await page.locator(".sidebar-brand").getByRole("button", { name: "検索" }).boundingBox())!;
   expect(searchButton.x + searchButton.width).toBeLessThanOrEqual(sidebar.x + sidebar.width);
 });
+
+test("左の列の幅のつまみは Tab で止まり、← → で幅を変えられ、Home と End でいちばん狭く・広くなる", async ({ page }) => {
+  await startLocalVault(page);
+  const handle = page.getByRole("separator", { name: "左の列の幅を変える" });
+  const sidebarWidth = async () => (await page.locator(".sidebar").boundingBox())!.width;
+  const startWidth = await sidebarWidth();
+  await handle.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(sidebarWidth).toBe(startWidth + 16);
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("ArrowLeft");
+  await expect.poll(sidebarWidth).toBe(startWidth - 16);
+  await page.keyboard.press("Home");
+  await expect.poll(sidebarWidth).toBe(200);
+  await expect(handle).toHaveAttribute("aria-valuenow", "200");
+  await page.keyboard.press("End");
+  await expect.poll(sidebarWidth).toBe(520);
+});
+
+test("左の列のメモの行で Shift+↑↓ を押すと、隣のメモへ移りながら選んだメモが広がり、縮む", async ({ page }) => {
+  await startLocalVault(page);
+  // ノートブックが無いうちは、「すべてのメモ」が開いている。
+  for (const title of ["りんご", "みかん", "ぶどう", "もも"]) {
+    await createNoteOnDesktop(page, title);
+  }
+  const titles = await page.locator(".tree-note").allTextContents();
+  await noteRow(page, titles[1]!).locator(".tree-note").focus();
+  await page.keyboard.press("Shift+ArrowDown");
+  await page.keyboard.press("Shift+ArrowDown");
+  await expect(page.locator(".tree-note.selected")).toHaveText([titles[1]!, titles[2]!, titles[3]!]);
+  await expect(page.locator(".tree-note:focus")).toHaveText(titles[3]!);
+  await page.keyboard.press("Shift+ArrowUp");
+  await expect(page.locator(".tree-note.selected")).toHaveText([titles[1]!, titles[2]!]);
+  // 起点より上へ移ると、起点から上へ選び直す。
+  await page.keyboard.press("Shift+ArrowUp");
+  await page.keyboard.press("Shift+ArrowUp");
+  await expect(page.locator(".tree-note.selected")).toHaveText([titles[0]!, titles[1]!]);
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".tree-note.selected")).toHaveCount(0);
+});
+
+test("左の列で英数字のキーを押すと、その文字で名前が始まる次の行へ移る", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "Work");
+  await addNotebookOnDesktop(page, "Travel");
+  await addNotebookOnDesktop(page, "Tasks");
+  await viewRow(page, "すべてのメモ").locator(".nav").focus();
+  await page.keyboard.press("t");
+  await expect(viewRow(page, "Tasks").locator(".nav")).toBeFocused();
+  await page.keyboard.press("t");
+  await expect(viewRow(page, "Travel").locator(".nav")).toBeFocused();
+  await page.keyboard.press("W");
+  await expect(viewRow(page, "Work").locator(".nav")).toBeFocused();
+});
+
+test("ノートブックの「…」の「移動…」で、別のノートブックの中や最上位の階層へ移せる", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "仕事");
+  await addNotebookOnDesktop(page, "会議");
+  const openMoveDialog = async (name: string) => {
+    await viewRow(page, name).hover();
+    await viewRow(page, name).getByRole("button", { name: "その他の操作" }).click();
+    await page.getByRole("menuitem", { name: "移動…" }).click();
+    return page.getByRole("dialog", { name: `「${name}」の移動先` });
+  };
+  const dialog = await openMoveDialog("会議");
+  // 自分と、今いる所（最上位の階層）は選べない。
+  await expect(dialog.locator(".note-picker-list .menu-item")).toHaveText(["仕事"]);
+  await page.keyboard.type("仕事");
+  await page.keyboard.press("Enter");
+  await expect(dialog).toHaveCount(0);
+  // 移した先が開き、子として字下げされて並ぶ。
+  const parentLeft = (await viewRow(page, "仕事").locator(".nav-label").boundingBox())!.x;
+  const childLeft = (await viewRow(page, "会議").locator(".nav-label").boundingBox())!.x;
+  expect(childLeft).toBeGreaterThan(parentLeft);
+
+  const back = await openMoveDialog("会議");
+  await expect(back.locator(".note-picker-list .menu-item")).toHaveText(["最上位の階層"]);
+  await back.getByRole("button", { name: "最上位の階層" }).click();
+  await expect.poll(async () => (await viewRow(page, "会議").locator(".nav-label").boundingBox())!.x).toBe(parentLeft);
+});

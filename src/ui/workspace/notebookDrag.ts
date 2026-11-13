@@ -1,10 +1,10 @@
 // 左の列で、ノートブックをドラッグして、別のノートブックの中か、「ノートブック」の見出し（一番上の段）へ移す操作。
 // ノートブックの並びは名前の順なので、同じ段の中での並べ替えはしない。中のメモと子のノートブックも一緒に移る。
 
-import { isNotebookWithin } from "../../core/notes/noteQueries";
 import type { LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { showDragPreview } from "../shared/dragPreview";
+import { canMoveNotebook } from "./notebookMoveTargets";
 import { beginSidebarDrag, endSidebarDrag, type SidebarDragState } from "./sidebarDragState";
 
 // ドラッグのデータの種類。メモのドラッグ（shared/noteDragData.ts）やファイルのドラッグと区別する。
@@ -22,15 +22,6 @@ export function startNotebookDrag(event: React.DragEvent, notebook: LiveNotebook
 
 export function isNotebookDrag(event: React.DragEvent): boolean {
   return event.dataTransfer.types.includes(NOTEBOOK_DRAG_TYPE);
-}
-
-// ノートブックを parentId（null は一番上の段）の中へ移すと、何か変わるか。今と同じ所と、自分の中へは移さない。
-function canMoveNotebook(notebooks: LiveNotebook[], notebookId: string, parentId: string | null): boolean {
-  const notebook = notebooks.find((candidate) => candidate.id === notebookId);
-  if (!notebook || notebook.content.parentId === parentId) {
-    return false;
-  }
-  return parentId === null || !isNotebookWithin(notebooks, parentId, notebookId);
 }
 
 // いまドラッグしているノートブックを、parentId の中へ落とせるか（落とし先を光らせるか）。

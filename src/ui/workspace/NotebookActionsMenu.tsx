@@ -1,4 +1,4 @@
-import { FilePlus, FolderPlus, ListPlus, Palette, Pencil, Table, Trash2 } from "lucide-react";
+import { FilePlus, FolderInput, FolderPlus, ListPlus, Palette, Pencil, Table, Trash2 } from "lucide-react";
 import type { LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
@@ -11,6 +11,8 @@ type NotebookActionsMenuProps = {
   repository: NoteRepository;
   onClose: () => void;
   onRename: () => void;
+  // 移し先を選ぶダイアログ（MoveNotebookDialog）を開く。
+  onMove: () => void;
   onChooseAppearance: () => void;
   onEditProperties: () => void;
   // データベース表示を開く。開けない画面（スマホ）では渡さない。
@@ -20,7 +22,7 @@ type NotebookActionsMenuProps = {
   onAddChild: () => void;
 };
 
-export function NotebookActionsMenu({ anchor, notebook, repository, onClose, onRename, onChooseAppearance, onEditProperties, onOpenDatabase, onAddNote, onAddChild }: NotebookActionsMenuProps) {
+export function NotebookActionsMenu({ anchor, notebook, repository, onClose, onRename, onMove, onChooseAppearance, onEditProperties, onOpenDatabase, onAddNote, onAddChild }: NotebookActionsMenuProps) {
   const dialogs = useDialogs();
   const choose = (action: () => void) => () => {
     onClose();
@@ -41,6 +43,7 @@ export function NotebookActionsMenu({ anchor, notebook, repository, onClose, onR
       <button className="menu-item" role="menuitem" onClick={choose(onAddChild)}><FolderPlus size={15} />{translate("notebook.addChild")}</button>
       <div className="menu-separator" />
       <button className="menu-item" role="menuitem" onClick={choose(onRename)}><Pencil size={15} />{translate("notebook.rename")}</button>
+      <button className="menu-item" role="menuitem" onClick={choose(onMove)}><FolderInput size={15} />{translate("notebook.move")}</button>
       <button className="menu-item" role="menuitem" onClick={choose(onChooseAppearance)}><Palette size={15} />{translate("notebook.appearance")}</button>
       {onOpenDatabase && <button className="menu-item" role="menuitem" onClick={choose(onOpenDatabase)}><Table size={15} />{translate("database.open")}</button>}
       <button className="menu-item" role="menuitem" onClick={choose(onEditProperties)}><ListPlus size={15} />{translate("property.dialogTitle")}</button>
