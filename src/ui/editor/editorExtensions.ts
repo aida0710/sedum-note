@@ -34,6 +34,7 @@ import { BlockDragHandle } from "./blockDragHandle";
 import { MarkdownShortcutUndo } from "./markdownShortcutUndo";
 import { KeepTabInEditor } from "./keepTabInEditor";
 import { JapaneseListShortcuts } from "./japaneseListShortcuts";
+import { TitleBodyNavigation } from "./titleBodyNavigation";
 import { ZoomOutOnEscape } from "./zoomOutOnEscape";
 import { BlockKeys } from "./blockKeys";
 import { BlockEmbed } from "./blockEmbedNode";
@@ -97,15 +98,22 @@ export function documentExtensions() {
   ];
 }
 
-type EditorExtensionsInput = { body: Y.XmlFragment; slashMenuController: SlashMenuController; blockMenuController: BlockMenuController };
+type EditorExtensionsInput = {
+  body: Y.XmlFragment;
+  slashMenuController: SlashMenuController;
+  blockMenuController: BlockMenuController;
+  // 本文の先頭から題の欄へカーソルを移す。移したら true（題の欄が出ていなければ false）。
+  moveToTitle: () => boolean;
+};
 
-export function createEditorExtensions({ body, slashMenuController, blockMenuController }: EditorExtensionsInput) {
+export function createEditorExtensions({ body, slashMenuController, blockMenuController, moveToTitle }: EditorExtensionsInput) {
   return [
     ...documentExtensions(),
     SlashCommands.configure({ controller: slashMenuController }),
     MarkdownShortcutUndo,
     JapaneseListShortcuts,
     KeepTabInEditor,
+    TitleBodyNavigation.configure({ moveToTitle }),
     DueMarks,
     TableShortcuts,
     TableRowFilterExtension,

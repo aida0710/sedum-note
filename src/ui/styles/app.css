@@ -525,7 +525,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 
 .unsynced-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 6px; vertical-align: middle; flex: none; }
 .chip.unsynced { background: var(--accent-soft); color: var(--accent); }
-.title-input { font-size: 30px; line-height: 1.4; letter-spacing: .02em; font-weight: 700; border: 0; outline: 0; width: 100%; background: none; margin-bottom: 20px; padding: 0; }
+/* 題は折り返す textarea。高さは中身に合わせて NoteTitleInput.tsx が入れる。 */
+.title-input { display: block; font-size: 30px; line-height: 1.4; letter-spacing: .02em; font-weight: 700; border: 0; outline: 0; width: 100%; background: none; margin-bottom: 20px; padding: 0; resize: none; overflow: hidden; overflow-wrap: anywhere; }
 .title-input::placeholder { color: var(--muted); opacity: .6; }
 .trash-banner { background: var(--tag); border-radius: var(--radius-control); padding: 8px 12px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; color: var(--muted); }
 .trash-banner .actions { margin-left: auto; display: flex; gap: 6px; }
@@ -759,6 +760,8 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .attachment-file-icon { color: var(--muted); flex: none; }
 .attachment-file-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .attachment-file-size { color: var(--muted); font-size: var(--font-size-small); margin-left: auto; white-space: nowrap; }
+/* 選んだ区切り線（↑↓ で移ったとき）。線は細いので、離して囲む。 */
+.ProseMirror hr.ProseMirror-selectednode { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: var(--radius-inline); }
 .attachment-file.ProseMirror-selectednode { outline: 2px solid var(--accent); }
 .attachment-image.ProseMirror-selectednode { outline: 2px solid var(--accent); }
 /* 幅を決めた写真は、枠を写真の幅に合わせて列の中央に置く（枠の地の色が写真の横に出ないように）。 */

@@ -143,3 +143,39 @@ export async function caretAndBodyFrame(page: Page): Promise<{ caret: VerticalEd
     return { caret: { top: caret.top, bottom: caret.bottom }, frame: { top: frame.top, bottom: frame.bottom } };
   });
 }
+
+// text で始まる文字のブロック（段落・見出し・コード）の先頭か末尾に、カーソルを置く。クリックや Home・End のキーでは、
+// 続けて送ったキーが、エディタが選択を読み直す前に届くことがあるので、エディタの API で移す。
+export async function placeCursorInBlock(page: Page, text: string, edge: "start" | "end"): Promise<void> {
+  await page.evaluate(({ blockText, blockEdge }) => {
+    type TextblockNode = { isTextblock: boolean; textContent: string; content: { size: number } };
+    const body = document.querySelector(".ProseMirror") as HTMLElement & {
+      editor: {
+        state: { doc: { descendants: (visit: (node: TextblockNode, position: number) => boolean) => void } };
+        commands: { setTextSelection: (position: number) => boolean };
+        view: { focus: () => void };
+      };
+    };
+    let cursor: number | null = null;
+    body.editor.state.doc.descendants((node, position) => {
+      if (cursor === null && node.isTextblock && node.textContent.startsWith(blockText)) {
+        cursor = position + 1 + (blockEdge === "end" ? node.content.size : 0);
+      }
+      return cursor === null;
+    });
+    if (cursor === null) {
+      throw new Error(`「${blockText}」で始まるブロックが本文に無い`);
+    }
+    body.editor.commands.setTextSelection(cursor);
+    body.editor.view.focus();
+  }, { blockText: text, blockEdge: edge });
+}
+
+// カーソルのある文字のブロックの中身。キーでカーソルを動かした直後は、エディタが選択を読み直すまで少し遅れるので、
+// 動いた先を expect.poll で待つのに使う。
+export async function textOfBlockAtCursor(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const body = document.querySelector(".ProseMirror") as HTMLElement & { editor: { state: { selection: { $from: { parent: { textContent: string } } } } } };
+    return body.editor.state.selection.$from.parent.textContent;
+  });
+}

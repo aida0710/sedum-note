@@ -2,6 +2,7 @@
 // （添付、メモの中の検索、目次、履歴、リンク先の選択、「/」の候補）をつなぐ。それぞれの中身は別のファイルにある。
 
 import { type Editor, EditorContent, type JSONContent, useEditor } from "@tiptap/react";
+import { Selection } from "@tiptap/pm/state";
 import { yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
 import { AlarmClock, ChevronLeft, ListTree, MoreHorizontal, Star } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -65,8 +66,8 @@ import { useNoteAttachments } from "./useNoteAttachments";
 import { SlashMenuController } from "./slashMenuController";
 import { BlockMenuController } from "./blockMenuController";
 import { BlockMenu } from "./BlockMenu";
-import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { NoteCharacterCount } from "./NoteCharacterCount";
+import { NoteTitleInput } from "./NoteTitleInput";
 import { NoteBacklinks } from "./NoteBacklinks";
 import { NoteProperties } from "./NoteProperties";
 import { propertiesOfNote } from "../../core/notes/noteProperties";
@@ -96,7 +97,6 @@ type NoteEditorProps = {
 const NO_FIND_REQUEST: FindRequest = { serial: 0, showReplace: false };
 
 export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repository, isMobile, onBack, onOpenInSplit, highlightedText = "", findRequest = NO_FIND_REQUEST }: NoteEditorProps) {
-  const [title, setTitle] = useState(note.content.title);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [pickingNoteLink, setPickingNoteLink] = useState(false);
   // 書類のスキャンで、撮った（か選んだ）写真。四隅を合わせている間だけ持つ。
@@ -113,7 +113,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   const [outlineAnchor, setOutlineAnchor] = useState<HTMLElement | null>(null);
   const outlineShown = isMobile ? outlineAnchor !== null : showOutline;
   const { openNote, blockToReveal } = useContext(NoteLinkTargetsContext);
-  const titleInput = useRef<HTMLInputElement>(null);
+  const titleInput = useRef<HTMLTextAreaElement>(null);
   const documentScroll = useRef<HTMLDivElement>(null);
   const dialogs = useDialogs();
   const attachments = useNoteAttachments(repository);
@@ -151,10 +151,21 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
     return true;
   };
 
+  // 本文の先頭から題の欄の末尾へカーソルを移す。題の欄が出ていないとき（ズームしている間）は false。
+  const moveToTitle = () => {
+    const input = titleInput.current;
+    if (!input) {
+      return false;
+    }
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+    return true;
+  };
+
   // 本文は、メモの Yjs の文書をエディタが直接読み書きする。保存と同期は NoteRepository が文書の
   // 変更を見て行い、ほかのデバイスの変更も同じ文書に入るので、開いたまま画面に出る。
   const editor = useEditor({
-    extensions: createEditorExtensions({ body: note.body, slashMenuController, blockMenuController }),
+    extensions: createEditorExtensions({ body: note.body, slashMenuController, blockMenuController, moveToTitle }),
     editable: !inTrash,
     editorProps: {
       scrollMargin: isMobile ? CARET_SCROLL_MARGIN_ON_PHONE : CARET_SCROLL_MARGIN,
@@ -185,6 +196,19 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   // ダイアログを閉じて本文へ戻るときは、エディタのカーソルの位置ごと戻す（view.focus() は今の選択を DOM へ写してから戻す）。
   useEffect(() => (editor ? registerFocusRestorer(editor.view.dom, () => editor.view.focus()) : undefined), [editor]);
 
+  // 題の欄から本文の先頭へ移る。textForBody があれば（題の途中で Enter）、本文の先頭に段落を足して入れる。
+  const moveToBodyStart = (textForBody: string) => {
+    if (!editor) {
+      return;
+    }
+    // Tiptap の focus コマンドは次の描画まで待つので、続けて打った文字が題に入る。その場で本文へ移す。
+    editor.view.focus();
+    if (textForBody !== "") {
+      editor.commands.insertContentAt(0, { type: "paragraph", content: [{ type: "text", text: textForBody }] });
+    }
+    editor.view.dispatch(editor.state.tr.setSelection(Selection.atStart(editor.state.doc)).scrollIntoView());
+  };
+
   // 期限のダイアログを、何の期限のために開いているか（メモか、カーソルのあるチェックリストの項目か）。
   const [dueTarget, setDueTarget] = useState<"note" | "task" | null>(null);
   const exportNote = useNoteFileExport(repository);
@@ -212,13 +236,6 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   const openInNewWindow = useAsyncAction(() => openNoteInNewWindow({
     noteId, spaceId, title: note.content.title || translate("sidebar.untitled"),
   }));
-  // ほかのデバイスがタイトルを変えたら、打っている最中でなければ表示を差し替える。
-  useEffect(() => {
-    if (document.activeElement !== titleInput.current) {
-      setTitle(note.content.title);
-    }
-  }, [note.content.title]);
-
   useEffect(() => {
     editor?.setEditable(!inTrash);
   }, [editor, inTrash]);
@@ -368,18 +385,9 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
                 <span className="updated">{translate("editor.updatedAt", { time: formatDateTime(note.updatedAt) })}</span>
               </div>
               {/* 作ったばかりの空のメモは、すぐ打てるようにタイトルにカーソルを置く。 */}
-              <input ref={titleInput} className="title-input" value={title} placeholder={translate("editor.titlePlaceholder")} readOnly={inTrash}
+              <NoteTitleInput inputRef={titleInput} title={note.content.title} readOnly={inTrash}
                 autoFocus={note.content.title === "" && bodyPlainText(note.body) === "" && note.content.attachments.length === 0}
-                onChange={(event) => { setTitle(event.target.value); void repository.updateNote(noteId, { title: event.target.value }); }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !isImeKeyEvent(event.nativeEvent)) {
-                    event.preventDefault();
-                    // focus コマンドは次の描画まで待つので、続けて打った文字がタイトルに入る。
-                    // その場で本文へ移す。
-                    editor.view.focus();
-                    editor.commands.setTextSelection(1);
-                  }
-                }} />
+                onTitleChange={(title) => void repository.updateNote(noteId, { title })} onMoveToBody={moveToBodyStart} />
               <NoteProperties note={note} properties={propertiesOfNote(note, notebooks)} repository={repository} readOnly={inTrash} />
             </>
           )}
