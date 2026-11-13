@@ -404,3 +404,47 @@ test("左の列のメモの題は、親の一覧の名前と左端がそろい�
   const heights = await page.locator(".sidebar-scroll :is(.nav, .tree-note)").evaluateAll((rows) => [...new Set(rows.map((row) => row.getBoundingClientRect().height))]);
   expect(heights).toEqual([30]);
 });
+
+test("タブは Tab で届き、← → で切り替えられ、Shift+F10 でタブのメニューを開ける。題の全文は title で読める", async ({ page }) => {
+  await startLocalVault(page);
+  const longTitle = "とても長い題のメモで、タブの幅には収まらずに途中で切れてしまうもの";
+  for (const title of ["一", "二", longTitle]) {
+    await createNoteOnDesktop(page, title);
+  }
+  const tabs = page.getByRole("tab");
+  await expect(tabs.nth(2)).toHaveAttribute("title", longTitle);
+  // Tab で止まるのは、選んでいるタブだけ。
+  await expect(tabs.nth(2)).toHaveAttribute("tabindex", "0");
+  await expect(tabs.nth(0)).toHaveAttribute("tabindex", "-1");
+
+  await tabs.nth(2).focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
+  await expect(tabs.nth(1)).toBeFocused();
+  await page.keyboard.press("Home");
+  await expect(tabs.nth(0)).toBeFocused();
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("一");
+
+  await page.keyboard.press("Shift+F10");
+  await page.getByRole("menuitem", { name: "タブをピン留め" }).click();
+  await expect(tabs.nth(0).getByRole("button", { name: "タブを閉じる" })).toHaveCount(0);
+});
+
+test("ピン留めしたタブは、タブを閉じるキーでは閉じない。閉じたタブを開き直すと、元の位置へ戻る", async ({ page }) => {
+  await startLocalVault(page);
+  for (const title of ["一", "二", "三"]) {
+    await createNoteOnDesktop(page, title);
+  }
+  const tabs = page.getByRole("tab");
+  await page.getByRole("tab", { name: "二" }).click();
+  await page.keyboard.press("Control+Alt+w");
+  await expect(tabs).toHaveText(["一", "三"]);
+  await page.keyboard.press("Control+Alt+Shift+t");
+  await expect(tabs).toHaveText(["一", "二", "三"]);
+
+  await page.getByRole("tab", { name: "二" }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "タブをピン留め" }).click();
+  await expect(page.getByRole("tab", { name: "二" })).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("Control+Alt+w");
+  await expect(tabs).toHaveText(["二", "一", "三"]);
+});

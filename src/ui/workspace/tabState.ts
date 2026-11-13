@@ -1,14 +1,17 @@
 // エディタの上のタブの並びと、開け閉めの決まり。画面の状態（useWorkspaceNavigation）が、これを呼んで次の状態を作る。
 //   ピン留めしたタブは左に並べ、「ほかのタブを閉じる」「右のタブを閉じる」では閉じない。
-//   閉じたタブは、新しいものから順に開き直せる（アプリを閉じるまで覚える）。
+//   閉じたタブは、新しいものから順に、閉じる前の位置へ開き直せる（アプリを閉じるまで覚える）。
 
 export type TabsState = {
   openTabs: string[];
   activeTab: string | null;
   pinnedTabs: string[];
   // 閉じたタブ。最後に閉じたものが末尾。
-  closedTabs: string[];
+  closedTabs: ClosedTab[];
 };
+
+// index は、開き直すときに入れる位置（閉じたときに、そのタブより左に残ったタブの数）。
+type ClosedTab = { tabId: string; index: number };
 
 // 開き直せるよう覚えておく、閉じたタブの数。
 const MAX_CLOSED_TABS = 20;
@@ -26,6 +29,8 @@ export function closeTabsIn(state: TabsState, tabIds: string[]): TabsState {
     return state;
   }
   const remaining = state.openTabs.filter((tabId) => !closing.has(tabId));
+  // まとめて閉じたタブは、末尾のものから開き直すので、どれも「左に残ったタブの数」の位置へ入れれば元の並びに戻る。
+  const closed: ClosedTab[] = [...closing].map((tabId) => ({ tabId, index: state.openTabs.slice(0, state.openTabs.indexOf(tabId)).filter((left) => !closing.has(left)).length }));
   let activeTab = state.activeTab;
   if (activeTab !== null && closing.has(activeTab)) {
     const index = state.openTabs.indexOf(activeTab);
@@ -37,7 +42,7 @@ export function closeTabsIn(state: TabsState, tabIds: string[]): TabsState {
     openTabs: remaining,
     activeTab,
     pinnedTabs: state.pinnedTabs.filter((tabId) => !closing.has(tabId)),
-    closedTabs: [...state.closedTabs.filter((tabId) => !closing.has(tabId)), ...closing].slice(-MAX_CLOSED_TABS),
+    closedTabs: [...state.closedTabs.filter(({ tabId }) => !closing.has(tabId)), ...closed].slice(-MAX_CLOSED_TABS),
   };
 }
 
@@ -49,13 +54,19 @@ export function tabsRightOf(state: TabsState, tabId: string): string[] {
   return state.openTabs.slice(state.openTabs.indexOf(tabId) + 1).filter((candidate) => !state.pinnedTabs.includes(candidate));
 }
 
-// いちばん最近に閉じたタブを開き直す。
+// いちばん最近に閉じたタブを、閉じる前の位置へ開き直す。閉じたあとでもう開いていれば、そのタブを選ぶだけにする。
+// ピン留めは閉じたときに外れているので、ピン留めの並びより左へは入れない。
 export function reopenClosedTabIn(state: TabsState): TabsState {
-  const tabId = state.closedTabs.at(-1);
-  if (tabId === undefined) {
+  const closed = state.closedTabs.at(-1);
+  if (closed === undefined) {
     return state;
   }
-  return { ...openTabIn(state, tabId), closedTabs: state.closedTabs.slice(0, -1) };
+  const closedTabs = state.closedTabs.slice(0, -1);
+  if (state.openTabs.includes(closed.tabId)) {
+    return { ...state, activeTab: closed.tabId, closedTabs };
+  }
+  const index = Math.min(Math.max(closed.index, state.pinnedTabs.length), state.openTabs.length);
+  return { ...state, openTabs: [...state.openTabs.slice(0, index), closed.tabId, ...state.openTabs.slice(index)], activeTab: closed.tabId, closedTabs };
 }
 
 // 前に開いていたタブ（手元に残した並び）を、今の並びへ戻す。

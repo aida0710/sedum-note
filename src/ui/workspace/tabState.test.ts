@@ -22,8 +22,21 @@ describe("タブの開け閉め", () => {
   it("閉じたタブは、最後に閉じたものから順に開き直せる", () => {
     const closed = closeTabsIn(closeTabsIn(tabsOf("a", "b", "c"), ["b"]), ["c"]);
     const reopened = reopenClosedTabIn(closed);
-    expect(reopened).toMatchObject({ openTabs: ["a", "c"], activeTab: "c", closedTabs: ["b"] });
-    expect(reopenClosedTabIn(reopened)).toMatchObject({ openTabs: ["a", "c", "b"], activeTab: "b", closedTabs: [] });
+    expect(reopened).toMatchObject({ openTabs: ["a", "c"], activeTab: "c" });
+    expect(reopenClosedTabIn(reopened)).toMatchObject({ openTabs: ["a", "b", "c"], activeTab: "b", closedTabs: [] });
+  });
+
+  it("閉じたタブを開き直すと、閉じる前の位置へ戻る。まとめて閉じたタブも、順に開き直すと元の並びになる", () => {
+    const tabs = tabsOf("a", "b", "c", "d");
+    expect(reopenClosedTabIn(closeTabsIn(tabs, ["b"])).openTabs).toEqual(["a", "b", "c", "d"]);
+    const othersClosed = closeTabsIn(tabs, ["a", "b", "d"]);
+    expect(reopenClosedTabIn(reopenClosedTabIn(reopenClosedTabIn(othersClosed))).openTabs).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("ピン留めのタブより左で閉じたタブは、開き直すとピン留めの並びのすぐ右に入る", () => {
+    const closed = closeTabsIn(tabsOf("a", "b", "c"), ["a"]);
+    const pinned = togglePinnedTabIn(togglePinnedTabIn(closed, "b"), "c");
+    expect(reopenClosedTabIn(pinned).openTabs).toEqual(["b", "c", "a"]);
   });
 
   it("ピン留めを外したタブは、ピン留めの並びのすぐ右に来る", () => {

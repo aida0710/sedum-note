@@ -2,6 +2,7 @@
 // ドラッグしている間は、元のタブを薄くし、落とす先のタブの左に印を出す。
 // 右クリックでタブのメニュー（閉じる・ほかを閉じる・右を閉じる・ピン留め・閉じたタブを開き直す）、
 // 右端のボタンで開いているタブの一覧を出す（タブが多くて隠れたときに選べるように）。
+// キーボードでは、Tab で選んでいるタブへ移り、← → Home End でタブを切り替え、Shift+F10 かメニューのキーでタブのメニューを開く。
 
 import { Check, ChevronDown, Columns2, Pin, PinOff, RotateCcw, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -21,6 +22,19 @@ function scrollTabIntoStrip(strip: HTMLElement, tab: HTMLElement): void {
   } else if (tabBox.right > stripBox.right) {
     strip.scrollLeft += tabBox.right - stripBox.right;
   }
+}
+
+// 押したキーごとの、移る先のタブの番号。← → は端で止まる。
+const TAB_MOVES: Record<string, (index: number, tabCount: number) => number> = {
+  ArrowRight: (index, tabCount) => Math.min(index + 1, tabCount - 1),
+  ArrowLeft: (index) => Math.max(index - 1, 0),
+  Home: () => 0,
+  End: (_index, tabCount) => tabCount - 1,
+};
+
+// 右クリックのメニューをキーボードで開くキー（メニューのキーと、Shift+F10）。
+function isContextMenuKey(event: React.KeyboardEvent): boolean {
+  return event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey);
 }
 
 // タブのドラッグのデータの種類。メモのドラッグ（左の列）と区別する。
@@ -62,6 +76,29 @@ export function NoteTabs({ navigation, repository }: { navigation: WorkspaceNavi
           ? repository.notebooks().find((notebook) => notebook.id === databaseNotebookId)?.content.name ?? ""
           : repository.note(tabId)?.content.title || translate("sidebar.untitled");
   };
+  // タブの上で押したキー。切り替えたタブへフォーカスも移す（選んでいるタブだけが Tab で止まる所なので）。
+  const moveOrOpenMenuByKey = (event: React.KeyboardEvent<HTMLDivElement>, tabId: string) => {
+    if (event.target !== event.currentTarget) {
+      return;
+    }
+    if (isContextMenuKey(event)) {
+      event.preventDefault();
+      setTabMenu({ tabId, anchor: event.currentTarget });
+      return;
+    }
+    const move = TAB_MOVES[event.key];
+    if (move === undefined || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+      return;
+    }
+    event.preventDefault();
+    const { openTabs } = navigation;
+    const nextIndex = move(openTabs.indexOf(tabId), openTabs.length);
+    const nextTabId = openTabs[nextIndex];
+    if (nextTabId !== undefined && nextTabId !== tabId) {
+      navigation.openTab(nextTabId);
+      (tabStrip.current?.children[nextIndex] as HTMLElement | undefined)?.focus();
+    }
+  };
   const runAndCloseMenu = (action: () => void) => () => {
     setTabMenu(null);
     action();
@@ -75,7 +112,8 @@ export function NoteTabs({ navigation, repository }: { navigation: WorkspaceNavi
         const isOn = navigation.activeTab === tabId;
         return (
           <div key={tabId} className={`tab${isOn ? " on" : ""}${draggedTabId === tabId ? " dragging" : ""}${dropTargetTabId === tabId && draggedTabId !== tabId ? " drop-target" : ""}`}
-            role="tab" aria-selected={isOn}
+            role="tab" aria-selected={isOn} tabIndex={isOn ? 0 : -1} title={label} aria-haspopup="menu"
+            onKeyDown={(event) => moveOrOpenMenuByKey(event, tabId)}
             draggable
             onDragStart={(event) => {
               event.dataTransfer.setData(TAB_DRAG_TYPE, tabId);

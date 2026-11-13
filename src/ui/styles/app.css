@@ -419,6 +419,10 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .tab .tab-close { width: 18px; height: 18px; border-radius: var(--radius-inline); display: grid; place-items: center; visibility: hidden; }
 .tab:hover .tab-close, .tab.on .tab-close { visibility: visible; }
 .tab .tab-close:hover { background: var(--selected); }
+/* タブのフォーカスの枠は内側に描く（外に描くと、上はタブの列の枠で、下は本文の境目で切れる）。 */
+.tab:focus-visible { outline-offset: -2px; }
+/* マウスを乗せられない画面（タッチ）では、選んでいないタブの「×」も薄く出しておく。 */
+@media (hover: none) { .tab .tab-close { visibility: visible; opacity: .6; } }
 .tab.on { background: var(--panel); color: var(--text); font-weight: 600; border-color: var(--line); border-bottom-color: var(--panel); margin-bottom: -1px; }
 
 .editor-bar { display: flex; align-items: center; gap: 4px; padding: 8px 14px; border-bottom: 1px solid var(--line); color: var(--muted); flex: none; overflow-x: auto; scrollbar-width: none; }

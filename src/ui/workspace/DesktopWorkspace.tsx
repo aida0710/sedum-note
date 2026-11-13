@@ -66,7 +66,8 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
     replaceInNote: () => navigation.requestFindInNote(true),
     nextTab: () => openNeighborTab(1),
     previousTab: () => openNeighborTab(-1),
-    closeTab: () => navigation.activeTab && navigation.closeTab(navigation.activeTab),
+    // ピン留めしたタブは、「×」と中クリックと同じく、キーでも閉じない（閉じるのはタブのメニューから）。
+    closeTab: () => navigation.activeTab && !navigation.pinnedTabs.includes(navigation.activeTab) && navigation.closeTab(navigation.activeTab),
     reopenClosedTab: () => void navigation.reopenClosedTab(),
     openSettings: () => navigation.openSettings(),
     graph: () => navigation.openTab(GRAPH_TAB),
