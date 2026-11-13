@@ -154,6 +154,92 @@ test("データベース表示で、ノートブックのメモをプロパテ�
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("こころ");
 });
 
+// ノートブックの右クリックのメニューから、データベース表示を開く。
+async function openDatabaseView(page: Page, notebookName: string) {
+  await notebookRow(page, notebookName).locator(".nav").click({ button: "right" });
+  await page.getByRole("menuitem", { name: "データベース表示" }).click();
+  return page.locator(".database-view");
+}
+
+test("データベース表示の表では、キーボードだけで、下の「新しいメモ」から行を続けて足し、右端の「＋」からプロパティを足せる", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "読書");
+  const database = await openDatabaseView(page, "読書");
+  // メモが無いノートブックでも、表と「新しいメモ」が出る。
+  await expect(database.locator("tbody tr")).toHaveCount(0);
+  const newNoteButton = database.getByRole("button", { name: "新しいメモ" });
+  const titleInput = database.getByPlaceholder("タイトル");
+
+  await newNoteButton.focus();
+  for (const title of ["坊っちゃん", "こころ"]) {
+    await page.keyboard.press("Enter");
+    await expect(titleInput).toBeFocused();
+    await page.keyboard.type(title);
+    await page.keyboard.press("Enter");
+    // 決めたら「新しいメモ」へフォーカスが戻り、そのまま次の行を足せる。
+    await expect(newNoteButton).toBeFocused();
+  }
+  // Escape では作らない。
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("やめるメモ");
+  await page.keyboard.press("Escape");
+  await expect(newNoteButton).toBeFocused();
+  await expect(database.locator("tbody tr .database-title")).toHaveText(["こころ", "坊っちゃん"]);
+  // 足した行のメモは、このノートブックに入っている。
+  await expect(notebookRow(page, "読書").locator(".count")).toHaveText("2");
+
+  // 右端の「＋」は、プロパティのダイアログを「プロパティを追加」にフォーカスを置いて開く。足すと名前の欄が選ばれ、打つと名前が入れ替わる。
+  await database.getByRole("button", { name: "プロパティを追加" }).focus();
+  await page.keyboard.press("Enter");
+  const dialog = page.getByRole("dialog", { name: "プロパティ" });
+  await expect(dialog.getByRole("button", { name: "プロパティを追加" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(dialog.getByRole("textbox", { name: "名前" })).toBeFocused();
+  await page.keyboard.type("著者");
+  await expect(dialog.getByRole("textbox", { name: "名前" })).toHaveValue("著者");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(database.getByRole("columnheader", { name: "著者" })).toBeVisible();
+  await database.locator("tbody tr", { hasText: "こころ" }).getByRole("textbox", { name: "著者" }).fill("夏目漱石");
+  await expect(database.locator("tbody tr", { hasText: "こころ" }).getByRole("textbox", { name: "著者" })).toHaveValue("夏目漱石");
+});
+
+test("データベース表示のボードでは、列の下の「新しいメモ」から、その列の選択肢の値を入れたメモを作れる", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "読書");
+  const database = await openDatabaseView(page, "読書");
+  await database.getByRole("button", { name: "プロパティを追加" }).click();
+  const dialog = page.getByRole("dialog", { name: "プロパティ" });
+  await dialog.getByRole("button", { name: "プロパティを追加" }).click();
+  await dialog.getByRole("textbox", { name: "名前" }).fill("状態");
+  await dialog.getByRole("combobox", { name: "種類" }).selectOption("select");
+  await dialog.getByRole("textbox", { name: "選択肢" }).fill("未読、読了");
+  await dialog.getByRole("textbox", { name: "選択肢" }).blur();
+  await dialog.getByRole("button", { name: "閉じる" }).click();
+
+  await database.getByRole("radio", { name: "ボード" }).click();
+  const column = (name: string) => database.getByRole("region", { name });
+  await column("読了").getByRole("button", { name: "新しいメモ" }).click();
+  await column("読了").getByPlaceholder("タイトル").fill("こころ");
+  await column("読了").getByPlaceholder("タイトル").press("Enter");
+  // 決めた Enter で、戻ったフォーカスの先の「新しいメモ」をもう一度押したことにならない。
+  await expect(column("読了").getByPlaceholder("タイトル")).toHaveCount(0);
+  await expect(column("読了").getByRole("button", { name: "新しいメモ" })).toBeFocused();
+  // 値の無い「未設定」の列からは、値を入れずに作る。欄の外を押しても決まり、フォーカスは押した先に残る。
+  await column("未設定").getByRole("button", { name: "新しいメモ" }).click();
+  await column("未設定").getByPlaceholder("タイトル").fill("門");
+  await database.getByRole("radio", { name: "ボード" }).click();
+  await expect(database.getByRole("radio", { name: "ボード" })).toBeFocused();
+  await expect(column("読了").locator(".database-card")).toHaveText(["こころ"]);
+  await expect(column("未設定").locator(".database-card")).toHaveText(["門"]);
+  await expect(column("未読").locator(".database-card")).toHaveCount(0);
+
+  await column("読了").locator(".database-card").click();
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("こころ");
+  await expect(page.getByLabel("状態")).toHaveValue("読了");
+  await expect(notebookChipsOfNote(page)).toHaveText(["読書"]);
+});
+
 test("メモの「…」の「ノートブックを選ぶ」では、入っているノートブックに印が付いた一覧が入れ子の字下げつきで開き、複数に入れたり全部外したりできる", async ({ page }) => {
   await startLocalVault(page);
   await addNotebookOnDesktop(page, "仕事");

@@ -72,7 +72,9 @@ button:disabled { cursor: default; opacity: .55; }
 .database-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
 .database-header h1 { font-size: var(--font-size-title); margin: 0; flex: 1; min-width: 0; }
 .database-header .choice { display: inline-flex; align-items: center; white-space: nowrap; }
-.database-table-scroll { overflow-x: auto; }
+/* 横に送る枠は、はみ出たものを切る。表の端に来る欄とボタン（下の「新しいメモ」）のフォーカスの枠（太さ 2px、離れ 1px）が
+   切れないよう、その分の余白を内側に取り、外側の負の余白で表の位置を戻す。 */
+.database-table-scroll { overflow-x: auto; padding: 3px; margin: -3px; }
 .database-table { border-collapse: collapse; min-width: 100%; font-size: var(--font-size-ui); }
 .database-table th, .database-table td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; white-space: nowrap; }
 .database-table th { background: var(--tag); font-weight: 600; }
@@ -86,6 +88,16 @@ button:disabled { cursor: default; opacity: .55; }
 .database-column { flex: 0 0 220px; background: var(--tag); border-radius: var(--radius-panel); padding: 8px; display: flex; flex-direction: column; gap: 6px; min-height: 80px; }
 .database-column h2 { font-size: var(--font-size-small); font-weight: 600; margin: 2px 4px 4px; display: flex; justify-content: space-between; color: var(--muted); }
 .database-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 8px 10px; text-align: left; font-size: var(--font-size-ui); color: var(--text); }
+/* 表の右端の、プロパティを足す「＋」の列。アイコンのボタンだけが入る幅にし、見出しの行の高さをほかの見出しとそろえる。 */
+.database-table .database-add-property { width: 1%; padding: 0 2px; }
+.database-add-property .icon-button { display: grid; margin: 0 auto; color: var(--muted); }
+.database-add-property .icon-button:hover { color: var(--text); }
+/* 表の下の「新しいメモ」の行は、枠を付けず、表の左の端にそろえる。 */
+.database-table tfoot td { border: 0; padding: 4px 0 0; }
+.database-new-note-button { display: inline-flex; align-items: center; gap: 4px; height: var(--control-height-compact); padding: 0 8px; border-radius: var(--radius-row); color: var(--muted); font-size: var(--font-size-ui); }
+.database-new-note-button:hover { background: var(--selected); color: var(--text); }
+.database-new-note { max-width: 320px; }
+.database-column .database-new-note-button, .database-column .database-new-note { width: 100%; max-width: none; }
 .note-query { border: 1px solid var(--line); border-radius: var(--radius-control); margin: 10px 0; overflow: hidden; }
 .note-query-conditions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px; background: var(--tag); color: var(--muted); }
 .note-query-conditions select, .note-query-conditions input { height: var(--control-height-compact); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 6px; background: var(--panel); color: var(--text); font-size: var(--font-size-small); min-width: 0; }

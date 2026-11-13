@@ -171,6 +171,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "database.updatedColumn": "Updated",
   "database.groupBy": "Group columns by",
   "database.unset": "Not set",
+  "database.newNote": "New note",
   "database.boardNeedsSelect": "A board groups notes by a select property. Add a property of the select type in the notebook’s Properties.",
   "property.dialogTitle": "Properties",
   "property.dialogDescription": "Choose the fields that notes in “{name}” can have.",

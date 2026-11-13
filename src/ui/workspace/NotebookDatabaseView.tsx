@@ -1,16 +1,21 @@
 // データベース表示。ノートブックのメモを、プロパティを列にした表か、選択肢のプロパティで分けたボードで見せる。
-// 並べ方と見え方はノートブックに保存する（同期される）。
+// 並べ方と見え方はノートブックに保存する（同期される）。表とボードから、メモとプロパティを足せる。
 
-import { ArrowDown, ArrowUp, Columns3, Table } from "lucide-react";
+import { ArrowDown, ArrowUp, Columns3, Plus, Table } from "lucide-react";
+import { useState } from "react";
 import {
   boardColumns, boardGroupProperty, DATABASE_LAYOUTS, type DatabaseLayout, type DatabaseView, sortNotesForDatabase, TITLE_COLUMN, UPDATED_COLUMN,
 } from "../../core/notes/databaseView";
 import type { PropertyDefinition } from "../../core/notes/noteProperties";
+import type { NoteView } from "../../core/notes/noteQueries";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { type MessageKey, translate } from "../i18n/translate";
 import { formatDateTime } from "../shared/formatTime";
 import { PropertyInput } from "../shared/PropertyInput";
+import { createNoteInView } from "./createNoteInView";
+import { DatabaseNewNoteButton } from "./DatabaseNewNoteButton";
+import { NotebookPropertiesDialog } from "./NotebookPropertiesDialog";
 
 type NotebookDatabaseViewProps = {
   notebook: LiveNotebook;
@@ -25,12 +30,19 @@ const LAYOUT_LABELS: Record<DatabaseLayout, MessageKey> = { table: "database.lay
 // ボードのカードをドラッグするときの、データの種類。
 const CARD_DRAG_TYPE = "application/x-sedum-note-database-card";
 const ICON_SIZE = 14;
+// 表の、プロパティの列のほかの列（タイトル、更新、右端のプロパティを足す列）の数。
+const COLUMNS_BESIDES_PROPERTIES = 3;
 
 export function NotebookDatabaseView({ notebook, notes, repository, onOpenNote }: NotebookDatabaseViewProps) {
   const { properties, databaseView: view } = notebook.content;
+  const [editingProperties, setEditingProperties] = useState(false);
   const changeView = (changes: Partial<DatabaseView>) => void repository.updateNotebook(notebook.id, { databaseView: { ...view, ...changes } });
-  const sorted = sortNotesForDatabase(notes, view);
-  const titleOf = (note: LiveNote) => note.content.title || translate("sidebar.untitled");
+  const content: DatabaseContentProps = {
+    notes: sortNotesForDatabase(notes, view), properties, view, repository,
+    notebookView: { kind: "notebook", notebookId: notebook.id },
+    titleOf: (note) => note.content.title || translate("sidebar.untitled"),
+    onOpenNote,
+  };
   return (
     <div className="document-scroll">
       <div className="database-view">
@@ -48,14 +60,12 @@ export function NotebookDatabaseView({ notebook, notes, repository, onOpenNote }
             })}
           </div>
         </div>
-        {notes.length === 0 && <div className="tree-empty">{translate("sidebar.noNotes")}</div>}
-        {notes.length > 0 && view.layout === "table" && (
-          <DatabaseTable notes={sorted} properties={properties} view={view} repository={repository} titleOf={titleOf} onOpenNote={onOpenNote} onSort={changeView} />
-        )}
-        {notes.length > 0 && view.layout === "board" && (
-          <DatabaseBoard notes={sorted} properties={properties} view={view} repository={repository} titleOf={titleOf} onOpenNote={onOpenNote} onChooseGroup={(groupBy) => changeView({ groupBy })} />
-        )}
+        {/* メモが無くても表とボードを出す。最初のメモを、ここの「新しいメモ」から足せるように。 */}
+        {view.layout === "table" && <DatabaseTable {...content} onSort={changeView} onEditProperties={() => setEditingProperties(true)} />}
+        {view.layout === "board" && <DatabaseBoard {...content} onChooseGroup={(groupBy) => changeView({ groupBy })} />}
       </div>
+      {/* 表の「＋」は、ノートブックのメニューの「プロパティ」と同じダイアログを開く。名前・種類・選択肢をまとめて決められるのがそこなので。 */}
+      {editingProperties && <NotebookPropertiesDialog notebook={notebook} repository={repository} autoFocusAddButton onClose={() => setEditingProperties(false)} />}
     </div>
   );
 }
@@ -65,11 +75,18 @@ type DatabaseContentProps = {
   properties: PropertyDefinition[];
   view: DatabaseView;
   repository: NoteRepository;
+  // 「新しいメモ」で作るメモを入れる先（このノートブック）。
+  notebookView: NoteView;
   titleOf: (note: LiveNote) => string;
   onOpenNote: (noteId: string) => void;
 };
 
-function DatabaseTable({ notes, properties, view, repository, titleOf, onOpenNote, onSort }: DatabaseContentProps & { onSort: (changes: Partial<DatabaseView>) => void }) {
+type DatabaseTableProps = DatabaseContentProps & {
+  onSort: (changes: Partial<DatabaseView>) => void;
+  onEditProperties: () => void;
+};
+
+function DatabaseTable({ notes, properties, view, repository, notebookView, titleOf, onOpenNote, onSort, onEditProperties }: DatabaseTableProps) {
   // 列の見出しを押すと、その列で並べ替える。同じ列をもう一度押すと、向きを逆にする。
   const columnHeader = (column: string, label: string) => {
     const isSorted = view.sortBy === column;
@@ -91,6 +108,11 @@ function DatabaseTable({ notes, properties, view, repository, titleOf, onOpenNot
             {columnHeader(TITLE_COLUMN, translate("database.titleColumn"))}
             {properties.map((property) => columnHeader(property.id, property.name))}
             {columnHeader(UPDATED_COLUMN, translate("database.updatedColumn"))}
+            <th className="database-add-property">
+              <button type="button" className="icon-button" aria-label={translate("property.add")} title={translate("property.add")} onClick={onEditProperties}>
+                <Plus size={ICON_SIZE} />
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -104,9 +126,17 @@ function DatabaseTable({ notes, properties, view, repository, titleOf, onOpenNot
                 </td>
               ))}
               <td className="database-updated">{formatDateTime(note.updatedAt)}</td>
+              <td className="database-add-property" />
             </tr>
           ))}
         </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan={properties.length + COLUMNS_BESIDES_PROPERTIES}>
+              <DatabaseNewNoteButton onCreate={(title) => void createNoteInView(repository, notebookView, title)} />
+            </td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );
@@ -114,11 +144,18 @@ function DatabaseTable({ notes, properties, view, repository, titleOf, onOpenNot
 
 const NO_GROUP_PROPERTY = "";
 
-function DatabaseBoard({ notes, properties, view, repository, titleOf, onOpenNote, onChooseGroup }: DatabaseContentProps & { onChooseGroup: (propertyId: string) => void }) {
+function DatabaseBoard({ notes, properties, view, repository, notebookView, titleOf, onOpenNote, onChooseGroup }: DatabaseContentProps & { onChooseGroup: (propertyId: string) => void }) {
   const groupProperty = boardGroupProperty(properties, view.groupBy);
   if (!groupProperty) {
     return <div className="tree-empty">{translate("database.boardNeedsSelect")}</div>;
   }
+  // 列の「新しいメモ」では、その列の選択肢の値を入れたメモを作る。「未設定」の列（option が null）では値を入れない。
+  const createCard = async (title: string, option: string | null) => {
+    const note = await createNoteInView(repository, notebookView, title);
+    if (option !== null) {
+      await repository.setNotePropertyValue(note.id, groupProperty.id, option);
+    }
+  };
   return (
     <>
       <div className="field database-group">
@@ -139,6 +176,7 @@ function DatabaseBoard({ notes, properties, view, repository, titleOf, onOpenNot
                 {titleOf(note)}
               </button>
             ))}
+            <DatabaseNewNoteButton onCreate={(title) => void createCard(title, column.option)} />
           </section>
         ))}
       </div>

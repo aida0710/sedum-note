@@ -169,6 +169,7 @@ export const japaneseMessages = {
   "database.updatedColumn": "更新",
   "database.groupBy": "列を分けるプロパティ",
   "database.unset": "未設定",
+  "database.newNote": "新しいメモ",
   "database.boardNeedsSelect": "ボードは、選択肢のプロパティで列を分けます。ノートブックの「プロパティ」で、選択肢の種類のプロパティを足してください。",
   "property.dialogTitle": "プロパティ",
   "property.dialogDescription": "「{name}」のメモに付けられる項目を決めます。",
