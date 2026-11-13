@@ -592,7 +592,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ProseMirror .revealed-block { animation: revealed-block-fade 2.4s ease-out; border-radius: var(--radius-inline); }
 @keyframes revealed-block-fade { from { background: var(--accent-soft); } to { background: transparent; } }
 /* 候補は全部を一度に見せる。画面に収まらないとき（スマホでキーボードを開いているとき）だけ中を送れるが、スクロールバーは出さない。 */
-.slash-menu { max-height: min(520px, calc(var(--visible-height, 100vh) - 24px)); overflow-y: auto; scrollbar-width: none; min-width: 220px; }
+/* 「/」のメニューにはスクロールバーを出さない。後ろにある .menu の規則（細いバー）に負けないよう、クラスを 2 つ重ねる。 */
+.menu.slash-menu { max-height: min(520px, calc(var(--visible-height, 100vh) - 24px)); overflow-y: auto; scrollbar-width: none; min-width: 220px; }
 .slash-menu::-webkit-scrollbar { display: none; }
 .slash-menu .menu-item { padding-top: 5px; padding-bottom: 5px; }
 .slash-menu .menu-item.on { background: var(--selected); }
