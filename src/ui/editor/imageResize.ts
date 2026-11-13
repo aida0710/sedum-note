@@ -23,8 +23,6 @@ export function startImageResize(event: ReactPointerEvent<HTMLElement>, { image,
   // 押しても、エディタに写真を選ばせず、ドラッグで写真を動かす操作も始めさせない。
   event.preventDefault();
   event.stopPropagation();
-  const handle = event.currentTarget;
-  handle.setPointerCapture(event.pointerId);
   const draggableBlock = frame.closest<HTMLElement>("[draggable=true]");
   draggableBlock?.setAttribute("draggable", "false");
   frame.classList.add("sized");
@@ -36,14 +34,15 @@ export function startImageResize(event: ReactPointerEvent<HTMLElement>, { image,
     width = Math.min(Math.max(startWidth + (moveEvent.clientX - startX) * 2, MIN_IMAGE_WIDTH), columnWidth);
     image.style.width = `${width}px`;
   };
+  // 指はすぐに小さな持ち手の外へ出るので、動きと離したことは画面全体で受ける。
   const finish = () => {
-    handle.removeEventListener("pointermove", resize);
-    handle.removeEventListener("pointerup", finish);
-    handle.removeEventListener("pointercancel", finish);
+    window.removeEventListener("pointermove", resize);
+    window.removeEventListener("pointerup", finish);
+    window.removeEventListener("pointercancel", finish);
     draggableBlock?.setAttribute("draggable", "true");
     onCommit(width >= columnWidth - 1 ? null : Math.round(width));
   };
-  handle.addEventListener("pointermove", resize);
-  handle.addEventListener("pointerup", finish);
-  handle.addEventListener("pointercancel", finish);
+  window.addEventListener("pointermove", resize);
+  window.addEventListener("pointerup", finish);
+  window.addEventListener("pointercancel", finish);
 }
