@@ -243,3 +243,18 @@ test("本文の下の余白や左右の余白を押すと、本文にカーソ�
   await page.mouse.click(scrollBox.x + 12, bodyBox.y - 30);
   await expect(page.locator(".ProseMirror")).not.toBeFocused();
 });
+
+test("書式の無い文字を貼り付けると、空の行は空の段落として残り、最初の行は今の行の続きに入る", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "貼り付け");
+  await page.keyboard.type("前置き：");
+  await page.evaluate(() => {
+    const transfer = new DataTransfer();
+    transfer.setData("text/plain", "一行目\n二行目\n\n四行目\n");
+    document.querySelector(".ProseMirror")!.dispatchEvent(new ClipboardEvent("paste", { clipboardData: transfer, bubbles: true, cancelable: true }));
+  });
+  expect(await bodyBlocks(page)).toEqual(["paragraph:前置き：一行目", "paragraph:二行目", "paragraph:", "paragraph:四行目"]);
+  // 貼ったあとのカーソルは、最後の行の末尾にある。
+  await page.keyboard.type("の続き");
+  expect(await bodyBlocks(page)).toEqual(["paragraph:前置き：一行目", "paragraph:二行目", "paragraph:", "paragraph:四行目の続き"]);
+});

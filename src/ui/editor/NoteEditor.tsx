@@ -61,6 +61,7 @@ import { revealBlock } from "./blockIds";
 import { NoteOutline } from "./NoteOutline";
 import { NoteLinkTargetsContext } from "./noteLinkTargets";
 import { insertPastedMarkdown, markdownInClipboard } from "./pastedMarkdown";
+import { plainTextSlice } from "./pastedPlainText";
 import { SlashMenu } from "./SlashMenu";
 import { useNoteAttachments } from "./useNoteAttachments";
 import { WebLinkPopover } from "./WebLinkPopover";
@@ -177,6 +178,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
     editorProps: {
       scrollMargin: isMobile ? CARET_SCROLL_MARGIN_ON_PHONE : CARET_SCROLL_MARGIN,
       scrollThreshold: isMobile ? CARET_SCROLL_MARGIN_ON_PHONE : CARET_SCROLL_MARGIN,
+      clipboardTextParser: plainTextSlice,
       handlePaste: (_view, event) => attachments.takeFiles(Array.from(event.clipboardData?.files ?? [])) || takeMarkdown(event.clipboardData),
       // ファイルなら添付し、左の列のメモならリンクを入れる。
       handleDrop: (view, event) => attachments.takeFiles(Array.from((event as DragEvent).dataTransfer?.files ?? [])) || insertDroppedNoteLink(view, event as DragEvent, noteId),
