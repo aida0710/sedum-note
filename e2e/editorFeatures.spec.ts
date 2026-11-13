@@ -485,6 +485,11 @@ test("表のセルを結合し、分割で元に戻せる", async ({ page }) => 
   await page.mouse.down();
   await cells.nth(1).hover();
   await page.mouse.up();
+  // 選んだセルに重ねる色は、中の文字が読めるよう透けている。
+  await expect(page.locator(".ProseMirror .selectedCell")).toHaveCount(2);
+  const selectionColor = await page.locator(".ProseMirror .selectedCell").first().evaluate((cell) => getComputedStyle(cell, "::after").backgroundColor);
+  // 透けている色は、color(srgb … / 0.18) か rgba(…, 0.18) の形になる。
+  expect(selectionColor).toMatch(/\/ 0?\.\d+\)$|^rgba\(.*, 0?\.\d+\)$/);
 
   await page.getByRole("button", { name: "表", exact: true }).click();
   await page.getByRole("menuitem", { name: "セルを結合" }).click();

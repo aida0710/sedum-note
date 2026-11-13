@@ -571,7 +571,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ProseMirror table { border-collapse: collapse; min-width: 100%; }
 .ProseMirror th, .ProseMirror td { border: 1px solid var(--line); padding: 5px 10px; min-width: 72px; vertical-align: top; text-align: left; position: relative; }
 .ProseMirror th { background: var(--tag); font-weight: 600; }
-.ProseMirror .selectedCell::after { content: ""; position: absolute; inset: 0; background: var(--accent-soft); pointer-events: none; }
+/* 何個かのセルを選んだときの色。セルの背景色（tableCellBackground.ts）の上にも出すよう面を重ねるので、中の文字が透けて読める薄さにする。 */
+.ProseMirror .selectedCell::after { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--accent) 18%, transparent); pointer-events: none; }
 .ProseMirror .column-resize-handle { position: absolute; top: 0; bottom: -1px; right: -2px; width: 3px; background: var(--accent); pointer-events: none; }
 .ProseMirror.resize-cursor { cursor: col-resize; }
 .ProseMirror .filtered-out-row { display: none; }
@@ -580,7 +581,6 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .table-menu { max-height: calc(var(--visible-height, 100vh) - 100px); overflow-y: auto; scrollbar-width: thin; }
 .table-menu .menu-item { padding-top: 5px; padding-bottom: 5px; }
 .menu-item:disabled { color: var(--muted); }
-.ProseMirror .selectedCell { background: var(--accent-soft); }
 .note-link button { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); background: var(--accent-soft); border-radius: var(--radius-row); padding: 0 6px; vertical-align: baseline; max-width: 100%; }
 .note-link.trashed button, .note-link.missing button { color: var(--muted); background: var(--tag); }
 .note-link.ProseMirror-selectednode button { outline: 2px solid var(--accent); }
