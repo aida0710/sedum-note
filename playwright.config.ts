@@ -16,6 +16,8 @@ export default defineConfig({
   // 作成やロック解除の直後の表示を待ち切れないことがある。
   expect: { timeout: 15_000 },
   projects,
-  use: { baseURL: PAGE_ORIGIN, locale: "ja-JP" },
+  // 動きを減らす設定にしておく。ズームの切り替えの動き（editor/zoomTransition.ts）の途中で、位置や大きさを測らないように。
+  // 動きそのものを見る試験は、その試験の中で設定を戻す。
+  use: { baseURL: PAGE_ORIGIN, locale: "ja-JP", contextOptions: { reducedMotion: "reduce" } },
   webServer: { command: `npx vite --host 127.0.0.1 --port ${DEV_SERVER_PORT} --strictPort`, url: PAGE_ORIGIN, reuseExistingServer: true },
 });

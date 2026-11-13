@@ -270,3 +270,26 @@ test("ズームしている間は、Esc でも 1 つ上の階層へ戻る。「/
   await expect(zoomBackButton(page)).toHaveCount(0);
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("計画");
 });
+
+test("ズームに入るとき・戻るときは、本文を短く動かして切り替わりを見せる。動きを減らす設定では動かさない", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await writeNestedList(page);
+  // 本文の入れ物で、今動いているアニメーションの数。
+  const runningAnimations = () => page.locator(".document-scroll").evaluate((element) => element.getAnimations().length);
+  await zoomIntoItem(page, "宿");
+  expect(await runningAnimations()).toBeGreaterThan(0);
+  await expect.poll(runningAnimations).toBe(0);
+  // 戻るボタンで、1 つ上の「旅行」へ戻る。
+  await zoomBackButton(page).click();
+  expect(await runningAnimations()).toBeGreaterThan(0);
+  await expect(zoomBackButton(page)).toHaveAccessibleName("「計画」に戻る");
+  // 本文を書くだけでは動かさない。
+  await expect.poll(runningAnimations).toBe(0);
+  await placeCursorIn(page, "持ち物");
+  await page.keyboard.type("リスト");
+  expect(await runningAnimations()).toBe(0);
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await zoomIntoItem(page, "宿");
+  expect(await runningAnimations()).toBe(0);
+});

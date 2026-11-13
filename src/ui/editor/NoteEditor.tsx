@@ -52,6 +52,7 @@ import { useRememberedNoteView } from "./rememberedNoteView";
 import { insertDroppedNoteLink } from "./droppedNoteLink";
 import { useIsZoomed, ZoomBackButton } from "./ZoomBackButton";
 import { useZoomOutOnEscape } from "./zoomOutOnEscape";
+import { useZoomTransition } from "./zoomTransition";
 import { registerFocusRestorer } from "../shared/focusReturn";
 import { revealBlock } from "./blockIds";
 import { NoteOutline } from "./NoteOutline";
@@ -293,6 +294,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   const isZoomed = useIsZoomed(editor);
   const noteArea = useRef<HTMLDivElement>(null);
   useZoomOutOnEscape({ editor, isZoomed, noteArea });
+  useZoomTransition({ editor, target: documentScroll });
 
   const actionError = attachments.errorMessage ?? audioRecorder.errorMessage ?? pasteMarkdown.errorMessage ?? exportNote.errorMessage ?? print.errorMessage ?? openInNewWindow.errorMessage;
   if (!editor) {

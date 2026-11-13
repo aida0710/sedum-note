@@ -386,7 +386,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 
 /* 本文と、その横の目次。 */
 .document-area { display: flex; flex: 1; min-height: 0; }
-.document-scroll { overflow-y: auto; flex: 1; min-height: 0; min-width: 0; }
+/* ズームの切り替えで本文を大きさごと動かすとき（editor/zoomTransition.ts）は、上の端を軸にする。 */
+.document-scroll { overflow-y: auto; flex: 1; min-height: 0; min-width: 0; transform-origin: 50% 0; }
 .outline { width: 220px; flex: none; border-left: 1px solid var(--line); overflow-y: auto; padding: 8px 6px; display: flex; flex-direction: column; gap: 1px; }
 .menu .outline { width: auto; min-width: 200px; max-width: 280px; max-height: 50vh; border-left: 0; padding: 0; }
 .outline-item { text-align: left; padding: 5px 8px; border-radius: var(--radius-row); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; }
