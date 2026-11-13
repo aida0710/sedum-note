@@ -213,3 +213,33 @@ test("表示した数式は Tab で来られ、Enter で編集を始められる
   await expect(page.getByRole("textbox", { name: "数式" })).toBeFocused();
   await expect(page.getByRole("textbox", { name: "数式" })).toHaveValue("x^2");
 });
+
+test("本文の下の余白や左右の余白を押すと、本文にカーソルが入り、続けて打てる", async ({ page }) => {
+  await openNoteWith(page, "<p>一行目</p><p>二行目</p>");
+  const bodyBox = (await page.locator(".ProseMirror").boundingBox())!;
+  const scrollBox = (await page.locator(".document-scroll").boundingBox())!;
+  const secondLine = (await page.locator(".ProseMirror p", { hasText: "二行目" }).boundingBox())!;
+
+  // 本文より下の余白: 末尾へ。
+  await page.getByPlaceholder("タイトル").click();
+  await page.mouse.click(bodyBox.x + 100, scrollBox.y + scrollBox.height - 20);
+  await expect(page.locator(".ProseMirror")).toBeFocused();
+  await page.keyboard.type("の末尾");
+  await expect(page.locator(".ProseMirror p").last()).toHaveText("二行目の末尾");
+
+  // 本文の右の余白: 同じ高さの行の末尾へ。左の余白: 行の先頭へ。
+  await page.getByPlaceholder("タイトル").click();
+  await page.mouse.click(scrollBox.x + scrollBox.width - 30, secondLine.y + secondLine.height / 2);
+  await expect(page.locator(".ProseMirror")).toBeFocused();
+  await page.keyboard.type("！");
+  await expect(page.locator(".ProseMirror p").last()).toHaveText("二行目の末尾！");
+  await page.getByPlaceholder("タイトル").click();
+  await page.mouse.click(scrollBox.x + 12, secondLine.y + secondLine.height / 2);
+  await page.keyboard.type("★");
+  await expect(page.locator(".ProseMirror p").last()).toHaveText("★二行目の末尾！");
+
+  // 題のまわりの余白では、本文へ移らない。
+  await page.getByPlaceholder("タイトル").click();
+  await page.mouse.click(scrollBox.x + 12, bodyBox.y - 30);
+  await expect(page.locator(".ProseMirror")).not.toBeFocused();
+});

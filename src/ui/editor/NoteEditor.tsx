@@ -64,6 +64,7 @@ import { insertPastedMarkdown, markdownInClipboard } from "./pastedMarkdown";
 import { SlashMenu } from "./SlashMenu";
 import { useNoteAttachments } from "./useNoteAttachments";
 import { WebLinkPopover } from "./WebLinkPopover";
+import { placeCursorFromBlankArea } from "./blankAreaClick";
 import { webLinkUrlAtModifierClick } from "./webLinks";
 import { openExternalUrl } from "../platform/openExternalUrl";
 import { SlashMenuController } from "./slashMenuController";
@@ -364,7 +365,8 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
       )}
       {findBarOpen && <FindBar editor={editor} request={findRequest} onClose={() => setFindBarOpen(false)} />}
       <div className="document-area">
-      <div className="document-scroll" ref={documentScroll}>
+      <div className="document-scroll" ref={documentScroll}
+        onMouseDown={(event) => { if (placeCursorFromBlankArea(editor.view, event)) { event.preventDefault(); } }}>
         <div className={`document align-${note.content.pageAlignment ?? defaultPageAlignment}`} onClick={openLinkOnModifierClick}>
           {inTrash && (
             <div className="trash-banner">
