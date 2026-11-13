@@ -217,15 +217,18 @@ button:disabled { cursor: default; opacity: .55; }
 .ai-edit { border: 1px solid var(--line); border-radius: var(--radius-panel); padding: 8px 10px; display: flex; flex-direction: column; gap: 8px; background: var(--panel); }
 .ai-edit-summary { display: flex; align-items: center; gap: 6px; font-weight: 600; }
 .ai-edit-summary svg { flex: none; color: var(--accent); }
-.ai-edit-diff { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
-.ai-edit-hunk { display: flex; flex-direction: column; gap: 2px; }
-.ai-edit-removed, .ai-edit-added { position: relative; margin: 0; padding: 4px 8px 4px 22px; border-radius: var(--radius-row); white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-mono); font-size: var(--font-size-small); line-height: 1.5; }
+/* 本文の差分。git の差分のように、1 つの枠の中に行を詰めて並べ、消す行の頭に「-」、足す行の頭に「+」を付ける。 */
+.ai-edit-diff { max-height: 320px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-row); padding: 2px 0; font-size: var(--font-size-small); line-height: 1.35; }
+.ai-edit-removed, .ai-edit-added { display: block; text-decoration: none; }
 .ai-edit-removed { background: color-mix(in srgb, var(--danger) 12%, transparent); }
 .ai-edit-added { background: color-mix(in srgb, var(--ok) 14%, transparent); }
-.ai-edit-removed::before, .ai-edit-added::before { position: absolute; left: 8px; font-weight: 700; }
-.ai-edit-removed::before { content: "−"; color: var(--danger); }
-.ai-edit-added::before { content: "+"; color: var(--ok); }
-.ai-edit-unchanged { color: var(--muted); font-size: var(--font-size-small); padding: 0 8px; }
+.ai-diff-line { display: block; position: relative; padding: 0 8px 0 22px; font-family: var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* 空の行（コードの中の空行など）も 1 行の高さを取り、頭の印を出す。 */
+.ai-diff-line:empty::after { content: "\200b"; }
+.ai-diff-line::before { position: absolute; left: 8px; font-weight: 700; }
+.ai-edit-removed .ai-diff-line::before { content: "-"; color: var(--danger); }
+.ai-edit-added .ai-diff-line::before { content: "+"; color: var(--ok); }
+.ai-edit-unchanged { color: var(--muted); padding: 0 8px; }
 .ai-edit-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
 .ai-auto-apply { font-size: var(--font-size-small); color: var(--muted); }
 /* 答えの中の、ツールの呼び出しの 1 行。対象のメモがあれば押して開ける。 */
