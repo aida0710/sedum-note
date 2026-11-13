@@ -958,6 +958,10 @@ details summary { cursor: pointer; color: var(--accent); }
 .phone-list .phone-scroll { padding-bottom: 88px; }
 /* タイプライターモードでは、本文の終わりの近くでも打っている行を中央に保てるよう、下に余白を取る（PC の .typewriter-mode .document と同じ）。 */
 .phone.typewriter-mode .document { padding-bottom: 50vh; }
+/* スマホの期限の一覧は、ほかの画面と同じ左右の余白にし、題に入り切らない「完了も出す」は次の行へ回す。 */
+.phone .reminders-view { padding: 4px 16px 40px; }
+.phone .reminders-header { flex-wrap: wrap; }
+.phone .reminders-header h1 { flex: 1 0 auto; }
 /* スマホの下のツールバーは横に送れる。まだ先がある側の端をぼかして、続きがあることを見せる（shared/useHorizontalScrollEdges.ts が data 属性を付ける）。 */
 .phone .editor-bar { --editor-bar-fade-start: 0px; --editor-bar-fade-end: 0px; mask-image: linear-gradient(to right, transparent, #000 var(--editor-bar-fade-start), #000 calc(100% - var(--editor-bar-fade-end)), transparent); }
 .phone .editor-bar[data-more-start] { --editor-bar-fade-start: 40px; }

@@ -1,7 +1,7 @@
 // 期限の一覧。メモの期限と、期限の印が付いたチェックリストの項目を、期限切れ・今日・これから・完了に分けて並べる。
 // 項目は、ここからチェックを付けられる。
 
-import { AlarmClock, ArrowLeft, X } from "lucide-react";
+import { AlarmClock, ChevronLeft, X } from "lucide-react";
 import { useState } from "react";
 import { DUE_GROUPS, type DueGroup, type DueItem, dueItemsOf, groupDueItems } from "../../core/notes/dueItems";
 import { setDueTaskDone } from "../../core/notes/dueTasks";
@@ -34,10 +34,16 @@ export function RemindersView({ summaries, repository, onOpenNote, onBack }: Rem
   const shownGroups = DUE_GROUPS.filter((group) => groups[group].length > 0 && (group !== "done" || showsDone));
   const hasNothingToDo = DUE_GROUPS.every((group) => group === "done" || groups[group].length === 0);
   return (
+    <>
+      {/* スマホでは、ほかの画面と同じ上の行（「< 戻る」）を出す。 */}
+      {onBack && (
+        <div className="phone-top">
+          <button type="button" className="phone-back" onClick={onBack}><ChevronLeft size={20} />{translate("editor.back")}</button>
+        </div>
+      )}
     <div className="document-scroll">
       <div className="reminders-view">
         <div className="reminders-header">
-          {onBack && <button type="button" className="icon-button" aria-label={translate("editor.back")} onClick={onBack}><ArrowLeft size={18} /></button>}
           <h1>{translate("due.title")}</h1>
           {groups.done.length > 0 && (
             <label className="checkbox-line">
@@ -57,6 +63,7 @@ export function RemindersView({ summaries, repository, onOpenNote, onBack }: Rem
         ))}
       </div>
     </div>
+    </>
   );
 }
 

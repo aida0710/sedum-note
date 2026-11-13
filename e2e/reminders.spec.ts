@@ -82,7 +82,9 @@ test("スマホの画面では、「ノートブック」のタブから期限�
   // メモから戻ると、期限の一覧に戻る。
   await page.getByRole("button", { name: "戻る" }).click();
   await expect(dueList(page)).toBeVisible();
-  await dueList(page).getByRole("button", { name: "戻る" }).click();
+  // 上の行は、ほかの画面と同じ「< 戻る」で、題は画面の左の余白（16px）から始まる。
+  expect((await dueList(page).getByRole("heading", { name: "期限の一覧" }).boundingBox())!.x).toBe(16);
+  await page.locator(".phone-back", { hasText: "戻る" }).click();
   await expect(page.getByRole("button", { name: /期限の一覧/ })).toBeVisible();
 });
 
