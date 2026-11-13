@@ -649,6 +649,39 @@ test("ブロックにマウスを乗せると出る持ち手をドラッグす�
   await expect(paragraphs).toHaveText(["3 つ目", "1 つ目", "2 つ目"]);
 });
 
+test("「- 」「1. 」などで書式に変わった直後の Backspace は、書式をやめて打った文字に戻す。そのあとは打ち続けても変わらない", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "変換のメモ");
+  const body = page.locator(".ProseMirror");
+  for (const [typed, convertedSelector] of [["- ", "ul > li"], ["1. ", "ol > li"], ["[ ] ", "ul[data-type=taskList] > li"], ["> ", "blockquote"], ["## ", "h2"]] as const) {
+    await page.keyboard.type(typed);
+    await expect(body.locator(convertedSelector)).toHaveCount(1);
+    await page.keyboard.press("Backspace");
+    await expect(body.locator(convertedSelector)).toHaveCount(0);
+    await page.keyboard.type("続き");
+    await expect(body.locator("p").first()).toHaveText(`${typed}続き`);
+    await expect(body.locator(convertedSelector)).toHaveCount(0);
+    await page.keyboard.press("Control+a");
+    await page.keyboard.press("Backspace");
+  }
+
+  // 本文の途中の行でも戻せる。戻すのは変換の直後だけで、何か打ったあとの Backspace は 1 文字消すだけ。
+  await page.keyboard.type("前の行");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("後ろの行");
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.type("1. ");
+  await page.keyboard.press("Backspace");
+  await expect(body.locator("p")).toHaveText(["前の行", "1. ", "後ろの行"]);
+  await page.keyboard.press("Backspace");
+  await page.keyboard.press("Backspace");
+  await page.keyboard.press("Backspace");
+  await page.keyboard.type("- 項目");
+  await page.keyboard.press("Backspace");
+  await expect(body.locator("ul > li")).toHaveText(["項"]);
+});
+
 test("グラフ表示は、メモを点、メモ同士のリンクを線にして出し、点を押すとそのメモを開く", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "リンク先");

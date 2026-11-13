@@ -31,6 +31,7 @@ import { OutlineMode } from "./outlineMode";
 import { Highlight } from "./highlightMark";
 import { DateTimeShortcuts } from "./insertDateTime";
 import { BlockDragHandle } from "./blockDragHandle";
+import { MarkdownShortcutUndo } from "./markdownShortcutUndo";
 import { BlockEmbed } from "./blockEmbedNode";
 import { BlockIds } from "./blockIds";
 import { ColoredTableCell, ColoredTableHeader } from "./tableCellBackground";
@@ -98,6 +99,7 @@ export function createEditorExtensions({ body, slashMenuController, isOutline }:
     ...documentExtensions({ keepsTrailingParagraph: !isOutline }),
     ...(isOutline ? [OutlineMode] : []),
     SlashCommands.configure({ controller: slashMenuController }),
+    MarkdownShortcutUndo,
     DueMarks,
     TableShortcuts,
     TableRowFilterExtension,
