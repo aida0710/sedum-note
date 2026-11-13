@@ -4,7 +4,7 @@
 
 import type { Editor, JSONContent } from "@tiptap/core";
 import { documentBlocksToMarkdown, type BodyExportContext, type MarkdownImportContext, markdownToBodyBlocks } from "../markdown/markdownDocument";
-import { alignBlocks, type BlockHunk } from "./blockDiff";
+import { alignBlocks, type BlockHunk } from "../noteTools/blockDiff";
 
 // 案を作ったあとで本文が変わっていて、案のとおりには入れ替えられない。
 export class StaleNoteEditError extends Error {

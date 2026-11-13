@@ -1,17 +1,22 @@
 // メモとノートブックを変えるツール（作る、題やノートブックを変える、本文に足す・差し替える、ゴミ箱、ノートブックの作成・名前の変更・削除、
-// 完全な削除）。本文を差し替える前には、履歴に今の状態を残す（メモの「…」の履歴から戻せる）。
+// 完全な削除）。本文の差し替えは、変わったブロックだけを入れ替え（noteBodyChange.ts）、その前に履歴に今の状態を残す
+// （メモの「…」の履歴から戻せる）。
 
 import type { NoteChanges } from "../../core/notes/noteRepository";
 import { appendMarkdownToBody } from "../markdown/appendMarkdown";
 import { ATTACHMENT_HREF_PREFIX, writeMarkdownToBody } from "../markdown/markdownDocument";
+import { applyBodyChange, createBodyChangeProposal, isBodyChangeCurrent } from "./noteBodyChange";
 import { ALWAYS_CURRENT, type NoteTool, NoteToolError } from "./noteTool";
 import type { NoteToolContext } from "./noteToolContext";
 import { ID_SCHEMA, NOTE_ID_PROPERTY, objectSchema, optionalBoolean, optionalString, requiredString } from "./toolArguments";
 
 const yesNo = (value: boolean): string => (value ? "yes" : "no");
 
+// 差し替えの案を作ったあとで本文が変わったときの知らせ。AI は読み直して、もう一度呼べる。
+const STALE_BODY_MESSAGE = "the note changed after this call was prepared; read it again with get_note and retry";
+
 export function noteChangeTools(context: NoteToolContext): NoteTool[] {
-  const { repository, noteOf, notebookOf, existingNotebookIds, notebookName, describeNoteAfterChange, importContext } = context;
+  const { repository, noteOf, notebookOf, existingNotebookIds, notebookName, describeNoteAfterChange, exportContext, importContext } = context;
   return [
     {
       name: "create_note",
@@ -112,19 +117,33 @@ export function noteChangeTools(context: NoteToolContext): NoteTool[] {
     {
       name: "replace_note_body",
       title: "Replace a note's body",
-      description: `Replaces the whole body with the given Markdown. The previous body is kept in the note's history on this device. Attachments stay only if their ${ATTACHMENT_HREF_PREFIX}<id> links are kept. A " ^id" mark at the end of a line is the ID that links from other notes point to; keep it on its block, or those links lose their target.`,
+      description: `Replaces the whole body with the given Markdown, as returned by get_note with your changes made. Only the blocks that differ are rewritten, so unchanged blocks keep formatting that Markdown cannot show (text colors, merged table cells). The previous body is kept in the note's history on this device. Attachments stay only if their ${ATTACHMENT_HREF_PREFIX}<id> links are kept. A " ^id" mark at the end of a line is the ID that links from other notes point to; keep it on its block, or those links lose their target.`,
       category: "edit",
       destructiveHint: true,
       inputSchema: objectSchema({ ...NOTE_ID_PROPERTY, markdown: { type: "string" } }, ["noteId", "markdown"]),
       prepare: async (toolArguments) => {
         const note = noteOf(toolArguments);
         const markdown = requiredString(toolArguments, "markdown");
+        const bodyChange = await createBodyChangeProposal({ body: note.body, markdown, exportContext, importContext });
+        const isCurrent = () => repository.note(note.id)?.body === note.body && isBodyChangeCurrent(note.body, bodyChange, exportContext);
+        const ensureCurrent = () => {
+          if (!isCurrent()) {
+            throw new NoteToolError(STALE_BODY_MESSAGE);
+          }
+        };
         return {
           preview: { kind: "replaceNoteBody", noteId: note.id, title: note.content.title },
-          isCurrent: ALWAYS_CURRENT,
+          bodyChange,
+          isCurrent,
           run: async () => {
+            if (bodyChange.hunks.length === 0) {
+              return describeNoteAfterChange(note);
+            }
+            // 履歴に残すのを待つ間に、本文が変わることがある（エディタで書いている、ほかのデバイスから届く）。前と後で確かめる。
+            ensureCurrent();
             await repository.captureVersionBeforeReplace(note.id);
-            await writeMarkdownToBody(markdown, note.body, importContext);
+            ensureCurrent();
+            applyBodyChange(note.body, bodyChange, exportContext);
             await repository.flush();
             return describeNoteAfterChange(note);
           },

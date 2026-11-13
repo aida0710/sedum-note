@@ -5,6 +5,8 @@
 // MCP は prepare のあとすぐ run する。チャットは、設定の許可（ai/aiToolPermissions.ts）に従って、
 // 聞いてから run するか、聞かずに run するか、run せずに断る。
 
+import type { BodyChangeProposal } from "./noteBodyChange";
+
 // ツールの種類。チャットの許可は、この種類ごとに設定で選ぶ（読む・作る/直す・ゴミ箱とノートブックの削除・完全な削除）。
 export type NoteToolCategory = "read" | "edit" | "trash" | "permanentDelete";
 
@@ -35,6 +37,8 @@ export type NoteToolPreview =
 
 export type PreparedNoteToolCall = {
   preview: NoteToolPreview;
+  // 本文の差分の案（replace_note_body だけ）。承認のカードで、変わるブロックの前と後を見せるのに使う。会話には残さない。
+  bodyChange?: BodyChangeProposal;
   // 準備したあとで、対象が変わっていないか。変わっていたら run しない（本文の差分の案など、準備のときの中身に頼る呼び出し）。
   isCurrent: () => boolean;
   // 実際に行い、呼び出し側へ返す結果（JSON にできる値）を返す。

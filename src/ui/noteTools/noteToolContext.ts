@@ -1,4 +1,4 @@
-// ツールが共通に使う、リポジトリの上の部品（メモ・ノートブックを ID で引く、メモを結果の形にする、本文を Markdown で読む）。
+// ツールが共通に使う、リポジトリの上の部品（メモ・ノートブックを ID で引く、メモを結果の形にする、本文と Markdown の読み書きの文脈）。
 
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
@@ -8,6 +8,7 @@ import { NoteToolError, type ToolArguments } from "./noteTool";
 import { optionalStringList, requiredString } from "./toolArguments";
 
 export function createNoteToolContext(repository: NoteRepository) {
+  const exportContext = markdownExportContextOf(repository);
   const noteOf = (toolArguments: ToolArguments): LiveNote => {
     const note = repository.note(requiredString(toolArguments, "noteId"));
     if (!note) {
@@ -54,7 +55,8 @@ export function createNoteToolContext(repository: NoteRepository) {
     notebookName,
     describeNote,
     describeNoteAfterChange,
-    markdownOf: (note: LiveNote) => bodyToMarkdown(note.body, markdownExportContextOf(repository)),
+    markdownOf: (note: LiveNote) => bodyToMarkdown(note.body, exportContext),
+    exportContext,
     importContext: markdownImportContextOf(repository),
   };
 }

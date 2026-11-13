@@ -126,13 +126,32 @@ describe("MCP で本文を読んで書き戻したときに残るもの", () => 
     note.body.insert(note.body.length, staged.toArray().map((node) => node.clone() as Y.XmlElement));
 
     const before = (await run("get_note", { noteId: note.id })).markdown;
+    // 何も変えずに書き戻しても、本文も履歴も変わらない。
     await run("replace_note_body", { noteId: note.id, markdown: before });
+    expect(await repository.noteVersions(note.id)).toEqual([]);
+    await run("replace_note_body", { noteId: note.id, markdown: `${before}\n足した段落\n` });
     const body = repository.note(note.id)!.body.toString();
-    for (const kept of ["<bold>太字</bold>", "<italic>斜体</italic>", "<strike>取り消し</strike>", "<code>コード</code>", "<underline>下線</underline>", "<attachmentfile"]) {
+    for (const kept of ["<bold>太字</bold>", "<italic>斜体</italic>", "<strike>取り消し</strike>", "<code>コード</code>", "<underline>下線</underline>", "<attachmentfile", "足した段落"]) {
       expect(body).toContain(kept);
     }
     expect((await run("get_note", { noteId: note.id })).attachments).toEqual([report]);
     // 書き換える前の本文は履歴にある。
     expect((await repository.noteVersions(note.id)).map((version) => version.reason)).toEqual(["replace"]);
+  });
+
+  it("本文の差し替えは、直していないブロックの文字色を残す", async () => {
+    const { repository, run } = await toolsOver();
+    const note = await repository.createNote({ title: "色のメモ" });
+    const staged = new Y.Doc().getXmlFragment("staged");
+    prosemirrorJSONToYXmlFragment(documentSchema(), { type: "doc", content: [
+      { type: "paragraph", content: [{ type: "text", text: "赤い文字", marks: [{ type: "textColor", attrs: { color: "red" } }] }] },
+      { type: "paragraph", content: [{ type: "text", text: "直す文字" }] },
+    ] }, staged);
+    note.body.insert(0, staged.toArray().map((node) => node.clone() as Y.XmlElement));
+    await run("replace_note_body", { noteId: note.id, markdown: "赤い文字\n\n直した文字\n" });
+    const body = repository.note(note.id)!.body.toString();
+    expect(body).toContain("<textColor color=\"red\">赤い文字</textColor>");
+    expect(body).toContain("直した文字");
+    expect(body).not.toContain("直す文字");
   });
 });

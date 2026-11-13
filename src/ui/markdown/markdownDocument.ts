@@ -123,6 +123,15 @@ export function documentBlocksToMarkdown(document: JSONContent, context: BodyExp
   return (exported.content ?? []).map((block) => exportDocumentToMarkdown({ type: "doc", content: [block] }));
 }
 
+// 文書の一番上のブロックごとの Markdown。書き出すものが無いブロック（先のメモが消えた埋め込みなど）は null にして、
+// 並びの位置を本文のブロックとそろえたままにする（本文の差分で、どのブロックを入れ替えるかを位置で決めるため）。
+export function documentBlockMarkdowns(document: JSONContent, context: BodyExportContext): Array<string | null> {
+  return (document.content ?? []).map((block) => {
+    const exported = documentToExportDocument({ type: "doc", content: [block] }, context);
+    return (exported.content ?? []).length === 0 ? null : exportDocumentToMarkdown(exported);
+  });
+}
+
 function exportDocumentToMarkdown(exported: JSONContent): string {
   // 脚注は、印に出てくる順の番号を付け、文を末尾に並べる。
   const { document, texts: footnoteTexts } = withFootnoteNumbers(exported);

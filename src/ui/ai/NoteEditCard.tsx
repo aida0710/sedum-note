@@ -2,7 +2,7 @@
 
 import { PencilLine } from "lucide-react";
 import { translate } from "../i18n/translate";
-import type { BlockHunk } from "./blockDiff";
+import type { BlockHunk } from "../noteTools/blockDiff";
 import type { AiNoteEdit } from "./aiConversation";
 import type { NoteEditProposal } from "./noteEditProposal";
 
