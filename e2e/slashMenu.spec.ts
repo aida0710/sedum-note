@@ -11,10 +11,12 @@ const slashMenu = (page: Page) => page.getByRole("listbox", { name: "ブロッ�
 test("「/」を打つとブロックの候補が出て、上下のキーと Enter で選べる", async ({ page }) => {
   await openNewNote(page);
   await page.keyboard.type("/");
+  // 録音は、録音できるブラウザでだけ候補に出る。
+  const canRecord = await page.evaluate(() => typeof MediaRecorder !== "undefined" && typeof navigator.mediaDevices?.getUserMedia === "function");
   await expect(slashMenu(page).getByRole("option")).toHaveText([
     "本文", "見出し 1", "見出し 2", "見出し 3", "見出し 4", "見出し 5", "見出し 6", "箇条書き", "番号付きリスト", "チェックリスト", "引用",
     "コールアウト: 情報", "コールアウト: ヒント", "コールアウト: 注意", "コールアウト: 警告", "コード", "表", "区切り線",
-    "画像を貼る", "ファイルを添付", "書類のスキャン", "期限（チェックリストの項目に付ける）", "今日の日付", "今の日時", "2 段組み", "3 段組み", "埋め込み（動画・Web ページ）", "脚注", "数式", "図（Mermaid）", "手書き・図形", "クエリ（条件に合うメモの一覧）", "メモへのリンク", "ブロックへのリンク", "ブロックの埋め込み（ほかのメモの一部を出す）",
+    "画像を貼る", "ファイルを添付", ...(canRecord ? ["録音する"] : []), "書類のスキャン", "期限（チェックリストの項目に付ける）", "今日の日付", "今の日時", "2 段組み", "3 段組み", "埋め込み（動画・Web ページ）", "脚注", "数式", "図（Mermaid）", "手書き・図形", "クエリ（条件に合うメモの一覧）", "メモへのリンク", "ブロックへのリンク", "ブロックの埋め込み（ほかのメモの一部を出す）",
   ]);
   await page.keyboard.press("ArrowDown");
   await expect(slashMenu(page).getByRole("option", { name: "見出し 1" })).toHaveAttribute("aria-selected", "true");
@@ -67,7 +69,8 @@ test("Escape で候補を閉じると「/」はそのまま残り、コードの
   await expect(slashMenu(page)).toHaveCount(0);
 
   await page.keyboard.press("Enter");
-  await page.getByRole("button", { name: "コード", exact: true }).click();
+  await page.keyboard.type("/コード");
+  await page.keyboard.press("Enter");
   await page.keyboard.type("a / b");
   await expect(slashMenu(page)).toHaveCount(0);
   await expect(page.locator(".ProseMirror pre")).toHaveText("a / b");

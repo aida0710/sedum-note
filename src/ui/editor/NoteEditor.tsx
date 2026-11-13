@@ -30,6 +30,8 @@ import { useAsyncAction } from "../shared/useAsyncAction";
 import { formatDateTime } from "../shared/formatTime";
 import { assignNotebookColors, NotebookMark } from "../shared/notebookAppearance";
 import { EditorToolbar } from "./EditorToolbar";
+import { NoteTopBar } from "./NoteTopBar";
+import { SelectionToolbar } from "./SelectionToolbar";
 import { FindBar, type FindRequest } from "./FindBar";
 import { createEditorExtensions } from "./editorExtensions";
 import { NoteActionsMenu } from "./NoteActionsMenu";
@@ -275,7 +277,10 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   const templates = repository.notes()
     .filter((candidate) => candidate.content.isTemplate && candidate.content.trashedAt === null && candidate.id !== noteId)
     .map((template) => ({ id: template.id, title: template.content.title }));
-  slashMenuController.actions = { pickImage, pickFile, pickNoteLink, pickBlockLink, pickBlockEmbed, scanDocument: () => scanInput.current?.click(), pickTaskDue: () => setDueTarget("task"), templates, insertTemplate };
+  slashMenuController.actions = {
+    pickImage, pickFile, pickNoteLink, pickBlockLink, pickBlockEmbed, scanDocument: () => scanInput.current?.click(), pickTaskDue: () => setDueTarget("task"), templates, insertTemplate,
+    startRecording: isAudioRecordingAvailable() && !audioRecorder.recording ? audioRecorder.toggle : undefined,
+  };
 
   // 項目か見出しにズームしている間は、その部分だけを出す（題・タグ・ツールバーなどを隠し、PC では画面いっぱいに広げる）。
   // 戻るのは左上のボタンから。
@@ -287,7 +292,10 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   }
   return (
     <div className={`note-editor${isZoomed && !isMobile ? " zoomed-view" : ""}`}>
-      {!isMobile && !isZoomed && <EditorToolbar editor={editor} {...toolbarActions} trailing={trailing} />}
+      {!isMobile && !isZoomed && (
+        <NoteTopBar editor={editor} recording={audioRecorder.recording} onStopRecording={toolbarActions.onToggleRecording} trailing={trailing} />
+      )}
+      {!isMobile && <SelectionToolbar editor={editor} onAskLink={askLink} />}
       {!isMobile && isZoomed && (
         <div className="zoomed-view-top"><ZoomBackButton editor={editor} noteTitle={note.content.title} className="zoom-back" /></div>
       )}

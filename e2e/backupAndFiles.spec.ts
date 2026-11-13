@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
 import { PAGE_ORIGIN } from "./devServer";
-import { openSettingsPage } from "./devices";
+import { insertFromSlashMenu, openSettingsPage } from "./devices";
 
 const PASSPHRASE = "correct horse battery";
 
@@ -229,13 +229,15 @@ test("録音のボタンで録り始め、止めると音声が添付される�
   await page.getByPlaceholder("タイトル").fill("録音のメモ");
   await page.getByPlaceholder("タイトル").press("Enter");
 
-  await page.getByRole("button", { name: "録音する" }).click();
-  await expect(page.getByRole("button", { name: "録音を止めて添付する" })).toHaveAttribute("aria-pressed", "true");
+  // PC では「/」から録音を始め、録音している間だけ上のバーに出る「録音を止めて添付する」で止める。
+  await insertFromSlashMenu(page, "録音", "録音する");
+  const stopButton = page.getByRole("button", { name: "録音を止めて添付する" });
+  await expect(stopButton).toBeVisible();
   await page.waitForTimeout(600);
-  await page.getByRole("button", { name: "録音を止めて添付する" }).click();
+  await stopButton.click();
   const attachment = page.locator(".attachment-file");
   await expect(attachment).toContainText(/録音 \d{4}-\d{2}-\d{2} \d{2}\.\d{2}\.webm/);
-  await expect(page.getByRole("button", { name: "録音する" })).toHaveAttribute("aria-pressed", "false");
+  await expect(stopButton).toHaveCount(0);
 
   await attachment.getByRole("button", { name: /を再生$/ }).click();
   await expect(attachment.locator("audio")).toHaveAttribute("src", /^blob:/);

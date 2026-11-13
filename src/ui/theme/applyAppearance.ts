@@ -6,8 +6,8 @@ import type { EditorFontSize } from "../preferences/devicePreferences";
 import { readableTextColorOn } from "./colorContrast";
 import { THEME_COLOR_NAMES, type Theme, type ThemeColorName, type ThemeColors } from "./themeColors";
 
-// 本文の文字の大きさ（px）。medium は案C の試作の大きさ。
-const EDITOR_FONT_SIZE_PIXELS: Record<EditorFontSize, number> = { small: 13, medium: 14.5, large: 16.5 };
+// 本文の文字の大きさ（px）。medium は書く画面の案 B（2026-11-13）の大きさで、案C の試作の 14.5px から上げた。
+const EDITOR_FONT_SIZE_PIXELS: Record<EditorFontSize, number> = { small: 14, medium: 16, large: 18 };
 
 // accentSoft → --accent-soft
 function cssVariableName(colorName: ThemeColorName): string {

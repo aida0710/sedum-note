@@ -340,8 +340,15 @@ button:disabled { cursor: default; opacity: .55; }
 .tool:hover { background: var(--selected); }
 .tool.on { background: var(--selected); color: var(--accent); }
 .tool-separator { width: 1px; height: 18px; background: var(--line); margin: 0 4px; flex: none; }
-/* 幅が足りないと、書式のボタンは横に送る。右端のボタン（目次・お気に入り・「…」）は、送っても右に出したままにする。 */
+/* 右端のボタン（目次・お気に入り・「…」）。左に出るもの（表のメニュー、録音を止めるボタン）で幅が足りなくなっても、右に出したままにする。 */
 .editor-bar .bar-end { margin-left: auto; display: flex; gap: 6px; align-items: center; font-size: var(--font-size-small); flex: none; position: sticky; right: -14px; padding: 0 14px 0 8px; margin-right: -14px; background: var(--panel); box-shadow: -10px 0 8px -4px var(--panel); }
+/* PC のメモの上のバー（editor/NoteTopBar.tsx）。ふだんは右端のボタンだけで、下の線も引かない。表の中では表のメニュー、録音中は止めるボタンが左に出る。 */
+.note-top-bar { border-bottom-color: transparent; padding: 10px 18px; }
+.recording-stop { display: inline-flex; align-items: center; gap: 6px; height: var(--control-height-compact); padding: 0 12px; border-radius: 999px; background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); font-size: var(--font-size-small); font-weight: 600; }
+.recording-stop:hover { background: color-mix(in srgb, var(--danger) 20%, transparent); }
+/* PC で文字を選んだときに、選んだ所の上に出す書式のボタン（editor/SelectionToolbar.tsx）。メニューと同じ面の形にする。 */
+.selection-toolbar { display: flex; align-items: center; gap: 2px; padding: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: 0 8px 24px var(--shadow); z-index: 6; }
+.selection-toolbar .tool-separator { height: 20px; margin: 0 2px; }
 .icon-button { width: var(--control-height-compact); height: var(--control-height-compact); border-radius: var(--radius-row); display: grid; place-items: center; color: var(--muted); flex: none; }
 .icon-button:hover { background: var(--selected); color: var(--text); }
 .icon-button.on { color: var(--bookmark); }
@@ -356,11 +363,13 @@ button:disabled { cursor: default; opacity: .55; }
 .icon-button.active { background: var(--selected); color: var(--accent); }
 /* 左右の余白は、見出しの左に並ぶ持ち手・ズームのボタン・折りたたみの印（左へ 68px まで）が、左寄せのときも切れない幅にする。
    文字の列の幅は 648px（792 − 72 × 2）。 */
-.document { padding: 28px 72px 80px; max-width: 792px; width: 100%; margin: 0 auto; }
+.document { padding: 48px 72px 80px; max-width: 792px; width: 100%; margin: 0 auto; }
 /* 本文の列の置き場所（メモごとか、表示の設定の既定）。中央は、上の margin のまま。 */
 .document.align-left { margin-left: 0; }
 .document.align-right { margin-right: 0; }
-.document-meta { color: var(--muted); font-size: var(--font-size-small); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; min-height: 22px; }
+.document-meta { color: var(--muted); font-size: var(--font-size-small); display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 6px; min-height: 22px; }
+/* 題の上のノートブック・タグ・期限は、地の色を付けず、小さい文字だけにする（本文より前に出さない）。 */
+.document-meta .chip { background: none; padding: 0 8px 0 0; color: var(--muted); }
 .document-meta .character-count { margin-left: auto; }
 .document-meta .updated { margin-left: 12px; }
 .chip { background: var(--tag); border-radius: 999px; padding: 2px 9px; font-size: var(--font-size-small); color: var(--text); display: inline-flex; align-items: center; gap: 5px; }
@@ -415,7 +424,7 @@ button:disabled { cursor: default; opacity: .55; }
 
 .unsynced-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 6px; vertical-align: middle; flex: none; }
 .chip.unsynced { background: var(--accent-soft); color: var(--accent); }
-.title-input { font-size: 26px; font-weight: 700; border: 0; outline: 0; width: 100%; background: none; margin-bottom: 14px; padding: 0; }
+.title-input { font-size: 30px; line-height: 1.4; letter-spacing: .02em; font-weight: 700; border: 0; outline: 0; width: 100%; background: none; margin-bottom: 20px; padding: 0; }
 .title-input::placeholder { color: var(--muted); opacity: .6; }
 .trash-banner { background: var(--tag); border-radius: var(--radius-control); padding: 8px 12px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; color: var(--muted); }
 .trash-banner .actions { margin-left: auto; display: flex; gap: 6px; }
@@ -426,12 +435,15 @@ button:disabled { cursor: default; opacity: .55; }
 .empty-state { margin: auto; color: var(--muted); text-align: center; padding: 40px; }
 
 /* Tiptap の本文 */
-.ProseMirror { outline: 0; font-size: var(--editor-font-size); line-height: 1.8; min-height: 240px; }
+/* 本文の文字。日本語の長い文を読みやすいよう、行の間と字の間を少し広げる（書く画面の案 B、2026-11-13）。 */
+.ProseMirror { outline: 0; font-size: var(--editor-font-size); line-height: 1.85; letter-spacing: .02em; min-height: 240px; }
+/* 段落と段落の間を少しあける（1 行ずつ書いたメモが詰まって見えないように）。 */
+.ProseMirror > p + p { margin-top: .3em; }
 .ProseMirror p.is-editor-empty:first-child::before, .ProseMirror p.empty-column::before { content: attr(data-placeholder); color: var(--muted); opacity: .6; float: left; height: 0; pointer-events: none; }
-/* 見出しは本文の文字の大きさに比例させる（本文 14.5px のとき 22・17・15px）。 */
-.ProseMirror h1 { font-size: 1.52em; margin: 20px 0 6px; }
-.ProseMirror h2 { font-size: 1.17em; margin: 18px 0 6px; }
-.ProseMirror h3 { font-size: 1.03em; margin: 14px 0 4px; }
+/* 見出しは本文の文字の大きさに比例させる（本文 16px のとき 25.6・20.8・17.9px）。上の余白を広くとって、まとまりの切れ目を見せる。 */
+.ProseMirror h1 { font-size: 1.6em; margin: 1.5em 0 .4em; letter-spacing: .02em; }
+.ProseMirror h2 { font-size: 1.3em; margin: 1.4em 0 .35em; letter-spacing: .02em; }
+.ProseMirror h3 { font-size: 1.12em; margin: 1.2em 0 .3em; }
 .ProseMirror li, .ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { position: relative; }
 /* 印の高さを 1 行ぶん（文字の行の高さ）にして、その中央に置く。こうすると、行の文字と縦の中心がそろう。lh を知らないブラウザでは、本文の行の高さに近い 1.7em にする。 */
 .ProseMirror .fold-toggle { position: absolute; left: -34px; top: 0; width: 16px; height: 1.7em; height: 1lh; display: grid; place-items: center; color: var(--muted); opacity: 0; }
@@ -467,8 +479,10 @@ button:disabled { cursor: default; opacity: .55; }
 /* 見出しの左の、セクションにズームするボタン。折りたたみの印のさらに左に置き、ポインターを乗せた見出しにだけ出す。
    縦は、見出しの 1 行目の高さの中央にそろえる。 */
 .ProseMirror .section-zoom { position: absolute; left: -44px; top: calc((1lh - 20px) / 2); width: 20px; height: 20px; display: grid; place-items: center; border-radius: var(--radius-row); color: var(--muted); opacity: 0; }
-/* スマホは左の余白（18px）に折りたたみの印しか入らないので、右の余白に置き、乗せられない代わりに薄く出したままにする。 */
-.phone .ProseMirror .section-zoom { left: auto; right: -18px; width: 18px; }
+/* スマホは左の余白（18px）に折りたたみの印しか入らないので、見出しの右端に置き（その分、見出しの文字は右を空ける）、
+   乗せられない代わりに薄く出したままにする。 */
+.phone .ProseMirror .section-zoom { left: auto; right: 0; width: 18px; }
+.phone .ProseMirror :is(h1, h2, h3, h4, h5, h6) { padding-right: 22px; }
 .ProseMirror :is(h1, h2, h3, h4, h5, h6):hover > .section-zoom, .ProseMirror .section-zoom:focus-visible { opacity: 1; }
 .ProseMirror .section-zoom:hover { background: var(--selected); color: var(--accent); }
 @media (hover: none) { .ProseMirror .section-zoom { opacity: .45; } }
@@ -478,11 +492,14 @@ button:disabled { cursor: default; opacity: .55; }
 .ProseMirror h5 { color: var(--muted); }
 .ProseMirror h6 { color: var(--muted); font-weight: 600; }
 .ProseMirror ul, .ProseMirror ol { padding-left: 22px; }
+.ProseMirror li { margin: .1em 0; }
+/* 行頭の印（・や番号）は、文字より薄くする。 */
+.ProseMirror li::marker { color: var(--muted); }
 .ProseMirror ul[data-type="taskList"] { list-style: none; padding-left: 0; }
 .ProseMirror ul[data-type="taskList"] li { display: flex; gap: 8px; align-items: flex-start; }
 /* チェックボックスを、1 行ぶんの高さの中央に置く（行の文字と縦の中心をそろえる）。lh を知らないブラウザでは、本文の行の高さに近い 1.7em にする。 */
 .ProseMirror ul[data-type="taskList"] li > label { flex: none; display: flex; align-items: center; height: 1.7em; height: 1lh; }
-.ProseMirror ul[data-type="taskList"] li > label input { width: 15px; height: 15px; accent-color: var(--accent); }
+.ProseMirror ul[data-type="taskList"] li > label input { width: 16px; height: 16px; accent-color: var(--accent); }
 .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div { color: var(--muted); text-decoration: line-through; }
 .ProseMirror ul[data-type="taskList"] li > div { flex: 1; }
 .ProseMirror .callout { border-left: 3px solid var(--callout-color); background: color-mix(in srgb, var(--callout-color) 12%, transparent); border-radius: var(--radius-control); padding: 6px 12px; margin: 10px 0; }
@@ -490,8 +507,8 @@ button:disabled { cursor: default; opacity: .55; }
 .ProseMirror .callout[data-callout="tip"] { --callout-color: #2da44e; }
 .ProseMirror .callout[data-callout="warning"] { --callout-color: #d4a017; }
 .ProseMirror .callout[data-callout="danger"] { --callout-color: #d1242f; }
-.ProseMirror blockquote { border-left: 3px solid var(--line); padding-left: 12px; color: var(--muted); }
-.ProseMirror code { font-family: var(--font-mono); background: var(--tag); border-radius: var(--radius-inline); padding: 1px 5px; font-size: .9em; }
+.ProseMirror blockquote { border-left: 3px solid var(--line); padding: 2px 0 2px 16px; margin: .6em 0; color: var(--muted); }
+.ProseMirror code { font-family: var(--font-mono); background: var(--tag); border-radius: var(--radius-inline); padding: 2px 6px; font-size: .86em; }
 .ProseMirror pre { font-family: var(--font-mono); background: var(--tag); border-radius: var(--radius-control); padding: 10px 14px; overflow-x: auto; }
 .ProseMirror pre code { background: none; padding: 0; }
 .ProseMirror a { color: var(--accent); }
@@ -803,6 +820,8 @@ details summary { cursor: pointer; color: var(--accent); }
 .tabbar button { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .tabbar .on { color: var(--accent); font-weight: 600; }
 .phone .document { padding: 4px 18px 40px; }
+/* スマホは幅が狭いので、題を PC（30px）より小さくする。 */
+.phone .title-input { font-size: 26px; }
 .phone .editor-bar { order: 2; border-bottom: 0; border-top: 1px solid var(--line); justify-content: space-between; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
 .phone .settings { padding: 8px 16px 40px; }
 @media (max-width: 760px) {
@@ -824,7 +843,7 @@ details summary { cursor: pointer; color: var(--accent); }
   .workspace, .phone, .main, .document-area { display: block; height: auto; overflow: visible; }
   .document-scroll { overflow: visible; }
   .document { max-width: none; padding: 0; }
-  .section-zoom, .sidebar, .tabs-bar, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
+  .section-zoom, .selection-toolbar, .sidebar, .tabs-bar, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
   .document-meta .unsynced, .update-chip { display: none !important; }
   .search-match, .search-match.active { background: none; color: inherit; }
   .ProseMirror p.empty-column::before { content: none; }

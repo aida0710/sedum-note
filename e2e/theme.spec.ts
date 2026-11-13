@@ -54,7 +54,7 @@ test("本文の文字の大きさを変えると、エディタの文字が大�
   await openSettingsPage(page, "一般");
   await page.getByLabel("本文の文字の大きさ").selectOption("large");
   await page.getByRole("button", { name: "新しいメモ" }).click();
-  await expect(page.locator(".ProseMirror")).toHaveCSS("font-size", "16.5px");
+  await expect(page.locator(".ProseMirror")).toHaveCSS("font-size", "18px");
 });
 
 test("カスタム CSS は、ロックを解除している間だけ当たり、ロック解除の画面でオフにできる", async ({ page }) => {

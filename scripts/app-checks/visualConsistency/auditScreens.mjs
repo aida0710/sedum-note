@@ -126,6 +126,23 @@ async function placeCursorAtEnd(page) {
   });
 }
 
+// 本文の最初の段落の文字を全部選ぶ。PC では、選んだ所の上に書式のボタン（.selection-toolbar）が出る。
+async function selectFirstParagraph(page) {
+  await page.locator(".ProseMirror").evaluate((element) => {
+    const { editor } = element;
+    let range = null;
+    editor.state.doc.descendants((node, position) => {
+      if (range === null && node.type.name === "paragraph" && node.textContent.length > 0) {
+        range = { from: position + 1, to: position + 1 + node.content.size };
+      }
+      return range === null;
+    });
+    editor.commands.setTextSelection(range);
+    editor.view.focus();
+  });
+  await page.locator(".selection-toolbar").waitFor({ state: "visible" });
+}
+
 async function openSlashMenu(page, filter = "") {
   await placeCursorAtEnd(page);
   await page.keyboard.press("Enter");
@@ -235,16 +252,20 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       },
     },
     {
-      // 見出しの右のボタンで、見出しのセクションにズームする。上の道筋の「メモ全体」で戻す。
+      // 見出しの左のボタンで、見出しのセクションにズームする。左上の戻るボタンで戻す。
       name: "zoom-section",
       open: async (page) => {
         const heading = page.locator(".ProseMirror h3", { hasText: "見出し 3 の行" });
         await heading.scrollIntoViewIfNeeded();
         await heading.hover();
         await heading.getByRole("button", { name: "このセクションにズーム" }).click();
-        await page.locator(".zoom-bar").waitFor();
+        await page.locator(".zoom-back").waitFor();
       },
-      close: async (page) => { await page.locator(".zoom-bar").getByRole("button").first().click(); },
+      close: async (page) => {
+        while (await page.locator(".zoom-back").count() > 0) {
+          await page.locator(".zoom-back").click();
+        }
+      },
     },
     {
       name: "tab-context-menu",
@@ -261,12 +282,17 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
     },
     { name: "slash-menu", open: (page) => openSlashMenu(page), close: closeSlashMenu },
     {
+      // 文字を選ぶと、その上に書式のボタンが出る（PC）。
+      name: "selection-toolbar",
+      open: (page) => selectFirstParagraph(page),
+    },
+    {
       name: "highlight-menu",
-      open: async (page) => { await page.locator(".editor-bar").getByRole("button", { name: "ハイライト" }).click(); },
+      open: async (page) => { await selectFirstParagraph(page); await page.locator(".selection-toolbar").getByRole("button", { name: "ハイライト" }).click(); },
     },
     {
       name: "text-color-menu",
-      open: async (page) => { await page.locator(".editor-bar").getByRole("button", { name: "文字色" }).click(); },
+      open: async (page) => { await selectFirstParagraph(page); await page.locator(".selection-toolbar").getByRole("button", { name: "文字色" }).click(); },
     },
     {
       name: "table-menu",

@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
-import { createNoteOnDesktop, openSettingsPage, openSyncedDevice, PHONE_VIEWPORT, startLocalVault, syncNowOnDesktop } from "./devices";
+import { createNoteOnDesktop, insertFromSlashMenu, openSettingsPage, openSyncedDevice, PHONE_VIEWPORT, startLocalVault, syncNowOnDesktop } from "./devices";
 
 const newNote = createNoteOnDesktop;
 
@@ -18,7 +18,7 @@ test("2 台で同じ表に行と列を同時に足しても、両方が同じ表
   const remoteConfig = await newTestRemoteConfig();
   const laptop = await openSyncedDevice(browser, { remoteConfig, join: false });
   await newNote(laptop, "表のメモ");
-  await chooseTableAction(laptop, "表を挿入");
+  await insertFromSlashMenu(laptop, "表", "表");
   await laptop.keyboard.type("品目");
   await syncNowOnDesktop(laptop, "表のメモ");
 
@@ -78,7 +78,7 @@ test("スマホの幅では、広い表と長いコードの行が画面をは�
 test("コードのブロックは、言語を書かなくても色が付く", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "関数の例");
-  await page.getByRole("button", { name: "コード", exact: true }).click();
+  await insertFromSlashMenu(page, "コード", "コード");
   await page.keyboard.type('function greet(name) { return "hello " + name; } // comment');
   await expect(page.locator(".ProseMirror pre .hljs-keyword").first()).toHaveText("function");
   await expect(page.locator(".ProseMirror pre .hljs-string").first()).toContainText("hello");
@@ -89,7 +89,7 @@ test("メモへのリンクは、リンク先の今のタイトルを出し、�
   await newNote(page, "リンク先");
   await page.keyboard.type("こちらが本体");
   await newNote(page, "リンク元");
-  await page.getByRole("button", { name: "メモへのリンク" }).click();
+  await insertFromSlashMenu(page, "メモへのリンク", "メモへのリンク");
   const picker = page.getByRole("dialog", { name: "リンクするメモを選ぶ" });
   // 自分自身は選べない。
   await expect(picker.getByRole("button", { name: "リンク元" })).toHaveCount(0);
@@ -257,7 +257,7 @@ test("スマホで、リンクから別のメモを開いたあとも、端末�
   await createNote("リンク先");
   await page.getByRole("button", { name: "戻る" }).click();
   await createNote("リンク元");
-  await page.getByRole("button", { name: "メモへのリンク" }).click();
+  await insertFromSlashMenu(page, "メモへのリンク", "メモへのリンク");
   await page.getByRole("dialog", { name: "リンクするメモを選ぶ" }).getByRole("button", { name: "リンク先" }).click();
   await page.locator(".ProseMirror .note-link button").click();
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("リンク先");
@@ -429,7 +429,7 @@ test("表の行と列を、上と左にも足せる。表の中のショート�
   await startLocalVault(page);
   await newNote(page, "行と列を足すメモ");
   await page.locator(".ProseMirror").click();
-  await chooseTableAction(page, "表を挿入");
+  await insertFromSlashMenu(page, "表", "表");
   await firstBodyCell(page).click();
   await page.keyboard.type("もと");
 
@@ -452,7 +452,7 @@ test("表のヘッダー行とヘッダー列を切り替えられる", async ({
   await startLocalVault(page);
   await newNote(page, "ヘッダーのメモ");
   await page.locator(".ProseMirror").click();
-  await chooseTableAction(page, "表を挿入");
+  await insertFromSlashMenu(page, "表", "表");
   const headerCells = page.locator(".ProseMirror th");
   await expect(headerCells).toHaveCount(3);
 
@@ -474,7 +474,7 @@ test("表のセルを結合し、分割で元に戻せる", async ({ page }) => 
   await startLocalVault(page);
   await newNote(page, "結合のメモ");
   await page.locator(".ProseMirror").click();
-  await chooseTableAction(page, "表を挿入");
+  await insertFromSlashMenu(page, "表", "表");
   const cells = page.locator(".ProseMirror td");
   await cells.nth(0).click();
   await page.keyboard.type("左");
@@ -499,7 +499,7 @@ test("表の列の揃え方を選ぶと、その列の全部のセルが揃う",
   await startLocalVault(page);
   await newNote(page, "揃えのメモ");
   await page.locator(".ProseMirror").click();
-  await chooseTableAction(page, "表を挿入");
+  await insertFromSlashMenu(page, "表", "表");
   await page.locator(".ProseMirror td").nth(1).click();
   await page.getByRole("button", { name: "表", exact: true }).click();
   await page.getByRole("button", { name: "列を右揃え" }).click();
@@ -513,7 +513,7 @@ test("表の列の境目をドラッグすると、列の幅が変わる", async
   await startLocalVault(page);
   await newNote(page, "列幅のメモ");
   await page.locator(".ProseMirror").click();
-  await chooseTableAction(page, "表を挿入");
+  await insertFromSlashMenu(page, "表", "表");
   const firstHeader = page.locator(".ProseMirror th").first();
   const widthBefore = (await firstHeader.boundingBox())!.width;
   const box = (await firstHeader.boundingBox())!;
@@ -545,7 +545,8 @@ test("選んだ文字にハイライトと文字色を付け、色なしで外�
   await expect(page.locator('.ProseMirror [data-text-color="red"]')).toHaveText("大事な文字");
 
   await page.keyboard.press("End");
-  await chooseTableAction(page, "表を挿入");
+  await page.keyboard.press("Enter");
+  await insertFromSlashMenu(page, "表", "表");
   await firstBodyCell(page).click();
   await page.getByRole("button", { name: "表", exact: true }).click();
   await page.getByRole("button", { name: "青" }).click();
@@ -678,6 +679,38 @@ test("箇条書きの項目を持ち手でドラッグすると、子の項目�
   await expect(page.locator(".ProseMirror li", { has: page.locator("> p", { hasText: /^A$/ }) }).locator("li > p")).toHaveText(["A1"]);
 });
 
+test("PC では、書式のボタンを上に並べず、文字を選んだときだけその上に出す。表のメニューは表の中にいる間だけ上のバーに出る", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "書式のメモ");
+  await page.keyboard.type("大事な文字");
+  const selectionToolbar = page.locator(".selection-toolbar");
+  await expect(page.getByRole("button", { name: "太字" })).toBeHidden();
+  await expect(page.locator(".note-top-bar").getByRole("button", { name: "表", exact: true })).toHaveCount(0);
+
+  // 選んだ文字の上に出る。
+  await page.keyboard.press("Shift+Home");
+  await expect(selectionToolbar).toBeVisible();
+  const toolbarBox = (await selectionToolbar.boundingBox())!;
+  const paragraphBox = (await page.locator(".ProseMirror p").first().boundingBox())!;
+  expect(toolbarBox.y + toolbarBox.height).toBeLessThanOrEqual(paragraphBox.y);
+  await selectionToolbar.getByRole("button", { name: "太字" }).click();
+  await expect(page.locator(".ProseMirror strong")).toHaveText("大事な文字");
+  // 選ぶのをやめると消える。
+  await page.keyboard.press("End");
+  await expect(selectionToolbar).toBeHidden();
+
+  // 表の中にいる間だけ、上のバーに表のメニューが出る。
+  await page.keyboard.press("Enter");
+  await insertFromSlashMenu(page, "表", "表");
+  const tableMenuButton = page.locator(".note-top-bar").getByRole("button", { name: "表", exact: true });
+  await expect(tableMenuButton).toBeVisible();
+  await tableMenuButton.click();
+  await expect(page.getByRole("menuitem", { name: "下に行を追加" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.locator(".ProseMirror p", { hasText: "大事な文字" }).click();
+  await expect(tableMenuButton).toHaveCount(0);
+});
+
 test("持ち手は、本文から左の余白を通って近づいても消えず、1 行目の高さにそろう。見出しでは、ズームのボタンと折りたたみの印の左に出る", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "持ち手のメモ");
@@ -764,7 +797,7 @@ test("グラフ表示は、メモを点、メモ同士のリンクを線にし�
   await newNote(page, "リンク先");
   await newNote(page, "つながりの無いメモ");
   await newNote(page, "リンク元");
-  await page.getByRole("button", { name: "メモへのリンク" }).click();
+  await insertFromSlashMenu(page, "メモへのリンク", "メモへのリンク");
   await page.getByRole("dialog").getByRole("button", { name: "リンク先" }).click();
   await expect(page.locator(".ProseMirror .note-link button")).toHaveText("リンク先");
 

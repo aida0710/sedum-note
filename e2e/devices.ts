@@ -115,3 +115,10 @@ export async function placeCursorAtBodyEnd(page: Page): Promise<void> {
     body.editor.view.focus();
   });
 }
+
+// 本文で「/」の候補から選んで入れる。PC の画面では、写真・表・コードなどの挿入は「/」から使う。
+// query で候補を絞り、option の名前の候補を押す。
+export async function insertFromSlashMenu(page: Page, query: string, option: string): Promise<void> {
+  await page.keyboard.type(`/${query}`);
+  await page.getByRole("listbox", { name: "ブロックの種類" }).getByRole("option", { name: option, exact: true }).click();
+}

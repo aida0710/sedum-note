@@ -1,7 +1,7 @@
 import { type Browser, expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
 import { S3ObjectStore } from "../src/core/remote/s3ObjectStore";
-import { createNoteOnDesktop, DESKTOP_VIEWPORT, openSyncedDevice, startSyncedVault, syncNowOnDesktop } from "./devices";
+import { createNoteOnDesktop, DESKTOP_VIEWPORT, insertFromSlashMenu, openSyncedDevice, startSyncedVault, syncNowOnDesktop } from "./devices";
 
 const PASSPHRASE = "correct horse battery";
 // 画面の確認用の画像を置く場所。artifacts は git に入れない。
@@ -54,7 +54,7 @@ test("PC で書いた写真付きのメモが、スマホの大きさのもう 1
   await laptop.keyboard.press("Enter");
   await laptop.locator('input[type="file"]').first().setInputFiles({ name: "beach.png", mimeType: "image/png", buffer: await photoPng(laptop) });
   await expect(laptop.locator(".attachment-image img")).toBeVisible();
-  await laptop.getByRole("button", { name: "チェックリスト" }).click();
+  await insertFromSlashMenu(laptop, "チェックリスト", "チェックリスト");
   await laptop.keyboard.type("日焼け止め");
   await laptop.keyboard.press("Enter");
   await laptop.keyboard.type("モバイルバッテリー");

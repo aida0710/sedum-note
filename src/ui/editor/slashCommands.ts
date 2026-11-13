@@ -2,7 +2,7 @@
 
 import type { Editor } from "@tiptap/react";
 import {
-  AlarmClock, CalendarClock, CalendarDays, Code, Columns2, FileSymlink, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, ImagePlus, Info, Lightbulb, Link2, ListFilter, MonitorPlay, OctagonAlert, PenTool, ScanLine, Sigma, SquareDashedBottom, Superscript, TriangleAlert, Workflow, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Minus, Paperclip, Pilcrow, Table, TextQuote,
+  AlarmClock, CalendarClock, CalendarDays, Code, Columns2, FileSymlink, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, ImagePlus, Info, Lightbulb, Link2, ListFilter, MonitorPlay, OctagonAlert, PenTool, ScanLine, Sigma, SquareDashedBottom, Superscript, TriangleAlert, Workflow, LayoutTemplate, List, ListChecks, ListOrdered, type LucideIcon, Mic, Minus, Paperclip, Pilcrow, Table, TextQuote,
 } from "lucide-react";
 import { translate } from "../i18n/translate";
 import { HEADING_LEVELS, type HeadingLevel } from "./headingLevels";
@@ -26,6 +26,8 @@ export type SlashCommandActions = {
   scanDocument: () => void;
   // カーソルのある行に付ける期限を選ぶ画面を開く。
   pickTaskDue: () => void;
+  // 録音を始める。録音できない環境と、録音している間は undefined（候補に出さない）。
+  startRecording?: () => void;
   // 登録してあるテンプレート。候補の最後に並べる。
   templates: Array<{ id: string; title: string }>;
   // テンプレートの本文を、カーソルの所に入れる。
@@ -40,6 +42,8 @@ export type SlashCommand = {
   // 絞り込みに使う言葉（英語と、かな・ローマ字）。文言のほかにこれでも当たる。
   keywords: string[];
   run: (editor: Editor, actions: SlashCommandActions) => void;
+  // 候補に出すか。省くと、いつも出す。
+  isAvailable?: (actions: SlashCommandActions) => boolean;
 };
 
 // 挿入する表の大きさ（見出しの行を含む）。ツールバーの表のメニューと同じ。
@@ -76,6 +80,10 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "divider", icon: Minus, name: () => translate("editor.divider"), keywords: ["divider", "hr", "line", "kugiri", "くぎり", "せん"], run: (editor) => editor.chain().focus().setHorizontalRule().run() },
   { id: "image", icon: ImagePlus, name: () => translate("editor.image"), keywords: ["image", "photo", "picture", "gazou", "がぞう", "しゃしん"], run: (_editor, actions) => actions.pickImage() },
   { id: "file", icon: Paperclip, name: () => translate("editor.file"), keywords: ["file", "attach", "tenpu", "てんぷ", "ふぁいる"], run: (_editor, actions) => actions.pickFile() },
+  {
+    id: "recording", icon: Mic, name: () => translate("editor.startRecording"), keywords: ["record", "audio", "voice", "rokuon", "ろくおん", "おと", "こえ"],
+    isAvailable: (actions) => actions.startRecording !== undefined, run: (_editor, actions) => actions.startRecording?.(),
+  },
   { id: "scan", icon: ScanLine, name: () => translate("editor.scan"), keywords: ["scan", "document", "camera", "sukyan", "すきゃん", "しょるい"], run: (_editor, actions) => actions.scanDocument() },
   { id: "due", icon: AlarmClock, name: () => translate("due.slash"), keywords: ["due", "deadline", "reminder", "kigen", "きげん", "しめきり", "りまいんだー"], run: (_editor, actions) => actions.pickTaskDue() },
   { id: "date", icon: CalendarDays, name: () => translate("editor.insertDate"), keywords: ["date", "today", "hizuke", "ひづけ", "きょう"], run: (editor) => insertCurrentDateTime(editor, "date") },
@@ -110,7 +118,7 @@ function templateCommands(actions: SlashCommandActions): SlashCommand[] {
 
 // 「/」のあとに打った文字で絞り込む。名前か言葉の一部に当たるものを、一覧の順のまま返す。
 export function filterSlashCommands(query: string, actions: SlashCommandActions): SlashCommand[] {
-  const commands = [...SLASH_COMMANDS, ...templateCommands(actions)];
+  const commands = [...SLASH_COMMANDS, ...templateCommands(actions)].filter((command) => command.isAvailable?.(actions) ?? true);
   const needle = query.trim().toLocaleLowerCase();
   if (needle === "") {
     return commands;
