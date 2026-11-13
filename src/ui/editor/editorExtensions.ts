@@ -9,6 +9,7 @@ import { TableKit } from "@tiptap/extension-table";
 import { Placeholder } from "@tiptap/extensions";
 import StarterKit from "@tiptap/starter-kit";
 import { common, createLowlight } from "lowlight";
+import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import type * as Y from "yjs";
 import { NOTE_TOOL_ORIGIN } from "../../core/notes/recordDocument";
 import { translate } from "../i18n/translate";
@@ -63,6 +64,11 @@ const TABLE_CELL_MIN_WIDTH = 72;
 // 列の境目をつかめる幅（px。境目の左右それぞれ）。既定の 5px では、マウスを境目にぴったり合わせないとつかめなかった。
 const TABLE_RESIZE_HANDLE_WIDTH = 8;
 
+function taskCheckboxLabel(taskItem: ProseMirrorNode): string {
+  const text = taskItem.firstChild?.textContent ?? "";
+  return text === "" ? translate("editor.taskCheckboxLabelEmpty") : translate("editor.taskCheckboxLabel", { text });
+}
+
 // 文書の形（ノードと書式）を決める機能。エディタのほか、Markdown との変換（ui/markdown）でも使う。
 export function documentExtensions() {
   return [
@@ -75,7 +81,8 @@ export function documentExtensions() {
       undoRedo: false,
     }),
     TaskList,
-    TaskItem.configure({ nested: true }),
+    // チェックボックスの読み上げの名前は、画面の言語で、その項目の行の文字だけにする（既定は英語で、子の項目の文字まで入る）。
+    TaskItem.configure({ nested: true, a11y: { checkboxLabel: taskCheckboxLabel } }),
     // コードの中の Tab と Shift+Tab は、行の字下げを足す・減らす（コードを書くエディタと同じ）。
     CodeBlockLowlight.configure({ lowlight: codeHighlighter, enableTabIndentation: true }),
     // 列の境目をドラッグして幅を変えられる。スマホの幅では表が画面をはみ出すので、包んだ要素（tableWrapper）の中で横に送る。

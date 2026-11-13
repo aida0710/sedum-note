@@ -158,3 +158,58 @@ test("コードと表のセルの中の Ctrl+A は、1 回目で中身だけ、2
   await page.keyboard.press("Control+a");
   expect(await selectedText()).toContain("みかん");
 });
+
+test("文字を選んだときのボタンは Esc で消え、選択は残る。ズームしている間の、その Esc では、ズームから戻らない", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "選択のボタン");
+  await page.keyboard.type("- 大事な項目");
+  await page.keyboard.press("Control+.");
+  const zoomBackButton = page.getByRole("button", { name: /^「.*」に戻る$/ });
+  await expect(zoomBackButton).toBeVisible();
+  await page.keyboard.press("Shift+Home");
+  const selectionToolbar = page.locator(".selection-toolbar");
+  await expect(selectionToolbar).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(selectionToolbar).toBeHidden();
+  await expect(zoomBackButton).toBeVisible();
+  // 選択は残っているので、そのまま打つと置き換わる。
+  expect(await page.evaluate(() => getSelection()?.toString())).toBe("大事な項目");
+  // ボタンが消えたあとの Esc は、ズームから戻る。
+  await page.keyboard.press("Escape");
+  await expect(zoomBackButton).toHaveCount(0);
+
+  // 選び直すと、また出る。
+  await placeCursorInBlock(page, "大事な項目", "end");
+  await page.keyboard.press("Shift+ArrowLeft");
+  await page.keyboard.press("Shift+ArrowLeft");
+  await expect(selectionToolbar).toBeVisible();
+});
+
+test("持ち手のメニューの「変換」には、「/」と同じく見出し 1〜6 が並び、見出し 4 のブロックでは「見出し 4」に印が付く", async ({ page }) => {
+  await openNoteWith(page, "<h4>小さな見出し</h4><p>段落</p>");
+  await page.locator(".ProseMirror h4").hover();
+  await page.getByRole("button", { name: "ドラッグしてブロックを動かす" }).click();
+  const menu = page.getByRole("menu");
+  for (const level of [1, 2, 3, 4, 5, 6]) {
+    await expect(menu.getByRole("menuitemradio", { name: `見出し ${level}` })).toHaveAttribute("aria-checked", String(level === 4));
+  }
+  await menu.getByRole("menuitemradio", { name: "見出し 6" }).click();
+  await expect(page.locator(".ProseMirror h6")).toHaveText("小さな見出し");
+});
+
+test("チェックボックスの読み上げの名前は、その項目の行の文字だけで、画面の言語になる", async ({ page }) => {
+  await openNoteWith(page, '<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>親の項目</p><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>子の項目</p></li></ul></li></ul>');
+  await expect(page.getByRole("checkbox", { name: "「親の項目」のチェックボックス", exact: true })).toHaveCount(1);
+  await expect(page.getByRole("checkbox", { name: "「子の項目」のチェックボックス", exact: true })).toHaveCount(1);
+});
+
+test("表示した数式は Tab で来られ、Enter で編集を始められる", async ({ page }) => {
+  await openNoteWith(page, '<p>式の上</p><div data-block-math="x^2"></div>');
+  const renderedMath = page.locator(".ProseMirror .math-block .math-rendered");
+  await expect(renderedMath).toHaveAttribute("tabindex", "0");
+  await renderedMath.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("textbox", { name: "数式" })).toBeFocused();
+  await expect(page.getByRole("textbox", { name: "数式" })).toHaveValue("x^2");
+});

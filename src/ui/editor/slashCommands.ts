@@ -49,8 +49,8 @@ export type SlashCommand = {
 // 挿入する表の大きさ（見出しの行を含む）。ツールバーの表のメニューと同じ。
 export const NEW_TABLE_SIZE = { rows: 3, cols: 3, withHeaderRow: true } as const;
 
-// 「/」から図を入れたときに、最初に入れておく中身（すぐ図が出て、書き方の手がかりになる）。
-const NEW_DIAGRAM_SOURCE = "graph TD\n  A[はじめ] --> B[おわり]";
+// 「/」から図を入れたときに、最初に入れておく中身（すぐ図が出て、書き方の手がかりになる）。箱の中の文字は、画面の言語で入れる。
+const newDiagramSource = () => `graph TD\n  A[${translate("editor.diagramSampleStart")}] --> B[${translate("editor.diagramSampleEnd")}]`;
 
 const CALLOUT_ICONS = { note: Info, tip: Lightbulb, warning: TriangleAlert, danger: OctagonAlert } as const;
 
@@ -97,7 +97,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "math", icon: Sigma, name: () => translate("editor.math"), keywords: ["math", "latex", "formula", "suushiki", "すうしき"], run: (editor) => editor.chain().focus().insertContent({ type: BLOCK_MATH_NODE }).run() },
   {
     id: "diagram", icon: Workflow, name: () => translate("editor.diagram"), keywords: ["diagram", "mermaid", "chart", "zu", "ず", "ふろー"],
-    run: (editor) => editor.chain().focus().insertContent({ type: "codeBlock", attrs: { language: MERMAID_LANGUAGE }, content: [{ type: "text", text: NEW_DIAGRAM_SOURCE }] }).run(),
+    run: (editor) => editor.chain().focus().insertContent({ type: "codeBlock", attrs: { language: MERMAID_LANGUAGE }, content: [{ type: "text", text: newDiagramSource() }] }).run(),
   },
   { id: "drawing", icon: PenTool, name: () => translate("editor.drawing"), keywords: ["draw", "drawing", "sketch", "shape", "tegaki", "てがき", "ずけい", "え"], run: (editor) => editor.chain().focus().insertContent({ type: DRAWING_NODE }).run() },
   { id: "noteQuery", icon: ListFilter, name: () => translate("editor.noteQuery"), keywords: ["query", "list", "kueri", "くえり", "いちらん"], run: (editor) => editor.chain().focus().insertContent({ type: NOTE_QUERY_NODE }).run() },

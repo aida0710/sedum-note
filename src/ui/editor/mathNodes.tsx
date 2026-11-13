@@ -51,6 +51,14 @@ function MathView({ node, updateAttributes, editor, selected }: ReactNodeViewPro
       setEditing(true);
     }
   };
+  // キーボードでも編集に入れるよう、表示した数式は Tab で来られるボタンにし、Enter と空白で編集を始める。
+  const startEditingOnKey = (event: React.KeyboardEvent) => {
+    if ((event.key === "Enter" || event.key === " ") && !isImeKeyEvent(event.nativeEvent)) {
+      event.preventDefault();
+      startEditing();
+    }
+  };
+  const renderedProps = { className: "math-rendered", role: "button", tabIndex: 0, title: latex, onClick: startEditing, onKeyDown: startEditingOnKey };
   const Wrapper = displayMode ? "div" : "span";
   return (
     <NodeViewWrapper as={Wrapper} className={`math ${displayMode ? "math-block" : "math-inline"}${selected ? " selected" : ""}`} contentEditable={false}>
@@ -70,10 +78,10 @@ function MathView({ node, updateAttributes, editor, selected }: ReactNodeViewPro
           }} />
       ) : html === null ? (
         // 表示の部品の読み込みが済むまでは、LaTeX の文字を出す。
-        <Wrapper className="math-rendered" role="button" title={latex} onClick={startEditing}>{latex || translate("editor.mathPlaceholder")}</Wrapper>
+        <Wrapper {...renderedProps}>{latex || translate("editor.mathPlaceholder")}</Wrapper>
       ) : (
         // KaTeX が作った HTML（スクリプトや外への参照を含まない）を、そのまま入れる。
-        <Wrapper className="math-rendered" role="button" title={latex} onClick={startEditing} dangerouslySetInnerHTML={{ __html: html }} />
+        <Wrapper {...renderedProps} dangerouslySetInnerHTML={{ __html: html }} />
       )}
     </NodeViewWrapper>
   );
@@ -82,7 +90,11 @@ function MathView({ node, updateAttributes, editor, selected }: ReactNodeViewPro
 // 入力欄の中のキーや選択を、エディタに渡さない（渡すと、WebKit では打った文字が本文に入る）。
 function mathNodeView() {
   return ReactNodeViewRenderer(MathView, {
-    stopEvent: ({ event }) => (event.target as HTMLElement | null)?.classList?.contains(MATH_INPUT_CLASS) ?? false,
+    stopEvent: ({ event }) => {
+      const target = event.target as HTMLElement | null;
+      // 表示した数式の上のキー（Enter で編集を始める）も、エディタに渡さない。
+      return (target?.classList?.contains(MATH_INPUT_CLASS) ?? false) || (event.type === "keydown" && (target?.classList?.contains("math-rendered") ?? false));
+    },
   });
 }
 
