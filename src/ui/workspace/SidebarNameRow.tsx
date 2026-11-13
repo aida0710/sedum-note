@@ -1,8 +1,9 @@
 // 左の列で、名前を打っている間の行（名前の変更、ノートブックの追加）。行の高さと字下げは元の行のままにして、
 // ラベルのあった位置に入力欄を出す。leading に、行の左に残すもの（開閉の印とアイコン）を渡す。
 
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { InlineNameInput, type InlineNameInputProps } from "./InlineNameInput";
+import { treeDepthStyle } from "./treeDepthStyle";
 
 type SidebarNameRowProps = InlineNameInputProps & {
   // 一覧の行（ノートブック）の名前か、メモの行の題か。
@@ -11,11 +12,6 @@ type SidebarNameRowProps = InlineNameInputProps & {
   depth: number | null;
   leading?: ReactNode;
 };
-
-// 段の深さを、CSS の字下げの計算に渡す。
-export function treeDepthStyle(depth: number | null): CSSProperties | undefined {
-  return depth === null ? undefined : { "--depth": depth } as CSSProperties;
-}
 
 export function SidebarNameRow({ rowKind, depth, leading, ...inputProps }: SidebarNameRowProps) {
   return (

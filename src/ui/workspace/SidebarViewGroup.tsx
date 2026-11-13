@@ -15,7 +15,8 @@ import { acceptsNoteDrop, canDropDraggedNote, dropNoteOnView, isNoteDrag } from 
 import { markSidebarDropTarget, useSidebarDragState } from "./sidebarDragState";
 import type { InlineNameInputProps } from "./InlineNameInput";
 import { expandOrCollapseViewRow, isUnmodifiedKey } from "./sidebarKeyboard";
-import { SidebarNameRow, treeDepthStyle } from "./SidebarNameRow";
+import { SidebarNameRow } from "./SidebarNameRow";
+import { treeDepthStyle } from "./treeDepthStyle";
 import { SidebarNoteRow } from "./SidebarNoteRow";
 import { useMovedNotesToast } from "./useMovedNotesToast";
 import { useTrashWithUndo } from "./useTrashWithUndo";

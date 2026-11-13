@@ -431,7 +431,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 /* タブのフォーカスの枠は内側に描く（外に描くと、上はタブの列の枠で、下は本文の境目で切れる）。 */
 .tab:focus-visible { outline-offset: -2px; }
 /* マウスを乗せられない画面（タッチ）では、選んでいないタブの「×」も薄く出しておく。 */
-@media (hover: none) { .tab .tab-close { visibility: visible; opacity: .6; } }
+@media (hover: none) { .tab:not(.on) .tab-close { visibility: visible; opacity: .6; } }
 .tab.on { background: var(--panel); color: var(--text); font-weight: 600; border-color: var(--line); border-bottom-color: var(--panel); margin-bottom: -1px; }
 
 .editor-bar { display: flex; align-items: center; gap: 4px; padding: 8px 14px; border-bottom: 1px solid var(--line); color: var(--muted); flex: none; overflow-x: auto; scrollbar-width: none; }
@@ -533,8 +533,10 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .template-banner { flex-wrap: wrap; }
 .template-banner-text { flex: 1 1 240px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .template-banner .hint { color: inherit; line-height: 1.6; }
-.empty-state { margin: auto; color: var(--muted); text-align: center; padding: 40px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.empty-state .primary-button { display: inline-flex; align-items: center; gap: 6px; }
+.empty-state { margin: auto; color: var(--muted); text-align: center; padding: 40px; }
+/* タブを開いていない本文の欄（EmptyEditorPane.tsx）は、案内の文の下にボタンとキーの案内を縦に並べる。 */
+.main .empty-state { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.main .empty-state .primary-button { display: inline-flex; align-items: center; gap: 6px; }
 
 /* Tiptap の本文 */
 /* 本文の文字。日本語の長い文を読みやすいよう、行の間と字の間を少し広げる（書く画面の案 B、2026-11-13）。 */
