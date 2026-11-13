@@ -8,6 +8,7 @@ import type { EditorView } from "@tiptap/pm/view";
 import type { Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { useEffect, useRef } from "react";
+import { isMenuOpen } from "../shared/escapeOwners";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { useFormattingState } from "./formattingState";
 import { SelectionAiMenu } from "./SelectionAiMenu";
@@ -53,7 +54,8 @@ export function SelectionToolbar({ editor, noteId, noteTitle, onAskLink }: Selec
       key: escapeKey,
       props: {
         handleKeyDown: (view, event) => {
-          if (event.key !== "Escape" || isImeKeyEvent(event) || !isShown.current) {
+          // ボタンから開いたメニュー（色の見本、AI）が出ている間の Esc は、そのメニューを閉じるのに使う。
+          if (event.key !== "Escape" || isImeKeyEvent(event) || !isShown.current || isMenuOpen()) {
             return false;
           }
           view.dispatch(view.state.tr.setMeta(SELECTION_TOOLBAR_KEY, "hide"));

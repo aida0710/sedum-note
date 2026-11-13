@@ -8,7 +8,8 @@
 // ズームしている間は、見えていない所を知らないうちに書き換えないようにする。
 //   全選択: ズームしている所の中だけを選ぶ。
 //   項目の題の行での Enter: 項目を 2 つに分けず（分けると、後ろと子が隠れる側へ行く）、カーソルから後ろを新しい最初の子にする。
-//   ズームしている項目の直下の子での Shift+Tab と、その先頭の Backspace: 何もしない（子がズームの外へ出て、カーソルごと隠れるため）。
+//   ズームしている項目の直下の子での Shift+Tab、その先頭の Backspace、空の子での Enter: 何もしない（どれも子を 1 段浅くする操作で、
+//          子がズームの外へ出る）。
 //   カーソルがズームの外へ移ったとき（リンクや目次から送られた、など）: ズームをやめて全体を出す。
 
 import { type Editor, Extension } from "@tiptap/core";
@@ -223,6 +224,12 @@ function isCursorAtItemStart(state: EditorState): boolean {
   return empty && $from.parentOffset === 0 && $from.depth >= 2 && isListItem($from.node(-1)) && $from.index(-1) === 0;
 }
 
+// カーソルが、中身の無い項目（空の題の行だけ）にあるか。ここでの Enter は、項目を 1 段浅くする。
+function isCursorInEmptyItem(state: EditorState): boolean {
+  const { $from, empty } = state.selection;
+  return empty && $from.depth >= 2 && isListItem($from.node(-1)) && $from.node(-1).childCount === 1 && $from.parent.content.size === 0;
+}
+
 // ズームしている所へ下りる道筋の上にないものを隠し、道筋の上の入れ物（リストと上の項目）からは、字下げと印を外す。
 // 見出しのセクションでは、見出しと同じ入れ物の中の、セクションの外のブロックを隠す。
 function zoomDecorations(doc: ProseMirrorNode, zoomedPosition: number): DecorationSet {
@@ -313,7 +320,7 @@ export const Zoom = Extension.create({
   addKeyboardShortcuts() {
     return {
       "Mod-a": ({ editor }) => selectZoomedItem(editor as Editor),
-      Enter: ({ editor }) => splitZoomedTitleIntoFirstChild(editor as Editor),
+      Enter: ({ editor }) => splitZoomedTitleIntoFirstChild(editor as Editor) || (isCursorInDirectChildOfZoomedItem(editor.state) && isCursorInEmptyItem(editor.state)),
       "Shift-Tab": ({ editor }) => isCursorInDirectChildOfZoomedItem(editor.state),
       Backspace: ({ editor }) => isCursorInDirectChildOfZoomedItem(editor.state) && isCursorAtItemStart(editor.state),
     };

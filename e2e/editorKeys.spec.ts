@@ -258,3 +258,16 @@ test("書式の無い文字を貼り付けると、空の行は空の段落と�
   await page.keyboard.type("の続き");
   expect(await bodyBlocks(page)).toEqual(["paragraph:前置き：一行目", "paragraph:二行目", "paragraph:", "paragraph:四行目の続き"]);
 });
+
+test("文字を選んだときのボタンから開いた色のメニューは、Esc でメニューだけが閉じ、ボタンは残る", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "選択のボタン");
+  await page.keyboard.type("大事な文字");
+  await page.keyboard.press("Shift+Home");
+  const selectionToolbar = page.locator(".selection-toolbar");
+  await selectionToolbar.getByRole("button", { name: "ハイライト" }).click();
+  await expect(page.getByRole("menu")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(selectionToolbar).toBeVisible();
+});

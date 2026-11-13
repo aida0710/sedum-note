@@ -123,3 +123,15 @@ test("項目にズームしている間、直下の子の項目で Shift+Tab を
   await page.keyboard.press("Shift+Tab");
   expect(await listShape(page)).toEqual(["親", ["子 1", "子 2"], "次の項目"]);
 });
+
+test("項目にズームしている間、直下の子の空の項目で Enter を押しても、子はズームの外へ出ない", async ({ page }) => {
+  await openNoteWith(page, "<ul><li><p>親</p><ul><li><p>子 1</p></li></ul></li><li><p>次の項目</p></li></ul><p>末尾</p>");
+  await placeCursorInBlock(page, "親", "end");
+  await page.keyboard.press("Control+.");
+  await placeCursorInBlock(page, "子 1", "end");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("打った文字");
+  await expect(zoomBackButton(page)).toBeVisible();
+  await expect(line(page, "打った文字")).toBeVisible();
+});
