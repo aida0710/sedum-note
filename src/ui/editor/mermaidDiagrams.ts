@@ -76,7 +76,12 @@ function isMermaidBlock(node: ProseMirrorNode): boolean {
   return node.type.name === "codeBlock" && node.attrs.language === MERMAID_LANGUAGE;
 }
 
-function diagramDecorations(state: EditorState): DecorationSet {
+// 図の色の組み合わせを表す文字。テーマが変わると変わる。
+function diagramThemeSignature(): string {
+  return JSON.stringify(diagramThemeVariables());
+}
+
+function diagramDecorations(state: EditorState, themeSignature: string): DecorationSet {
   const decorations: Decoration[] = [];
   const { from, to } = state.selection;
   state.doc.descendants((node, position) => {
@@ -86,11 +91,11 @@ function diagramDecorations(state: EditorState): DecorationSet {
     const end = position + node.nodeSize;
     const source = node.textContent;
     if (source.trim() !== "") {
-      // 中身が同じ間は図を作り直さないよう、中身を key にする。
+      // 中身とテーマが同じ間は図を作り直さないよう、両方を key にする（テーマを切り替えたら、新しい色で描き直す）。
       decorations.push(Decoration.widget(end, (view, getPosition) => diagramElement(view, source, () => {
         const widgetPosition = getPosition();
         return widgetPosition === undefined ? undefined : widgetPosition - node.nodeSize;
-      }), { side: 1, key: `mermaid:${source}` }));
+      }), { side: 1, key: `mermaid:${themeSignature}:${source}` }));
       const cursorInside = from >= position && to <= end;
       if (!cursorInside) {
         decorations.push(Decoration.node(position, end, { class: "mermaid-source-hidden" }));
@@ -101,21 +106,40 @@ function diagramDecorations(state: EditorState): DecorationSet {
   return DecorationSet.create(state.doc, decorations);
 }
 
-const mermaidDiagramsKey = new PluginKey<DecorationSet>("mermaidDiagrams");
+type MermaidDiagramsState = { decorations: DecorationSet; themeSignature: string };
+
+const mermaidDiagramsKey = new PluginKey<MermaidDiagramsState>("mermaidDiagrams");
 
 export const MermaidDiagrams = Extension.create({
   name: "mermaidDiagrams",
   addProseMirrorPlugins() {
     return [
-      new Plugin<DecorationSet>({
+      new Plugin<MermaidDiagramsState>({
         key: mermaidDiagramsKey,
         state: {
-          init: (_config, state) => diagramDecorations(state),
-          apply: (transaction, decorations, _oldState, newState) =>
-            (transaction.docChanged || transaction.selectionSet ? diagramDecorations(newState) : decorations),
+          init: (_config, state) => {
+            const themeSignature = diagramThemeSignature();
+            return { decorations: diagramDecorations(state, themeSignature), themeSignature };
+          },
+          apply: (transaction, previous, _oldState, newState) => {
+            const themeSignature = (transaction.getMeta(mermaidDiagramsKey) as string | undefined) ?? previous.themeSignature;
+            const changed = transaction.docChanged || transaction.selectionSet || themeSignature !== previous.themeSignature;
+            return changed ? { decorations: diagramDecorations(newState, themeSignature), themeSignature } : previous;
+          },
         },
         props: {
-          decorations: (state) => mermaidDiagramsKey.getState(state),
+          decorations: (state) => mermaidDiagramsKey.getState(state)?.decorations,
+        },
+        // テーマの色は、画面の根の要素の style に入る（theme/applyAppearance.ts）。変わったら、図を描き直させる。
+        view: (view) => {
+          const themeObserver = new MutationObserver(() => {
+            const themeSignature = diagramThemeSignature();
+            if (themeSignature !== mermaidDiagramsKey.getState(view.state)?.themeSignature) {
+              view.dispatch(view.state.tr.setMeta(mermaidDiagramsKey, themeSignature));
+            }
+          });
+          themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["style"] });
+          return { destroy: () => themeObserver.disconnect() };
         },
       }),
     ];

@@ -151,6 +151,8 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 .math-input { font-family: var(--font-mono); font-size: var(--font-size-ui); border: 1px solid var(--accent); border-radius: var(--radius-control); padding: 4px 8px; background: var(--panel); color: var(--text); resize: vertical; vertical-align: middle; }
 .math-block .math-input { width: 100%; }
 .ProseMirror pre.mermaid-source-hidden { display: none; }
+/* 図は、元のコードのブロックのすぐ後ろに置いた飾り。元のブロックがズームや折りたたみで隠れている間は、図も出さない。 */
+.ProseMirror pre:is(.zoom-hidden, .folded-block) + .mermaid-diagram { display: none; }
 .mermaid-diagram { padding: 8px; border: 1px solid var(--line); border-radius: var(--radius-control); text-align: center; overflow-x: auto; cursor: pointer; color: var(--muted); font-size: var(--font-size-small); }
 .mermaid-diagram svg { max-width: 100%; height: auto; }
 .mermaid-diagram.failed { color: var(--danger); text-align: left; white-space: pre-wrap; }
