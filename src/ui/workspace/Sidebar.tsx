@@ -13,6 +13,7 @@ import { NewNotebookNameRow } from "./SidebarNameRow";
 import { NotebookBranch } from "./NotebookBranch";
 import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { SearchResults, ViewGroup } from "./SidebarViewGroup";
+import { useNotesByView } from "./useNotesByView";
 import { isNotebookDrag } from "./notebookDrag";
 import { NotebookSectionTitle } from "./NotebookSectionTitle";
 import { isNoteDrag } from "./noteDrag";
@@ -50,6 +51,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
   const tags = countTags(summaries);
   const notebookColors = assignNotebookColors(snapshot.notebooks);
   const { noteSortOrder } = useDevicePreferences();
+  const notesInView = useNotesByView(summaries, noteSortOrder);
   const searching = navigation.searchText.trim() !== "";
 
   // 検索の欄を開く合図（ショートカット）が来たら開く。開いていれば、欄にカーソルを置き直す。
@@ -158,9 +160,9 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
         ) : (
           <>
             {/* ノートブックが無いうちは、メモを並べる所がほかに無いので開いておく。 */}
-            <ViewGroup view={{ kind: "all" }} icon={<FileText size={15} />} label={translate("sidebar.allNotes")} summaries={summaries} navigation={navigation} repository={repository}
+            <ViewGroup view={{ kind: "all" }} icon={<FileText size={15} />} label={translate("sidebar.allNotes")} notesInView={notesInView} navigation={navigation} repository={repository}
               expandedByDefault={notebookTree.length === 0} />
-            <ViewGroup view={{ kind: "bookmarked" }} icon={<Star size={15} />} label={translate("sidebar.bookmarked")} summaries={summaries} navigation={navigation} repository={repository} />
+            <ViewGroup view={{ kind: "bookmarked" }} icon={<Star size={15} />} label={translate("sidebar.bookmarked")} notesInView={notesInView} navigation={navigation} repository={repository} />
             {/* 期限の一覧は、メモの並びではないので開け閉めは無い。押すとタブで開く。数は、済んでいない期限。 */}
             <div className="nav-row">
               <button className={`nav${navigation.activeTab === REMINDERS_TAB ? " active" : ""}`} onClick={onOpenReminders}>
@@ -172,9 +174,9 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
             </div>
             {/* テンプレートとゴミ箱も、メモの並びの 1 つとして、上のまとまりに置く（タグの見出しの下に置くと、タグの 1 つに見える）。 */}
             {summaries.some((summary) => summary.note.content.isTemplate && summary.note.content.trashedAt === null) && (
-              <ViewGroup view={{ kind: "templates" }} icon={<LayoutTemplate size={15} />} label={translate("sidebar.templates")} summaries={summaries} navigation={navigation} repository={repository} />
+              <ViewGroup view={{ kind: "templates" }} icon={<LayoutTemplate size={15} />} label={translate("sidebar.templates")} notesInView={notesInView} navigation={navigation} repository={repository} />
             )}
-            <ViewGroup view={{ kind: "trash" }} icon={<Trash2 size={15} />} label={translate("sidebar.trash")} summaries={summaries} navigation={navigation} repository={repository}
+            <ViewGroup view={{ kind: "trash" }} icon={<Trash2 size={15} />} label={translate("sidebar.trash")} notesInView={notesInView} navigation={navigation} repository={repository}
               onContextMenu={setTrashMenuAnchor}
               actions={
                 <button className="icon-button" aria-label={translate("sidebar.trashActions")} aria-haspopup="menu" onClick={(event) => setTrashMenuAnchor(event.currentTarget)}>
@@ -192,7 +194,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
               }} />
             )}
             {notebookTree.map((node) => (
-              <NotebookBranch key={node.notebook.id} node={node} depth={0} summaries={summaries} repository={repository} navigation={navigation} notebookColors={notebookColors} />
+              <NotebookBranch key={node.notebook.id} node={node} depth={0} notesInView={notesInView} repository={repository} navigation={navigation} notebookColors={notebookColors} />
             ))}
             {snapshot.savedSearches.length > 0 && <div className="section-title">{translate("sidebar.savedSearches")}</div>}
             {snapshot.savedSearches.map((savedSearch) => (
@@ -208,7 +210,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
             ))}
             {tags.length > 0 && <div className="section-title">{translate("sidebar.tags")}</div>}
             {tags.map(({ tag }) => (
-              <ViewGroup key={tag} view={{ kind: "tag", tag }} icon={<Hash size={15} />} label={tag} summaries={summaries} navigation={navigation} repository={repository} />
+              <ViewGroup key={tag} view={{ kind: "tag", tag }} icon={<Hash size={15} />} label={tag} notesInView={notesInView} navigation={navigation} repository={repository} />
             ))}
           </>
         )}

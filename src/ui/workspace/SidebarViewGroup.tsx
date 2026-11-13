@@ -3,13 +3,14 @@
 // 落とすと、その中へ移す（notebookDrag.ts）。
 
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { type ReactNode, type Ref, useEffect } from "react";
-import { type NoteSummary, type NoteView, selectNotes } from "../../core/notes/noteQueries";
+import { type ReactNode, type Ref, useContext, useEffect, useMemo } from "react";
+import type { NoteSummary, NoteView } from "../../core/notes/noteQueries";
 import { parseNoteSearchQuery } from "../../core/notes/noteSearchQuery";
 import { type SearchSnippet, searchSnippetOf } from "../../core/notes/noteSearchSnippet";
 import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import type { NoteRepository } from "../../core/notes/noteRepository";
+import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { canDropDraggedNotebook, dropNotebook, isNotebookDrag } from "./notebookDrag";
 import { acceptsNoteDrop, canDropDraggedNote, dropNoteOnView, isNoteDrag } from "./noteDrag";
 import { markSidebarDropTarget, useSidebarDragState } from "./sidebarDragState";
@@ -19,6 +20,7 @@ import { SidebarNameRow } from "./SidebarNameRow";
 import { treeDepthStyle } from "./treeDepthStyle";
 import { SidebarNoteRow } from "./SidebarNoteRow";
 import { useMovedNotesToast } from "./useMovedNotesToast";
+import type { NotesInView } from "./useNotesByView";
 import { useTrashWithUndo } from "./useTrashWithUndo";
 import { viewKey, type WorkspaceNavigation } from "./useWorkspaceNavigation";
 
@@ -30,7 +32,8 @@ export type ViewGroupProps = {
   view: NoteView;
   icon: ReactNode;
   label: string;
-  summaries: NoteSummary[];
+  // 一覧ごとのメモを引く（useNotesByView）。
+  notesInView: NotesInView;
   navigation: WorkspaceNavigation;
   repository: NoteRepository;
   depth?: number;
@@ -53,7 +56,7 @@ export type ViewGroupProps = {
 
 // 開くと中のメモが並ぶ 1 行。ノートブック・タグ・ゴミ箱で同じ形を使う。
 export function ViewGroup(props: ViewGroupProps) {
-  const { view, icon, label, summaries, navigation, repository, depth = 0, actions, onContextMenu, childBranches, expandedByDefault = false, dropsOnWholeGroup = false, onDragStart } = props;
+  const { view, icon, label, notesInView, navigation, repository, depth = 0, actions, onContextMenu, childBranches, expandedByDefault = false, dropsOnWholeGroup = false, onDragStart } = props;
   const { onRename, renaming, rowButtonRef } = props;
   const moveToTrash = useTrashWithUndo(repository);
   const showMovedNotesToast = useMovedNotesToast(repository);
@@ -102,8 +105,7 @@ export function ViewGroup(props: ViewGroupProps) {
     const timer = setTimeout(() => setExpanded(key, true), EXPAND_ON_DRAG_HOVER_MILLISECONDS);
     return () => clearTimeout(timer);
   }, [isDropTarget, expanded, notebookId, key, setExpanded]);
-  const { noteSortOrder } = useDevicePreferences();
-  const notes = selectNotes(summaries, { view, sortOrder: noteSortOrder });
+  const notes = notesInView(view);
   const isActive = viewKey(navigation.view) === key;
   const disclosure = <span className="disclosure">{expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>;
   const row = renaming ? <SidebarNameRow rowKind="view" depth={depth} leading={<>{disclosure}{icon}</>} {...renaming} /> : (
@@ -156,12 +158,19 @@ type NoteRowsProps = {
 };
 
 export function NoteRows({ notes, view, navigation, repository, depth, snippetOf }: NoteRowsProps) {
+  // 行は描き直しを省く（memo）ので、行が使う値は、変わらない限り同じものを渡す。並びが同じなら同じ配列を渡し、
+  // 未送信の印は行ごとの真偽値にする（未送信の ID の Set は、スナップショットのたびに作り直される）。
+  const listedNoteIdsText = notes.map(({ note }) => note.id).join(" ");
+  const listedNoteIds = useMemo(() => (listedNoteIdsText === "" ? [] : listedNoteIdsText.split(" ")), [listedNoteIdsText]);
+  const unsyncedIds = useContext(UnsyncedRecordsContext);
+  // 言語を変えたら行の文言を入れ替える（translate は描くときに今の言語を読むので、行を描き直させる）。
+  const { language } = useDevicePreferences();
   if (notes.length === 0) {
     return <div className="tree-empty" style={treeDepthStyle(depth)}>{translate("sidebar.noNotes")}</div>;
   }
-  const listedNoteIds = notes.map(({ note }) => note.id);
   return notes.map((summary) => (
-    <SidebarNoteRow key={summary.note.id} note={summary.note} view={view} listedNoteIds={listedNoteIds} depth={depth} navigation={navigation} repository={repository}
+    <SidebarNoteRow key={summary.note.id} note={summary.note} view={view} listedNoteIds={listedNoteIds} depth={depth}
+      activeTab={navigation.activeTab} openNote={navigation.openNote} repository={repository} unsynced={unsyncedIds.has(summary.note.id)} language={language}
       snippet={snippetOf?.(summary) ?? null} />
   ));
 }

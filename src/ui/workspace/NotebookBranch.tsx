@@ -3,7 +3,7 @@
 
 import { MoreHorizontal } from "lucide-react";
 import { useState } from "react";
-import type { NotebookTreeNode, NoteSummary } from "../../core/notes/noteQueries";
+import type { NotebookTreeNode } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { type NotebookColors, NotebookMark } from "../shared/notebookAppearance";
@@ -15,6 +15,7 @@ import { NotebookActionsMenu } from "./NotebookActionsMenu";
 import { NotebookAppearanceDialog } from "./NotebookAppearanceDialog";
 import { ViewGroup } from "./SidebarViewGroup";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
+import type { NotesInView } from "./useNotesByView";
 import { NotebookPropertiesDialog } from "./NotebookPropertiesDialog";
 import { databaseTabId, viewKey } from "./useWorkspaceNavigation";
 
@@ -22,12 +23,12 @@ export type NotebookBranchProps = {
   notebookColors: NotebookColors;
   node: NotebookTreeNode;
   depth: number;
-  summaries: NoteSummary[];
+  notesInView: NotesInView;
   repository: NoteRepository;
   navigation: WorkspaceNavigation;
 };
 
-export function NotebookBranch({ node, depth, summaries, repository, navigation, notebookColors }: NotebookBranchProps) {
+export function NotebookBranch({ node, depth, notesInView, repository, navigation, notebookColors }: NotebookBranchProps) {
   const { notebook } = node;
   const view = { kind: "notebook", notebookId: notebook.id } as const;
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
@@ -53,7 +54,7 @@ export function NotebookBranch({ node, depth, summaries, repository, navigation,
         }} />
       )}
       {node.children.map((child) => (
-        <NotebookBranch key={child.notebook.id} node={child} depth={depth + 1} summaries={summaries} repository={repository} navigation={navigation} notebookColors={notebookColors} />
+        <NotebookBranch key={child.notebook.id} node={child} depth={depth + 1} notesInView={notesInView} repository={repository} navigation={navigation} notebookColors={notebookColors} />
       ))}
     </>
   );
@@ -61,7 +62,7 @@ export function NotebookBranch({ node, depth, summaries, repository, navigation,
     <>
       <ViewGroup view={view} depth={depth} expandedByDefault dropsOnWholeGroup
         icon={<NotebookMark notebook={notebook} colors={notebookColors} />}
-        label={notebook.content.name} summaries={summaries} navigation={navigation} repository={repository} childBranches={children}
+        label={notebook.content.name} notesInView={notesInView} navigation={navigation} repository={repository} childBranches={children}
         onContextMenu={setMenuAnchor}
         rowButtonRef={rowButton} onRename={() => setRenaming(true)}
         renaming={renaming ? { initialName: notebook.content.name, placeholder: translate("sidebar.newNotebookPlaceholder"), onDone: renameTo } : undefined}
