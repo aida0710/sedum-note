@@ -20,7 +20,6 @@ import { SyncStatusLine } from "../workspace/SyncStatusLine";
 import { REMINDERS_TAB, SETTINGS_TAB, viewKey } from "../workspace/useWorkspaceNavigation";
 import { RemindersView } from "../workspace/RemindersView";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
-import { findUnlinkedMentions } from "../../core/notes/noteMentions";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
 import { NoteQuerySourceContext } from "../editor/noteQuerySource";
 import { AiChat } from "../ai/AiChat";
@@ -91,8 +90,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
       <div className={`phone${typewriterMode ? " typewriter-mode" : ""}`}>
         <NoteLinkTargetsContext.Provider value={createNoteLinkTargets({ repository, navigation })}>
           <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
-            <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, openNote.id)}
-              unlinkedMentions={findUnlinkedMentions(snapshot.summaries, openNote)} repository={repository} isMobile onBack={goBack} />
+            <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, openNote.id)} repository={repository} isMobile onBack={goBack} />
             </NoteQuerySourceContext.Provider>
         </NoteLinkTargetsContext.Provider>
         {aiChat.open && (

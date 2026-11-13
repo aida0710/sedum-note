@@ -1,7 +1,6 @@
 // 画面分割の右側。メモを 1 つ、左のタブとは別に開いたままにする（2 つのメモを見比べる・写す）。
 
 import { X } from "lucide-react";
-import { findUnlinkedMentions } from "../../core/notes/noteMentions";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
 import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
@@ -31,8 +30,7 @@ export function SplitNotePane({ note, snapshot, repository, navigation }: SplitN
       {/* 右側のメモの中のリンクは、左のタブで開く（右側は、開いたメモのままにする）。 */}
       <NoteLinkTargetsContext.Provider value={createNoteLinkTargets({ repository, navigation })}>
         <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
-          <NoteEditor key={note.id} note={note} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, note.id)}
-            unlinkedMentions={findUnlinkedMentions(snapshot.summaries, note)} repository={repository} isMobile={false} />
+          <NoteEditor key={note.id} note={note} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, note.id)} repository={repository} isMobile={false} />
         </NoteQuerySourceContext.Provider>
       </NoteLinkTargetsContext.Provider>
     </section>

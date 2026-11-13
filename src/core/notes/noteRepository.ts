@@ -17,7 +17,6 @@ import { copyBodyBlocks, replaceBodyWithCopyOf } from "./bodyCopy";
 import { bodyAttachments } from "./bodyText";
 import { databaseViewFromField } from "./databaseView";
 import { isDueTime } from "./dueTimes";
-import { linkFirstMention } from "./noteMentions";
 import { isNotebookWithin } from "./noteQueries";
 import { PROPERTY_DEFINITION_FIELD_PREFIX, PROPERTY_VALUE_FIELD_PREFIX, type PropertyDefinition, propertyDefinitionFromField, type PropertyValue } from "./noteProperties";
 import { type AttachmentReference, type LiveNote, type LiveNotebook, type LiveRecord, type LiveSavedSearch, type NotebookContent, PAGE_ALIGNMENTS, type PageAlignment, type SavedSearchContent } from "./noteRecords";
@@ -279,12 +278,6 @@ export class NoteRepository {
       throw new RecordNotFoundError(noteId);
     }
     return this.#createNoteWithBodyOf(source.body, { title, notebookIds: source.content.notebookIds, isTemplate: false, pageAlignment: source.content.pageAlignment });
-  }
-
-  // mentioningNoteId の本文に文字のまま書かれた、target の題を、target へのリンクに置き換える（リンクしていない言及）。
-  // 最初の 1 か所だけを置き換える。置き換えられる所が無ければ false。
-  async linkMention(mentioningNoteId: string, target: { noteId: string; title: string }): Promise<boolean> {
-    return linkFirstMention(recordBody(this.#liveDocument(mentioningNoteId, "note")), target);
   }
 
   // ほかのメモを、このメモに結合する。相手のタイトルを見出しにして本文を末尾に足し、相手はゴミ箱に入れる。

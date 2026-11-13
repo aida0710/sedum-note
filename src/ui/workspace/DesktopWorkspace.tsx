@@ -24,7 +24,6 @@ import { NoteGraphView } from "./NoteGraphView";
 import { RemindersView } from "./RemindersView";
 import { SplitNotePane } from "./SplitNotePane";
 import { GRAPH_TAB, notebookIdOfDatabaseTab, REMINDERS_TAB, SETTINGS_TAB } from "./useWorkspaceNavigation";
-import { findUnlinkedMentions } from "../../core/notes/noteMentions";
 import { notesLinkingTo } from "../../core/notes/noteQueries";
 import { parseNoteSearchQuery } from "../../core/notes/noteSearchQuery";
 import { NoteQuerySourceContext } from "../editor/noteQuerySource";
@@ -133,7 +132,6 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
           <NoteLinkTargetsContext.Provider value={createNoteLinkTargets({ repository, navigation })}>
             <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
               <NoteEditor key={activeNote.id} note={activeNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, activeNote.id)}
-                unlinkedMentions={findUnlinkedMentions(snapshot.summaries, activeNote)}
               repository={repository} isMobile={false} onOpenInSplit={() => navigation.openInSplit(activeNote.id)}
               highlightedText={parseNoteSearchQuery(navigation.searchText).words.join(" ")} findRequest={navigation.findInNoteRequest} />
             </NoteQuerySourceContext.Provider>

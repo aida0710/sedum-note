@@ -7,7 +7,6 @@ import { yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
 import { AlarmClock, ChevronLeft, ListTree, MoreHorizontal, Star } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { bodyPlainText, BLOCK_EMBED_NODE, NOTE_LINK_NODE, plainTextHashtags } from "../../core/notes/bodyText";
-import type { UnlinkedMention } from "../../core/notes/noteMentions";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { replaceTemplateVariablesInNodes } from "../../core/notes/templateVariables";
@@ -88,9 +87,8 @@ type NoteEditorProps = {
   isMobile: boolean;
   // スマホでは上のバーに「戻る」を出す。
   onBack?: () => void;
-  // このメモにリンクしているメモ（バックリンク）と、題を文字のまま書いているメモ（リンクしていない言及）。
+  // このメモにリンクしているメモ（バックリンク）。
   backlinks: LiveNote[];
-  unlinkedMentions: UnlinkedMention[];
   // 一覧の検索で探している言葉。開いたメモの中の当たりに色を付ける。
   highlightedText?: string;
   // メモの中の検索を開く合図（ショートカット）。押すたびに serial が増える。
@@ -104,7 +102,7 @@ const NEW_LINK_URL = "https://";
 // まだ一度も検索を開いていないときの合図。
 const NO_FIND_REQUEST: FindRequest = { serial: 0, showReplace: false };
 
-export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repository, isMobile, onBack, onOpenInSplit, highlightedText = "", findRequest = NO_FIND_REQUEST }: NoteEditorProps) {
+export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, onBack, onOpenInSplit, highlightedText = "", findRequest = NO_FIND_REQUEST }: NoteEditorProps) {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [pickingNoteLink, setPickingNoteLink] = useState(false);
   // 書類のスキャンで、撮った（か選んだ）写真。四隅を合わせている間だけ持つ。
@@ -419,7 +417,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
           {!isZoomed && (
             <>
               <NoteFootnotes editor={editor} />
-              <NoteBacklinks note={note} backlinks={backlinks} unlinkedMentions={unlinkedMentions} repository={repository} onOpenNote={openNote} />
+              <NoteBacklinks backlinks={backlinks} onOpenNote={openNote} />
             </>
           )}
         </div>

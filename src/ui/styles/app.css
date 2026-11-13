@@ -301,13 +301,6 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ai-chat-dialog .ai-chat { flex: 1; border-left: 0; border-radius: inherit; }
 .backlinks { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); }
 .backlinks h2 { font-size: var(--font-size-small); font-weight: 600; color: var(--muted); margin: 0 0 6px; }
-.backlinks .menu-item + h2 { margin-top: 16px; }
-.unlinked-mentions-toggle { display: inline-flex; align-items: center; gap: 4px; color: inherit; font: inherit; }
-.unlinked-mention-head { display: flex; align-items: center; gap: 8px; }
-/* 題の行は「リンクにする」のボタンと同じ高さにする。 */
-.unlinked-mention-head .menu-item { flex: 1; min-width: 0; min-height: var(--control-height); padding-block: 0; }
-/* 抜き出しは、題の文字の頭（行の左の余白 10px + アイコン 14px + 間 10px）にそろえる。 */
-.unlinked-mention-excerpt { margin: 0 0 6px 34px; color: var(--muted); font-size: var(--font-size-small); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sidebar-brand-actions { margin-left: auto; display: flex; gap: 2px; }
 .sidebar-brand .sidebar-brand-actions .icon-button { margin-left: 0; }
 
