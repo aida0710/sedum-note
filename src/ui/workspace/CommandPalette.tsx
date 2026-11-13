@@ -1,8 +1,8 @@
 // コマンドパレット（Ctrl+K）。打った言葉で、メモ（題と本文）・ノートブック・タグ・設定の項目・操作をまとめて探し、
 // 種類ごとに並べる。「>」で始めると、操作だけを探す。何も打っていないときは、最近のメモと、よく使う操作を並べる。
 
-import { BookOpen, Command, FilePlus, FileText, Hash, type LucideIcon, Search, Settings } from "lucide-react";
-import { Fragment, useState } from "react";
+import { BookOpen, FilePlus, FileText, Hash, type LucideIcon, Search, Settings, Zap } from "lucide-react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { type MessageKey, translate } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { ModalDialog } from "../shared/ModalDialog";
@@ -20,7 +20,7 @@ const KIND_META: Record<PaletteItemKind, { heading: MessageKey; icon: LucideIcon
   notebook: { heading: "palette.group.notebooks", icon: BookOpen },
   tag: { heading: "palette.group.tags", icon: Hash },
   setting: { heading: "palette.group.settings", icon: Settings },
-  command: { heading: "palette.group.commands", icon: Command },
+  command: { heading: "palette.group.commands", icon: Zap },
   create: { heading: "palette.group.create", icon: FilePlus },
 };
 
@@ -37,6 +37,23 @@ export function CommandPalette({ candidates, onCreateNote, onClose }: CommandPal
   };
   const items = [...searchPalette(candidates, query), ...(createItem ? [createItem] : [])];
   const selected = Math.min(selectedIndex, Math.max(items.length - 1, 0));
+  // キーで選んだ項目が一覧の見える範囲の外にあれば、見える所まで送る。
+  const list = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (selected === 0) {
+      // 先頭の項目では、その上のまとまりの見出しも見えるよう、一覧の先頭まで戻す。
+      list.current?.scrollTo({ top: 0 });
+      return;
+    }
+    list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
+  }, [selected, query]);
+  // 押したキーごとの、次に選ぶ項目の番号。↑↓ は端で反対の端へ回る。
+  const selectionMoves: Record<string, () => number> = {
+    ArrowDown: () => (selected + 1) % items.length,
+    ArrowUp: () => (selected - 1 + items.length) % items.length,
+    Home: () => 0,
+    End: () => items.length - 1,
+  };
   const runItem = (item: PaletteItem | undefined) => {
     if (item) {
       onClose();
@@ -54,17 +71,19 @@ export function CommandPalette({ candidates, onCreateNote, onClose }: CommandPal
             if (isImeKeyEvent(event.nativeEvent)) {
               return;
             }
-            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            const moveSelection = selectionMoves[event.key];
+            // Home と End は、言葉を打っている間は欄の中のカーソルを動かすのに使う。
+            const movesCursorInInput = (event.key === "Home" || event.key === "End") && query !== "";
+            if (moveSelection && !movesCursorInInput) {
               event.preventDefault();
-              const step = event.key === "ArrowDown" ? 1 : -1;
-              setSelectedIndex(items.length === 0 ? 0 : (selected + step + items.length) % items.length);
+              setSelectedIndex(items.length === 0 ? 0 : moveSelection());
             } else if (event.key === "Enter") {
               event.preventDefault();
               runItem(items[selected]);
             }
           }} />
       </label>
-      <div className="note-picker-list" id="command-palette-list" role="listbox">
+      <div ref={list} className="note-picker-list" id="command-palette-list" role="listbox">
         {items.length === 0 && <div className="tree-empty">{translate("palette.noResults")}</div>}
         {items.map((item, index) => {
           const { heading, icon: Icon } = KIND_META[item.kind];

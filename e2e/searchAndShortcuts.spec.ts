@@ -335,6 +335,52 @@ test("コマンドパレットを開いてすぐ打った文字は入力欄に�
   await expect(page.locator(".ProseMirror")).toHaveText("本文の続き");
 });
 
+test("コマンドパレットで ↓ を押し続けても、選んだ項目が一覧の見える範囲に残る。End と Home で端へ移る", async ({ page }) => {
+  // 操作の一覧が、パレットの高さに収まらない窓の高さにする。
+  await page.setViewportSize({ width: 1280, height: 420 });
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "新しいメモ" }).waitFor();
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("dialog", { name: "コマンドパレット" });
+  await palette.getByRole("combobox").fill(">");
+  const list = palette.getByRole("listbox");
+  const isSelectedOptionInView = () => list.evaluate((listElement) => {
+    const listBox = listElement.getBoundingClientRect();
+    const selectedBox = listElement.querySelector('[aria-selected="true"]')!.getBoundingClientRect();
+    // 位置は小数になるので、1px までの差は見える範囲の中と数える。
+    return selectedBox.top >= listBox.top - 1 && selectedBox.bottom <= listBox.bottom + 1;
+  });
+  const optionCount = await palette.getByRole("option").count();
+  for (let pressed = 1; pressed < optionCount; pressed++) {
+    await page.keyboard.press("ArrowDown");
+    await expect.poll(isSelectedOptionInView, { message: `↓ を ${pressed} 回押したあと` }).toBe(true);
+  }
+  await expect(palette.getByRole("option").last()).toHaveAttribute("aria-selected", "true");
+
+  // 言葉を消すと、Home と End は一覧の端へ移るのに使える。
+  await palette.getByRole("combobox").fill("");
+  await page.keyboard.press("End");
+  await expect(palette.getByRole("option").last()).toHaveAttribute("aria-selected", "true");
+  await expect.poll(isSelectedOptionInView).toBe(true);
+  await page.keyboard.press("Home");
+  await expect(palette.getByRole("option").first()).toHaveAttribute("aria-selected", "true");
+  await expect.poll(() => list.evaluate((listElement) => listElement.scrollTop)).toBe(0);
+});
+
+test("コマンドパレットの上端は、当たりの数が変わっても動かない", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "買い物");
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("dialog", { name: "コマンドパレット" });
+  const topOf = async () => (await palette.boundingBox())!.y;
+  const topWhenEmpty = await topOf();
+  await palette.getByRole("combobox").fill(">");
+  expect(await topOf()).toBe(topWhenEmpty);
+  await palette.getByRole("combobox").fill("どこにも無い言葉 zzz");
+  await expect(palette.getByRole("option")).toHaveCount(1);
+  expect(await topOf()).toBe(topWhenEmpty);
+});
+
 test("コマンドパレットで打った言葉を題にして、新しいメモを作れる", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "会議の記録", "");

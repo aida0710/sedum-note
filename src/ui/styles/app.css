@@ -682,6 +682,8 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .tab.drop-target { box-shadow: inset 2px 0 0 var(--accent); }
 .dialog.note-picker { width: min(480px, 100%); max-height: min(560px, 90%); }
 .note-picker .sidebar-search { margin-bottom: 0; flex: none; }
+/* コマンドパレットは、当たりの数で高さが変わっても上端が動かないよう、上から決まった所に置く。 */
+.dialog.command-palette { --palette-top: 12vh; align-self: start; margin-top: var(--palette-top); max-height: min(560px, calc(100% - var(--palette-top))); }
 .command-palette .menu-item.on { background: var(--selected); }
 .command-palette .palette-item-icon { color: var(--muted); flex: none; }
 .command-palette .palette-item-hint { margin-left: auto; color: var(--muted); font-size: var(--font-size-small); max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
