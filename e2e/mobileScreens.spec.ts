@@ -1,5 +1,6 @@
 import { type Browser, expect, type Page, test } from "@playwright/test";
-import { PHONE_VIEWPORT, startLocalVault } from "./devices";
+import { newTestRemoteConfig } from "../integration/testStorage";
+import { openSyncedDevice, PHONE_VIEWPORT, startLocalVault, SYNC_KEY } from "./devices";
 
 // スマホの幅の画面で、同期なしの vault を作る。hasTouch を付けると、指で使う端末（pointer: coarse）として開く。
 async function openPhone(browser: Browser, { hasTouch = false }: { hasTouch?: boolean } = {}): Promise<Page> {
@@ -311,3 +312,28 @@ test("指で使う端末では、箇条書きの折りたたみの印がいつ�
   await expect(body.locator("ul ul")).toBeHidden();
 });
 
+test("設定の「同期」でも、書き出した同期の設定のファイルを取り込んで、同期先の欄を埋められる", async ({ browser }, testInfo) => {
+  const remoteConfig = await newTestRemoteConfig();
+  const phone = await openSyncedDevice(browser, { remoteConfig, join: false, viewport: PHONE_VIEWPORT });
+  await selectPhoneTab(phone, "設定");
+  await phone.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: /同期/ }).click();
+  await phone.getByRole("button", { name: "同期の設定を書き出す" }).click();
+  const download = phone.waitForEvent("download");
+  await phone.getByRole("dialog", { name: "同期の設定を渡す" }).getByRole("button", { name: "ファイルに保存" }).click();
+  const setupFile = testInfo.outputPath("sync-setup.sedumsync");
+  await (await download).saveAs(setupFile);
+  await phone.getByRole("dialog", { name: "同期の設定を渡す" }).getByRole("button", { name: "閉じる" }).click();
+
+  await phone.getByRole("button", { name: "同期先を変更" }).click();
+  await phone.getByLabel("バケット").fill("another-bucket");
+  await phone.locator('input[type="file"][aria-label="設定のファイルを選ぶ"]').setInputFiles(setupFile);
+  await expect(phone.getByText("同期の設定を読みました")).toBeVisible();
+  const syncKey = phone.locator("#sync-setup-key");
+  await syncKey.fill(SYNC_KEY);
+  // 暗号化キーの欄で Enter を押しても、下の「保存」は送られない（同期先の欄は開いたまま）。
+  await syncKey.press("Enter");
+  await expect(phone.getByRole("button", { name: "取り込む" })).toBeVisible();
+  await phone.getByRole("button", { name: "取り込む" }).click();
+  await expect(phone.getByText("同期の設定を取り込みました")).toBeVisible();
+  await expect(phone.getByLabel("バケット")).toHaveValue(remoteConfig.bucket);
+});

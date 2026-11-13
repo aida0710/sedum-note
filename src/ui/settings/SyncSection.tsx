@@ -12,6 +12,7 @@ import type { VaultSession } from "../session/useVaultSession";
 import { formatDateTime } from "../shared/formatTime";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { SyncSetupExportDialog } from "../sync/SyncSetupExportDialog";
+import { SyncSetupImport } from "../sync/SyncSetupImport";
 import { SyncTargetFields } from "../sync/SyncTargetFields";
 import { useSyncTargetForm } from "../sync/useSyncTargetForm";
 import { SettingCheckboxRow } from "./SettingRow";
@@ -81,6 +82,9 @@ function SyncTargetEditor({ session, vault, onClose }: SyncTargetEditorProps) {
   const holdsOtherVault = form.checked?.inspected.state === "existing" && !isOwnVault(form.checked);
   const message = problem ?? save.errorMessage;
   return (
+    <>
+      {/* 取り込みの欄は form の外に置く（暗号化キーの欄の Enter で、下の「保存」が送られないように）。 */}
+      <SyncSetupImport form={form} />
     <form className="sync-target-editor" onKeyDown={preventSubmitByImeKey} onSubmit={submit}>
       <SyncTargetFields form={form} isOwnVault={isOwnVault} />
       {placesNewVault && (
@@ -97,6 +101,7 @@ function SyncTargetEditor({ session, vault, onClose }: SyncTargetEditorProps) {
         <button type="submit" className="primary-button" disabled={save.busy || form.checked === null || holdsOtherVault}>{translate("settings.syncSave")}</button>
       </div>
     </form>
+    </>
   );
 }
 
