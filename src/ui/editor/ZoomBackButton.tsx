@@ -25,7 +25,7 @@ export function ZoomBackButton({ editor, noteTitle, className }: ZoomBackButtonP
   });
   return (
     <button type="button" className={className} aria-label={translate("editor.zoomBackTo", { name: destination })}
-      title={translate("editor.zoomBackTo", { name: destination })} onClick={() => zoomOutOneLevel(editor)}>
+      title={translate("editor.zoomBackHint", { name: destination })} onClick={() => zoomOutOneLevel(editor)}>
       <ChevronLeft size={20} />
       <span>{destination}</span>
     </button>

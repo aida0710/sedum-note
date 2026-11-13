@@ -50,6 +50,7 @@ import { zoomIntoCursor, zoomTargetAtCursor } from "./zoom";
 import { useRememberedNoteView } from "./rememberedNoteView";
 import { insertDroppedNoteLink } from "./droppedNoteLink";
 import { useIsZoomed, ZoomBackButton } from "./ZoomBackButton";
+import { useZoomOutOnEscape } from "./zoomOutOnEscape";
 import { registerFocusRestorer } from "../shared/focusReturn";
 import { revealBlock } from "./blockIds";
 import { NoteOutline } from "./NoteOutline";
@@ -286,13 +287,15 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   // 項目か見出しにズームしている間は、その部分だけを出す（題・タグ・ツールバーなどを隠し、PC では画面いっぱいに広げる）。
   // 戻るのは左上のボタンから。
   const isZoomed = useIsZoomed(editor);
+  const noteArea = useRef<HTMLDivElement>(null);
+  useZoomOutOnEscape({ editor, isZoomed, noteArea });
 
   const actionError = attachments.errorMessage ?? audioRecorder.errorMessage ?? pasteMarkdown.errorMessage ?? exportNote.errorMessage ?? print.errorMessage ?? openInNewWindow.errorMessage;
   if (!editor) {
     return null;
   }
   return (
-    <div className={`note-editor${isZoomed && !isMobile ? " zoomed-view" : ""}`}>
+    <div ref={noteArea} className={`note-editor${isZoomed && !isMobile ? " zoomed-view" : ""}`}>
       {!isMobile && !isZoomed && (
         <NoteTopBar editor={editor} recording={audioRecorder.recording} onStopRecording={toolbarActions.onToggleRecording} trailing={trailing} />
       )}

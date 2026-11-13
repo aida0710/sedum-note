@@ -31,6 +31,8 @@ import { Highlight } from "./highlightMark";
 import { DateTimeShortcuts } from "./insertDateTime";
 import { BlockDragHandle } from "./blockDragHandle";
 import { MarkdownShortcutUndo } from "./markdownShortcutUndo";
+import { KeepTabInEditor } from "./keepTabInEditor";
+import { ZoomOutOnEscape } from "./zoomOutOnEscape";
 import { BlockEmbed } from "./blockEmbedNode";
 import { BlockIds } from "./blockIds";
 import { ColoredTableCell, ColoredTableHeader } from "./tableCellBackground";
@@ -61,7 +63,8 @@ export function documentExtensions() {
     }),
     TaskList,
     TaskItem.configure({ nested: true }),
-    CodeBlockLowlight.configure({ lowlight: codeHighlighter }),
+    // コードの中の Tab と Shift+Tab は、行の字下げを足す・減らす（コードを書くエディタと同じ）。
+    CodeBlockLowlight.configure({ lowlight: codeHighlighter, enableTabIndentation: true }),
     // 列の境目をドラッグして幅を変えられる。スマホの幅では表が画面をはみ出すので、包んだ要素（tableWrapper）の中で横に送る。
     // セルは、背景色を持てるもの（ColoredTableCell・ColoredTableHeader）に置き換える。ノード名は同じ。
     TableKit.configure({ table: { resizable: true, renderWrapper: true, cellMinWidth: TABLE_CELL_MIN_WIDTH }, tableCell: false, tableHeader: false }),
@@ -95,12 +98,14 @@ export function createEditorExtensions({ body, slashMenuController }: EditorExte
     ...documentExtensions(),
     SlashCommands.configure({ controller: slashMenuController }),
     MarkdownShortcutUndo,
+    KeepTabInEditor,
     DueMarks,
     TableShortcuts,
     TableRowFilterExtension,
     MermaidDiagrams,
     BlockDragHandle,
     Zoom,
+    ZoomOutOnEscape,
     DateTimeShortcuts,
     TypewriterScroll.configure({ isEnabled: () => readDevicePreferences().typewriterMode, scrollContainerSelector: ".document-scroll" }),
     SearchHighlight,

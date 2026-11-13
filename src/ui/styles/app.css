@@ -493,6 +493,20 @@ button:disabled { cursor: default; opacity: .55; }
 .ProseMirror h6 { color: var(--muted); font-weight: 600; }
 .ProseMirror ul, .ProseMirror ol { padding-left: 22px; }
 .ProseMirror li { margin: .1em 0; }
+/* 箇条書きを深くするたびに、行頭の印を変える（Google ドキュメントや Word と同じ慣習）。番号は 1. → a. → i.、点は ● → ○ → ■ の順で、
+   4 段目からは同じ順にくり返す。深さは、外側にある箇条書きの数で数える（番号付きの中の点の箇条書きも 2 段目）。 */
+.ProseMirror ol { list-style-type: decimal; }
+.ProseMirror :is(ol, ul) ol { list-style-type: lower-alpha; }
+.ProseMirror :is(ol, ul) :is(ol, ul) ol { list-style-type: lower-roman; }
+.ProseMirror :is(ol, ul) :is(ol, ul) :is(ol, ul) ol { list-style-type: decimal; }
+.ProseMirror :is(ol, ul) :is(ol, ul) :is(ol, ul) :is(ol, ul) ol { list-style-type: lower-alpha; }
+.ProseMirror :is(ol, ul) :is(ol, ul) :is(ol, ul) :is(ol, ul) :is(ol, ul) ol { list-style-type: lower-roman; }
+.ProseMirror ul:not([data-type="taskList"]) { list-style-type: disc; }
+.ProseMirror :is(ol, ul) ul:not([data-type="taskList"]) { list-style-type: circle; }
+.ProseMirror :is(ol, ul) :is(ol, ul) ul:not([data-type="taskList"]) { list-style-type: square; }
+.ProseMirror :is(ol, ul) :is(ol, ul) :is(ol, ul) ul:not([data-type="taskList"]) { list-style-type: disc; }
+.ProseMirror :is(ol, ul) :is(ol, ul) :is(ol, ul) :is(ol, ul) ul:not([data-type="taskList"]) { list-style-type: circle; }
+.ProseMirror :is(ol, ul) :is(ol, ul) :is(ol, ul) :is(ol, ul) :is(ol, ul) ul:not([data-type="taskList"]) { list-style-type: square; }
 /* 行頭の印（・や番号）は、文字より薄くする。 */
 .ProseMirror li::marker { color: var(--muted); }
 .ProseMirror ul[data-type="taskList"] { list-style: none; padding-left: 0; }

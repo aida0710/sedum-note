@@ -682,6 +682,60 @@ test("箇条書きの項目を持ち手でドラッグすると、子の項目�
   await expect(page.locator(".ProseMirror li", { has: page.locator("> p", { hasText: /^A$/ }) }).locator("li > p")).toHaveText(["A1"]);
 });
 
+test("Tab で箇条書きの項目が深くなり、番号は 1. → a. → i.、点は ● → ○ → ■ と変わる。深くできない所の Tab は、本文の外へ出ない", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "字下げのメモ");
+  const body = page.locator(".ProseMirror");
+  const isBodyFocused = () => page.evaluate(() => document.activeElement?.classList.contains("ProseMirror") ?? false);
+
+  // ふつうの段落の Tab は、何もせず、続けて打った文字が本文に入る。
+  await page.keyboard.type("段落");
+  await page.keyboard.press("Tab");
+  expect(await isBodyFocused()).toBe(true);
+  await page.keyboard.type("の続き");
+  await expect(body.locator("p").first()).toHaveText("段落の続き");
+
+  // 最初の項目は深くできないので、何もしない。
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("1. 一");
+  await page.keyboard.press("Tab");
+  expect(await isBodyFocused()).toBe(true);
+  for (const text of ["二", "三", "四"]) {
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Tab");
+    await page.keyboard.type(text);
+  }
+  const listStyles = () => page.evaluate(() => [...document.querySelectorAll(".ProseMirror ol")].map((list) => getComputedStyle(list).listStyleType));
+  expect(await listStyles()).toEqual(["decimal", "lower-alpha", "lower-roman", "decimal"]);
+  await page.keyboard.press("Shift+Tab");
+  await expect(body.locator("ol ol ol > li > p")).toHaveText(["三", "四"]);
+
+  await placeCursorAtBodyEnd(page);
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("- 点");
+  for (const text of ["点の子", "点の孫"]) {
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Tab");
+    await page.keyboard.type(text);
+  }
+  const bulletStyles = await page.evaluate(() => [...document.querySelectorAll(".ProseMirror ul")].map((list) => getComputedStyle(list).listStyleType));
+  expect(bulletStyles).toEqual(["disc", "circle", "square"]);
+});
+
+test("コードのブロックでは、Tab で行を字下げし、Shift+Tab で戻す", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "コードの字下げ");
+  await insertFromSlashMenu(page, "コード", "コード");
+  await page.keyboard.type("if (a) {");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Tab");
+  await page.keyboard.type("b();");
+  await expect(page.locator(".ProseMirror pre")).toHaveText("if (a) {\n    b();");
+  await page.keyboard.press("Shift+Tab");
+  await expect(page.locator(".ProseMirror pre")).toHaveText("if (a) {\nb();");
+});
+
 test("PC では、書式のボタンを上に並べず、文字を選んだときだけその上に出す。表のメニューは表の中にいる間だけ上のバーに出る", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "書式のメモ");

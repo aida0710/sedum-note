@@ -162,12 +162,13 @@ export function zoomOutOneLevel(editor: Editor): boolean {
   return zoomToItem(editor, path[path.length - 2]?.position ?? null);
 }
 
-// メモの「…」の「この項目にズーム」にも、このキーを出す。
-export const ZOOM_INTO_CURSOR_KEYS: ShortcutKeys = { key: "z", alt: true };
+// メモの「…」の「この項目にズーム」にも、このキーを出す。Ctrl+.（Mac は ⌘+.）は Logseq と同じキー。
+// 戻るのは Ctrl+Shift+. か Esc（zoomOutOnEscape.ts）。Ctrl+, は設定を開くキーなので使わない。
+export const ZOOM_INTO_CURSOR_KEYS: ShortcutKeys = { key: "." };
 
 export const ZOOM_SHORTCUTS: Array<{ id: string; label: MessageKey; keys: ShortcutKeys; run: (editor: Editor) => boolean }> = [
   { id: "zoomIntoCursor", label: "editor.zoomIntoCursor", keys: ZOOM_INTO_CURSOR_KEYS, run: zoomIntoCursor },
-  { id: "zoomOutOneLevel", label: "editor.zoomOutOneLevel", keys: { key: "z", alt: true, shift: true }, run: zoomOutOneLevel },
+  { id: "zoomOutOneLevel", label: "editor.zoomOutOneLevel", keys: { key: ".", shift: true }, run: zoomOutOneLevel },
 ];
 
 function selectZoomedItem(editor: Editor): boolean {
@@ -258,7 +259,7 @@ function sectionZoomButton(view: EditorView, headingPosition: number): HTMLEleme
 }
 
 // ボタンは本文の直下の見出しにだけ出す。段組み・コールアウト・引用・表の中の見出しで左に出すと、隣の段の文字や
-// 枠に重なるため（中の見出しには、メモの「…」と Ctrl+Alt+Z でズームできる）。
+// 枠に重なるため（中の見出しには、メモの「…」と Ctrl+. でズームできる）。
 function sectionZoomButtons(doc: ProseMirrorNode, zoomedPosition: number | null): Decoration[] {
   const decorations: Decoration[] = [];
   doc.forEach((node, position) => {

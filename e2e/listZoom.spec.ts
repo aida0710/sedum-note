@@ -19,7 +19,7 @@ async function placeCursorIn(page: Page, text: string): Promise<void> {
 
 async function zoomIntoItem(page: Page, text: string): Promise<void> {
   await placeCursorIn(page, text);
-  await page.keyboard.press("Control+Alt+z");
+  await page.keyboard.press("Control+.");
   await expect(visibleLines(page).first()).toHaveText(text);
 }
 
@@ -56,7 +56,7 @@ test("箇条書きの項目にズームすると、窓いっぱいにその項�
   const backBox = (await zoomBackButton(page).boundingBox())!;
   expect(backBox.x).toBeLessThan(40);
   expect(backBox.y).toBeLessThan(40);
-  await page.keyboard.press("Control+Alt+Shift+z");
+  await page.keyboard.press("Control+Shift+.");
   await expect(visibleLines(page)).toHaveText(["宿", "駅前のホテル"]);
   await expect(zoomBackButton(page)).toHaveAccessibleName("「旅行」に戻る");
   if (SCREENSHOT_DIRECTORY) {
@@ -88,9 +88,9 @@ test("メモのメニューからもズームできる。ズームしている�
   // ズームしている間の全選択は、見えている項目の中だけを選ぶ。消しても、隠れている行は残る。
   await page.keyboard.press("Control+a");
   await page.keyboard.press("Delete");
-  await page.keyboard.press("Control+Alt+Shift+z");
-  await page.keyboard.press("Control+Alt+Shift+z");
-  await page.keyboard.press("Control+Alt+Shift+z");
+  await page.keyboard.press("Control+Shift+.");
+  await page.keyboard.press("Control+Shift+.");
+  await page.keyboard.press("Control+Shift+.");
   await expect(visibleLines(page)).toHaveText(["はじめに", "旅行", "宿", "", "持ち物", ""]);
 
   // 箇条書きの外にカーソルがあるときは、メニューにズームを出さない。
@@ -118,7 +118,7 @@ test("ズームしている間に、メモの中の検索でズームの外の�
   await page.keyboard.type("## 行程");
   await page.keyboard.press("Enter");
   await page.keyboard.type("- 宿");
-  await page.keyboard.press("Control+Alt+z");
+  await page.keyboard.press("Control+.");
   await expect(visibleLines(page)).toHaveText(["宿"]);
   await page.keyboard.press("Control+f");
   await page.getByPlaceholder("このメモの中を検索").fill("行程");
@@ -245,4 +245,28 @@ test("見出しの左のズームのボタンは、本文の直下の見出し�
   await expect(page.locator(".ProseMirror .callout h2")).toHaveText("中の見出し");
   await expect(page.locator(".ProseMirror > h2").getByRole("button", { name: "このセクションにズーム" })).toHaveCount(1);
   await expect(page.locator(".ProseMirror .callout h2").getByRole("button", { name: "このセクションにズーム" })).toHaveCount(0);
+});
+
+test("ズームしている間は、Esc でも 1 つ上の階層へ戻る。「/」の候補が開いているときの Esc は、候補を閉じるだけ", async ({ page }) => {
+  await writeNestedList(page);
+  await zoomIntoItem(page, "駅前のホテル");
+  await page.keyboard.press("Escape");
+  await expect(visibleLines(page)).toHaveText(["宿", "駅前のホテル"]);
+
+  // 「/」の候補は、行頭か空白のあとで開く。
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("/");
+  const slashMenu = page.getByRole("listbox", { name: "ブロックの種類" });
+  await expect(slashMenu).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(slashMenu).toHaveCount(0);
+  await expect(zoomBackButton(page)).toHaveAccessibleName("「旅行」に戻る");
+
+  // 本文の外（戻るボタン）にフォーカスがあっても戻る。
+  await zoomBackButton(page).focus();
+  await page.keyboard.press("Escape");
+  await expect(zoomBackButton(page)).toHaveAccessibleName("「計画」に戻る");
+  await page.keyboard.press("Escape");
+  await expect(zoomBackButton(page)).toHaveCount(0);
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("計画");
 });
