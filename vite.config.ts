@@ -25,6 +25,8 @@ export default defineConfig(({ command }) => ({
   // （画面の試験が途中で止まる）。先に名前を挙げて、起動のときに用意させる。
   optimizeDeps: { include: LAZILY_LOADED_DEPENDENCIES },
   // 起動してすぐ、最初の画面のファイルを変換しておく（画面の試験が一斉に最初の画面を開いても、時間切れにならないように）。
-  server: { warmup: { clientFiles: ["./src/main.tsx"] } },
+  // 確認の画像や試験の結果（artifacts・test-results）は見張らない。見張ると、そこへファイルを書くたびに、開いている画面が読み込み直される
+  // （画面を撮る道具や画面の試験が、途中で最初の画面に戻る）。
+  server: { warmup: { clientFiles: ["./src/main.tsx"] }, watch: { ignored: ["**/artifacts/**", "**/test-results/**"] } },
   test: { include: ["src/**/*.test.ts"] },
 }));
