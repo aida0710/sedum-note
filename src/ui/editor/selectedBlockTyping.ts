@@ -29,6 +29,11 @@ function moveCursorBelowSelectedBlock(state: EditorState): Transaction | null {
 // キーを通らずに文字が入る入力の種類（日本語の変換、絵文字の一覧、音声入力、スマホのキーボードの候補）。
 const TEXT_INPUT_TYPES = ["insertText", "insertCompositionText", "insertReplacementText"];
 
+// 選んだブロックがあれば、すぐ下の段落に文字を入れる変更。選んでいなければ null。
+function insertTextBelowSelectedBlock(state: EditorState, text: string): Transaction | null {
+  return moveCursorBelowSelectedBlock(state)?.insertText(text).scrollIntoView() ?? null;
+}
+
 // 選んだブロックがあれば、文字が入る前に、カーソルをすぐ下の段落へ移す。
 function moveCursorBeforeTextArrives(view: EditorView): void {
   const transaction = moveCursorBelowSelectedBlock(view.state);
@@ -45,11 +50,11 @@ export const SelectedBlockTyping = Extension.create({
         props: {
           // キーで打った文字。
           handleTextInput: (view, _from, _to, text) => {
-            const transaction = moveCursorBelowSelectedBlock(view.state);
+            const transaction = insertTextBelowSelectedBlock(view.state, text);
             if (!transaction) {
               return false;
             }
-            view.dispatch(transaction.insertText(text).scrollIntoView());
+            view.dispatch(transaction);
             return true;
           },
           // キーを通らない文字は handleTextInput に来る前にブロックを置き換えるので、入る前に受ける。どちらも、既定の入力はそのまま続けさせる。
@@ -59,6 +64,18 @@ export const SelectedBlockTyping = Extension.create({
               return false;
             },
             beforeinput: (view, event) => {
+              // 打った文字が決まっている入力は、ブラウザに入れさせずにここで入れる。WebKit は文字を入れる場所を
+              // beforeinput より前に決めるので、ここでカーソルを動かしても、選んだブロックが文字に置き換わる。
+              if (event.inputType === "insertText" && typeof event.data === "string") {
+                const transaction = insertTextBelowSelectedBlock(view.state, event.data);
+                if (transaction) {
+                  event.preventDefault();
+                  view.dispatch(transaction);
+                  return true;
+                }
+                return false;
+              }
+              // 変換中の文字などは取り消せない（preventDefault が効かない）ので、カーソルだけを先に移す。
               if (TEXT_INPUT_TYPES.includes(event.inputType)) {
                 moveCursorBeforeTextArrives(view);
               }
