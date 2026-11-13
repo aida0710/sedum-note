@@ -9,7 +9,7 @@ import { VaultReplacedError } from "./syncEngine";
 
 // 同期先の設定か、バケットの側を直さないと通らない失敗。
 const PERMANENT_STORAGE_FAILURES: ReadonlySet<ObjectStoreFailureReason> = new Set([
-  "forbidden", "bucket_not_found", "etag_hidden", "conditional_writes_unsupported",
+  "forbidden", "bucket_not_found", "etag_hidden", "etag_missing", "conditional_writes_unsupported",
 ]);
 
 export function isPermanentSyncFailure(error: unknown): boolean {

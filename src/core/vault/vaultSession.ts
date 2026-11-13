@@ -159,9 +159,9 @@ async function placeRemoteVault(environment: VaultSessionEnvironment, input: Pla
     if (error instanceof PreconditionFailedError) {
       throw new SyncTargetChangedError();
     }
-    // 書き込みは届いたのに ETag を読めなかった（CORS の ExposeHeaders に ETag が無い）。置いたままにすると、
+    // 書き込みは届いたのに ETag を読めなかった（CORS の ExposeHeaders に ETag が無い、WebDAV のサーバーが返さない）。置いたままにすると、
     // 誰も暗号化キーを見ていない vault.json が残り、次に確かめたときに「既存のメモ」に見える。
-    if (error instanceof ObjectStoreError && error.reason === "etag_hidden") {
+    if (error instanceof ObjectStoreError && (error.reason === "etag_hidden" || error.reason === "etag_missing")) {
       await objectStore.delete(VAULT_OBJECT_KEY).catch(() => undefined);
     }
     throw error;

@@ -27,7 +27,7 @@ test("CORS で ETag を公開していないと、ExposeHeaders に ETag を足�
   const config = await newTestRemoteConfigWithCors("sedum-note-cors-no-etag", rules);
   // 空の同期先の確認は ETag を読まないので通る。書き込んで ETag を読むところで分かる。
   await startSyncedVault(page, { remoteConfig: config, join: false });
-  await expect(page.getByRole("alert")).toContainText("ExposeHeaders に ETag を足してください");
+  await expect(page.getByRole("alert")).toContainText("ExposeHeadersにETagを追加してください");
 });
 
 test("CORS でこの画面の origin を許していないと、CORS の設定を確かめるよう案内する", async ({ page }) => {

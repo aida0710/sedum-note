@@ -474,7 +474,7 @@ test("承認を待つ間にメモを書き換えると、その変更は行わ�
   await page.keyboard.press("End");
   await page.keyboard.type("とレモン");
   await approvalCard(page).getByRole("button", { name: "許可", exact: true }).click();
-  await expect(chat(page).locator(".ai-tool-activity")).toContainText("承認を待つ間に対象が変わったため、行いませんでした");
+  await expect(chat(page).locator(".ai-tool-activity")).toContainText("承認を待つ間に対象が変わったため、実行しませんでした");
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text").last()).toHaveText("書き換えられたので、直しませんでした。");
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかんとレモン"]);
 
@@ -487,7 +487,7 @@ test("承認を待つ間にメモを書き換えると、その変更は行わ�
   // ゴミ箱に入れるのは、作る・直すとは別の許可（既定は毎回聞く）。
   await expect(approvalCard(page)).toContainText("「果物」をゴミ箱に入れる");
   await approvalCard(page).getByRole("button", { name: "拒否", exact: true }).click();
-  await expect(chat(page).locator(".ai-tool-activity").last()).toContainText("拒否したため、行いませんでした");
+  await expect(chat(page).locator(".ai-tool-activity").last()).toContainText("拒否したため、実行しませんでした");
   await expect(page.locator(".tree-note", { hasText: "果物" })).toBeVisible();
 
   // 承認を待たない切り替えは、その会話だけ。設定は毎回聞くのままで、新しい会話では外れる。
@@ -545,7 +545,7 @@ test("承認を待っている間に止めると、何も変えずに止まり�
   await expect(approvalCard(page)).toBeVisible();
   await chat(page).getByRole("button", { name: "止める" }).click();
   await expect(approvalCard(page)).toHaveCount(0);
-  await expect(chat(page).locator(".ai-tool-activity")).toContainText("止めたため、行いませんでした");
+  await expect(chat(page).locator(".ai-tool-activity")).toContainText("停止したため、実行しませんでした");
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかん"]);
 
   await input.fill("やっぱりいい");

@@ -82,6 +82,11 @@ describe("WebDavObjectStore", () => {
     await expect(ensureConditionalWrites(storeOn({ ignoresWriteConditions: true }).store)).rejects.toMatchObject({ reason: "conditional_writes_unsupported" });
   });
 
+  it("読んだ応答に ETag が無いサーバーは、CORS の設定の話ではなく、ETag を返さないサーバーとして断る", async () => {
+    const store = new WebDavObjectStore(config, async () => new Response(bytes(1), { status: 200 }));
+    await expect(store.get("vault.json")).rejects.toMatchObject({ reason: "etag_missing" });
+  });
+
   it("認証を断られたら、その旨の失敗にする", async () => {
     const store = new WebDavObjectStore(config, async () => new Response(null, { status: 401 }));
     await expect(store.list("records/")).rejects.toMatchObject({ reason: "forbidden" });

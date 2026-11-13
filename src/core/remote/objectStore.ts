@@ -45,6 +45,8 @@ export type ObjectStoreFailureReason =
   | "bucket_not_found"
   // 応答に ETag が無い。CORS の ExposeHeaders に ETag が無いときに起きる。
   | "etag_hidden"
+  // WebDAV のサーバーが ETag を返さない。同時の書き込みを防げないので使えない（CORS の設定では直らない）。
+  | "etag_missing"
   // 条件付き PUT を無視して上書きする。同時に書いたときに片方の変更が消えるので使わない。
   | "conditional_writes_unsupported"
   | "unexpected_response";

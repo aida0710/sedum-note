@@ -137,7 +137,7 @@ export class WebDavObjectStore implements ObjectStore {
       } else if (entry.etag !== null) {
         files.push({ key: entry.key, etag: entry.etag });
       } else {
-        throw new ObjectStoreError("etag_hidden", "the WebDAV server did not return an ETag for a file");
+        throw new ObjectStoreError("etag_missing", "the WebDAV server did not return an ETag for a file");
       }
     }
     return files;
@@ -171,7 +171,7 @@ export class WebDavObjectStore implements ObjectStore {
 function readEtag(response: Response): string {
   const etag = response.headers.get("ETag");
   if (etag === null || etag === "") {
-    throw new ObjectStoreError("etag_hidden", "the WebDAV server did not expose the ETag header");
+    throw new ObjectStoreError("etag_missing", "the WebDAV server did not return the ETag header");
   }
   return normalizeEtag(etag);
 }
