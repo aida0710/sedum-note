@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { BUILT_IN_THEMES, DARK_THEME, LIGHT_THEME } from "./builtInThemes";
 import { contrastRatio, readableTextColorOn } from "./colorContrast";
 import { findContrastProblems, parseStoredCustomTheme, schemeOfColors } from "./customTheme";
+import { raisedSurfaceColor } from "./raisedSurfaceColor";
 
 describe("contrastRatio", () => {
   it("黒と白は 21、同じ色は 1 になる", () => {
@@ -21,6 +22,35 @@ describe("組み込みのテーマ", () => {
   it.each(BUILT_IN_THEMES.map((theme) => [theme.id, theme] as const))("%s は自作テーマと同じコントラストの下限を満たす", (_id, theme) => {
     expect(findContrastProblems(theme.colors)).toEqual([]);
     expect(schemeOfColors(theme.colors)).toBe(theme.scheme);
+  });
+});
+
+// 小さい文字（12〜13px）に使う色が、載る地の上で読めること。WCAG の「17pt 以下は 4.5:1」。
+const SMALL_TEXT_MINIMUM_CONTRAST = 4.5;
+
+describe("組み込みのテーマの小さい文字", () => {
+  const themes = BUILT_IN_THEMES.map((theme) => [theme.id, theme] as const);
+
+  it.each(themes)("%s の補助の文字（muted）は、本文・左の列・選んだ行・タグの地の上で読める", (_id, theme) => {
+    for (const background of ["panel", "sidebar", "canvas", "selected", "tag"] as const) {
+      expect(contrastRatio(theme.colors.muted, theme.colors[background]), background).toBeGreaterThanOrEqual(SMALL_TEXT_MINIMUM_CONTRAST);
+    }
+  });
+
+  it.each(themes)("%s の成功の色（ok）は、文字として本文とコードの地の上で読める", (_id, theme) => {
+    for (const background of ["panel", "tag"] as const) {
+      expect(contrastRatio(theme.colors.ok, theme.colors[background]), background).toBeGreaterThanOrEqual(SMALL_TEXT_MINIMUM_CONTRAST);
+    }
+  });
+
+  it.each(themes)("%s の浮いた面（メニュー・ダイアログ）は、暗いテーマでは本文の地より明るく、文字は読める", (_id, theme) => {
+    const raised = raisedSurfaceColor(theme.colors);
+    if (theme.scheme === "dark") {
+      expect(contrastRatio(raised, theme.colors.panel)).toBeGreaterThan(1.1);
+    } else {
+      expect(raised).toBe(theme.colors.panel);
+    }
+    expect(contrastRatio(theme.colors.muted, raised)).toBeGreaterThanOrEqual(SMALL_TEXT_MINIMUM_CONTRAST);
   });
 });
 

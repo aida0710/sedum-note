@@ -9,8 +9,8 @@ export const LIGHT_THEME: BuiltInTheme = {
   id: "light",
   scheme: "light",
   colors: {
-    canvas: "#f7f7f5", panel: "#ffffff", sidebar: "#f1f1ee", line: "#e4e4df", text: "#1f2328", muted: "#6b6f76",
-    accent: "#2f6fde", accentSoft: "#e6eefc", selected: "#e9edf5", tag: "#f0efe9", ok: "#2da44e", danger: "#cf222e",
+    canvas: "#f7f7f5", panel: "#ffffff", sidebar: "#f1f1ee", line: "#e4e4df", text: "#1f2328", muted: "#63676e",
+    accent: "#2f6fde", accentSoft: "#e6eefc", selected: "#e9edf5", tag: "#f0efe9", ok: "#187733", danger: "#cf222e",
   },
 };
 
@@ -27,8 +27,8 @@ const SEDUM_THEME: BuiltInTheme = {
   id: "sedum",
   scheme: "light",
   colors: {
-    canvas: "#f6f7f3", panel: "#ffffff", sidebar: "#eef1ea", line: "#dfe4d8", text: "#1f2a22", muted: "#667066",
-    accent: "#2f7d54", accentSoft: "#e3f1e8", selected: "#e4eadf", tag: "#edf0e7", ok: "#2da44e", danger: "#cf222e",
+    canvas: "#f6f7f3", panel: "#ffffff", sidebar: "#eef1ea", line: "#dfe4d8", text: "#1f2a22", muted: "#5d665d",
+    accent: "#2f7d54", accentSoft: "#e3f1e8", selected: "#e4eadf", tag: "#edf0e7", ok: "#187733", danger: "#cf222e",
   },
 };
 
@@ -45,8 +45,8 @@ const SEPIA_THEME: BuiltInTheme = {
   id: "sepia",
   scheme: "light",
   colors: {
-    canvas: "#f4ecd8", panel: "#fbf5e6", sidebar: "#efe5cc", line: "#e0d3b4", text: "#3b2f20", muted: "#76664f",
-    accent: "#a3561a", accentSoft: "#f3e2c7", selected: "#e8dcbf", tag: "#efe3c8", ok: "#4c8a3a", danger: "#b3261e",
+    canvas: "#f4ecd8", panel: "#fbf5e6", sidebar: "#efe5cc", line: "#e0d3b4", text: "#3b2f20", muted: "#6b5c46",
+    accent: "#a3561a", accentSoft: "#f3e2c7", selected: "#e8dcbf", tag: "#efe3c8", ok: "#376d29", danger: "#b3261e",
   },
 };
 

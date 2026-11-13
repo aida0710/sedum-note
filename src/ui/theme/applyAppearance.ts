@@ -4,6 +4,7 @@
 import { applySystemBarColors } from "../platform/systemBars";
 import type { EditorTypography } from "../preferences/editorTypography";
 import { readableTextColorOn } from "./colorContrast";
+import { raisedSurfaceColor } from "./raisedSurfaceColor";
 import { THEME_COLOR_NAMES, type Theme, type ThemeColorName, type ThemeColors } from "./themeColors";
 
 // accentSoft → --accent-soft
@@ -16,6 +17,7 @@ export function themeCssVariables(colors: ThemeColors): Record<string, string> {
   const variables: Record<string, string> = {
     "--on-accent": readableTextColorOn(colors.accent),
     "--on-danger": readableTextColorOn(colors.danger),
+    "--raised": raisedSurfaceColor(colors),
   };
   for (const name of THEME_COLOR_NAMES) {
     variables[cssVariableName(name)] = colors[name];
@@ -31,6 +33,8 @@ export function applyAppearance({ theme, editorTypography, sidebarWidth }: Appea
     root.style.setProperty(name, value);
   }
   root.style.colorScheme = theme.scheme;
+  // 影の濃さなど、地の明るさで変える見た目を CSS が選べるようにする。
+  root.dataset.scheme = theme.scheme;
   // スマホの組み方で画面の上下の端に来る色（メモの地）を、システムバーの所にも当てる。
   applySystemBarColors({ backgroundColor: theme.colors.panel, isDark: theme.scheme === "dark" });
   root.style.setProperty("--editor-font-size", `${editorTypography.fontSize}px`);
