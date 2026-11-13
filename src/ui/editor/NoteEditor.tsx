@@ -72,6 +72,7 @@ import { BlockMenuController } from "./blockMenuController";
 import { BlockMenu } from "./BlockMenu";
 import { NoteCharacterCount } from "./NoteCharacterCount";
 import { NoteTitleInput } from "./NoteTitleInput";
+import { NoteTagChips } from "./NoteTagChips";
 import { NoteBacklinks } from "./NoteBacklinks";
 import { NoteProperties } from "./NoteProperties";
 import { propertiesOfNote } from "../../core/notes/noteProperties";
@@ -330,6 +331,8 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   useZoomOutOnEscape({ editor, isZoomed, noteArea });
   useZoomTransition({ editor, target: documentScroll });
 
+  // 題も本文も添付も無い、作ったばかりのメモか。
+  const isNewEmptyNote = note.content.title === "" && bodyPlainText(note.body) === "" && note.content.attachments.length === 0;
   const actionError = attachments.errorMessage ?? audioRecorder.errorMessage ?? pasteMarkdown.errorMessage ?? exportNote.errorMessage ?? print.errorMessage ?? openInNewWindow.errorMessage
     ?? openWebLink.errorMessage;
   // Ctrl（Mac は ⌘）を押しながら本文のリンクを押したら、外のブラウザで開く。
@@ -392,19 +395,20 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
                 {noteNotebooks.map((notebook) => (
                   <span key={notebook.id} className="chip"><NotebookMark notebook={notebook} colors={notebookColors} />{notebook.content.name}</span>
                 ))}
-                {tags.map((tag) => <span key={tag} className="chip">#{tag}</span>)}
+                <NoteTagChips tags={tags} />
                 {note.content.dueAt !== null && (
                   <button type="button" className="chip due-chip" disabled={inTrash} onClick={() => setDueTarget("note")}>
                     <AlarmClock size={12} />{translate("due.chip", { time: formatDueTime(note.content.dueAt) })}
                   </button>
                 )}
                 {unsyncedIds.has(noteId) && <span className="chip unsynced">{translate("editor.unsynced")}</span>}
-                <NoteCharacterCount editor={editor} />
-                <span className="updated">{translate("editor.updatedAt", { time: formatDateTime(note.updatedAt) })}</span>
+                {/* 作ったばかりの空のメモには、文字数（0 文字）と更新日時を出さない。 */}
+                {!isNewEmptyNote && <NoteCharacterCount editor={editor} />}
+                {!isNewEmptyNote && <span className="updated">{translate("editor.updatedAt", { time: formatDateTime(note.updatedAt) })}</span>}
               </div>
               {/* 作ったばかりの空のメモは、すぐ打てるようにタイトルにカーソルを置く。 */}
               <NoteTitleInput inputRef={titleInput} title={note.content.title} readOnly={inTrash}
-                autoFocus={note.content.title === "" && bodyPlainText(note.body) === "" && note.content.attachments.length === 0}
+                autoFocus={isNewEmptyNote}
                 onTitleChange={(title) => void repository.updateNote(noteId, { title })} onMoveToBody={moveToBodyStart} />
               <NoteProperties note={note} properties={propertiesOfNote(note, notebooks)} repository={repository} readOnly={inTrash} />
             </>

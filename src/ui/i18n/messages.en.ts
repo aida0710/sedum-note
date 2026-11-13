@@ -246,6 +246,8 @@ export const englishMessages: Record<MessageKey, string> = {
   "editor.bodyPlaceholder": "Write here…",
   "editor.columnPlaceholder": "Write here",
   "editor.updatedAt": "Updated {time}",
+  "editor.showMoreTags": "Show {count} more tags",
+  "editor.showFewerTags": "Show fewer tags",
   "editor.heading": "Heading",
   "editor.bold": "Bold",
   "editor.italic": "Italic",

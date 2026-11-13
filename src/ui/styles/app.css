@@ -97,10 +97,11 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 .typography-preview { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-control); }
 .settings-section .typography-preview p { color: var(--text); font-size: var(--editor-font-size); line-height: var(--editor-line-height, 1.85); letter-spacing: var(--editor-letter-spacing, .02em); }
 .code-input { width: 100%; font-family: var(--font-mono); font-size: var(--font-size-small); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 8px 10px; background: var(--panel); color: var(--text); resize: vertical; }
-.note-properties { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; align-items: center; margin-bottom: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-control); font-size: var(--font-size-ui); }
+/* 名前の列は、中身の幅まで（枠の 4 割を上限に、長い名前は折り返す）。値の列は残りの幅で、枠からはみ出さない。 */
+.note-properties { display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr); gap: 6px 14px; align-items: center; margin-bottom: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-control); font-size: var(--font-size-ui); }
 .note-property { display: contents; }
-.note-property label { color: var(--muted); }
-.note-property input:not([type="checkbox"]), .note-property select { height: var(--control-height-compact); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 8px; background: var(--panel); color: var(--text); max-width: 320px; }
+.note-property label { color: var(--muted); overflow-wrap: anywhere; }
+.note-property input:not([type="checkbox"]), .note-property select { height: var(--control-height-compact); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 8px; background: var(--panel); color: var(--text); width: 100%; min-width: 0; }
 .note-property input[type="checkbox"] { justify-self: start; }
 /* ダイアログの幅は、.dialog（420px）より強く当たるよう、.dialog と重ねて書く。 */
 .dialog.notebook-properties { width: min(620px, 100%); }
@@ -474,6 +475,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .document-meta { color: var(--muted); font-size: var(--font-size-small); display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 6px; min-height: 22px; }
 /* 題の上のノートブック・タグ・期限は、地の色を付けず、小さい文字だけにする（本文より前に出さない）。 */
 .document-meta .chip { background: none; padding: 0 8px 0 0; color: var(--muted); }
+.document-meta .chip.more-tags:hover { color: var(--text); }
 .document-meta .character-count { margin-left: auto; }
 .document-meta .updated { margin-left: 12px; }
 .chip { background: var(--tag); border-radius: 999px; padding: 2px 9px; font-size: var(--font-size-small); color: var(--text); display: inline-flex; align-items: center; gap: 5px; }

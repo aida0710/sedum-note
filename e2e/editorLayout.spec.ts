@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, insertBodyHtml, startLocalVault } from "./devices";
+import { addNotebookOnDesktop, createNoteOnDesktop, insertBodyHtml, startLocalVault } from "./devices";
 
 // 本文の文字の大きさの既定（px）。ブロックの間は、これに比例する（app.css の --block-gap・--block-gap-loose）。
 const BODY_FONT_SIZE = 16;
@@ -105,4 +105,68 @@ test("コードは本文より行の間が狭く、長い行は折り返さず�
   expect(await lineHeightOf(code)).toBeLessThan(await lineHeightOf(page.locator(".ProseMirror > p").first()));
   expect(await code.evaluate((node) => node.scrollWidth - node.clientWidth)).toBeGreaterThan(0);
   expect(await page.locator(".document-scroll").evaluate((scroll) => scroll.scrollWidth - scroll.clientWidth)).toBe(0);
+});
+
+test("長い名前のプロパティがあっても、値の欄は枠の中に収まり、枠の右端まで広がる。スマホの幅では、名前の下に値を置く", async ({ page }) => {
+  const longName = "とても長いプロパティの名前で、枠の幅を食いつぶしそうなもの（確認用）";
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "読書");
+  await page.locator(".nav-row", { has: page.locator(".nav", { hasText: "読書" }) }).getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "プロパティ" }).click();
+  const dialog = page.getByRole("dialog", { name: "プロパティ" });
+  await dialog.getByRole("button", { name: "プロパティを追加" }).click();
+  await dialog.getByRole("textbox", { name: "名前" }).fill(longName);
+  await dialog.getByRole("textbox", { name: "名前" }).press("Enter");
+  await dialog.getByRole("button", { name: "閉じる" }).click();
+  await page.locator(".nav", { hasText: "読書" }).click();
+  await createNoteOnDesktop(page, "本");
+
+  const frame = page.locator(".note-properties");
+  const valueInput = page.getByLabel(longName);
+  const edges = async () => {
+    const frameBox = (await frame.boundingBox())!;
+    const inputBox = (await valueInput.boundingBox())!;
+    const labelBox = (await frame.locator("label").boundingBox())!;
+    return { frameBox, inputBox, labelBox };
+  };
+  const desktop = await edges();
+  // 名前の列は枠の 4 割まで。値の欄は、その右から枠の右端（中の余白 12px と枠線の手前）まで。
+  expect(desktop.labelBox.width).toBeLessThanOrEqual(desktop.frameBox.width * 0.4);
+  expect(desktop.inputBox.width).toBeGreaterThan(desktop.frameBox.width * 0.5);
+  expect(Math.round(desktop.frameBox.x + desktop.frameBox.width - (desktop.inputBox.x + desktop.inputBox.width))).toBe(13);
+
+  // スマホの幅では、名前の下に値を置く 1 列になる（スマホの組み方に切り替わると、開いていたメモの画面のまま組み直される）。
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".phone")).toBeVisible();
+  await page.locator(".phone").getByText("本", { exact: true }).first().click();
+  await expect(valueInput).toBeVisible();
+  const phone = await edges();
+  expect(phone.inputBox.y).toBeGreaterThanOrEqual(phone.labelBox.y + phone.labelBox.height);
+  expect(phone.inputBox.width).toBeGreaterThan(phone.frameBox.width * 0.9);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
+});
+
+test("タグの多いメモでは、本文の上のタグは最初の 5 個だけを出し、「+N」を押すと全部が出る", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "タグの多いメモ");
+  await insertBodyHtml(page, `<p>${Array.from({ length: 30 }, (_unused, index) => `#タグ${index + 1}`).join(" ")}</p>`);
+  const tagChips = page.locator(".document-meta .chip", { hasText: /^#/ });
+  await expect(tagChips).toHaveCount(5);
+  const titleTopWhenCollapsed = (await page.getByPlaceholder("タイトル").boundingBox())!.y;
+  await page.getByRole("button", { name: "ほかのタグを表示（25個）" }).click();
+  await expect(tagChips).toHaveCount(30);
+  expect((await page.getByPlaceholder("タイトル").boundingBox())!.y).toBeGreaterThan(titleTopWhenCollapsed);
+  await page.getByRole("button", { name: "タグを折りたたむ" }).click();
+  await expect(tagChips).toHaveCount(5);
+});
+
+test("作ったばかりの空のメモには文字数と更新日時を出さず、書き始めると出る", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await expect(page.getByPlaceholder("タイトル")).toBeFocused();
+  await expect(page.locator(".document-meta .character-count")).toHaveCount(0);
+  await expect(page.locator(".document-meta .updated")).toHaveCount(0);
+  await page.keyboard.type("題");
+  await expect(page.locator(".document-meta .character-count")).toHaveText("0 文字");
+  await expect(page.locator(".document-meta .updated")).toBeVisible();
 });

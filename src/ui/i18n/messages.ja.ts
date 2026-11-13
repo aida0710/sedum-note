@@ -244,6 +244,8 @@ export const japaneseMessages = {
   "editor.bodyPlaceholder": "本文を書く…",
   "editor.columnPlaceholder": "ここに書く",
   "editor.updatedAt": "{time} に更新",
+  "editor.showMoreTags": "ほかのタグを表示（{count}個）",
+  "editor.showFewerTags": "タグを折りたたむ",
   "editor.heading": "見出し",
   "editor.bold": "太字",
   "editor.italic": "斜体",
