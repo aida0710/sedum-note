@@ -15,6 +15,7 @@ import { translate } from "../i18n/translate";
 import type { BlockMenuController } from "./blockMenuController";
 import { BODY_SCROLL_CONTAINER_SELECTOR } from "./bodyScroll";
 import { blockAt, startBlockBelow } from "./blockOperations";
+import { createHoveredBlockMarks } from "./hoveredBlockMarks";
 
 const HANDLE_CLASS = "block-drag-handle";
 const INSERT_BUTTON_CLASS = "block-insert-button";
@@ -27,6 +28,9 @@ const HANDLE_HEIGHT = 24;
 const HANDLE_GAP = { heading: 44, listItem: 38, other: 6 };
 
 const LIST_ITEM_TYPES = ["listItem", "taskItem"];
+const LIST_TYPES = ["bulletList", "orderedList", "taskList"];
+// 箇条書きか項目の要素から見た、すぐ下の段の項目（チェックリストの項目は、子の箇条書きが中身の div の中にある）。
+const NESTED_LIST_ITEMS_SELECTOR = ":scope > li, :scope > ul > li, :scope > ol > li, :scope > div > ul > li, :scope > div > ol > li";
 
 // ＋。lucide の plus と同じ形。
 const PLUS_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
@@ -35,7 +39,25 @@ const GRIP_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="cur
 
 type DraggableBlock = { position: number; node: ProseMirrorNode; element: HTMLElement };
 
-// マウスの高さにある、動かせるブロック。箇条書きの中なら、いちばん内側の項目。それ以外は本文の直下のブロック。無ければ null。
+// 縦の位置 clientY にある、いちばん内側の項目の要素。箇条書きか項目の要素（listOrItem）から、子の箇条書きへ下りながら探す。
+// 無ければ（項目と項目の間など）、listOrItem が項目ならそれ、箇条書きなら null。
+function innermostListItemAt(listOrItem: HTMLElement, clientY: number): HTMLElement | null {
+  let innermost = listOrItem.tagName === "LI" ? listOrItem : null;
+  let current = listOrItem;
+  for (;;) {
+    const itemAtHeight = [...current.querySelectorAll<HTMLElement>(NESTED_LIST_ITEMS_SELECTOR)].find((item) => {
+      const box = item.getBoundingClientRect();
+      return clientY >= box.top && clientY <= box.bottom;
+    });
+    if (!itemAtHeight) {
+      return innermost;
+    }
+    innermost = itemAtHeight;
+    current = itemAtHeight;
+  }
+}
+
+// マウスの高さにある、動かせるブロック。箇条書きの中なら、その高さにある、いちばん内側の項目。それ以外は本文の直下のブロック。無ければ null。
 function draggableBlockAt(view: EditorView, mouse: { clientX: number; clientY: number }): DraggableBlock | null {
   const editorBox = view.dom.getBoundingClientRect();
   if (mouse.clientY < editorBox.top || mouse.clientY > editorBox.bottom) {
@@ -57,7 +79,18 @@ function draggableBlockAt(view: EditorView, mouse: { clientX: number; clientY: n
   }
   const node = position < 0 ? null : view.state.doc.nodeAt(position);
   const element = position < 0 ? null : view.nodeDOM(position);
-  return node && element instanceof HTMLElement ? { position, node, element } : null;
+  if (!node || !(element instanceof HTMLElement)) {
+    return null;
+  }
+  // 行頭の印のある余白（項目の要素の外）では、横の位置から探すと外側の項目や箇条書きそのものに当たる。
+  // 箇条書きの中では、縦の位置だけで、その高さの項目を探し直す。
+  const item = LIST_ITEM_TYPES.includes(node.type.name) || LIST_TYPES.includes(node.type.name) ? innermostListItemAt(element, mouse.clientY) : null;
+  if (!item || item === element) {
+    return { position, node, element };
+  }
+  const itemPosition = view.posAtDOM(item, 0) - 1;
+  const itemNode = view.state.doc.nodeAt(itemPosition);
+  return itemNode && LIST_ITEM_TYPES.includes(itemNode.type.name) ? { position: itemPosition, node: itemNode, element: item } : { position, node, element };
 }
 
 function handleGapOf(node: ProseMirrorNode): number {
@@ -140,6 +173,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           const hoverArea = container.closest<HTMLElement>(BODY_SCROLL_CONTAINER_SELECTOR) ?? container;
           const handle = createHandle();
           const insertButton = createInsertButton();
+          const hoveredBlockMarks = createHoveredBlockMarks();
           container.append(insertButton, handle);
           // 持ち手を出しているブロックの位置。ドラッグを始めるときに、このブロックを選ぶ。
           let hoveredPosition: number | null = null;
@@ -153,9 +187,14 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             insertButton.hidden = true;
             hoveredPosition = null;
           };
+          // マウスが本文の列を出たときと、打ち始めたときは、持ち手と一緒に、ブロックの折りたたみの印とズームのボタンも隠す。
+          const leaveBlock = () => {
+            hideHandle();
+            hoveredBlockMarks.showFor(null);
+          };
           const hideForTyping = () => {
             hiddenForTyping = true;
-            hideHandle();
+            leaveBlock();
           };
           const showHandleAt = (event: MouseEvent) => {
             const pointerMoved = event.clientX !== lastPointer.clientX || event.clientY !== lastPointer.clientY;
@@ -168,8 +207,10 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             if (event.target instanceof Node && (handle.contains(event.target) || insertButton.contains(event.target))) {
               return;
             }
-            const block = view.editable ? draggableBlockAt(view, event) : null;
-            if (!block) {
+            const block = draggableBlockAt(view, event);
+            hoveredBlockMarks.showFor(block?.element ?? null);
+            // 読むだけのメモ（ゴミ箱の中）では、持ち手は出さない（折りたたみの印とズームのボタンは出す）。
+            if (!block || !view.editable) {
               hideHandle();
               return;
             }
@@ -233,7 +274,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           };
 
           hoverArea.addEventListener("mousemove", showHandleAt);
-          hoverArea.addEventListener("mouseleave", hideHandle);
+          hoverArea.addEventListener("mouseleave", leaveBlock);
           // 打っている間は、文字の邪魔にならないよう隠す（マウスを動かすとまた出る）。日本語の変換で入る文字は
           // keydown を伴わないことがあるので、input でも隠す。
           view.dom.addEventListener("keydown", hideForTyping);
@@ -248,7 +289,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           return {
             destroy: () => {
               hoverArea.removeEventListener("mousemove", showHandleAt);
-              hoverArea.removeEventListener("mouseleave", hideHandle);
+              hoverArea.removeEventListener("mouseleave", leaveBlock);
               hoverArea.removeEventListener("dragover", forwardDragToEditor);
               hoverArea.removeEventListener("drop", forwardDragToEditor);
               view.dom.removeEventListener("keydown", hideForTyping);

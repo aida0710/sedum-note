@@ -563,11 +563,13 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ProseMirror li, .ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { position: relative; }
 /* 印の高さを 1 行ぶん（文字の行の高さ）にして、その中央に置く。こうすると、行の文字と縦の中心がそろう。lh を知らないブラウザでは、本文の行の高さに近い 1.7em にする。 */
 .ProseMirror .fold-toggle { position: absolute; left: -34px; top: 0; width: 16px; height: 1.7em; height: 1lh; display: grid; place-items: center; color: var(--muted); opacity: 0; }
-.ProseMirror .fold-toggle::before { content: "▼"; font-size: 10px; line-height: 1; }
+/* 印は右向きの山形で、開いているときは下向きに回す。たたんだ所の印は、いつも出しておく。 */
+.ProseMirror .fold-toggle:not(.collapsed) > svg { transform: rotate(90deg); }
 .ProseMirror .fold-toggle.collapsed { opacity: 1; }
-.ProseMirror .fold-toggle.collapsed::before { content: "▶"; }
-.ProseMirror li:hover > .fold-toggle, .ProseMirror li:hover > div > .fold-toggle, .ProseMirror h1:hover > .fold-toggle, .ProseMirror h2:hover > .fold-toggle, .ProseMirror h3:hover > .fold-toggle,
-.ProseMirror h4:hover > .fold-toggle, .ProseMirror h5:hover > .fold-toggle, .ProseMirror h6:hover > .fold-toggle { opacity: 1; }
+/* マウスのある高さのブロックの印に出す（editor/hoveredBlockMarks.ts が .shown-for-hovered-block を付ける）。本文の左の余白を通って
+   印へ向かう間も消えない。印を押して作り直された直後と、入れ子の項目の外側の項目の印は、:hover で出す。 */
+.ProseMirror .fold-toggle.shown-for-hovered-block, .ProseMirror .fold-toggle:focus-visible, .ProseMirror li:hover > .fold-toggle, .ProseMirror li:hover > div > .fold-toggle,
+.ProseMirror :is(h1, h2, h3, h4, h5, h6):hover > .fold-toggle { opacity: 1; }
 .ProseMirror h1 > .fold-toggle, .ProseMirror h2 > .fold-toggle, .ProseMirror h3 > .fold-toggle, .ProseMirror h4 > .fold-toggle, .ProseMirror h5 > .fold-toggle, .ProseMirror h6 > .fold-toggle { left: -20px; }
 /* スマホは本文の左の余白（18px）が狭いので、見出しの印を内側に寄せて、画面の端からはみ出さないようにする。 */
 .phone .ProseMirror :is(h1, h2, h3, h4, h5, h6) > .fold-toggle { left: -17px; width: 14px; }
@@ -594,14 +596,14 @@ button.ai-tool-activity:hover { background: var(--selected); }
 /* 箇条書きの行頭の印（・や番号）を押すと、その項目にズームする（editor/zoom.ts）。印のある左の余白だけ指の形にし、文字の上は文字の形のままにする。 */
 .ProseMirror ul:not([data-type="taskList"]), .ProseMirror ol { cursor: pointer; }
 .ProseMirror li > * { cursor: text; }
-/* 見出しの左の、セクションにズームするボタン。折りたたみの印のさらに左に置き、ポインターを乗せた見出しにだけ出す。
+/* 見出しの左の、セクションにズームするボタン。折りたたみの印のさらに左に置き、マウスのある高さの見出しにだけ出す（折りたたみの印と同じ）。
    縦は、見出しの 1 行目の高さの中央にそろえる。 */
 .ProseMirror .section-zoom { position: absolute; left: -42px; top: calc((1lh - 20px) / 2); width: 20px; height: 20px; display: grid; place-items: center; border-radius: var(--radius-row); color: var(--muted); opacity: 0; }
 /* スマホは左の余白（18px）に折りたたみの印しか入らないので、見出しの右端に置き（その分、見出しの文字は右を空ける）、
    乗せられない代わりに薄く出したままにする。 */
 .phone .ProseMirror .section-zoom { left: auto; right: 0; width: 18px; }
 .phone .ProseMirror :is(h1, h2, h3, h4, h5, h6) { padding-right: 22px; }
-.ProseMirror :is(h1, h2, h3, h4, h5, h6):hover > .section-zoom, .ProseMirror .section-zoom:focus-visible { opacity: 1; }
+.ProseMirror .section-zoom.shown-for-hovered-block, .ProseMirror :is(h1, h2, h3, h4, h5, h6):hover > .section-zoom, .ProseMirror .section-zoom:focus-visible { opacity: 1; }
 .ProseMirror .section-zoom:hover { background: var(--selected); color: var(--accent); }
 @media (hover: none) { .ProseMirror .section-zoom { opacity: .45; } }
 .ProseMirror li.collapsed-item > ul, .ProseMirror li.collapsed-item > ol, .ProseMirror li.collapsed-item > div > ul, .ProseMirror li.collapsed-item > div > ol { display: none; }

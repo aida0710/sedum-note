@@ -15,6 +15,10 @@ const LIST_ITEM_TYPES = ["listItem", "taskItem"];
 const LIST_TYPES = new Set(["bulletList", "orderedList", "taskList"]);
 const FOLDABLE_TYPES = [...LIST_ITEM_TYPES, "heading"];
 
+// 開け閉めの印。lucide の chevron-right と同じ形（左の列の開け閉めの印と同じ）。開いているときは、CSS で下向きに回す。
+// 大きさは、見出しのズームのボタンのアイコン（zoom.ts）と同じ。
+const CHEVRON_ICON_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+
 const foldingKey = new PluginKey("folding");
 
 function hasNestedList(listItem: ProseMirrorNode): boolean {
@@ -30,6 +34,7 @@ function foldToggle(view: EditorView, position: number, collapsed: boolean): HTM
   button.contentEditable = "false";
   button.setAttribute("aria-label", translate(collapsed ? "editor.unfold" : "editor.fold"));
   button.setAttribute("aria-expanded", String(!collapsed));
+  button.innerHTML = CHEVRON_ICON_SVG;
   // 押しても、エディタの選択を動かさない。
   button.addEventListener("mousedown", (event) => event.preventDefault());
   button.addEventListener("click", () => view.dispatch(view.state.tr.setNodeAttribute(position, "collapsed", !collapsed)));
