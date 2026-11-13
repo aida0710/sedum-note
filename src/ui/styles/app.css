@@ -659,6 +659,9 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .note-link.ProseMirror-selectednode button { outline: 2px solid var(--accent); }
 /* メモへのリンクの見本（editor/NoteLinkPreview.tsx）。メニューと同じ面の形にする。 */
 .note-link-preview { position: fixed; z-index: 25; width: min(320px, calc(100vw - 16px)); background: var(--raised); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: 0 8px 24px var(--shadow); padding: 10px 12px; pointer-events: none; display: flex; flex-direction: column; gap: 6px; }
+/* 本文の Web のリンクの中にカーソルがある間に出す、リンク先と操作の面（editor/WebLinkPopover.tsx）。メモへのリンクの見本と同じ面にする。 */
+.web-link-popover { position: absolute; z-index: 5; display: flex; align-items: center; gap: 2px; max-width: min(420px, 100%); padding: 4px 4px 4px 10px; background: var(--raised); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: 0 8px 24px var(--shadow); font-size: var(--font-size-small); line-height: 1.5; letter-spacing: 0; user-select: none; }
+.web-link-url { min-width: 0; margin-right: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
 .note-link-preview-title { font-weight: 700; font-size: var(--font-size-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .note-link-preview-text { font-size: var(--font-size-small); line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
 .note-link-preview-empty { color: var(--muted); font-size: var(--font-size-small); }
@@ -1082,7 +1085,7 @@ details summary { cursor: pointer; color: var(--accent); }
   .workspace, .phone, .main, .document-area { display: block; height: auto; overflow: visible; }
   .document-scroll { overflow: visible; }
   .document { max-width: none; padding: 0; }
-  .section-zoom, .selection-toolbar, .block-insert-button, .image-resize-handle, .sidebar, .tabs-bar, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
+  .section-zoom, .selection-toolbar, .web-link-popover, .block-insert-button, .image-resize-handle, .sidebar, .tabs-bar, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
   .document-meta .unsynced, .update-chip { display: none !important; }
   .search-match, .search-match.active { background: none; color: inherit; }
   .ProseMirror p.empty-column::before { content: none; }

@@ -63,6 +63,9 @@ import { NoteLinkTargetsContext } from "./noteLinkTargets";
 import { insertPastedMarkdown, markdownInClipboard } from "./pastedMarkdown";
 import { SlashMenu } from "./SlashMenu";
 import { useNoteAttachments } from "./useNoteAttachments";
+import { WebLinkPopover } from "./WebLinkPopover";
+import { webLinkUrlAtModifierClick } from "./webLinks";
+import { openExternalUrl } from "../platform/openExternalUrl";
 import { SlashMenuController } from "./slashMenuController";
 import { BlockMenuController } from "./blockMenuController";
 import { BlockMenu } from "./BlockMenu";
@@ -93,6 +96,8 @@ type NoteEditorProps = {
   onOpenInSplit?: () => void;
 };
 
+// 新しく付けるリンクの、リンク先の欄に入れておく文字。
+const NEW_LINK_URL = "https://";
 // まだ一度も検索を開いていないときの合図。
 const NO_FIND_REQUEST: FindRequest = { serial: 0, showReplace: false };
 
@@ -278,7 +283,9 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
     setPickingNoteLink(false);
     editor?.chain().focus().insertContent({ type: NOTE_LINK_NODE, attrs: { noteId: linkedNoteId, blockId: linkedBlockId } }).run();
   };
-  const askLink = () => dialogs.prompt({ message: translate("editor.linkPrompt"), confirmLabel: translate("common.apply"), initialValue: "https://" });
+  // リンク先を聞く。今のリンク先（リンクを編集するとき）があれば、それを入れておく。
+  const askLink = (currentUrl: string = NEW_LINK_URL) => dialogs.prompt({ message: translate("editor.linkPrompt"), confirmLabel: translate("common.apply"), initialValue: currentUrl });
+  const openWebLink = useAsyncAction(openExternalUrl);
   const { pickImage, pickFile } = attachments;
   const pickNoteLink = () => setPickingNoteLink(true);
   const pickBlockLink = () => setPickingBlockFor("link");
@@ -322,7 +329,16 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   useZoomOutOnEscape({ editor, isZoomed, noteArea });
   useZoomTransition({ editor, target: documentScroll });
 
-  const actionError = attachments.errorMessage ?? audioRecorder.errorMessage ?? pasteMarkdown.errorMessage ?? exportNote.errorMessage ?? print.errorMessage ?? openInNewWindow.errorMessage;
+  const actionError = attachments.errorMessage ?? audioRecorder.errorMessage ?? pasteMarkdown.errorMessage ?? exportNote.errorMessage ?? print.errorMessage ?? openInNewWindow.errorMessage
+    ?? openWebLink.errorMessage;
+  // Ctrl（Mac は ⌘）を押しながら本文のリンクを押したら、外のブラウザで開く。
+  const openLinkOnModifierClick = (event: React.MouseEvent) => {
+    const url = webLinkUrlAtModifierClick(event);
+    if (url) {
+      event.preventDefault();
+      void openWebLink.run(url);
+    }
+  };
   if (!editor) {
     return null;
   }
@@ -349,7 +365,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
       {findBarOpen && <FindBar editor={editor} request={findRequest} onClose={() => setFindBarOpen(false)} />}
       <div className="document-area">
       <div className="document-scroll" ref={documentScroll}>
-        <div className={`document align-${note.content.pageAlignment ?? defaultPageAlignment}`}>
+        <div className={`document align-${note.content.pageAlignment ?? defaultPageAlignment}`} onClick={openLinkOnModifierClick}>
           {inTrash && (
             <div className="trash-banner">
               {translate("editor.inTrash")}
@@ -417,6 +433,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
         <DocumentScanDialog photo={photoToScan} onCancel={() => { setPhotoToScan(null); deleteCapturedPhotos(); }}
           onScanned={(straightened) => { setPhotoToScan(null); attachments.takeFiles([straightened]); }} />
       )}
+      <WebLinkPopover editor={editor} onOpenLink={(url) => void openWebLink.run(url)} onAskLink={askLink} />
       <SlashMenu controller={slashMenuController} />
       {!isMobile && <BlockMenu editor={editor} controller={blockMenuController} />}
       {pickingNoteLink && (
