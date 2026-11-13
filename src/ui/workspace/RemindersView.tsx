@@ -9,6 +9,7 @@ import type { NoteSummary } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { type MessageKey, translate } from "../i18n/translate";
 import { formatDueTime } from "../shared/formatTime";
+import { useToast } from "../shared/ToastProvider";
 import { useCurrentTime } from "../shared/useCurrentTime";
 
 // 「期限切れ」への切り替わりを見直す間隔。期限は分の単位なので、1 分より細かく見る。
@@ -70,6 +71,16 @@ export function RemindersView({ summaries, repository, onOpenNote, onBack }: Rem
 function DueItemRow({ item, repository, onOpenNote }: { item: DueItem; repository: NoteRepository; onOpenNote: (noteId: string) => void }) {
   const noteTitle = item.noteTitle || translate("sidebar.untitled");
   const { task } = item;
+  const showToast = useToast();
+  // 期限を外したら、すぐ戻せるようにする（外す前の期限を入れ直す）。
+  const removeNoteDue = async () => {
+    const dueAt = repository.note(item.noteId)?.content.dueAt ?? null;
+    await repository.updateNote(item.noteId, { dueAt: null });
+    showToast({
+      message: translate("toast.dueRemoved", { title: noteTitle }),
+      action: { label: translate("toast.undo"), run: () => void repository.updateNote(item.noteId, { dueAt }) },
+    });
+  };
   const toggleDone = () => {
     const note = repository.note(item.noteId);
     if (note && task) {
@@ -88,7 +99,7 @@ function DueItemRow({ item, repository, onOpenNote }: { item: DueItem; repositor
       <time>{formatDueTime(item.dueAt)}</time>
       {!task && (
         <button type="button" className="icon-button" aria-label={translate("due.removeFrom", { title: noteTitle })} title={translate("due.remove")}
-          onClick={() => void repository.updateNote(item.noteId, { dueAt: null })}>
+          onClick={() => void removeNoteDue()}>
           <X size={14} />
         </button>
       )}

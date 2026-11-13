@@ -9,9 +9,6 @@ import { RemoteConfigFields } from "../shared/RemoteConfigFields";
 import { NewSyncKeyChoice } from "./NewSyncKeyChoice";
 import type { SyncTargetForm } from "./useSyncTargetForm";
 
-// 見つかった既存のメモの場所を、ボタンで並べる数。多いバケットでは、残りはフォルダを入力して確かめてもらう。
-const MAX_FOLDERS_SHOWN = 5;
-
 type SyncTargetFieldsProps = {
   form: SyncTargetForm;
   // 設定の画面（このデバイスに既にメモがある）で使うときに渡す。確かめた既存のメモが、このデバイスのメモと
@@ -74,14 +71,17 @@ function SyncTargetResult({ form, checked, relation }: { form: SyncTargetForm; c
       {checked.otherVaultFolders.length > 0 && (
         <div className="found-folders">
           <p className="hint">{translate("syncTarget.foundElsewhere")}</p>
-          {checked.otherVaultFolders.slice(0, MAX_FOLDERS_SHOWN).map((folder) => (
-            <button key={folder} type="button" className="secondary-button" onClick={() => void form.check.run({ folder })}>
-              {translate("syncTarget.useFolder", { folder: folder === "" ? translate("syncTarget.bucketRoot") : folder })}
-            </button>
-          ))}
-          {checked.otherVaultFolders.length > MAX_FOLDERS_SHOWN && (
-            <p className="hint">{translate("syncTarget.moreFolders", { count: checked.otherVaultFolders.length - MAX_FOLDERS_SHOWN })}</p>
-          )}
+          {/* 見つけた場所は全部並べる（多ければ、枠の中で送る）。確かめている間は、続けて押せないようにする。 */}
+          <div className="found-folder-list">
+            {checked.otherVaultFolders.map((folder) => {
+              const label = translate("syncTarget.useFolder", { folder: folder === "" ? translate("syncTarget.bucketRoot") : folder });
+              return (
+                <button key={folder} type="button" className="secondary-button" title={label} disabled={form.check.busy} onClick={() => void form.check.run({ folder })}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
       <NewSyncKeyChoice inputId="new-sync-key" value={form.newSyncKey} onChange={form.setNewSyncKey} />

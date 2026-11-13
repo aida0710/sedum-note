@@ -8,7 +8,7 @@ export function LockSection({ session }: { session: VaultSession }) {
     <section className="settings-section">
       <h2>{translate("settings.lock")}</h2>
       <p>{translate("settings.lockDescription")}</p>
-      <div><button type="button" className="secondary-button" onClick={() => void session.lock()}>{translate("settings.lock")}</button></div>
+      <div><button type="button" className="secondary-button" onClick={() => void session.lock()}>{translate("settings.lockNow")}</button></div>
     </section>
   );
 }

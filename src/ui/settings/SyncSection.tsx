@@ -2,6 +2,7 @@
 
 import { isWebDavConfig, type RemoteConfig } from "../../core/remote/remoteConfig";
 import { useState } from "react";
+import { AppUpdateRequiredError } from "../../core/format/dataFormat";
 import type { SyncStatus } from "../../core/sync/autoSync";
 import type { SyncTargetCheck } from "../../core/vault/syncTarget";
 import type { UnlockedVault } from "../../core/vault/vaultSession";
@@ -19,9 +20,14 @@ import { SettingCheckboxRow } from "./SettingRow";
 import { SyncKeySection } from "./SyncKeySection";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 
-type SyncSectionProps = { session: VaultSession; vault: UnlockedVault };
+type SyncSectionProps = {
+  session: VaultSession;
+  vault: UnlockedVault;
+  // 設定の「更新」のページを開く。同期の失敗が「アプリの更新が必要」のときに使う。
+  onOpenUpdatePage: () => void;
+};
 
-export function SyncSection({ session, vault }: SyncSectionProps) {
+export function SyncSection({ session, vault, onOpenUpdatePage }: SyncSectionProps) {
   const { remoteConfig } = vault;
   // 同期先を設定済みなら、入力欄はたたんでおき、「同期先を変更」で開く。
   const [changingTarget, setChangingTarget] = useState(false);
@@ -30,7 +36,7 @@ export function SyncSection({ session, vault }: SyncSectionProps) {
       <section className="settings-section">
         <h2>{translate("settings.sync")}</h2>
         <p>{translate("settings.syncDescription")}</p>
-        {remoteConfig && <SyncOverview session={session} />}
+        {remoteConfig && <SyncOverview session={session} onOpenUpdatePage={onOpenUpdatePage} />}
         {remoteConfig && !changingTarget ? (
           <>
             <div className="sync-target-summary">
@@ -48,7 +54,7 @@ export function SyncSection({ session, vault }: SyncSectionProps) {
   );
 }
 
-type SyncTargetEditorProps = SyncSectionProps & {
+type SyncTargetEditorProps = Pick<SyncSectionProps, "session" | "vault"> & {
   // 入力をやめて、たたむ。まだ同期先が無いとき（たたむ先が無い）は null。
   onClose: (() => void) | null;
 };
@@ -129,14 +135,14 @@ function describeSyncTarget(remoteConfig: RemoteConfig): string {
 }
 
 // 自動の同期の入り切りと、今の状態、「今すぐ同期」。
-function SyncOverview({ session }: { session: VaultSession }) {
+function SyncOverview({ session, onOpenUpdatePage }: Pick<SyncSectionProps, "session" | "onOpenUpdatePage">) {
   const { autoSync } = useDevicePreferences();
   const syncNow = useAsyncAction(session.syncNow);
   return (
     <div className="sync-overview">
       <SettingCheckboxRow controlId="sync-auto-sync" label={translate("settings.autoSync")} hint={translate("settings.autoSyncHint")} checked={autoSync}
         onChange={(enabled) => updateDevicePreferences({ autoSync: enabled })} />
-      <SyncStatusDetail status={session.syncStatus} autoSync={autoSync} />
+      <SyncStatusDetail status={session.syncStatus} autoSync={autoSync} onOpenUpdatePage={onOpenUpdatePage} />
       {syncNow.errorMessage && <div className="form-error" role="alert">{syncNow.errorMessage}</div>}
       <div className="form-actions">
         <button type="button" className="secondary-button" disabled={syncNow.busy || session.syncStatus?.state === "delegated"} onClick={() => void syncNow.run(undefined)}>
@@ -147,7 +153,9 @@ function SyncOverview({ session }: { session: VaultSession }) {
   );
 }
 
-function SyncStatusDetail({ status, autoSync }: { status: SyncStatus | null; autoSync: boolean }) {
+type SyncStatusDetailProps = { status: SyncStatus | null; autoSync: boolean; onOpenUpdatePage: () => void };
+
+function SyncStatusDetail({ status, autoSync, onOpenUpdatePage }: SyncStatusDetailProps) {
   if (status === null) {
     return null;
   }
@@ -165,6 +173,10 @@ function SyncStatusDetail({ status, autoSync }: { status: SyncStatus | null; aut
   return (
     <>
       <div className="form-error" role="alert">{translate("settings.lastSyncFailed", { reason: describeError(status.error) })} {next}</div>
+      {/* 「アプリを更新してください」と言うだけで終わらせず、更新のページへのボタンを添える。 */}
+      {status.error instanceof AppUpdateRequiredError && (
+        <div><button type="button" className="secondary-button" onClick={onOpenUpdatePage}>{translate("settings.syncOpenUpdatePage")}</button></div>
+      )}
       <p className="hint">{lastSynced}</p>
     </>
   );

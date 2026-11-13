@@ -27,9 +27,11 @@ type SettingsPageContentProps = {
   page: SettingsPage;
   session: VaultSession;
   vault: UnlockedVault;
+  // 設定のほかのページへ移る（「アプリの更新が必要」の知らせから「更新」のページへ、など）。
+  onSelectPage: (page: SettingsPage) => void;
 };
 
-export function SettingsPageContent({ page, session, vault }: SettingsPageContentProps) {
+export function SettingsPageContent({ page, session, vault, onSelectPage }: SettingsPageContentProps) {
   const { repository } = vault;
   // PC 版では MCP の欄が入っている。Web 版と Android のアプリでは null。
   const mcpSection = useContext(McpSectionSlot);
@@ -39,7 +41,7 @@ export function SettingsPageContent({ page, session, vault }: SettingsPageConten
     case "appearance":
       return <><ThemeSection /><CustomCssSection /></>;
     case "sync":
-      return <SyncSection session={session} vault={vault} />;
+      return <SyncSection session={session} vault={vault} onOpenUpdatePage={() => onSelectPage("update")} />;
     case "data":
       return <><BackupSection session={session} /><MarkdownSection repository={repository} /></>;
     case "security":

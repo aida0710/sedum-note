@@ -1,5 +1,5 @@
 // カメラをかざして QR を読むダイアログ。読めたら、中の文字を渡して閉じる。
-// カメラを使えない・許可されなかったときは、その理由を出す（呼び出し側が、画像から読む方法を別に用意する）。
+// カメラを使えない・許可されなかったときは、その理由と、ほかの読み方（QR の画像・設定のファイル）へのボタンを出す。
 
 import { useEffect, useRef, useState } from "react";
 import { translate } from "../i18n/translate";
@@ -12,9 +12,12 @@ const SCAN_INTERVAL_MILLISECONDS = 200;
 type QrCodeScannerDialogProps = {
   onRead: (text: string) => void;
   onClose: () => void;
+  // カメラを使えないときの、ほかの読み方。押すと、このダイアログを閉じて、ファイルを選ぶ画面を開く。
+  onPickQrCodeImage: () => void;
+  onPickFile: () => void;
 };
 
-export function QrCodeScannerDialog({ onRead, onClose }: QrCodeScannerDialogProps) {
+export function QrCodeScannerDialog({ onRead, onClose, onPickQrCodeImage, onPickFile }: QrCodeScannerDialogProps) {
   const video = useRef<HTMLVideoElement>(null);
   const [cameraProblem, setCameraProblem] = useState<string | null>(null);
   // 読めたときの処理は、開いている間に変わっても、カメラを開き直さない。
@@ -74,6 +77,12 @@ export function QrCodeScannerDialog({ onRead, onClose }: QrCodeScannerDialogProp
         </>
       ) : <div className="form-error" role="alert">{cameraProblem}</div>}
       <div className="form-actions">
+        {cameraProblem !== null && (
+          <>
+            <button type="button" className="secondary-button" onClick={onPickQrCodeImage}>{translate("syncSetup.pickQrCodeImage")}</button>
+            <button type="button" className="secondary-button" onClick={onPickFile}>{translate("syncSetup.pickFile")}</button>
+          </>
+        )}
         <button type="button" className="primary-button" onClick={onClose}>{translate("common.close")}</button>
       </div>
     </ModalDialog>

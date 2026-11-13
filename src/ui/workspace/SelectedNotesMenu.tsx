@@ -36,17 +36,21 @@ export function SelectedNotesMenu({ anchor, noteIds, inTrash, repository, onClos
   };
   return (
     <PopupMenu anchor={anchor} onClose={onClose}>
-      {inTrash ? (
+      {inTrash && (
         <button className="menu-item" role="menuitem" onClick={choose(restoreAll)}>
           <RotateCcw size={15} />{translate("sidebar.restoreSelected", { count: targetIds.length })}
         </button>
-      ) : (
-        <button className="menu-item danger" role="menuitem" onClick={choose(() => moveToTrash(targetIds))}>
-          <Trash2 size={15} />{translate("sidebar.trashSelected", { count: targetIds.length })}
-        </button>
       )}
-      <div className="menu-separator" />
       <button className="menu-item" role="menuitem" onClick={choose(() => undefined)}><X size={15} />{translate("sidebar.clearSelection")}</button>
+      {/* 危険な操作は、ほかのメニューと同じく最後に置く。 */}
+      {!inTrash && (
+        <>
+          <div className="menu-separator" />
+          <button className="menu-item danger" role="menuitem" onClick={choose(() => moveToTrash(targetIds))}>
+            <Trash2 size={15} />{translate("sidebar.trashSelected", { count: targetIds.length })}
+          </button>
+        </>
+      )}
     </PopupMenu>
   );
 }

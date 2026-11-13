@@ -3,7 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { type CorsRule, newTestRemoteConfig, newTestRemoteConfigWithCors } from "../integration/testStorage";
 import type { S3RemoteConfig } from "../src/core/remote/remoteConfig";
 import { S3ObjectStore } from "../src/core/remote/s3ObjectStore";
-import { writeRemoteVault } from "../src/core/vault/remoteVault";
+import { readRemoteVault, writeRemoteVault } from "../src/core/vault/remoteVault";
 import { createVault } from "../src/core/vault/vaultDocument";
 import { corsRuleJson } from "../src/ui/settings/corsRule";
 import { createNoteOnDesktop, DESKTOP_VIEWPORT, fillRemoteConfigFields, fillSyncTarget, openSyncedDevice, PASSPHRASE, PHONE_VIEWPORT, startLocalVault, SYNC_KEY } from "./devices";
@@ -297,7 +297,7 @@ test("カメラをかざして QR を読むと、暗号化キーを聞かれ、�
   await expect(phone.locator(".sync-target-result")).toContainText("既存のメモが見つかりました");
 });
 
-test("カメラを許可しなかったときは、ほかの読み方を案内する", async ({ page }) => {
+test("カメラを許可しなかったときは、ほかの読み方を案内し、そのボタンをダイアログの中に出す", async ({ page }) => {
   await page.addInitScript(() => {
     navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException("denied", "NotAllowedError"));
   });
@@ -306,8 +306,12 @@ test("カメラを許可しなかったときは、ほかの読み方を案内�
   await page.getByRole("button", { name: "カメラで QR を読む" }).click();
   const scanner = page.getByRole("dialog", { name: "QR を読む" });
   await expect(scanner.getByRole("alert")).toContainText("カメラを使う許可がありません");
-  await scanner.getByRole("button", { name: "閉じる" }).click();
-  await expect(page.getByRole("button", { name: "QR の画像を選ぶ" })).toBeVisible();
+  await expect(scanner.getByRole("button", { name: "設定のファイルを選ぶ" })).toBeVisible();
+  // ダイアログの中のボタンで、ダイアログを閉じて、画像を選ぶ画面が開く。
+  const fileChooser = page.waitForEvent("filechooser");
+  await scanner.getByRole("button", { name: "QR の画像を選ぶ" }).click();
+  await fileChooser;
+  await expect(scanner).toHaveCount(0);
 });
 
 test("同期の設定でないファイルや、QR の無い写真を選ぶと、暗号化キーを聞く前に知らせる", async ({ page }, testInfo) => {
@@ -340,4 +344,20 @@ test("同期に失敗すると、左下の状態は色の点ではなく警告�
   await expect(syncLine.locator(".sync-failure-mark")).toHaveCount(1);
   await expect(syncLine.locator(".status-dot")).toHaveCount(0);
   await expect(syncLine).toHaveAttribute("title", /^同期に失敗しました: ストレージに接続できません/);
+});
+
+test("同期の失敗が「アプリの更新が必要」のときは、同期のページの知らせの下から設定の「更新」のページへ移れる", async ({ browser }) => {
+  const remoteConfig = await newTestRemoteConfig();
+  const laptop = await openSyncedDevice(browser, { remoteConfig, join: false });
+  await expect(laptop.getByText(/同期済み/)).toBeVisible({ timeout: 20_000 });
+  // 新しいバージョンのアプリが、同期先のデータの形の版を上げたことにする。
+  const objectStore = new S3ObjectStore(remoteConfig);
+  const stored = (await readRemoteVault(objectStore))!;
+  await writeRemoteVault(objectStore, { ...stored.document, bodySchema: stored.document.bodySchema + 1 }, { ifMatch: stored.etag });
+
+  await laptop.locator(".sync-line").click();
+  await laptop.getByRole("button", { name: "今すぐ同期" }).click();
+  await expect(laptop.getByRole("alert").filter({ hasText: "このアプリを更新してください" }).first()).toBeVisible({ timeout: 20_000 });
+  await laptop.getByRole("button", { name: "更新を確認" }).click();
+  await expect(laptop.getByRole("heading", { name: "更新" })).toBeVisible();
 });

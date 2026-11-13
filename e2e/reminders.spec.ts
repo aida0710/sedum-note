@@ -13,7 +13,7 @@ async function saveDue(page: Page, dialogName: string, dueAt: string): Promise<v
   await dialog.getByRole("button", { name: "保存" }).click();
 }
 
-test("メモに期限を付けると、期限の一覧に並ぶ。期限を過ぎると「期限切れ」に移り、一覧から外せる", async ({ page }) => {
+test("メモに期限を付けると、期限の一覧に並ぶ。期限を過ぎると「期限切れ」に移り、一覧から外せて、「元に戻す」で戻せる", async ({ page }) => {
   await page.clock.install({ time: NOW });
   await startLocalVault(page);
   await createNoteOnDesktop(page, "提出物");
@@ -29,6 +29,8 @@ test("メモに期限を付けると、期限の一覧に並ぶ。期限を過�
 
   await dueList(page).getByRole("button", { name: "「提出物」の期限を外す" }).click();
   await expect(dueList(page)).toContainText("期限のあるものはありません");
+  await page.getByRole("status").filter({ hasText: "「提出物」の期限を外しました" }).getByRole("button", { name: "元に戻す" }).click();
+  await expect(group(page, "期限切れ")).toContainText("提出物");
 });
 
 test("「/」の「期限」で、チェックリストの項目に期限の印が付く。一覧からチェックを付けると、本文の項目も完了になる", async ({ page }) => {

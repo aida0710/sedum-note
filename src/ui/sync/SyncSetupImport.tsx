@@ -91,7 +91,10 @@ export function SyncSetupImport({ form }: { form: SyncTargetForm }) {
         </div>
       )}
       {scanning && (
-        <QrCodeScannerDialog onClose={() => setScanning(false)} onRead={(text) => {
+        <QrCodeScannerDialog onClose={() => setScanning(false)}
+          onPickQrCodeImage={() => { setScanning(false); qrCodeInput.current?.click(); }}
+          onPickFile={() => { setScanning(false); fileInput.current?.click(); }}
+          onRead={(text) => {
           setScanning(false);
           void take.run(() => Promise.resolve(text));
         }} />

@@ -44,7 +44,7 @@ export function SettingsPanel({ session, vault, unreadableCount, isMobile, page,
       <div className="document-scroll">
         <div className="settings" ref={pageContent}>
           {unreadableWarning}
-          <SettingsPageContent page={shownPage} session={session} vault={vault} />
+          <SettingsPageContent page={shownPage} session={session} vault={vault} onSelectPage={onSelectPage} />
         </div>
       </div>
     </div>
@@ -78,7 +78,7 @@ function PhoneSettings({ session, vault, pages, page, onSelectPage, onBackToPage
       <div className="document-scroll">
         <div className="settings">
           {unreadableWarning}
-          <SettingsPageContent page={shownPage} session={session} vault={vault} />
+          <SettingsPageContent page={shownPage} session={session} vault={vault} onSelectPage={onSelectPage} />
         </div>
       </div>
     </>

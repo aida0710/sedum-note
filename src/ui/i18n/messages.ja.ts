@@ -44,7 +44,6 @@ export const japaneseMessages = {
   "syncTarget.incomplete": "この場所にはメモのデータがあるのに、鍵の情報（vault.json）がありません。新しく始めるときは、空の別のフォルダを指定してください。",
   "syncTarget.foundElsewhere": "同じバケットの別の場所に、既存のメモが見つかりました。参加するなら選んでください。",
   "syncTarget.useFolder": "「{folder}」を使う",
-  "syncTarget.moreFolders": "ほかに {count} か所あります。参加するなら、フォルダを入力して確かめてください。",
   "syncTarget.bucketRoot": "バケットの直下",
   "syncTarget.syncKey": "暗号化キー",
   "syncTarget.syncKeyHint": "同期先を作ったときの暗号化キー（表示されたもの、または自分で入力したもの）を入力してください。",
@@ -170,6 +169,7 @@ export const japaneseMessages = {
   "toast.addedNotes": "{count}件のメモを「{destination}」に追加しました",
   "toast.undo": "元に戻す",
   "toast.savedSearchRemoved": "保存した検索「{name}」を削除しました",
+  "toast.dueRemoved": "「{title}」の期限を外しました",
   "sidebar.searchResults": "検索結果（{count}件）",
 
   "notebook.rename": "名前を変更",
@@ -528,6 +528,7 @@ export const japaneseMessages = {
   "settings.syncTarget": "同期先: バケット「{bucket}」の {folder}",
   "settings.syncChangeTarget": "同期先を変更",
   "settings.syncNow": "今すぐ同期",
+  "settings.syncOpenUpdatePage": "更新を確認",
   "settings.lastSyncFailed": "最後の同期に失敗しました: {reason}",
   "settings.corsTitle": "バケットの CORS の設定",
   "settings.corsCopy": "設定をコピー",
@@ -650,6 +651,7 @@ export const japaneseMessages = {
   "plugin.badResult": "プラグインの返した結果を読めませんでした",
   "lock.checking": "確かめています…",
   "settings.lock": "ロック",
+  "settings.lockNow": "今すぐロック",
   "settings.lockDescription": "このデバイスのメモをロックします。解除にはパスフレーズが要ります。",
   "settings.unreadable": "開けない記録が {count} 件あります（壊れているか、別のパスフレーズのメモです）",
 

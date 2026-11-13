@@ -455,6 +455,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .document-area { display: flex; flex: 1; min-height: 0; }
 /* ズームの切り替えで本文を大きさごと動かすとき（editor/zoomTransition.ts）は、上の端を軸にする。 */
 .document-scroll { overflow-y: auto; flex: 1; min-height: 0; min-width: 0; transform-origin: 50% 0; }
+/* 設定のページは長さがまちまちなので、スクロールバーの有無で中身が横に動かないよう、バーの幅をいつも空けておく。 */
+.settings-layout .document-scroll { scrollbar-gutter: stable; }
 .outline { width: 220px; flex: none; border-left: 1px solid var(--line); overflow-y: auto; padding: 8px 6px; display: flex; flex-direction: column; gap: 1px; }
 .menu .outline { width: auto; min-width: 200px; max-width: 280px; max-height: 50vh; border-left: 0; padding: 0; }
 .outline-item { text-align: left; padding: 5px 8px; border-radius: var(--radius-row); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; }
@@ -840,6 +842,9 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .qr-code-scanner-video { width: 100%; max-height: 60vh; border-radius: var(--radius-control); background: #000; object-fit: contain; }
 .found-folders { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .found-folders .hint { flex-basis: 100%; }
+/* 見つけた場所のボタン。長いフォルダ名は枠の中で省略し、数が多ければ枠の中で送る。 */
+.found-folder-list { display: flex; flex-wrap: wrap; gap: 8px; max-width: 100%; max-height: 180px; overflow-y: auto; }
+.found-folder-list .secondary-button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* フォームのボタンは、主・副・危険のどれも同じ高さにする（同じ行に並べたときに上下の端がそろうように）。
    文字の大きさも決める（本文の中に置いたボタンが、本文の文字の大きさを引き継がないように）。 */
 .primary-button { background: var(--accent); color: var(--on-accent); border-radius: var(--radius-control); height: var(--control-height); padding: 0 16px; font-weight: 600; white-space: nowrap; font-size: var(--font-size-ui); }
