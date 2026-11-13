@@ -75,6 +75,7 @@ export function FindBar({ editor, request, onClose }: FindBarProps) {
         ) : <span />}
         <input ref={input} className={search.invalidPattern ? "invalid" : ""} value={search.query} placeholder={translate("editor.findPlaceholder")}
           aria-label={translate("editor.find")} aria-invalid={search.invalidPattern}
+          enterKeyHint="search" autoCapitalize="off" autoCorrect="off" spellCheck={false}
           onChange={(event) => searchFor(event.target.value, search.options)}
           onKeyDown={(event) => {
             if (event.key === "Enter" && !isImeKeyEvent(event.nativeEvent)) {

@@ -229,7 +229,41 @@ test("スマホの一覧を下へ送ってメモを開き、戻ると、同じ�
   await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBe(scrollTop);
 });
 
+test("スマホのメモの中の検索では、検索の欄が 1 行目の幅いっぱいに広がる", async ({ browser }) => {
+  const page = await openPhone(browser);
+  await openNewNoteOnPhone(page, "検索");
+  await page.getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "メモの中を検索" }).click();
+  const findInput = page.getByRole("search").getByLabel("メモの中を検索");
+  const inputBox = (await findInput.boundingBox())!;
+  // 左の「置換を出す」ボタン（28px）と余白を除いた幅。
+  expect(inputBox.width).toBeGreaterThan(PHONE_VIEWPORT.width - 80);
+  // 探し方のボタンと「閉じる」は次の行に並び、画面の中に収まる。
+  const closeBox = (await page.getByRole("search").getByRole("button", { name: "閉じる" }).boundingBox())!;
+  expect(closeBox.y).toBeGreaterThan(inputBox.y + inputBox.height - 1);
+  expect(closeBox.x + closeBox.width).toBeLessThanOrEqual(PHONE_VIEWPORT.width);
+});
 
+test("スマホでは、名前の長いプロパティがあっても、値の欄が画面の中に収まる", async ({ browser }) => {
+  const page = await openPhone(browser);
+  await selectPhoneTab(page, "ノートブック");
+  await addNotebookOnPhone(page, "読書");
+  await openNotebookMenu(page, "読書");
+  await page.getByRole("menuitem", { name: "プロパティ" }).click();
+  const dialog = page.getByRole("dialog", { name: "プロパティ" });
+  await dialog.getByRole("button", { name: "プロパティを追加" }).click();
+  const propertyName = "とても長い名前のプロパティで値の欄を外へ押し出していたもの";
+  await dialog.getByLabel("名前").fill(propertyName);
+  await dialog.getByLabel("名前").press("Enter");
+  await dialog.getByRole("button", { name: "閉じる" }).click();
+
+  await openNotebookMenu(page, "読書");
+  await page.getByRole("menuitem", { name: "中にメモを追加" }).click();
+  const valueBox = (await page.getByLabel(propertyName).boundingBox())!;
+  expect(valueBox.x + valueBox.width).toBeLessThanOrEqual(PHONE_VIEWPORT.width);
+  // 値の欄は、打てるだけの幅を保つ（直す前は 61px しか見えなかった）。
+  expect(valueBox.width).toBeGreaterThan(150);
+});
 
 
 
