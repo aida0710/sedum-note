@@ -33,8 +33,13 @@ import { DateTimeShortcuts } from "./insertDateTime";
 import { BlockDragHandle } from "./blockDragHandle";
 import { MarkdownShortcutUndo } from "./markdownShortcutUndo";
 import { KeepTabInEditor } from "./keepTabInEditor";
-import { JapaneseListShortcuts } from "./japaneseListShortcuts";
+import { JapaneseMarkdownShortcuts } from "./japaneseMarkdownShortcuts";
+import { SelectedBlockTyping } from "./selectedBlockTyping";
+import { BlockStartBackspace } from "./blockStartBackspace";
+import { TableBoundaryKeys } from "./tableBoundaryKeys";
 import { TitleBodyNavigation } from "./titleBodyNavigation";
+import { TaskItemKeys } from "./taskItemKeys";
+import { SelectAllInSteps } from "./selectAllInSteps";
 import { ZoomOutOnEscape } from "./zoomOutOnEscape";
 import { BlockKeys } from "./blockKeys";
 import { BlockEmbed } from "./blockEmbedNode";
@@ -111,9 +116,14 @@ export function createEditorExtensions({ body, slashMenuController, blockMenuCon
     ...documentExtensions(),
     SlashCommands.configure({ controller: slashMenuController }),
     MarkdownShortcutUndo,
-    JapaneseListShortcuts,
+    JapaneseMarkdownShortcuts,
     KeepTabInEditor,
+    SelectedBlockTyping,
+    BlockStartBackspace,
+    TableBoundaryKeys,
     TitleBodyNavigation.configure({ moveToTitle }),
+    TaskItemKeys,
+    SelectAllInSteps,
     DueMarks,
     TableShortcuts,
     TableRowFilterExtension,

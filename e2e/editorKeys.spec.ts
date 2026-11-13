@@ -1,0 +1,160 @@
+import { expect, type Page, test } from "@playwright/test";
+import { createNoteOnDesktop, insertBodyHtml, placeCursorInBlock, startLocalVault } from "./devices";
+
+// 本文のブロックの種類と文字（上から順）。
+const bodyBlocks = (page: Page) => page.evaluate(() => {
+  const body = document.querySelector(".ProseMirror") as HTMLElement & { editor: { getJSON: () => { content?: Array<{ type: string; content?: unknown[] }> } } };
+  const textOf = (node: unknown): string => {
+    const { text, content } = node as { text?: string; content?: unknown[] };
+    return text ?? (content ?? []).map(textOf).join("");
+  };
+  return (body.editor.getJSON().content ?? []).map((block) => `${block.type}:${textOf(block)}`);
+});
+
+async function openNoteWith(page: Page, html: string): Promise<void> {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "キーの試し");
+  await insertBodyHtml(page, html);
+}
+
+test("↓ で区切り線に移ってから打っても、区切り線は消えず、打った文字はすぐ下の行に入る。数式でも同じ", async ({ page }) => {
+  await openNoteWith(page, "<p>線の上</p><hr><p>線の下</p><div data-block-math=\"x^2\"></div><p>末尾</p>");
+  await placeCursorInBlock(page, "線の上", "end");
+  await page.keyboard.press("ArrowDown");
+  // 選んだ区切り線は、見た目で分かる。
+  await expect(page.locator(".ProseMirror hr.ProseMirror-selectednode")).toHaveCSS("outline-style", "solid");
+  await page.keyboard.type("8月");
+  expect(await bodyBlocks(page)).toEqual(["paragraph:線の上", "horizontalRule:", "paragraph:8月", "paragraph:線の下", "blockMath:", "paragraph:末尾"]);
+
+  await placeCursorInBlock(page, "線の下", "end");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.type("式の下");
+  expect(await bodyBlocks(page)).toEqual(["paragraph:線の上", "horizontalRule:", "paragraph:8月", "paragraph:線の下", "blockMath:", "paragraph:式の下", "paragraph:末尾"]);
+});
+
+test("選んだ区切り線の上で日本語の変換を始めても、区切り線は消えず、確定した文字はすぐ下の行に入る", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium", "変換は Chromium の DevTools で作る");
+  await openNoteWith(page, "<p>線の上</p><hr><p>線の下</p>");
+  await placeCursorInBlock(page, "線の上", "end");
+  await page.keyboard.press("ArrowDown");
+  const devTools = await page.context().newCDPSession(page);
+  await devTools.send("Input.imeSetComposition", { text: "にほんご", selectionStart: 4, selectionEnd: 4 });
+  await devTools.send("Input.insertText", { text: "日本語" });
+  await expect.poll(() => bodyBlocks(page)).toEqual(["paragraph:線の上", "horizontalRule:", "paragraph:日本語", "paragraph:線の下"]);
+});
+
+test("表のすぐ下の段落の先頭で Backspace を押しても表は消えず、カーソルが最後のセルの末尾へ移る。空の段落なら、その行を消して移る", async ({ page }) => {
+  await openNoteWith(page, "<table><tr><th>品目</th><th>数</th></tr><tr><td>りんご</td><td>3</td></tr></table><p>表の下</p><p></p><p>末尾</p>");
+  await placeCursorInBlock(page, "表の下", "start");
+  await page.keyboard.press("Backspace");
+  await page.keyboard.press("Backspace");
+  await expect(page.locator(".ProseMirror table")).toHaveCount(1);
+  // 1 回目で最後のセルの末尾へ移り、2 回目はセルの中の 1 文字を消す。
+  await expect(page.locator(".ProseMirror td").last()).toHaveText("");
+  await page.keyboard.type("5");
+  await expect(page.locator(".ProseMirror td").last()).toHaveText("5");
+  expect(await bodyBlocks(page)).toEqual(["table:品目数りんご5", "paragraph:表の下", "paragraph:", "paragraph:末尾"]);
+
+  // 表のすぐ下を空の段落にしてから、その先頭で Backspace。
+  await page.locator(".ProseMirror p", { hasText: "表の下" }).evaluate((paragraph) => getSelection()?.selectAllChildren(paragraph));
+  await page.keyboard.press("Delete");
+  await page.keyboard.press("Backspace");
+  await page.keyboard.type("個");
+  await expect(page.locator(".ProseMirror td").last()).toHaveText("5個");
+  expect(await bodyBlocks(page)).toEqual(["table:品目数りんご5個", "paragraph:", "paragraph:末尾"]);
+});
+
+test("表のすぐ上の段落の末尾で Delete を押しても表は消えず、カーソルが最初のセルの先頭へ移る", async ({ page }) => {
+  await openNoteWith(page, "<p>表の上</p><table><tr><td>りんご</td><td>3</td></tr></table>");
+  await placeCursorInBlock(page, "表の上", "end");
+  await page.keyboard.press("Delete");
+  await page.keyboard.press("Delete");
+  // 1 回目で最初のセルの先頭へ移り、2 回目はセルの中の 1 文字を消す。
+  expect(await bodyBlocks(page)).toEqual(["paragraph:表の上", "table:んご3", "paragraph:"]);
+});
+
+test("見出しとコードの先頭の Backspace は、前の段落につなげず、段落に戻す。コードは行ごとの段落になる", async ({ page }) => {
+  await openNoteWith(page, "<p>前の段落</p><h2>見出し</h2><pre><code>一行目\n二行目</code></pre>");
+  await placeCursorInBlock(page, "見出し", "start");
+  await page.keyboard.press("Backspace");
+  expect(await bodyBlocks(page)).toEqual(["paragraph:前の段落", "paragraph:見出し", "codeBlock:一行目\n二行目", "paragraph:"]);
+  await placeCursorInBlock(page, "一行目", "start");
+  await page.keyboard.press("Backspace");
+  expect(await bodyBlocks(page)).toEqual(["paragraph:前の段落", "paragraph:見出し", "paragraph:一行目", "paragraph:二行目", "paragraph:"]);
+  // 段落に戻したあとの Backspace は、ふつうに前の段落とつなぐ。
+  await page.keyboard.press("Backspace");
+  expect(await bodyBlocks(page)).toEqual(["paragraph:前の段落", "paragraph:見出し一行目", "paragraph:二行目", "paragraph:"]);
+});
+
+test("「$x^2$」と打つと数式になり、閉じの「$」は本文に残らない", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "数式");
+  await page.keyboard.type("値は $x^2$ です");
+  await expect(page.locator(".ProseMirror .math-inline")).toHaveCount(1);
+  await expect(page.locator(".ProseMirror p").first()).toHaveText(/^値は .* です$/);
+  await expect(page.locator(".ProseMirror p").first()).not.toContainText("$");
+});
+
+test("「==文字==」と打つとハイライトになる", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "ハイライト");
+  await page.keyboard.type("ここが ==大事== です");
+  await expect(page.locator(".ProseMirror mark")).toHaveText("大事");
+  await expect(page.locator(".ProseMirror p").first()).toHaveText("ここが 大事 です");
+});
+
+test("日本語入力のままの「＃ 」「＞ 」「［］ 」でも見出し・引用・チェックリストになり、直後の Backspace で打った文字に戻る", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "全角の記号");
+  await page.keyboard.type("＃＃　");
+  await page.keyboard.type("見出し");
+  await expect(page.locator(".ProseMirror h2")).toHaveText("見出し");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("＞　");
+  await page.keyboard.type("引用");
+  await expect(page.locator(".ProseMirror blockquote")).toHaveText("引用");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("［］　");
+  await page.keyboard.type("買い物");
+  await expect(page.locator('.ProseMirror ul[data-type="taskList"] li p')).toHaveText("買い物");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("＃　");
+  await expect(page.locator(".ProseMirror h1")).toHaveCount(1);
+  await page.keyboard.press("Backspace");
+  await expect(page.locator(".ProseMirror h1")).toHaveCount(0);
+  await expect(page.locator(".ProseMirror p", { hasText: "＃" })).toHaveText("＃　");
+});
+
+test("チェックリストの項目の中の Ctrl+Enter は、改行を入れずに、チェックを付け外しする", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "チェック");
+  await page.keyboard.type("[ ] 牛乳を買う");
+  const item = page.locator('.ProseMirror ul[data-type="taskList"] li');
+  await page.keyboard.press("Control+Enter");
+  await expect(item).toHaveAttribute("data-checked", "true");
+  await page.keyboard.press("Control+Enter");
+  await expect(item).toHaveAttribute("data-checked", "false");
+  await expect(item.locator("br:not(.ProseMirror-trailingBreak)")).toHaveCount(0);
+});
+
+test("コードと表のセルの中の Ctrl+A は、1 回目で中身だけ、2 回目で本文全体を選ぶ", async ({ page }) => {
+  await openNoteWith(page, "<p>前の段落</p><pre><code>一行目\n二行目</code></pre><table><tr><td>りんご</td><td>みかん</td></tr></table>");
+  const selectedText = () => page.evaluate(() => {
+    const body = document.querySelector(".ProseMirror") as HTMLElement & { editor: { state: { selection: { from: number; to: number }; doc: { textBetween: (from: number, to: number, separator: string) => string } } } };
+    const { selection, doc } = body.editor.state;
+    return doc.textBetween(selection.from, selection.to, "|");
+  });
+  await placeCursorInBlock(page, "一行目", "start");
+  await page.keyboard.press("Control+a");
+  expect(await selectedText()).toBe("一行目\n二行目");
+  await page.keyboard.press("Control+a");
+  expect(await selectedText()).toContain("前の段落");
+
+  await placeCursorInBlock(page, "りんご", "end");
+  await page.keyboard.press("Control+a");
+  expect(await selectedText()).toBe("りんご");
+  await page.keyboard.press("Control+a");
+  expect(await selectedText()).toContain("みかん");
+});

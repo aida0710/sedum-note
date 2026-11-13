@@ -1,7 +1,7 @@
 // 数式（LaTeX）のノード。行の中の数式（inlineMath）と、独立した行の数式（blockMath）。
 // 文書には LaTeX の文字だけを入れ、表示は KaTeX で作る。Markdown では $...$ と $$...$$ と往復する。
 
-import { mergeAttributes, Node, nodeInputRule, NodeViewWrapper, type ReactNodeViewProps, ReactNodeViewRenderer } from "@tiptap/react";
+import { InputRule, mergeAttributes, Node, NodeViewWrapper, type ReactNodeViewProps, ReactNodeViewRenderer } from "@tiptap/react";
 import { useEffect, useRef, useState } from "react";
 import { translate } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
@@ -112,7 +112,18 @@ export const InlineMath = Node.create({
   },
   addNodeView: mathNodeView,
   addInputRules() {
-    return [nodeInputRule({ find: INLINE_MATH_TYPED, type: this.type, getAttributes: (match) => ({ latex: match[2] }) })];
+    const { type } = this;
+    return [
+      new InputRule({
+        find: INLINE_MATH_TYPED,
+        // 閉じの $ は、まだ本文に入っていない（打った文字は、この変換が受ける）。開きの $ からカーソルまでを数式に置き換える。
+        handler: ({ state, range, match }) => {
+          const typedSource = match[1] ?? "";
+          const sourceStart = range.from + (match[0].length - typedSource.length);
+          state.tr.replaceWith(sourceStart, range.to, type.create({ latex: match[2] }));
+        },
+      }),
+    ];
   },
   renderMarkdown: (node) => `$${String(node.attrs?.latex ?? "")}$`,
   parseMarkdown: (token) => ({ type: INLINE_MATH_NODE, attrs: { latex: String(token.text ?? "") } }),
