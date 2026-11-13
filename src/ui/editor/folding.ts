@@ -106,6 +106,35 @@ function positionOutsideFolds(doc: ProseMirrorNode, position: number): number {
   return foldingHeading !== null && !endsFolding ? foldingHeading.position + 1 + foldingHeading.size : position;
 }
 
+// 折りたたみで隠れている位置を出すために、開く必要のあるノードの位置（折りたたんだ項目と見出し）。
+export function collapsedPositionsHiding(doc: ProseMirrorNode, hiddenPosition: number): number[] {
+  const resolved = doc.resolve(hiddenPosition);
+  const positions: number[] = [];
+  for (let depth = 1; depth <= resolved.depth; depth += 1) {
+    const node = resolved.node(depth);
+    // たたんだ項目が隠すのは、最初の子（題の行）より後ろだけ。
+    if (LIST_ITEM_TYPES.includes(node.type.name) && node.attrs.collapsed && resolved.index(depth) > 0) {
+      positions.push(resolved.before(depth));
+    }
+  }
+  // 見出しの折りたたみは、本文の直下で、次の同じ段か上の段の見出しまでを隠す。先の見出しをたどって、効いているものを集める。
+  const topLevelIndex = resolved.index(0);
+  let headingsAbove: Array<{ position: number; level: number; collapsed: boolean }> = [];
+  let offset = 0;
+  for (let index = 0; index <= topLevelIndex; index += 1) {
+    const block = doc.child(index);
+    if (block.type.name === "heading") {
+      const level = Number(block.attrs.level);
+      headingsAbove = headingsAbove.filter((heading) => heading.level < level);
+      if (index < topLevelIndex) {
+        headingsAbove.push({ position: offset, level, collapsed: Boolean(block.attrs.collapsed) });
+      }
+    }
+    offset += block.nodeSize;
+  }
+  return [...positions, ...headingsAbove.filter((heading) => heading.collapsed).map((heading) => heading.position)];
+}
+
 // 本文の折りたためるもの（子の項目を持つ箇条書きの項目と、中身のある、本文の直下の見出し）を、全部たたむか全部開く。
 // たたんでカーソルが隠れた所に残ったら、見えている所へ移す（隠れた所に打った文字が入らないように）。
 export function setAllFolded(editor: Editor, collapsed: boolean): boolean {

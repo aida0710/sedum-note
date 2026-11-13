@@ -50,8 +50,13 @@ export function FindBar({ editor, request, onClose }: FindBarProps) {
     input.current?.select();
     // 開く合図（serial）が変わったときだけ。showReplace は、その合図に付いてくる値。
   }, [request.serial]);
+  // 閉じたら、選んでいた当たりを本文で選び、続けて打てるよう本文へフォーカスを戻す。
   const close = () => {
-    editor.commands.setSearchQuery("");
+    const highlight = searchHighlightKey.getState(editor.state);
+    const activeMatch = highlight?.matches[highlight.activeIndex];
+    const clearSearch = editor.chain().setSearchQuery("");
+    (activeMatch ? clearSearch.setTextSelection({ from: activeMatch.from, to: activeMatch.to }) : clearSearch).run();
+    editor.view.focus();
     onClose();
   };
   const closeOnEscape = (event: React.KeyboardEvent) => {
@@ -59,10 +64,9 @@ export function FindBar({ editor, request, onClose }: FindBarProps) {
       close();
     }
   };
-  const searchFor = (query: string, options: SearchOptions) => editor.commands.setSearchQuery(query, options);
+  const searchFor = (query: string, options: SearchOptions) => editor.commands.setSearchQueryAndReveal(query, options);
   const noMatch = search.matchCount === 0;
-  const countText = search.invalidPattern ? translate("editor.findInvalidPattern")
-    : search.query.trim() === "" ? "" : `${search.activeIndex + 1} / ${search.matchCount}`;
+  const countText = search.invalidPattern || search.query.trim() === "" ? "" : `${search.activeIndex + 1} / ${search.matchCount}`;
   const replaceAvailable = search.editable;
   return (
     <div className="find-bar" role="search" onKeyDown={closeOnEscape}>
@@ -90,7 +94,7 @@ export function FindBar({ editor, request, onClose }: FindBarProps) {
               <Icon size={ICON_SIZE} />
             </button>
           ))}
-          <span className={`find-count${search.invalidPattern ? " invalid" : ""}`} role="status">{countText}</span>
+          <span className="find-count" role="status">{countText}</span>
           <button type="button" className="icon-button" aria-label={translate("editor.findPrevious")} disabled={noMatch}
             onClick={() => editor.commands.moveToSearchMatch(-1)}><ChevronUp size={ICON_SIZE} /></button>
           <button type="button" className="icon-button" aria-label={translate("editor.findNext")} disabled={noMatch}
@@ -98,6 +102,7 @@ export function FindBar({ editor, request, onClose }: FindBarProps) {
           <button type="button" className="icon-button" aria-label={translate("common.close")} onClick={close}><X size={ICON_SIZE} /></button>
         </span>
       </div>
+      {search.invalidPattern && <p className="find-error" role="alert">{translate("editor.findInvalidPattern")}</p>}
       {replaceShown && replaceAvailable && (
         <div className="find-row">
           <span />

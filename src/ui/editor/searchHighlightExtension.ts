@@ -5,6 +5,9 @@ import { Extension } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { DEFAULT_SEARCH_OPTIONS, findSearchMatches, type SearchMatch, type SearchOptions } from "./searchMatches";
 import { REVEAL_POSITION_META } from "./zoom";
+import { collapsedPositionsHiding } from "./folding";
+import { revealPositionInBody } from "./bodyScroll";
+import { FOLDED_ATTRIBUTE } from "../../core/notes/bodyContentChange";
 import { type EditorState, Plugin, PluginKey, type Transaction } from "@tiptap/pm/state";
 import { yUndoPluginKey } from "@tiptap/y-tiptap";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
@@ -18,10 +21,13 @@ export type SearchHighlightState = {
   matches: SearchMatch[];
   // いま選んでいる当たり（matches の中の位置）。当たりが無ければ -1。
   activeIndex: number;
+  // いま選んでいる当たりを見える所へ送るたびに 1 増える。増えたら、描き直しのあとで送る。
+  revealSerial: number;
   decorations: DecorationSet;
 };
 
-type SearchHighlightMeta = { query: string; options: SearchOptions } | { activeIndex: number };
+// revealsActiveMatch なら、選んだ当たりを見える所へ送る。
+type SearchHighlightMeta = { query?: string; options?: SearchOptions; activeIndex: number; revealsActiveMatch: boolean };
 
 export const searchHighlightKey = new PluginKey<SearchHighlightState>("searchHighlight");
 
@@ -30,6 +36,8 @@ declare module "@tiptap/core" {
     searchHighlight: {
       // options を省くと、言葉で、大文字と小文字を区別せずに探す（左の列の検索の言葉に色を付けるとき）。
       setSearchQuery: (query: string, options?: SearchOptions) => ReturnType;
+      // 色を付けたうえで、カーソルより後ろの最初の当たり（無ければ最初の当たり）を選び、見える所へ送る。
+      setSearchQueryAndReveal: (query: string, options?: SearchOptions) => ReturnType;
       // direction が 1 なら次、-1 なら前の当たりへ移る（端まで行ったら反対の端へ）。
       moveToSearchMatch: (direction: 1 | -1) => ReturnType;
       // いま選んでいる当たりを、replacement に置き換える。
@@ -51,14 +59,23 @@ function startNewUndoStep(state: EditorState): void {
   (yUndoPluginKey.getState(state) as { undoManager?: { stopCapturing: () => void } } | undefined)?.undoManager?.stopCapturing();
 }
 
-type BuildStateInput = { doc: ProseMirrorNode; query: string; options: SearchOptions; activeIndex: number };
+// 当たりを見せる変更にする。当たりが折りたたみの中なら開き、ズームの外なら、ズームをやめさせる。
+function revealMatch(transaction: Transaction, match: SearchMatch | undefined): Transaction {
+  if (!match) {
+    return transaction;
+  }
+  collapsedPositionsHiding(transaction.doc, match.from).forEach((position) => transaction.setNodeAttribute(position, FOLDED_ATTRIBUTE, false));
+  return transaction.setMeta(REVEAL_POSITION_META, match.from);
+}
 
-function buildState({ doc, query, options, activeIndex }: BuildStateInput): SearchHighlightState {
+type BuildStateInput = { doc: ProseMirrorNode; query: string; options: SearchOptions; activeIndex: number; revealSerial: number };
+
+function buildState({ doc, query, options, activeIndex, revealSerial }: BuildStateInput): SearchHighlightState {
   const { matches, invalidPattern } = findSearchMatches(doc, query, options);
   const active = matches.length === 0 ? -1 : Math.min(Math.max(activeIndex, 0), matches.length - 1);
   const decorations = DecorationSet.create(doc, matches.map((match, index) =>
     Decoration.inline(match.from, match.to, { class: index === active ? "search-match active" : "search-match" })));
-  return { query, options, invalidPattern, matches, activeIndex: active, decorations };
+  return { query, options, invalidPattern, matches, activeIndex: active, revealSerial, decorations };
 }
 
 export const SearchHighlight = Extension.create({
@@ -66,22 +83,23 @@ export const SearchHighlight = Extension.create({
   addCommands() {
     return {
       setSearchQuery: (query, options = DEFAULT_SEARCH_OPTIONS) => ({ tr, dispatch }) => {
-        dispatch?.(tr.setMeta(searchHighlightKey, { query, options } satisfies SearchHighlightMeta));
+        dispatch?.(tr.setMeta(searchHighlightKey, { query, options, activeIndex: 0, revealsActiveMatch: false } satisfies SearchHighlightMeta));
         return true;
       },
-      moveToSearchMatch: (direction) => ({ state, tr, dispatch, view }) => {
+      setSearchQueryAndReveal: (query, options = DEFAULT_SEARCH_OPTIONS) => ({ state, tr, dispatch }) => {
+        const { matches } = findSearchMatches(state.doc, query, options);
+        const firstAfterCursor = matches.findIndex((match) => match.from >= state.selection.from);
+        const activeIndex = Math.max(firstAfterCursor, 0);
+        dispatch?.(revealMatch(tr.setMeta(searchHighlightKey, { query, options, activeIndex, revealsActiveMatch: true } satisfies SearchHighlightMeta), matches[activeIndex]));
+        return true;
+      },
+      moveToSearchMatch: (direction) => ({ state, tr, dispatch }) => {
         const current = searchHighlightKey.getState(state);
         if (!current || current.matches.length === 0) {
           return false;
         }
         const activeIndex = (current.activeIndex + direction + current.matches.length) % current.matches.length;
-        const match = current.matches[activeIndex];
-        // 当たりがズームの外なら、ズームをやめて見せる。
-        dispatch?.(tr.setMeta(searchHighlightKey, { activeIndex } satisfies SearchHighlightMeta).setMeta(REVEAL_POSITION_META, match?.from));
-        if (match) {
-          // 描き直しのあとで、選んだ当たりを見える所へ送る。
-          requestAnimationFrame(() => (view.domAtPos(match.from).node as Element | Text).parentElement?.scrollIntoView({ block: "center" }));
-        }
+        dispatch?.(revealMatch(tr.setMeta(searchHighlightKey, { activeIndex, revealsActiveMatch: true } satisfies SearchHighlightMeta), current.matches[activeIndex]));
         return true;
       },
       replaceActiveSearchMatch: (replacement) => ({ state, tr, dispatch }) => {
@@ -115,19 +133,27 @@ export const SearchHighlight = Extension.create({
       new Plugin<SearchHighlightState>({
         key: searchHighlightKey,
         state: {
-          init: (_config, state) => buildState({ doc: state.doc, query: "", options: DEFAULT_SEARCH_OPTIONS, activeIndex: 0 }),
+          init: (_config, state) => buildState({ doc: state.doc, query: "", options: DEFAULT_SEARCH_OPTIONS, activeIndex: 0, revealSerial: 0 }),
           apply(transaction, previous) {
             const meta = transaction.getMeta(searchHighlightKey) as SearchHighlightMeta | undefined;
             const { doc } = transaction;
-            if (meta && "query" in meta) {
-              return buildState({ doc, query: meta.query, options: meta.options, activeIndex: 0 });
-            }
             if (meta) {
-              return buildState({ doc, query: previous.query, options: previous.options, activeIndex: meta.activeIndex });
+              const revealSerial = previous.revealSerial + (meta.revealsActiveMatch ? 1 : 0);
+              return buildState({ doc, query: meta.query ?? previous.query, options: meta.options ?? previous.options, activeIndex: meta.activeIndex, revealSerial });
             }
-            return transaction.docChanged ? buildState({ doc, query: previous.query, options: previous.options, activeIndex: previous.activeIndex }) : previous;
+            return transaction.docChanged ? buildState({ ...previous, doc }) : previous;
           },
         },
+        // 描き直しのあとで、選んだ当たりを見える所へ送る（開いた折りたたみやズームの外の当たりも、描かれてから位置を測る）。
+        view: () => ({
+          update: (view, previousState) => {
+            const current = searchHighlightKey.getState(view.state);
+            const activeMatch = current?.matches[current.activeIndex];
+            if (current && activeMatch && current.revealSerial !== searchHighlightKey.getState(previousState)?.revealSerial) {
+              revealPositionInBody(view, activeMatch.from);
+            }
+          },
+        }),
         props: {
           decorations: (state) => searchHighlightKey.getState(state)?.decorations,
         },

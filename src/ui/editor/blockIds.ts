@@ -11,6 +11,7 @@ import { type EditorState, Plugin, PluginKey, TextSelection, type Transaction } 
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { ySyncPluginKey } from "@tiptap/y-tiptap";
 import { BLOCK_ID_ATTRIBUTE, LINKABLE_BLOCK_NODE_NAMES } from "../../core/notes/bodyBlocks";
+import { collapsedPositionsHiding } from "./folding";
 
 // ほかの Enter の処理（箇条書きの項目を分ける、など）より先に見る。
 const ENTER_PRIORITY = 1000;
@@ -94,33 +95,6 @@ function removeDuplicatedIds(transactions: readonly Transaction[], oldState: Edi
     positions.filter((position) => position !== keptPosition).forEach((position) => transaction.setNodeAttribute(position, BLOCK_ID_ATTRIBUTE, null));
   }
   return transaction;
-}
-
-// 折りたたみで隠れているブロックを出すために、開く必要のあるノードの位置（折りたたんだ項目と見出し）。
-function collapsedPositionsHiding(doc: ProseMirrorNode, blockPosition: number): number[] {
-  const resolved = doc.resolve(blockPosition);
-  const positions: number[] = [];
-  for (let depth = 1; depth <= resolved.depth; depth += 1) {
-    if (resolved.node(depth).attrs.collapsed) {
-      positions.push(resolved.before(depth));
-    }
-  }
-  // 見出しの折りたたみは、本文の直下で、次の同じ段か上の段の見出しまでを隠す。先の見出しをたどって、効いているものを集める。
-  const topLevelIndex = resolved.index(0);
-  let headingsAbove: Array<{ position: number; level: number; collapsed: boolean }> = [];
-  let offset = 0;
-  for (let index = 0; index <= topLevelIndex; index += 1) {
-    const block = doc.child(index);
-    if (block.type.name === "heading") {
-      const level = Number(block.attrs.level);
-      headingsAbove = headingsAbove.filter((heading) => heading.level < level);
-      if (index < topLevelIndex) {
-        headingsAbove.push({ position: offset, level, collapsed: Boolean(block.attrs.collapsed) });
-      }
-    }
-    offset += block.nodeSize;
-  }
-  return [...positions, ...headingsAbove.filter((heading) => heading.collapsed).map((heading) => heading.position)];
 }
 
 // その ID のブロックまで本文を送り、カーソルを置いて目立たせる。ブロックが無ければ false。

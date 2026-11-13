@@ -115,7 +115,7 @@ export function createEditorExtensions({ body, slashMenuController, blockMenuCon
     ZoomOutOnEscape,
     BlockKeys,
     DateTimeShortcuts,
-    TypewriterScroll.configure({ isEnabled: () => readDevicePreferences().typewriterMode, scrollContainerSelector: ".document-scroll" }),
+    TypewriterScroll.configure({ isEnabled: () => readDevicePreferences().typewriterMode }),
     SearchHighlight,
     // メモのツール（アプリ内の AI）が書いた本文も、エディタの取り消しで戻せるようにする。
     Collaboration.configure({ fragment: body, yUndoOptions: { trackedOrigins: [NOTE_TOOL_ORIGIN] } }),

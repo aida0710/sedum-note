@@ -465,8 +465,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .outline-item:hover { background: var(--selected); color: var(--text); }
 .icon-button.active { background: var(--selected); color: var(--accent); }
 /* 左右の余白は、見出しの左に並ぶ「＋」・持ち手・ズームのボタン・折りたたみの印（左へ 80px まで）が、左寄せのときも切れない幅にする。
-   文字の列の幅は 648px（816 − 84 × 2）。 */
-.document { padding: 48px 84px 80px; max-width: 816px; width: 100%; margin: 0 auto; }
+   文字の列の幅は 648px（816 − 84 × 2）。下は、末尾の行を窓の中ほどまで送れるよう、窓の高さの 3 割を空ける。 */
+.document { padding: 48px 84px max(80px, 30vh); max-width: 816px; width: 100%; margin: 0 auto; }
 /* 本文の列の置き場所（メモごとか、表示の設定の既定）。中央は、上の margin のまま。 */
 .document.align-left { margin-left: 0; }
 .document.align-right { margin-right: 0; }
@@ -692,7 +692,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .find-bar input { width: 100%; min-width: 0; height: var(--control-height); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 10px; background: var(--panel); color: var(--text); }
 .find-bar input.invalid { border-color: var(--danger); }
 .find-count { color: var(--muted); font-size: var(--font-size-small); min-width: 48px; text-align: center; white-space: nowrap; }
-.find-count.invalid { color: var(--danger); }
+/* 正規表現の誤りは、入力欄の下の行に出す（操作の列に出すと、入力欄の幅が変わる）。 */
+.find-error { grid-column: 2 / -1; color: var(--danger); font-size: var(--font-size-small); }
 .search-scope { text-align: left; color: var(--accent); font-size: var(--font-size-small); padding: 4px 8px; line-height: 1.5; }
 .search-scope-switch { display: flex; gap: 2px; margin: 2px 8px 4px; padding: 2px; border-radius: var(--radius-row); background: var(--tag); }
 .search-scope-switch button { flex: 1 1 0; min-width: 0; padding: 3px 8px; border-radius: var(--radius-inline); font-size: var(--font-size-small); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -991,7 +992,7 @@ details summary { cursor: pointer; color: var(--accent); }
 .tabbar { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); color: var(--muted); font-size: var(--font-size-caption); flex: none; background: var(--panel); }
 .tabbar button { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .tabbar .on { color: var(--accent); font-weight: 600; }
-.phone .document { padding: 4px 18px 40px; }
+.phone .document { padding: 4px 18px max(80px, 30vh); }
 /* スマホは幅が狭いので、題を PC（30px）より小さくする。 */
 .phone .title-input { font-size: 26px; }
 .phone .editor-bar { order: 2; border-bottom: 0; border-top: 1px solid var(--line); justify-content: space-between; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }

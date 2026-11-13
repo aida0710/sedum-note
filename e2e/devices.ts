@@ -122,3 +122,24 @@ export async function insertFromSlashMenu(page: Page, query: string, option: str
   await page.keyboard.type(`/${query}`);
   await page.getByRole("listbox", { name: "ブロックの種類" }).getByRole("option", { name: option, exact: true }).click();
 }
+
+// 本文のカーソルの所に、HTML で書いた中身を入れる（長いメモや、キーで作りにくい並びを用意するとき）。カーソルは入れた中身の末尾に残る。
+export async function insertBodyHtml(page: Page, html: string): Promise<void> {
+  await page.evaluate((content) => {
+    const body = document.querySelector(".ProseMirror") as HTMLElement & { editor: { commands: { insertContent: (content: string) => boolean } } };
+    body.editor.commands.insertContent(content);
+  }, html);
+}
+
+// 画面の座標での、要素の上下の端。
+type VerticalEdges = { top: number; bottom: number };
+
+// 本文のカーソル（選択の先頭）と、本文を縦に送る枠の、画面の座標での上下の端。
+export async function caretAndBodyFrame(page: Page): Promise<{ caret: VerticalEdges; frame: VerticalEdges }> {
+  return page.evaluate(() => {
+    const body = document.querySelector(".ProseMirror") as HTMLElement & { editor: { state: { selection: { head: number } }; view: { coordsAtPos: (position: number) => { top: number; bottom: number } } } };
+    const caret = body.editor.view.coordsAtPos(body.editor.state.selection.head);
+    const frame = document.querySelector(".document-scroll")!.getBoundingClientRect();
+    return { caret: { top: caret.top, bottom: caret.bottom }, frame: { top: frame.top, bottom: frame.bottom } };
+  });
+}

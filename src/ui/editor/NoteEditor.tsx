@@ -49,6 +49,8 @@ import { currentTemplateTimeValues } from "./templateTimeValues";
 import { zoomIntoCursor, zoomTargetAtCursor } from "./zoom";
 import { setAllFolded } from "./folding";
 import { useRememberedNoteView } from "./rememberedNoteView";
+import { opensAtSearchMatch, useSearchWordHighlight } from "./useSearchWordHighlight";
+import { CARET_SCROLL_MARGIN, CARET_SCROLL_MARGIN_ON_PHONE } from "./bodyScroll";
 import { insertDroppedNoteLink } from "./droppedNoteLink";
 import { useIsZoomed, ZoomBackButton } from "./ZoomBackButton";
 import { useZoomOutOnEscape } from "./zoomOutOnEscape";
@@ -155,6 +157,8 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
     extensions: createEditorExtensions({ body: note.body, slashMenuController, blockMenuController }),
     editable: !inTrash,
     editorProps: {
+      scrollMargin: isMobile ? CARET_SCROLL_MARGIN_ON_PHONE : CARET_SCROLL_MARGIN,
+      scrollThreshold: isMobile ? CARET_SCROLL_MARGIN_ON_PHONE : CARET_SCROLL_MARGIN,
       handlePaste: (_view, event) => attachments.takeFiles(Array.from(event.clipboardData?.files ?? [])) || takeMarkdown(event.clipboardData),
       // ファイルなら添付し、左の列のメモならリンクを入れる。
       handleDrop: (view, event) => attachments.takeFiles(Array.from((event as DragEvent).dataTransfer?.files ?? [])) || insertDroppedNoteLink(view, event as DragEvent, noteId),
@@ -176,7 +180,8 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
       revealBlock(editor, blockToReveal.blockId);
     }
   }, [editor, noteId, blockToReveal]);
-  useRememberedNoteView({ noteId, editor, scrollContainer: documentScroll, skipRestore: blockToReveal?.noteId === noteId });
+  // リンクの先のブロックか、左の列の検索の当たりへ送って開くときは、前に見ていた位置へ戻さない。
+  useRememberedNoteView({ noteId, editor, scrollContainer: documentScroll, skipRestore: blockToReveal?.noteId === noteId || opensAtSearchMatch(noteId, highlightedText) });
   // ダイアログを閉じて本文へ戻るときは、エディタのカーソルの位置ごと戻す（view.focus() は今の選択を DOM へ写してから戻す）。
   useEffect(() => (editor ? registerFocusRestorer(editor.view.dom, () => editor.view.focus()) : undefined), [editor]);
 
@@ -227,11 +232,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
       setFindBarOpen(true);
     }
   }, [findRequest.serial]);
-  useEffect(() => {
-    if (!findBarOpen) {
-      editor?.commands.setSearchQuery(highlightedText);
-    }
-  }, [editor, findBarOpen, highlightedText]);
+  useSearchWordHighlight({ editor, noteId, searchWord: highlightedText, paused: findBarOpen });
 
   // note は本文が変わるたびに作り直されるので、タグもそのたびに取り直す。
   const tags = useMemo(() => plainTextHashtags(bodyPlainText(note.body)), [note]);

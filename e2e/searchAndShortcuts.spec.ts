@@ -206,7 +206,7 @@ test("正規表現で探して、$1 を使って置換できる。読めない�
   const query = page.getByPlaceholder("このメモの中を検索");
 
   await query.fill("(\\d+)-(\\d+");
-  await expect(page.locator(".find-bar").getByRole("status")).toHaveText("正規表現が正しくありません");
+  await expect(page.locator(".find-bar").getByRole("alert")).toHaveText("正規表現が正しくありません");
   await expect(query).toHaveAttribute("aria-invalid", "true");
 
   await query.fill("(\\d{4})-(\\d{2})-(\\d{2})");

@@ -13,6 +13,7 @@ import { NodeSelection, Plugin } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
 import { translate } from "../i18n/translate";
 import type { BlockMenuController } from "./blockMenuController";
+import { BODY_SCROLL_CONTAINER_SELECTOR } from "./bodyScroll";
 import { blockAt, startBlockBelow } from "./blockOperations";
 
 const HANDLE_CLASS = "block-drag-handle";
@@ -24,8 +25,6 @@ const HANDLE_HEIGHT = 24;
 //   見出し: 折りたたみの印（左へ 20px まで）と、ズームのボタン（左へ 42px まで）。
 //   箇条書きの項目: 行頭の印と、折りたたみの印（左へ 34px まで）。
 const HANDLE_GAP = { heading: 44, listItem: 38, other: 6 };
-// 持ち手を探す本文の列。無いとき（本文だけを出す画面）は、エディタを包む要素で見る。
-const HOVER_AREA_SELECTOR = ".document-scroll";
 
 const LIST_ITEM_TYPES = ["listItem", "taskItem"];
 
@@ -137,7 +136,8 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           if (!container) {
             return {};
           }
-          const hoverArea = container.closest<HTMLElement>(HOVER_AREA_SELECTOR) ?? container;
+          // マウスの動きを見る本文の列。無いとき（本文だけを出す画面）は、エディタを包む要素で見る。
+          const hoverArea = container.closest<HTMLElement>(BODY_SCROLL_CONTAINER_SELECTOR) ?? container;
           const handle = createHandle();
           const insertButton = createInsertButton();
           container.append(insertButton, handle);
