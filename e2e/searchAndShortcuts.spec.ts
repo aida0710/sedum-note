@@ -357,6 +357,8 @@ test("タブが多くても、開いたタブは見える所まで送られる",
 test("左の列では、テンプレートとゴミ箱は、すべてのメモ・お気に入りと同じまとまりに並び、タグの見出しの下には並ばない", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "タグのあるメモ", "本文 #todo");
+  // タグの見出しは、本文が保存されてタグが数えられてから出る。出るのを待ってから並びを読む。
+  await expect(page.locator(".sidebar-scroll .section-title", { hasText: "タグ" })).toBeVisible();
   const order = await page.locator(".sidebar-scroll").evaluate((list) => [...list.querySelectorAll(".section-title, .nav-label")].map((element) => element.textContent?.trim() ?? ""));
   expect(order.indexOf("ゴミ箱")).toBeLessThan(order.findIndex((text) => text.startsWith("ノートブック")));
   expect(order.indexOf("ゴミ箱")).toBeLessThan(order.indexOf("タグ"));
