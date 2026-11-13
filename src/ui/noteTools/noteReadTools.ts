@@ -52,16 +52,22 @@ export function noteReadTools(context: NoteToolContext): NoteTool[] {
     {
       name: "get_note",
       title: "Read a note",
-      description: `Returns a note with its body as Markdown. Attachments appear as links to ${ATTACHMENT_HREF_PREFIX}<id>; keep those links unchanged when writing the body back so the attachments stay in the note.`,
+      description: `Returns a note with its body as Markdown. Attachments appear as links to ${ATTACHMENT_HREF_PREFIX}<id>; keep those links unchanged when writing the body back so the attachments stay in the note. A long body can come back in parts: when truncated is true, call again with offset set to nextOffset.`,
       category: "read",
       destructiveHint: false,
-      inputSchema: objectSchema(NOTE_ID_PROPERTY, ["noteId"]),
+      inputSchema: objectSchema({
+        ...NOTE_ID_PROPERTY,
+        offset: { type: "integer", description: "Where to start reading the body, in characters (default 0)" },
+        maxCharacters: { type: "integer", description: "The most characters of the body to return (default: the whole body)" },
+      }, ["noteId"]),
       prepare: async (toolArguments) => {
         const note = noteOf(toolArguments);
+        const offset = boundedInteger(toolArguments, "offset", { minimum: 0, maximum: Number.MAX_SAFE_INTEGER, fallback: 0 });
+        const maxCharacters = boundedInteger(toolArguments, "maxCharacters", { minimum: 1, maximum: Number.MAX_SAFE_INTEGER, fallback: Number.MAX_SAFE_INTEGER });
         return {
           preview: { kind: "readNote", noteId: note.id, title: note.content.title },
           isCurrent: ALWAYS_CURRENT,
-          run: async () => ({ ...describeNote(note), markdown: markdownOf(note), attachments: note.content.attachments }),
+          run: async () => ({ ...describeNote(note), ...bodyPartOf(markdownOf(note), { offset, maxCharacters }), attachments: note.content.attachments }),
         };
       },
     },
@@ -102,4 +108,16 @@ export function noteReadTools(context: NoteToolContext): NoteTool[] {
       }),
     },
   ];
+}
+
+// 本文のうち、offset から maxCharacters 字まで。全体を返すときは markdown だけ（MCP の今までの結果と同じ形）。
+// 一部だけを返すときは、全体の長さと、続きがあれば次に読む位置を添える。
+export function bodyPartOf(markdown: string, { offset, maxCharacters }: { offset: number; maxCharacters: number }) {
+  const part = markdown.slice(offset, offset + maxCharacters);
+  const nextOffset = offset + part.length;
+  if (offset === 0 && nextOffset >= markdown.length) {
+    return { markdown };
+  }
+  const truncated = nextOffset < markdown.length;
+  return { markdown: part, offset, totalCharacters: markdown.length, truncated, ...(truncated ? { nextOffset } : {}) };
 }

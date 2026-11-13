@@ -2,7 +2,7 @@
 // 両方が、同じツールを使う。つなぎ方（MCP のプロトコル、Claude・OpenAI 互換の API）にはよらない。
 //
 // ツールの呼び出しは 2 段に分ける。prepare で引数を確かめ、何をするか（preview）を決め、run で実際に行う。
-// MCP は prepare のあとすぐ run する。チャットは、設定の許可（ai/aiToolPermissions.ts）に従って、
+// MCP は prepare のあとすぐ run する。チャットは、設定の許可（ai/aiToolCalls.ts）に従って、
 // 聞いてから run するか、聞かずに run するか、run せずに断る。
 
 import type { BodyChangeProposal } from "./noteBodyChange";

@@ -23,6 +23,18 @@ export type AiModelOption = {
   maxOutputTokens: number | null;
 };
 
+// アプリ内の AI に、メモの操作を許すか。操作の種類ごとに選ぶ。deny は許可しない（呼ばれたら断る）、ask は毎回聞く、
+// allow は聞かずに行う。
+export const AI_TOOL_PERMISSIONS = ["deny", "ask", "allow"] as const;
+export type AiToolPermission = (typeof AI_TOOL_PERMISSIONS)[number];
+
+// 操作の種類（ui/noteTools/noteTool.ts の NoteToolCategory と同じ）。read はメモを探す・読む、edit はメモやノートブックを
+// 作る・直す（ゴミ箱から戻すを含む）、trash はゴミ箱に入れる・ノートブックを消す、permanentDelete は完全に削除する。
+export type AiToolPermissions = { read: AiToolPermission; edit: AiToolPermission; trash: AiToolPermission; permanentDelete: AiToolPermission };
+
+// 既定: 読むのは聞かずに行い、変えるのは毎回聞き、完全な削除はさせない。
+export const DEFAULT_AI_TOOL_PERMISSIONS: AiToolPermissions = { read: "allow", edit: "ask", trash: "ask", permanentDelete: "deny" };
+
 // model は、models の中から選んだもの（models が空なら、前の版で手で入れた名前のことがある）。
 export type AiSettings = {
   enabled: boolean;
