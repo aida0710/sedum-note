@@ -3,11 +3,12 @@
 import { shortcutText } from "../shared/shortcutKeys";
 import { keysOfShortcut } from "../workspace/keyboardShortcuts";
 import { ZOOM_INTO_CURSOR_KEYS } from "./zoom";
+import { FOLD_ALL_KEYS, UNFOLD_ALL_KEYS } from "./folding";
 
 // キーで呼べない項目は null。
-export type NoteMenuShortcutKeys = { findInNote: string | null; aiChat: string | null; zoomIntoCursor: string | null };
+export type NoteMenuShortcutKeys = { findInNote: string | null; aiChat: string | null; zoomIntoCursor: string | null; foldAll: string | null; unfoldAll: string | null };
 
-const NO_SHORTCUT_KEYS: NoteMenuShortcutKeys = { findInNote: null, aiChat: null, zoomIntoCursor: null };
+const NO_SHORTCUT_KEYS: NoteMenuShortcutKeys = { findInNote: null, aiChat: null, zoomIntoCursor: null, foldAll: null, unfoldAll: null };
 
 type NoteMenuShortcutKeysInput = {
   // スマホの画面か。キーボードのショートカットは PC の画面だけが受ける（workspace/keyboardShortcuts.ts）。
@@ -24,5 +25,7 @@ export function noteMenuShortcutKeys({ isMobile, receivesFindShortcut }: NoteMen
     findInNote: receivesFindShortcut ? shortcutText(keysOfShortcut("findInNote")) : null,
     aiChat: shortcutText(keysOfShortcut("aiChat")),
     zoomIntoCursor: shortcutText(ZOOM_INTO_CURSOR_KEYS),
+    foldAll: shortcutText(FOLD_ALL_KEYS),
+    unfoldAll: shortcutText(UNFOLD_ALL_KEYS),
   };
 }

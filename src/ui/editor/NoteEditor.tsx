@@ -47,6 +47,7 @@ import { DocumentScanDialog } from "./DocumentScanDialog";
 import { TemplateBanner } from "./TemplateBanner";
 import { currentTemplateTimeValues } from "./templateTimeValues";
 import { zoomIntoCursor, zoomTargetAtCursor } from "./zoom";
+import { setAllFolded } from "./folding";
 import { useRememberedNoteView } from "./rememberedNoteView";
 import { insertDroppedNoteLink } from "./droppedNoteLink";
 import { useIsZoomed, ZoomBackButton } from "./ZoomBackButton";
@@ -417,6 +418,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
           onMergeNote={() => setPickingNoteToMerge(true)}
           onOpenAiAssistant={() => aiChat.setOpen(true)}
           zoomTarget={editor ? zoomTargetAtCursor(editor.state) : null} onZoomIn={() => editor && zoomIntoCursor(editor)}
+          onFoldAll={() => setAllFolded(editor, true)} onUnfoldAll={() => setAllFolded(editor, false)}
           onOpenInNewWindow={!isMobile && canOpenNoteWindows() ? () => void openInNewWindow.run(undefined) : undefined}
           pluginCommands={pluginCommands}
           onOpenInSplit={onOpenInSplit}

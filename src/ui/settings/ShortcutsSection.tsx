@@ -2,6 +2,7 @@
 
 import { DATE_TIME_SHORTCUTS } from "../editor/insertDateTime";
 import { ZOOM_SHORTCUTS } from "../editor/zoom";
+import { FOLDING_SHORTCUTS } from "../editor/folding";
 import { TABLE_SHORTCUTS } from "../editor/tableShortcuts";
 import { type MessageKey, translate } from "../i18n/translate";
 import { isApplePlatform, type ShortcutKeys, shortcutText } from "../shared/shortcutKeys";
@@ -44,7 +45,7 @@ export function ShortcutsSection() {
       <h3>{translate("settings.shortcuts.inSidebar")}</h3>
       <ShortcutList hints={sidebarHints()} />
       <h3>{translate("settings.shortcuts.inBody")}</h3>
-      <ShortcutList hints={hintsOf([...DATE_TIME_SHORTCUTS, ...ZOOM_SHORTCUTS])} />
+      <ShortcutList hints={hintsOf([...DATE_TIME_SHORTCUTS, ...ZOOM_SHORTCUTS, ...FOLDING_SHORTCUTS])} />
       <h3>{translate("settings.shortcuts.inTable")}</h3>
       <ShortcutList hints={hintsOf(TABLE_SHORTCUTS)} />
     </section>

@@ -32,6 +32,7 @@ import { DateTimeShortcuts } from "./insertDateTime";
 import { BlockDragHandle } from "./blockDragHandle";
 import { MarkdownShortcutUndo } from "./markdownShortcutUndo";
 import { KeepTabInEditor } from "./keepTabInEditor";
+import { JapaneseListShortcuts } from "./japaneseListShortcuts";
 import { ZoomOutOnEscape } from "./zoomOutOnEscape";
 import { BlockEmbed } from "./blockEmbedNode";
 import { BlockIds } from "./blockIds";
@@ -98,6 +99,7 @@ export function createEditorExtensions({ body, slashMenuController }: EditorExte
     ...documentExtensions(),
     SlashCommands.configure({ controller: slashMenuController }),
     MarkdownShortcutUndo,
+    JapaneseListShortcuts,
     KeepTabInEditor,
     DueMarks,
     TableShortcuts,

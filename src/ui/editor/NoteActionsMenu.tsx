@@ -1,7 +1,7 @@
 // メモの「…」メニュー。項目を意味のまとまりに分け、まとまりの間に区切り線を引く。
 //   整理: ピン留め、ノートブックを選ぶダイアログ、メモの期限、カーソルのある項目の期限
 //   複製・結合: テンプレートにする、複製、結合
-//   表示: メモの中の検索、箇条書き・見出しへのズーム、本文の配置（PC だけ）
+//   表示: メモの中の検索、箇条書き・見出しへのズーム、すべて折りたたむ・開く、本文の配置（PC だけ）
 //   開き方: 画面分割、別のウィンドウで開く、最前面に固定
 //   AI・履歴: AI チャット、履歴
 //   プラグイン: 有効なプラグインのコマンド
@@ -9,7 +9,7 @@
 //   ゴミ箱
 // ショートカットのある項目は、キーを右に出す。
 
-import { AlarmClock, AppWindow, ArrowUpToLine, Check, Columns2, Copy, FileDown, FolderInput, History, LayoutTemplate, type LucideIcon, Merge, Pin, PinOff, Printer, Puzzle, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
+import { AlarmClock, AppWindow, ArrowUpToLine, Check, ChevronsDownUp, ChevronsUpDown, Columns2, Copy, FileDown, FolderInput, History, LayoutTemplate, type LucideIcon, Merge, Pin, PinOff, Printer, Puzzle, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
 import type { ReactNode } from "react";
 import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
@@ -39,6 +39,9 @@ type NoteActionsMenuProps = {
   // カーソルのある箇条書きの項目か見出しのセクションにズームする。どちらの中にも無ければ zoomTarget は null。
   zoomTarget: ZoomTarget | null;
   onZoomIn: () => void;
+  // 箇条書きと見出しを、全部たたむ・全部開く。
+  onFoldAll: () => void;
+  onUnfoldAll: () => void;
   // メモの期限を選ぶ画面を開く。
   onSetNoteDue: () => void;
   // カーソルのあるチェックリストの項目の期限を選ぶ画面を開く。カーソルが項目の中に無ければ undefined。
@@ -82,7 +85,7 @@ function MenuGroup({ children }: { children: ReactNode }) {
   return <div className="menu-group" role="group">{children}</div>;
 }
 
-export function NoteActionsMenu({ anchor, note, repository, onChooseNotebooks, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, zoomTarget, onZoomIn, onSetNoteDue, onSetTaskDue, pluginCommands, onOpenInSplit, onOpenInNewWindow, onShowHistory, onExport, canChoosePageAlignment, shortcutKeys, onClose }: NoteActionsMenuProps) {
+export function NoteActionsMenu({ anchor, note, repository, onChooseNotebooks, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onFoldAll, onUnfoldAll, zoomTarget, onZoomIn, onSetNoteDue, onSetTaskDue, pluginCommands, onOpenInSplit, onOpenInNewWindow, onShowHistory, onExport, canChoosePageAlignment, shortcutKeys, onClose }: NoteActionsMenuProps) {
   const { content } = note;
   const inTrash = content.trashedAt !== null;
   const moveToTrash = useTrashWithUndo(repository);
@@ -113,6 +116,8 @@ export function NoteActionsMenu({ anchor, note, repository, onChooseNotebooks, o
           <MenuAction icon={ZoomIn} label={translate(zoomTarget === "section" ? "editor.zoomIntoSection" : "editor.zoomIntoItem")}
             shortcutKeys={shortcutKeys.zoomIntoCursor} onSelect={closeAndRun(onZoomIn)} />
         )}
+        {!inTrash && <MenuAction icon={ChevronsDownUp} label={translate("editor.foldAll")} shortcutKeys={shortcutKeys.foldAll} onSelect={closeAndRun(onFoldAll)} />}
+        {!inTrash && <MenuAction icon={ChevronsUpDown} label={translate("editor.unfoldAll")} shortcutKeys={shortcutKeys.unfoldAll} onSelect={closeAndRun(onUnfoldAll)} />}
         {canChoosePageAlignment && (
           <PageAlignmentChoices selected={content.pageAlignment} onChoose={(pageAlignment) => closeAndRun(() => repository.updateNote(note.id, { pageAlignment }))()} />
         )}

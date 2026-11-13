@@ -736,6 +736,57 @@ test("コードのブロックでは、Tab で行を字下げし、Shift+Tab で
   await expect(page.locator(".ProseMirror pre")).toHaveText("if (a) {\nb();");
 });
 
+test("日本語入力をオンのまま打つ「・ 」「ー 」「１． 」でも箇条書きになり、直後の Backspace で打った文字に戻る", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "日本語の箇条書き");
+  const body = page.locator(".ProseMirror");
+  for (const [typed, selector] of [["・\u3000", "ul > li"], ["ー\u3000", "ul > li"], ["１．\u3000", "ol > li"], ["２. ", "ol > li"]] as const) {
+    await page.keyboard.insertText(typed.slice(0, -1));
+    await page.keyboard.insertText(typed.slice(-1));
+    await expect(body.locator(selector)).toHaveCount(1);
+    await page.keyboard.press("Backspace");
+    await expect(body.locator(selector)).toHaveCount(0);
+    await expect(body.locator("p").first()).toHaveText(typed);
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Backspace");
+  }
+  await page.keyboard.insertText("３．");
+  await page.keyboard.insertText("\u3000");
+  await page.keyboard.type("三つ目");
+  await expect(body.locator("ol")).toHaveAttribute("start", "3");
+  await expect(body.locator("ol > li")).toHaveText(["三つ目"]);
+});
+
+test("すべて折りたたむ・すべて開くで、子のある項目と見出しを一度に開け閉めでき、隠れた所にあったカーソルは見える所へ移る", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "折りたたみ");
+  await page.keyboard.type("## 章");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("- 親");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Tab");
+  await page.keyboard.type("子");
+  const body = page.locator(".ProseMirror");
+  await page.keyboard.press("ControlOrMeta+Alt+[");
+  await expect(body.locator("h2")).toHaveAttribute("data-collapsed", "true");
+  await expect(body.getByText("親")).toBeHidden();
+  // カーソルは隠れた「子」から、見えている見出しの末尾へ移る。続けて打った文字は見出しに入る。
+  await page.keyboard.type("1");
+  await expect(body.locator("h2")).toHaveText("章1");
+
+  await page.keyboard.press("ControlOrMeta+Alt+]");
+  await expect(body.getByText("子")).toBeVisible();
+  await expect(body.locator("[data-collapsed]")).toHaveCount(0);
+
+  // メモの「…」からもできる。
+  await page.getByRole("button", { name: "その他の操作" }).last().click();
+  await page.getByRole("menuitem", { name: "すべて折りたたむ" }).click();
+  await expect(body.locator("[data-collapsed=true]")).toHaveCount(2);
+  await page.getByRole("button", { name: "その他の操作" }).last().click();
+  await page.getByRole("menuitem", { name: "すべて開く" }).click();
+  await expect(body.locator("[data-collapsed]")).toHaveCount(0);
+});
+
 test("PC では、書式のボタンを上に並べず、文字を選んだときだけその上に出す。表のメニューは表の中にいる間だけ上のバーに出る", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "書式のメモ");
