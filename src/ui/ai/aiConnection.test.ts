@@ -20,10 +20,10 @@ describe("確かめたつなぎ先を設定に入れる", () => {
     expect(replacedModel).toBeNull();
   });
 
-  it("前に選んでいたモデルが一覧に無ければ、既定のモデルに変え、変えたことを返す", () => {
+  it("前に選んでいたモデルが一覧に無ければ、既定のモデルに変え、前のモデルの名前と変えた先を返す", () => {
     const { settings, replacedModel } = withVerifiedConnection(VERIFIED_CLAUDE, connectionOf(VERIFIED_CLAUDE), modelsOf("claude-opus-5-5", "claude-haiku-5-5"));
     expect(settings.claude.model).toBe(DEFAULT_CLAUDE_MODEL);
-    expect(replacedModel).toEqual({ previous: "claude-sonnet-5-5", chosen: DEFAULT_CLAUDE_MODEL });
+    expect(replacedModel).toEqual({ previousName: "claude-sonnet-5-5", chosenId: DEFAULT_CLAUDE_MODEL });
   });
 
   it("初めて確かめたときは、既定のモデルが一覧に無くても、変えたとは知らせない", () => {

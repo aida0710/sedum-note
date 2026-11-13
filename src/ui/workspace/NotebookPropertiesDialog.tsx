@@ -115,8 +115,9 @@ export function NotebookPropertiesDialog({ notebook, repository, autoFocusAddBut
       <p className="hint">{translate("property.textSaveHint")}</p>
       <div className="form-actions">
         <button type="button" className="secondary-button" autoFocus={autoFocusAddButton} onClick={() => void add()}><Plus size={14} />{translate("property.add")}</button>
-        <button type="button" className="secondary-button" disabled={!hasDrafts} onClick={() => saveDrafts()}>{translate("common.save")}</button>
-        <button type="button" className="primary-button" onClick={() => void close()}>{translate("common.close")}</button>
+        {/* 保存していない文字があるときは「保存」を、無いときは「閉じる」を、目立つボタンにする。 */}
+        <button type="button" className={hasDrafts ? "primary-button" : "secondary-button"} disabled={!hasDrafts} onClick={() => saveDrafts()}>{translate("common.save")}</button>
+        <button type="button" className={hasDrafts ? "secondary-button" : "primary-button"} onClick={() => void close()}>{translate("common.close")}</button>
       </div>
     </ModalDialog>
   );

@@ -112,7 +112,7 @@ function VerifiedConnectionMessage({ verified }: { verified: VerifiedConnection 
   return (
     <>
       <p className="form-success" role="status">{translate("ai.verified", { count: String(models.length), model: nameOf(model) })}</p>
-      {replacedModel && <div className="notice" role="status">{translate("ai.modelReplaced", { previous: replacedModel.previous, chosen: nameOf(replacedModel.chosen) })}</div>}
+      {replacedModel && <div className="notice" role="status">{translate("ai.modelReplaced", { previous: replacedModel.previousName, chosen: nameOf(replacedModel.chosenId) })}</div>}
     </>
   );
 }

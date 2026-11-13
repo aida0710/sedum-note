@@ -9,8 +9,8 @@ import { chooseModel, fetchClaudeModels, fetchOpenAiCompatibleModels } from "./a
 // 入力中のつなぎ先。確かめるまでは設定に入れない（モデルは別に選ぶ）。
 export type ConnectionDraft = Pick<AiSettings, "provider"> & { claudeApiKey: string; baseUrl: string; openAiApiKey: string };
 
-// 前に選んでいたモデルが新しい一覧に無く、別のモデルに変えたときの、前と後のモデル。
-export type ReplacedModel = { previous: string; chosen: string };
+// 前に選んでいたモデルが新しい一覧に無く、別のモデルに変えたときの、前のモデルの名前（前の一覧での名前）と、選び直したモデル。
+export type ReplacedModel = { previousName: string; chosenId: string };
 
 export type VerifiedConnection = { settings: AiSettings; replacedModel: ReplacedModel | null };
 
@@ -38,7 +38,8 @@ export function withVerifiedConnection(current: AiSettings, connection: Connecti
   const preferredId = connection.provider === "claude" ? DEFAULT_CLAUDE_MODEL : "";
   const model = chooseModel(models, { previousId: previous.model, preferredId });
   const hadChosenModel = previous.models.length > 0 || previous.model !== UNCHOSEN_MODELS[connection.provider];
-  const replacedModel = hadChosenModel && model !== previous.model ? { previous: previous.model, chosen: model } : null;
+  const previousName = previous.models.find((option) => option.id === previous.model)?.name ?? previous.model;
+  const replacedModel = hadChosenModel && model !== previous.model ? { previousName, chosenId: model } : null;
   const settings: AiSettings = connection.provider === "claude"
     ? { ...current, provider: "claude", claude: { apiKey: connection.claudeApiKey, model, models } }
     : { ...current, provider: "openAiCompatible", openAiCompatible: { baseUrl: connection.baseUrl, apiKey: connection.openAiApiKey, model, models } };
