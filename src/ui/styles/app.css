@@ -969,6 +969,27 @@ details summary { cursor: pointer; color: var(--accent); }
 .phone .reminders-view { padding: 4px 16px 40px; }
 .phone .reminders-header { flex-wrap: wrap; }
 .phone .reminders-header h1 { flex: 1 0 auto; }
+/* 指で押す端末では、見た目の大きさは変えずに、押せる範囲を 44px（iOS と Android の指針の大きさ）まで広げる。
+   小さいボタンには透明な ::before（折りたたみの印は ::before を印に使っているので ::after）を重ねる。 */
+@media (pointer: coarse) {
+  :is(.icon-button, .tool, .phone-back, .chips .chip, .tabbar button, .choice.swatch, .footnote-number, .ProseMirror .section-zoom, .image-resize-handle)::before,
+  .ProseMirror .fold-toggle::after { content: ""; position: absolute; inset: var(--touch-area-inset, -8px); }
+  :is(.icon-button, .tool, .phone-back, .chips .chip, .tabbar button, .choice.swatch, .footnote-number) { position: relative; }
+  .phone-back { --touch-area-inset: -10px -8px; }
+  /* チップの帯は縦にも切り取るので、広げた範囲が入るよう帯の上下に余白を取り、その分だけ上へ寄せて位置を保つ。 */
+  .chips { padding-top: 8px; margin-top: -8px; }
+  .chips .chip { --touch-area-inset: -8px 0; }
+  .tabbar button { --touch-area-inset: -8px 0; }
+  .choice.swatch { --touch-area-inset: -9px; }
+  .footnote-number { --touch-area-inset: -8px -11px; }
+  /* 見出しの右端のズームのボタンは、見出しの文字の側へは広げない（文字を押したときにズームしないように）。 */
+  .phone .ProseMirror .section-zoom { --touch-area-inset: -12px -18px -12px -4px; }
+  .image-resize-handle { --touch-area-inset: -14px; }
+  .ProseMirror .fold-toggle { --touch-area-inset: -8px -14px; }
+  .menu-item { min-height: 44px; }
+}
+/* 指で使う端末にはポインターを乗せる操作が無いので、折りたたみの印をいつも薄く出す。 */
+@media (hover: none) { .ProseMirror .fold-toggle { opacity: .45; } .ProseMirror .fold-toggle.collapsed { opacity: 1; } }
 /* スマホの下のツールバーは横に送れる。まだ先がある側の端をぼかして、続きがあることを見せる（shared/useHorizontalScrollEdges.ts が data 属性を付ける）。 */
 .phone .editor-bar { --editor-bar-fade-start: 0px; --editor-bar-fade-end: 0px; mask-image: linear-gradient(to right, transparent, #000 var(--editor-bar-fade-start), #000 calc(100% - var(--editor-bar-fade-end)), transparent); }
 .phone .editor-bar[data-more-start] { --editor-bar-fade-start: 40px; }

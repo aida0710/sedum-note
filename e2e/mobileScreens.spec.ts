@@ -265,5 +265,49 @@ test("スマホでは、名前の長いプロパティがあっても、値の�
   expect(valueBox.width).toBeGreaterThan(150);
 });
 
+test("指で使う端末では、小さいボタンの押せる範囲が 44px あり、下のツールバーは縦に送れるようにならない", async ({ browser }) => {
+  const page = await openPhone(browser, { hasTouch: true });
+  expect(await page.evaluate(() => matchMedia("(pointer: coarse)").matches)).toBe(true);
+  await openNewNoteOnPhone(page, "押せる範囲");
+  // 見た目の大きさ（要素の箱）ではなく、広げた範囲（::before）の大きさを測る。
+  const touchAreaOf = (selector: string) => page.locator(selector).first().evaluate((element) => {
+    const area = getComputedStyle(element, "::before");
+    return { width: Number.parseFloat(area.width), height: Number.parseFloat(area.height) };
+  });
+  for (const selector of [".editor-bar .tool", ".phone-top .icon-button", ".phone-back"]) {
+    const area = await touchAreaOf(selector);
+    expect(area.width, selector).toBeGreaterThanOrEqual(44);
+    expect(area.height, selector).toBeGreaterThanOrEqual(44);
+  }
+  const toolbar = page.locator(".editor-bar");
+  expect(await toolbar.evaluate((element) => element.scrollHeight <= element.clientHeight)).toBe(true);
+  // ボタンのすぐ上（見た目の箱の外、広げた範囲の中）を押しても、そのボタンに当たる。
+  const bold = toolbar.getByRole("button", { name: "太字" });
+  const boldBox = (await bold.boundingBox())!;
+  const hit = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.getAttribute("aria-label"), { x: boldBox.x + boldBox.width / 2, y: boldBox.y - 6 });
+  expect(hit).toBe("太字");
 
+  await backToList(page);
+  for (const selector of [".chips .chip", ".tabbar button"]) {
+    expect((await touchAreaOf(selector)).height, selector).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test("指で使う端末では、箇条書きの折りたたみの印がいつも薄く見える", async ({ browser }) => {
+  const page = await openPhone(browser, { hasTouch: true });
+  expect(await page.evaluate(() => matchMedia("(hover: none)").matches)).toBe(true);
+  await openNewNoteOnPhone(page, "折りたたみ");
+  const body = page.locator(".ProseMirror");
+  await body.click();
+  await page.locator(".editor-bar").getByRole("button", { name: "箇条書き", exact: true }).click();
+  await page.keyboard.type("親");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("子");
+  await page.locator(".editor-bar").getByRole("button", { name: "字下げ", exact: true }).click();
+  const foldToggle = body.locator(".fold-toggle").first();
+  await expect(foldToggle).toHaveCSS("opacity", "0.45");
+  await foldToggle.click();
+  await expect(foldToggle).toHaveCSS("opacity", "1");
+  await expect(body.locator("ul ul")).toBeHidden();
+});
 
