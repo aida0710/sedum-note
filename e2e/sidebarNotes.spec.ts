@@ -610,3 +610,32 @@ test("長い題のメモがあっても、グラフの点の題は短く切っ�
   const point = page.locator(".note-graph-node", { has: page.locator("title", { hasText: longTitle }) });
   await expect(point.locator("text")).toHaveText("2026年度 第3四半期 プロダ…");
 });
+
+test("タブが多くても、ピン留めしたタブは並びを送っても左端に残る。並びの続きがある側の端は印が付く", async ({ page }) => {
+  await startLocalVault(page);
+  for (let index = 1; index <= 10; index += 1) {
+    await createNoteOnDesktop(page, `とても長い題のメモ その ${index}`);
+  }
+  const strip = page.getByRole("tablist");
+  for (const title of ["とても長い題のメモ その 1", "とても長い題のメモ その 2"]) {
+    await page.getByRole("tab", { name: title, exact: true }).click({ button: "right" });
+    await page.getByRole("menuitem", { name: "タブをピン留め" }).click();
+  }
+  await page.locator(".tab[title='とても長い題のメモ その 10']").click();
+  await expect(strip).toHaveAttribute("data-more-start", "");
+  const stripBox = (await strip.boundingBox())!;
+  const pinnedBoxes = await page.locator(".tab.pinned").evaluateAll((tabs) => tabs.map((tab) => tab.getBoundingClientRect().toJSON() as DOMRect));
+  expect(pinnedBoxes).toHaveLength(2);
+  // 送ったあとも、ピン留めのタブは並びの左端から並んだまま見えていて、選んだタブはその右に見えている。
+  expect(pinnedBoxes[0]!.left).toBeGreaterThanOrEqual(stripBox.x);
+  expect(pinnedBoxes[1]!.left).toBeCloseTo(pinnedBoxes[0]!.right + 2, 0);
+  const active = (await page.getByRole("tab", { selected: true }).boundingBox())!;
+  expect(active.x).toBeGreaterThanOrEqual(pinnedBoxes[1]!.right - 1);
+
+  // ピン留めの隣に隠れていたタブを選ぶと、ピン留めのタブの右に見える所まで送る。
+  // 左の列から開くと、隠れていたタブを選ぶ。
+  await page.locator(".tree-note", { hasText: "とても長い題のメモ その 3" }).click();
+  const third = (await page.locator(".tab[title='とても長い題のメモ その 3']").boundingBox())!;
+  expect(third.x).toBeGreaterThanOrEqual(pinnedBoxes[1]!.right - 1);
+  await expect(strip).toHaveAttribute("data-more-end", "");
+});

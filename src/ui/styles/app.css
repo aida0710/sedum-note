@@ -444,6 +444,18 @@ button.ai-tool-activity:hover { background: var(--selected); }
 /* マウスを乗せられない画面（タッチ）では、選んでいないタブの「×」も薄く出しておく。 */
 @media (hover: none) { .tab:not(.on) .tab-close { visibility: visible; opacity: .6; } }
 .tab.on { background: var(--panel); color: var(--text); font-weight: 600; border-color: var(--line); border-bottom-color: var(--panel); margin-bottom: -1px; }
+/* ピン留めしたタブは、並びを横に送っても左端に留める（left は workspace/stickyPinnedTabs.ts が入れる）。下を通るタブが透けないよう地を塗る。 */
+.tab.pinned { position: sticky; z-index: 1; }
+.tab.pinned:not(.on, :hover) { background: var(--sidebar); }
+/* sticky は並びの内側の余白の内側に留まるので、左の余白（10px）を通るタブの文字は、先頭のピン留めのタブの左に地を伸ばして隠す。 */
+.tab.pinned:first-of-type::after { content: ""; position: absolute; top: -9px; bottom: -1px; right: calc(100% + 1px); width: 10px; background: var(--sidebar); }
+/* 並びを送って、左に隠れたタブがあるときは、ピン留めの最後のタブに影を付けて、下に続きがあることを見せる。 */
+.tabs[data-more-start] .tab.pinned:not(:has(+ .tab.pinned)) { box-shadow: 8px 0 8px -6px var(--shadow-strong); }
+/* 並びの続きがある側の端に、背景色へ溶ける帯を重ねる（スマホの下のツールバーと同じ形。ピン留めが無いときは左端にも）。 */
+.tabs::before, .tabs::after { content: ""; position: sticky; z-index: 2; flex: none; align-self: stretch; width: 32px; pointer-events: none; opacity: 0; }
+.tabs::before { left: -10px; margin-right: -34px; background: linear-gradient(to right, var(--sidebar), transparent); }
+.tabs::after { right: -10px; margin-left: -34px; background: linear-gradient(to left, var(--sidebar), transparent); }
+.tabs[data-more-start]:not(:has(.tab.pinned))::before, .tabs[data-more-end]::after { opacity: 1; }
 
 .editor-bar { display: flex; align-items: center; gap: 4px; padding: 8px 14px; border-bottom: 1px solid var(--line); color: var(--muted); flex: none; overflow-x: auto; scrollbar-width: none; }
 .tool { width: var(--control-height-compact); height: var(--control-height-compact); border-radius: var(--radius-row); display: grid; place-items: center; font-weight: 700; font-size: var(--font-size-ui); color: var(--text); flex: none; }
