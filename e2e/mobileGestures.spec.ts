@@ -107,14 +107,20 @@ test("同期先があれば、スマホの一覧を上から引いて離すと�
   await expect(arrived).toBeVisible({ timeout: 20_000 });
   await expect(phone.locator(".pull-to-sync")).toHaveAttribute("data-state", "idle");
 
-  // 同期先につながらないときに引くと、失敗したことを知らせる（スマホの一覧には同期の状態の表示が無いので）。
+  // 同期先につながらないときに引くと、失敗したことを知らせる。
   await phone.route(`${remoteConfig.endpoint}/**`, (route) => route.abort());
   await touchAt("touchStart", list.y + 20);
   for (let step = 1; step <= 10; step += 1) {
     await touchAt("touchMove", list.y + 20 + step * 18);
   }
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await expect(phone.getByRole("status").filter({ hasText: "同期に失敗しました" })).toBeVisible({ timeout: 20_000 });
+  const failureToast = phone.getByRole("status").filter({ hasText: "同期に失敗しました" });
+  await expect(failureToast).toBeVisible({ timeout: 20_000 });
+  // 一覧の題の右にも、同期の状態が出る（自動の同期を切っているので、やり直さずに止まる）。
+  await expect(phone.locator(".phone-top .sync-line")).toContainText("同期を止めています");
+  // 知らせのボタンから、失敗の理由が出ている設定の「同期」のページへ移れる。
+  await failureToast.getByRole("button", { name: "同期の設定を開く" }).click();
+  await expect(phone.getByRole("heading", { name: "同期", exact: true })).toBeVisible();
 });
 
 test("スマホの一覧の行と上のチップに、ノートブックの色の印が出る", async ({ page }) => {

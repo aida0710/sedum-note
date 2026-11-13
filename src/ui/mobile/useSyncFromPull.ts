@@ -1,5 +1,5 @@
 // スマホの一覧を上から引いて離したときの同期。同期先が無ければ null（一覧を引けない）。
-// スマホの一覧には同期の状態の表示が無いので、引いて始めた同期が失敗したら知らせを出す。
+// 引いて始めた同期が失敗したら知らせを出し、知らせのボタンから設定の「同期」のページ（失敗の理由が出る）へ移れるようにする。
 // 「今すぐ同期」は失敗しても例外を投げず、状態（session.syncStatus）を failed にするので、状態の変化で見る。
 
 import { useEffect, useRef } from "react";
@@ -7,11 +7,15 @@ import { translate } from "../i18n/translate";
 import type { VaultSession } from "../session/useVaultSession";
 import { useToast } from "../shared/ToastProvider";
 
-export function useSyncFromPull(session: VaultSession): (() => Promise<void>) | null {
+type SyncFromPullInput = { session: VaultSession; onOpenSyncSettings: () => void };
+
+export function useSyncFromPull({ session, onOpenSyncSettings }: SyncFromPullInput): (() => Promise<void>) | null {
   const showToast = useToast();
   // 引いて始めた同期の結果を待っているか。
   const waitsForPullResult = useRef(false);
   const { syncStatus } = session;
+  const openSyncSettingsRef = useRef(onOpenSyncSettings);
+  openSyncSettingsRef.current = onOpenSyncSettings;
 
   useEffect(() => {
     if (!waitsForPullResult.current || syncStatus === null || syncStatus.state === "syncing") {
@@ -19,7 +23,7 @@ export function useSyncFromPull(session: VaultSession): (() => Promise<void>) | 
     }
     waitsForPullResult.current = false;
     if (syncStatus.state === "failed") {
-      showToast({ message: translate("mobile.pullSyncFailed") });
+      showToast({ message: translate("sync.failed"), action: { label: translate("mobile.openSyncSettings"), run: () => openSyncSettingsRef.current() } });
     }
   }, [syncStatus, showToast]);
 

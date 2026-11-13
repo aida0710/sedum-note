@@ -1,18 +1,20 @@
-// スマホのメモの一覧（検索・ノートブックの切り替え・要約とサムネイル）。
+// スマホのメモの一覧（検索・ノートブックの切り替え・要約とサムネイル）。「ノートブック」タブから開いた一覧には、戻るボタンを出す。
 // メモを左へ払うとゴミ箱に入れ、右へ払うとピン留めを付け外しする。同期先があれば、上から引いて離すと同期する。
 
-import { Pin, PinOff, RefreshCw, Search, Trash2 } from "lucide-react";
-import { useContext } from "react";
+import { ChevronLeft, Pin, PinOff, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { type ReactNode, useContext } from "react";
 import type { NoteSummary, NoteView } from "../../core/notes/noteQueries";
 import type { LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { useAttachmentUrl } from "../editor/attachmentReader";
+import { notebookTreeRows } from "../editor/notebookTreeRows";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { formatShortDate } from "../shared/formatTime";
 import { assignNotebookColors, NotebookMark, type NotebookColors } from "../shared/notebookAppearance";
 import { useTrashWithUndo } from "../workspace/useTrashWithUndo";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
+import { useRememberedListScroll } from "./rememberedListScroll";
 import { type PullState, usePullToSync } from "./usePullToSync";
 import { useSwipeActions } from "./useSwipeActions";
 
@@ -32,7 +34,13 @@ type NoteListProps = {
   summaries: NoteSummary[];
   notebooks: LiveNotebook[];
   view: NoteView;
+  // スクロール位置を覚える単位。下のタブと開いている一覧ごとに別の文字にする。
+  listKey: string;
   showChips: boolean;
+  // 題の右に出すもの（同期の状態）。
+  headerEnd: ReactNode;
+  // 「ノートブック」タブから開いた一覧で、ノートブックの一覧へ戻る。ほかの一覧では渡さない。
+  onBackToLibrary?: () => void;
   navigation: WorkspaceProps["navigation"];
   repository: NoteRepository;
   onOpen: (noteId: string) => void;
@@ -42,22 +50,36 @@ type NoteListProps = {
 
 const PULL_MESSAGES = { idle: "mobile.pullToSync", pulling: "mobile.pullToSync", ready: "mobile.releaseToSync", syncing: "mobile.syncing" } as const satisfies Record<PullState, string>;
 
-export function NoteList({ title, summaries, notebooks, view, showChips, navigation, repository, onOpen, onPullToSync }: NoteListProps) {
+export function NoteList({ title, summaries, notebooks, view, listKey, showChips, headerEnd, onBackToLibrary, navigation, repository, onOpen, onPullToSync }: NoteListProps) {
   const { listRef, scrollRef, indicatorRef, pullState } = usePullToSync(onPullToSync);
+  useRememberedListScroll(scrollRef, listKey);
   const notebookColors = assignNotebookColors(notebooks);
+  const { searchText } = navigation;
   return (
     <>
-      <div className="phone-top"><h2>{title}</h2></div>
+      {onBackToLibrary && (
+        <div className="phone-top">
+          <button className="phone-back" onClick={onBackToLibrary}><ChevronLeft size={20} />{translate("mobile.notebooks")}</button>
+        </div>
+      )}
+      <div className={`phone-top${onBackToLibrary ? " phone-top-below-back" : ""}`}>
+        <h2>{title}</h2>
+        <div className="phone-top-end">{headerEnd}</div>
+      </div>
       <label className="phone-search">
         <Search size={15} />
-        <input value={navigation.searchText} placeholder={translate("sidebar.searchPlaceholder")} onChange={(event) => navigation.setSearchText(event.target.value)} />
+        <input type="search" enterKeyHint="search" autoCapitalize="off" autoCorrect="off" spellCheck={false}
+          value={searchText} placeholder={translate("sidebar.searchPlaceholder")} onChange={(event) => navigation.setSearchText(event.target.value)} />
+        {searchText !== "" && (
+          <button type="button" className="icon-button" aria-label={translate("mobile.clearSearch")} onClick={() => navigation.setSearchText("")}><X size={15} /></button>
+        )}
       </label>
       {showChips && (
         <div className="chips">
           <button className={`chip${view.kind === "all" ? " on" : ""}`} onClick={() => navigation.selectView({ kind: "all" })}>{translate("mobile.all")}</button>
-          {notebooks.map((notebook) => (
+          {notebookTreeRows(notebooks, "").map(({ notebook }) => (
             <button key={notebook.id} className={`chip${view.kind === "notebook" && view.notebookId === notebook.id ? " on" : ""}`}
-              onClick={() => navigation.selectView({ kind: "notebook", notebookId: notebook.id })}><NotebookMark notebook={notebook} colors={notebookColors} />{notebook.content.name}</button>
+              onClick={() => navigation.selectView({ kind: "notebook", notebookId: notebook.id })}><NotebookMark notebook={notebook} colors={notebookColors} /><span className="chip-label">{notebook.content.name}</span></button>
           ))}
         </div>
       )}
@@ -68,7 +90,11 @@ export function NoteList({ title, summaries, notebooks, view, showChips, navigat
           </div>
         )}
         <div ref={scrollRef} className="phone-scroll">
-          {summaries.length === 0 && <div className="empty-state">{translate("sidebar.noNotes")}</div>}
+          {summaries.length === 0 && (
+            <div className="empty-state">
+              {searchText.trim() === "" ? translate("sidebar.noNotes") : translate("mobile.noSearchResults", { query: searchText.trim() })}
+            </div>
+          )}
           {summaries.map((summary) => <NoteListItem key={summary.note.id} summary={summary} notebooks={notebooks} notebookColors={notebookColors} repository={repository} onOpen={onOpen} />)}
         </div>
       </div>
@@ -98,7 +124,7 @@ function NoteListItem({ summary, notebooks, notebookColors, repository, onOpen }
       </span>
       <span className="swipe-action swipe-action-left" aria-hidden="true"><Trash2 size={16} />{translate("editor.moveToTrash")}</span>
       <button ref={swipe.itemRef} className="note-item" {...swipe.handlers} onClick={() => onOpen(note.id)}>
-        <h3>{unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}{pinned && <Pin size={13} className="pin" />}{note.content.title || translate("sidebar.untitled")}</h3>
+        <h3>{unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}{pinned && <Pin size={13} className="pin" />}<span className="note-item-title">{note.content.title || translate("sidebar.untitled")}</span></h3>
         {firstImage && thumbnail.state === "ready" && <img className="thumb" src={thumbnail.url} alt="" />}
         <p>{plainText}</p>
         {/* ノートブックは、PC の左の列と同じ色の印を付けて出す（どのノートブックのメモかを、色でも見分けられる）。 */}

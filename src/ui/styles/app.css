@@ -913,16 +913,29 @@ details summary { cursor: pointer; color: var(--accent); }
 @media (prefers-reduced-motion: reduce) {
   .note-item-row .note-item, .phone-list .phone-scroll, .pull-to-sync { transition: none; }
 }
-.note-item { padding: 12px 16px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; text-align: left; width: 100%; }
-.note-item h3 { font-size: 14px; font-weight: 600; display: flex; gap: 6px; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.note-item { padding: 12px 16px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; text-align: left; width: 100%; }
+.note-item h3 { font-size: 14px; font-weight: 600; display: flex; gap: 6px; align-items: center; min-width: 0; white-space: nowrap; }
+/* 長い題は「…」で切る（h3 は印と題を横に並べる flex なので、省略は題の span に付ける）。 */
+.note-item-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.note-item h3 > :not(.note-item-title) { flex: none; }
 .note-item p { color: var(--muted); font-size: var(--font-size-small); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; grid-column: 1; }
-.note-item .meta { color: var(--muted); font-size: var(--font-size-caption); grid-column: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; }
-.note-item .meta-notebook { display: inline-flex; align-items: center; gap: 4px; }
+.note-item .meta { color: var(--muted); font-size: var(--font-size-caption); grid-column: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; overflow-wrap: anywhere; }
+.note-item .meta-notebook { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+.note-item .meta-notebook > :is(.dot, .notebook-icon) { flex: none; }
 .chips .chip .dot, .chips .chip .notebook-icon { margin-right: 4px; }
+/* 名前の長いノートブックのチップが、ほかのチップを画面の外へ押し出さないようにする。 */
+.chips .chip { max-width: 70vw; flex: none; }
+.chips .chip :is(.dot, .notebook-icon) { flex: none; }
+.chip-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .note-item .thumb { grid-row: 1 / span 3; grid-column: 2; width: 52px; height: 52px; border-radius: var(--radius-row); object-fit: cover; background: var(--tag); }
 .pin { color: var(--accent); flex: none; }
 .library-row { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--line); width: 100%; text-align: left; font-size: 14px; }
-.library-row .count { margin-left: auto; color: var(--muted); font-size: var(--font-size-small); }
+.library-row .count { margin-left: auto; color: var(--muted); font-size: var(--font-size-small); flex: none; }
+.library-row > svg, .library-row :is(.dot, .notebook-icon) { flex: none; }
+.library-row-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* ノートブックの行は、中の一覧を開くボタンと「…」のボタンを横に並べる。子のノートブックは深さの分だけ字下げする。 */
+.notebook-row { --notebook-depth: 0; padding: 0 8px 0 calc(16px + var(--notebook-depth) * 18px); gap: 4px; }
+.notebook-row-open { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 13px 0; text-align: left; }
 .fab { position: fixed; right: 18px; bottom: calc(76px + env(safe-area-inset-bottom)); width: 54px; height: 54px; border-radius: 16px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent); }
 .tabbar { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); color: var(--muted); font-size: var(--font-size-caption); flex: none; background: var(--panel); }
 .tabbar button { display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -932,6 +945,19 @@ details summary { cursor: pointer; color: var(--accent); }
 .phone .title-input { font-size: 26px; }
 .phone .editor-bar { order: 2; border-bottom: 0; border-top: 1px solid var(--line); justify-content: space-between; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
 .phone .settings { padding: 8px 16px 40px; }
+/* 「ノートブック」タブから開いた一覧は、戻るボタンの行の下に題の行を置く。 */
+.phone-top.phone-top-below-back { padding-top: 0; }
+.phone-top .phone-top-end { flex: none; }
+.phone-top .sync-line { flex: none; max-width: 52vw; padding: 0; }
+.phone .section-title { padding-inline: 16px; }
+/* 検索の文字を消すボタンは自前で出すので、ブラウザが type="search" に付ける「×」と見た目は出さない。 */
+.phone-search input { appearance: none; }
+.phone-search input::-webkit-search-cancel-button { display: none; }
+.phone-search .icon-button { margin-right: -6px; }
+/* 最後の行が「＋」のボタン（下から 76px の所に高さ 54px）の下に隠れないよう、一覧の終わりに余白を取る。 */
+.phone-list .phone-scroll { padding-bottom: 88px; }
+/* タイプライターモードでは、本文の終わりの近くでも打っている行を中央に保てるよう、下に余白を取る（PC の .typewriter-mode .document と同じ）。 */
+.phone.typewriter-mode .document { padding-bottom: 50vh; }
 /* スマホの下のツールバーは横に送れる。まだ先がある側の端をぼかして、続きがあることを見せる（shared/useHorizontalScrollEdges.ts が data 属性を付ける）。 */
 .phone .editor-bar { --editor-bar-fade-start: 0px; --editor-bar-fade-end: 0px; mask-image: linear-gradient(to right, transparent, #000 var(--editor-bar-fade-start), #000 calc(100% - var(--editor-bar-fade-end)), transparent); }
 .phone .editor-bar[data-more-start] { --editor-bar-fade-start: 40px; }

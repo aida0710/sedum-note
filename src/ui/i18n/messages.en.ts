@@ -930,7 +930,9 @@ export const englishMessages: Record<MessageKey, string> = {
   "mobile.pullToSync": "Pull to sync",
   "mobile.releaseToSync": "Release to sync",
   "mobile.syncing": "Syncing…",
-  "mobile.pullSyncFailed": "Sync failed. See Settings > Sync for details",
+  "mobile.openSyncSettings": "Open sync settings",
+  "mobile.clearSearch": "Clear search text",
+  "mobile.noSearchResults": "No notes match “{query}”",
 
   "common.cancel": "Cancel",
   "common.save": "Save",

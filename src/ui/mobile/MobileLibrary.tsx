@@ -3,18 +3,22 @@ import { dueItemsOf } from "../../core/notes/dueItems";
 import { countTags, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import { translate } from "../i18n/translate";
 import { useDialogs } from "../shared/DialogProvider";
-import { assignNotebookColors, NotebookMark } from "../shared/notebookAppearance";
+import { notebookTreeRows } from "../editor/notebookTreeRows";
+import { assignNotebookColors } from "../shared/notebookAppearance";
+import { MobileNotebookRow } from "./MobileNotebookRow";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
 
 type MobileLibraryProps = {
   snapshot: WorkspaceProps["snapshot"];
   repository: WorkspaceProps["vault"]["repository"];
   onPick: (view: NoteView) => void;
+  onOpenNote: (noteId: string) => void;
   onOpenReminders: () => void;
 };
 
 // スマホの「ノートブック」タブ: ノートブック・タグ・ゴミ箱を選ぶと、その一覧を開く。期限の一覧もここから開く。
-export function MobileLibrary({ snapshot, repository, onPick, onOpenReminders }: MobileLibraryProps) {
+// ノートブックは、PC の左の列と同じ順（親の下に子、同じ階層は名前の順）で、子を字下げして並べる。
+export function MobileLibrary({ snapshot, repository, onPick, onOpenNote, onOpenReminders }: MobileLibraryProps) {
   const dialogs = useDialogs();
   const tags = countTags(snapshot.summaries);
   const notebookColors = assignNotebookColors(snapshot.notebooks);
@@ -33,16 +37,15 @@ export function MobileLibrary({ snapshot, repository, onPick, onOpenReminders }:
         </div>
       </div>
       <div className="phone-scroll">
-        {snapshot.notebooks.map((notebook) => (
-          <button key={notebook.id} className="library-row" onClick={() => onPick({ kind: "notebook", notebookId: notebook.id })}>
-            <NotebookMark notebook={notebook} colors={notebookColors} />{notebook.content.name}
-            <span className="count">{selectNotes(snapshot.summaries, { view: { kind: "notebook", notebookId: notebook.id } }).length}</span>
-          </button>
+        {notebookTreeRows(snapshot.notebooks, "").map(({ notebook, depth }) => (
+          <MobileNotebookRow key={notebook.id} notebook={notebook} depth={depth} notebookColors={notebookColors} repository={repository}
+            noteCount={selectNotes(snapshot.summaries, { view: { kind: "notebook", notebookId: notebook.id } }).length}
+            onOpen={() => onPick({ kind: "notebook", notebookId: notebook.id })} onOpenNote={onOpenNote} />
         ))}
         {tags.length > 0 && <div className="section-title">{translate("sidebar.tags")}</div>}
         {tags.map(({ tag, count }) => (
           <button key={tag} className="library-row" onClick={() => onPick({ kind: "tag", tag })}>
-            <Hash size={15} />{tag}<span className="count">{count}</span>
+            <Hash size={15} /><span className="library-row-label">{tag}</span><span className="count">{count}</span>
           </button>
         ))}
         <div className="section-title" />

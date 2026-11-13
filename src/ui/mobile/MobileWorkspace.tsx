@@ -14,7 +14,9 @@ import { listTitle, NoteList } from "./MobileNoteList";
 import { useBackGestureToClose } from "./useBackGestureToClose";
 import { useSyncFromPull } from "./useSyncFromPull";
 import { UpdateChip } from "../update/UpdateChip";
-import { REMINDERS_TAB, SETTINGS_TAB } from "../workspace/useWorkspaceNavigation";
+import type { SettingsPage } from "../settings/settingsPages";
+import { SyncStatusLine } from "../workspace/SyncStatusLine";
+import { REMINDERS_TAB, SETTINGS_TAB, viewKey } from "../workspace/useWorkspaceNavigation";
 import { RemindersView } from "../workspace/RemindersView";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
 import { findUnlinkedMentions } from "../../core/notes/noteMentions";
@@ -26,12 +28,22 @@ import { ModalDialog } from "../shared/ModalDialog";
 
 type MobileTab = "notes" | "notebooks" | "bookmarked" | "settings";
 
+// 消えたノートブックを指している一覧は、開いていないものとして扱う（ほかのデバイスや「…」のメニューで削除されたとき）。
+function existingView(view: NoteView | null, notebooks: WorkspaceProps["snapshot"]["notebooks"]): NoteView | null {
+  if (view?.kind === "notebook" && !notebooks.some((notebook) => notebook.id === view.notebookId)) {
+    return null;
+  }
+  return view;
+}
+
 export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<WorkspaceProps, "isNoteWindow">) {
   const { repository } = vault;
   const aiChat = useAiChatSession();
   const [tab, setTab] = useState<MobileTab>("notes");
-  const { noteSortOrder } = useDevicePreferences();
-  const syncFromPull = useSyncFromPull(session);
+  // 「ノートブック」タブで開いている一覧（ノートブック・タグ・テンプレート・ゴミ箱）。null ならノートブックの一覧を出す。
+  const [pickedLibraryView, setPickedLibraryView] = useState<NoteView | null>(null);
+  const libraryView = existingView(pickedLibraryView, snapshot.notebooks);
+  const { noteSortOrder, typewriterMode } = useDevicePreferences();
   // 開いているメモは PC の組み方と同じ所（navigation のタブ）に持つ。共有から作ったメモや、
   // メモ同士のリンクが、どちらの組み方でも同じ操作で開ける。
   const showsReminders = navigation.activeTab === REMINDERS_TAB;
@@ -47,13 +59,22 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
   // 積んだ履歴をここで外す（残すと、次の「戻る」が 1 回空振りする）。
   const settingsPageOpen = openNote === undefined && tab === "settings" && navigation.settingsPage !== null;
   const closeSettingsPage = useBackGestureToClose(settingsPageOpen, () => navigation.selectSettingsPage(null));
-  // AI のチャットの案内から、設定の「AI」のページへ移る。開いているメモは「戻る」と同じく閉じる（積んだ履歴も外す）。
+  // 「ノートブック」タブで一覧を開いている間は、端末の「戻る」でノートブックの一覧へ戻す。
+  const libraryListOpen = openNote === undefined && !showsReminders && tab === "notebooks" && libraryView !== null;
+  const closeLibraryList = useBackGestureToClose(libraryListOpen, () => setPickedLibraryView(null));
+  // 設定のページへ移る。メモを開いていれば「戻る」と同じく閉じる（積んだ履歴も外す）。
+  const openSettingsPage = (page: SettingsPage) => {
+    setTab("settings");
+    navigation.selectSettingsPage(page);
+    if (openNote) {
+      goBack();
+    }
+  };
   const openAiSettings = () => {
     aiChat.setOpen(false);
-    setTab("settings");
-    navigation.selectSettingsPage("ai");
-    goBack();
+    openSettingsPage("ai");
   };
+  const syncFromPull = useSyncFromPull({ session, onOpenSyncSettings: () => openSettingsPage("sync") });
 
   if (showsReminders) {
     return (
@@ -64,7 +85,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
   }
   if (openNote) {
     return (
-      <div className="phone">
+      <div className={`phone${typewriterMode ? " typewriter-mode" : ""}`}>
         <NoteLinkTargetsContext.Provider value={createNoteLinkTargets({ repository, navigation })}>
           <NoteQuerySourceContext.Provider value={{ summaries: snapshot.summaries, notebooks: snapshot.notebooks }}>
             <NoteEditor key={openNote.id} note={openNote} notebooks={snapshot.notebooks} backlinks={notesLinkingTo(snapshot.summaries, openNote.id)}
@@ -85,11 +106,12 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
     );
   }
 
-  const view: NoteView = tab === "bookmarked" ? { kind: "bookmarked" } : navigation.view;
-  const createNote = async () => navigation.openNote((await createNoteInView(repository, view)).id);
   const selectTab = (next: MobileTab) => {
     if (settingsPageOpen) {
       closeSettingsPage();
+    }
+    if (libraryListOpen) {
+      closeLibraryList();
     }
     setTab(next);
     // 下の「設定」を押したら、いつもページの一覧から始める。
@@ -99,7 +121,19 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
     if (next === "notes") {
       navigation.selectView({ kind: "all" });
     }
+    // 下の「ノートブック」を押したら、いつもノートブックの一覧から始める。
+    if (next === "notebooks") {
+      setPickedLibraryView(null);
+    }
   };
+  const listViews: Record<Exclude<MobileTab, "settings">, NoteView | null> = {
+    notes: existingView(navigation.view, snapshot.notebooks) ?? { kind: "all" },
+    notebooks: libraryView,
+    bookmarked: { kind: "bookmarked" },
+  };
+  // 今のタブで出しているメモの一覧。設定と、ノートブックの一覧を出しているときは null。
+  const view = tab === "settings" ? null : listViews[tab];
+  const createNote = async (inView: NoteView) => navigation.openNote((await createNoteInView(repository, inView)).id);
 
   return (
     <div className="phone">
@@ -107,19 +141,21 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
         <SettingsPanel session={session} vault={vault} unreadableCount={snapshot.unreadableCount} isMobile
           page={navigation.settingsPage} onSelectPage={navigation.selectSettingsPage} onBackToPageList={closeSettingsPage} />
       )}
-      {tab === "notebooks" && (
+      {tab === "notebooks" && view === null && (
         <MobileLibrary snapshot={snapshot} repository={repository}
-          onPick={(picked) => { navigation.selectView(picked); setTab("notes"); }} onOpenReminders={() => navigation.openTab(REMINDERS_TAB)} />
+          onPick={setPickedLibraryView} onOpenNote={navigation.openNote} onOpenReminders={() => navigation.openTab(REMINDERS_TAB)} />
       )}
-      {tab !== "settings" && <UpdateChip onOpenSettings={() => { selectTab("settings"); navigation.selectSettingsPage("update"); }} />}
-      {(tab === "notes" || tab === "bookmarked") && (
+      {tab !== "settings" && <UpdateChip onOpenSettings={() => openSettingsPage("update")} />}
+      {view && (
         <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, { view, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNameOf: notebookNameLookup(snapshot.notebooks) })}
-          notebooks={snapshot.notebooks}
-          view={view} showChips={tab === "notes"} navigation={navigation} repository={repository} onOpen={navigation.openNote}
-          onPullToSync={syncFromPull} />
+          notebooks={snapshot.notebooks} view={view} listKey={`${tab}:${viewKey(view)}`} showChips={tab === "notes"}
+          headerEnd={<SyncStatusLine status={session.syncStatus} onOpenSyncSettings={() => openSettingsPage("sync")} />}
+          onBackToLibrary={tab === "notebooks" ? closeLibraryList : undefined}
+          navigation={navigation} repository={repository} onOpen={navigation.openNote} onPullToSync={syncFromPull} />
       )}
-      {(tab === "notes" || tab === "bookmarked") && (
-        <button className="fab" aria-label={translate("sidebar.newNote")} onClick={() => void createNote()}><Plus size={26} /></button>
+      {/* ゴミ箱の中には新しいメモを作れないので、「＋」を出さない。 */}
+      {view && view.kind !== "trash" && (
+        <button className="fab" aria-label={translate("sidebar.newNote")} onClick={() => void createNote(view)}><Plus size={26} /></button>
       )}
       <nav className="tabbar">
         <button className={tab === "notes" ? "on" : ""} onClick={() => selectTab("notes")}><FileText size={18} />{translate("mobile.notes")}</button>
