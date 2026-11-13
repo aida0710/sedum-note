@@ -420,9 +420,12 @@ test("開いているメモの直しを頼むと、差分を承認してから�
 
   const card = approvalCard(page);
   await expect(card).toContainText("「果物」の本文を直す");
-  await expect(card.getByLabel("消すブロック")).toHaveText(["ばなな"]);
-  await expect(card.getByLabel("足すブロック")).toHaveText(["バナナ", "ぶどう"]);
-  await expect(card.locator(".ai-edit-unchanged")).toHaveText(["変更のないブロック 1 個", "変更のないブロック 1 個"]);
+  await expect(card.getByLabel("消す行")).toHaveText(["ばなな"]);
+  await expect(card.getByLabel("足す行")).toHaveText(["バナナ", "ぶどう"]);
+  await expect(card.locator(".ai-diff-collapsed")).toHaveText(["変更のない 1 行", "変更のない 1 行"]);
+  // 行の番号（前と後）は CSS で出す。消す「ばなな」は前の 2 行目、足す「ぶどう」は後の 4 行目。
+  await expect(card.getByLabel("消す行").locator(".ai-diff-number").first()).toHaveAttribute("data-number", "2");
+  await expect(card.getByLabel("足す行").last().locator(".ai-diff-number").last()).toHaveAttribute("data-number", "4");
   await expect(chat(page).locator(".ai-tool-activity")).toContainText("承認を待っています");
   // 承認するまでは、メモは変わらない。
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかん"]);
@@ -505,7 +508,7 @@ test("開いていないメモも、検索して読み、差分を承認して�
   await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("沖縄のメモに、日焼け止めを持つと足して");
   await page.keyboard.press("Enter");
 
-  await expect(approvalCard(page).getByLabel("足すブロック")).toHaveText(["日焼け止めを持つ"]);
+  await expect(approvalCard(page).getByLabel("足す行")).toHaveText(["日焼け止めを持つ"]);
   const activities = chat(page).locator(".ai-tool-activity");
   await expect(activities.nth(0)).toContainText("「沖縄」で検索");
   await expect(activities.nth(0)).toContainText("1 件");
@@ -600,8 +603,8 @@ test("AI が本文をそのまま返したブロックは、Markdown に出し�
   await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("最後にぶどうを足して");
   await page.keyboard.press("Enter");
   const card = approvalCard(page);
-  await expect(card.getByLabel("足すブロック")).toHaveText(["ぶどう"]);
-  await expect(card.getByLabel("消すブロック")).toHaveCount(0);
+  await expect(card.getByLabel("足す行")).toHaveText(["ぶどう"]);
+  await expect(card.getByLabel("消す行")).toHaveCount(0);
 
   await card.getByRole("button", { name: "行う", exact: true }).click();
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["足しました。"]);
