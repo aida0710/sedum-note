@@ -1,6 +1,7 @@
 // コマンドパレットで探せるもの（メモ・ノートブック・タグ・設定の項目・操作）と、打った言葉での絞り込み。
 
 import { excerptAt } from "../../core/notes/textExcerpt";
+import { findFoldedWord } from "../../core/notes/searchTextFolding";
 import { containsAllWords, searchWordsOf } from "../shared/searchWords";
 
 // create は、打った言葉を題にして新しいメモを作る項目（候補からではなく、パレットが最後に足す）。
@@ -37,8 +38,8 @@ const MAX_RECENT_NOTES = 8;
 
 // 本文の中の、最初の言葉が当たった所の前後を 1 行にして出す。
 function excerptAround(text: string, word: string): string {
-  const index = text.toLocaleLowerCase().indexOf(word);
-  return index === -1 ? "" : excerptAt(text, { index, length: word.length });
+  const match = findFoldedWord(text, word);
+  return match === null ? "" : excerptAt(text, match);
 }
 
 function byNewest(left: PaletteCandidate, right: PaletteCandidate): number {

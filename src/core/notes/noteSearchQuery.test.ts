@@ -23,4 +23,15 @@ describe("メモ全体の検索の言葉", () => {
     expect(matches("notebook:旅行")).toBe(false);
     expect(matches("notebook:仕")).toBe(true);
   });
+
+  it("全角と半角、大文字と小文字を区別せずに当たる（言葉・タグ・ノートブックの名前）", () => {
+    const note = { title: "型番ＡＢＣ－１２３", plainText: "旅行ｶﾞｲﾄﾞを読む", tags: ["ＴＯＤＯ"], notebookIds: ["n1"] };
+    const notebookNameOf = (notebookId: string) => (notebookId === "n1" ? "仕事Ｗｏｒｋ" : undefined);
+    expect(matchesNoteSearch(note, parseNoteSearchQuery("abc ガイド"), notebookNameOf)).toBe(true);
+    expect(matchesNoteSearch(note, parseNoteSearchQuery("ａｂｃ"), notebookNameOf)).toBe(true);
+    expect(matchesNoteSearch(note, parseNoteSearchQuery("#todo"), notebookNameOf)).toBe(true);
+    // 絞り込みの印を全角で打っても読む。
+    expect(matchesNoteSearch(note, parseNoteSearchQuery("＃ｔｏｄｏ notebook：work"), notebookNameOf)).toBe(true);
+    expect(matchesNoteSearch(note, parseNoteSearchQuery("xyz"), notebookNameOf)).toBe(false);
+  });
 });

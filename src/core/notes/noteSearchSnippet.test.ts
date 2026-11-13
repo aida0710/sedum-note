@@ -22,4 +22,8 @@ describe("検索の結果に添える本文の一部", () => {
     expect(searchSnippetOf("本文", ["題"])).toBeNull();
     expect(searchSnippetOf("本文", [])).toBeNull();
   });
+
+  it("半角で探した言葉が全角で書いた所に当たったら、元の文字のまま抜き出す", () => {
+    expect(searchSnippetOf("型番はＡＢＣ－１２３です", ["abc"])).toEqual({ before: "型番は", match: "ＡＢＣ", after: "－１２３です" });
+  });
 });

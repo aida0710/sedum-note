@@ -1,6 +1,8 @@
 // メモ全体の検索の結果に添える、本文の中の当たった所と、その前後の文。どの言葉で当たったのかを、題だけでなく
 // 本文の一部で見せる（noteSearchQuery.ts の言葉で探す）。
 
+import { foldWithPositions, originalRangeOf, type TextRange } from "./searchTextFolding";
+
 export type SearchSnippet = {
   // 当たった言葉の前の文と後ろの文。本文の途中で切ったときは、切った側に「…」を付ける。
   before: string;
@@ -17,19 +19,16 @@ function singleLine(text: string): string {
   return text.replace(/\s+/g, " ");
 }
 
-// words は、小文字にした探す言葉（NoteSearchQuery.words）。本文で最初に当たった言葉の所を返す。
+// words は、文字をそろえた探す言葉（NoteSearchQuery.words）。本文で最初に当たった言葉の所を返す。
 // 本文で当たらなければ（題だけで当たった、言葉が無い）null。
 export function searchSnippetOf(plainText: string, words: readonly string[]): SearchSnippet | null {
-  const lowered = plainText.toLocaleLowerCase();
-  // 小文字にすると文字の数が変わる文字（トルコ語の İ など）があると、位置が合わないので出さない。
-  if (lowered.length !== plainText.length) {
-    return null;
-  }
-  let found: { index: number; length: number } | null = null;
+  const folded = foldWithPositions(plainText);
+  let found: TextRange | null = null;
   for (const word of words) {
-    const index = word === "" ? -1 : lowered.indexOf(word);
-    if (index >= 0 && (found === null || index < found.index)) {
-      found = { index, length: word.length };
+    const index = word === "" ? -1 : folded.text.indexOf(word);
+    const range = index === -1 ? null : originalRangeOf(folded, { index, length: word.length });
+    if (range !== null && (found === null || range.index < found.index)) {
+      found = range;
     }
   }
   if (found === null) {
