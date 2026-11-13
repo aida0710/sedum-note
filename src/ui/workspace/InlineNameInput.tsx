@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 
-type InlineNameInputProps = {
+export type InlineNameInputProps = {
   initialName?: string;
   placeholder: string;
   // 決めた名前（前後の空白を除いたもの）。やめたら null。

@@ -12,12 +12,13 @@ import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { useDialogs } from "../shared/DialogProvider";
 import { PopupMenu } from "../shared/PopupMenu";
 import { isApplePlatform } from "../shared/shortcutKeys";
-import { InlineNameInput } from "./InlineNameInput";
 import { startNoteDrag } from "./noteDrag";
 import { useSidebarDragState } from "./sidebarDragState";
 import { resetNoteSelection, selectNoteRange, toggleNoteSelection, useNoteSelection } from "./noteSelection";
 import { SelectedNotesMenu } from "./SelectedNotesMenu";
-import { focusViewRowOfNote } from "./sidebarKeyboard";
+import { focusViewRowOfNote, isUnmodifiedKey, rowBesideNotesToRemove } from "./sidebarKeyboard";
+import { SidebarNameRow, treeDepthStyle } from "./SidebarNameRow";
+import { useRowFocusAfterNaming } from "./useRowFocusAfterNaming";
 import { useTrashWithUndo } from "./useTrashWithUndo";
 import { viewKey, type WorkspaceNavigation } from "./useWorkspaceNavigation";
 
@@ -27,19 +28,21 @@ type SidebarNoteRowProps = {
   view: NoteView;
   // この一覧に並んでいるメモの ID（上から順）。Shift で範囲を選ぶのに使う。
   listedNoteIds: string[];
-  paddingLeft: number;
+  // このメモが並ぶ一覧の行の、段の深さ。null は、木の外（検索の結果）。
+  depth: number | null;
   navigation: WorkspaceNavigation;
   repository: NoteRepository;
   // 検索の結果の行に添える、本文の中で当たった所。無ければ題だけの 1 行。
   snippet?: SearchSnippet | null;
 };
 
-export function SidebarNoteRow({ note, view, listedNoteIds, paddingLeft, navigation, repository, snippet = null }: SidebarNoteRowProps) {
+export function SidebarNoteRow({ note, view, listedNoteIds, depth, navigation, repository, snippet = null }: SidebarNoteRowProps) {
   const unsyncedIds = useContext(UnsyncedRecordsContext);
   const dialogs = useDialogs();
   const moveToTrash = useTrashWithUndo(repository);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [renaming, setRenaming] = useState(false);
+  const rowButton = useRowFocusAfterNaming(renaming);
   const { content } = note;
   const inTrash = content.trashedAt !== null;
   const title = content.title || translate("sidebar.untitled");
@@ -51,7 +54,7 @@ export function SidebarNoteRow({ note, view, listedNoteIds, paddingLeft, navigat
 
   if (renaming) {
     return (
-      <InlineNameInput initialName={content.title} placeholder={translate("editor.titlePlaceholder")} onDone={(title) => {
+      <SidebarNameRow rowKind="note" depth={depth} initialName={content.title} placeholder={translate("editor.titlePlaceholder")} onDone={(title) => {
         setRenaming(false);
         if (title !== null && title !== content.title) {
           void repository.updateNote(note.id, { title });
@@ -70,6 +73,7 @@ export function SidebarNoteRow({ note, view, listedNoteIds, paddingLeft, navigat
     if (accepted) {
       await repository.removeNotePermanently(note.id);
     }
+    return accepted;
   };
   const selectOrOpen = (event: React.MouseEvent) => {
     const selectionContext = { orderedIds: listedNoteIds, openNoteId: navigation.activeTab };
@@ -84,15 +88,29 @@ export function SidebarNoteRow({ note, view, listedNoteIds, paddingLeft, navigat
   };
   // 選んだメモの 1 つを右クリックしたら、選んだメモをまとめて扱うメニューを出す。
   const opensSelectionMenu = isSelected && selection.noteIds.length > 1;
-  const rowClassName = ["tree-note", navigation.activeTab === note.id && "active", isSelected && "selected", snippet && "with-snippet"].filter(Boolean).join(" ");
+  const rowClassName = ["tree-note", navigation.activeTab === note.id && "active", isSelected && "selected", snippet && "with-snippet", depth === null && "unindented"].filter(Boolean).join(" ");
+  // Delete: 選んだメモの 1 つなら選んだメモをまとめて、そうでなければこのメモを、ゴミ箱に入れる（ゴミ箱の中では、確かめてから完全に削除する）。
+  // 消したあとは、次の行へフォーカスを移す（確認をやめたら、移さない）。
+  const removeByKey = async (row: HTMLElement) => {
+    const noteIds = isSelected && !inTrash ? selection.noteIds : [note.id];
+    const nextRow = rowBesideNotesToRemove(row, noteIds);
+    const removed = inTrash ? await removePermanently() : await moveToTrash(noteIds).then(() => true);
+    if (removed) {
+      nextRow?.focus();
+    }
+  };
   return (
     <div className={`nav-row${isDragged ? " dragging" : ""}`} onContextMenu={(event) => { event.preventDefault(); setMenuAnchor(event.currentTarget); }}>
-      <button className={rowClassName} style={{ paddingLeft }} aria-pressed={selection.noteIds.length > 0 ? isSelected : undefined}
+      <button ref={rowButton} className={rowClassName} style={treeDepthStyle(depth)} title={title} data-note-id={note.id} aria-pressed={selection.noteIds.length > 0 ? isSelected : undefined}
         draggable onDragStart={(event) => startNoteDrag(event, { noteId: note.id, title, fromView: view })}
         onClick={selectOrOpen} onDoubleClick={() => setRenaming(true)} onKeyDown={(event) => {
           focusViewRowOfNote(event, viewKey(view));
           if (event.key === "Escape") {
             resetNoteSelection(note.id);
+          } else if (isUnmodifiedKey(event, "F2")) {
+            setRenaming(true);
+          } else if (isUnmodifiedKey(event, "Delete")) {
+            void removeByKey(event.currentTarget);
           }
         }}>
         {unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}

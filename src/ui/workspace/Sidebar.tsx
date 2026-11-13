@@ -9,7 +9,7 @@ import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import type { RepositorySnapshot } from "../session/useRepositorySnapshot";
 import { assignNotebookColors } from "../shared/notebookAppearance";
-import { InlineNameInput } from "./InlineNameInput";
+import { NewNotebookNameRow } from "./SidebarNameRow";
 import { NotebookBranch } from "./NotebookBranch";
 import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { SearchResults, ViewGroup } from "./SidebarViewGroup";
@@ -184,7 +184,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
             {trashMenuAnchor && <TrashActionsMenu anchor={trashMenuAnchor} trashedNoteIds={trashedNoteIds} repository={repository} onClose={() => setTrashMenuAnchor(null)} />}
             <NotebookSectionTitle repository={repository} onAddNotebook={() => setAddingNotebook(true)} />
             {addingNotebook && (
-              <InlineNameInput placeholder={translate("sidebar.newNotebookPlaceholder")} onDone={(name) => {
+              <NewNotebookNameRow depth={0} placeholder={translate("sidebar.newNotebookPlaceholder")} onDone={(name) => {
                 setAddingNotebook(false);
                 if (name) {
                   void repository.createNotebook(name);
@@ -197,7 +197,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
             {snapshot.savedSearches.length > 0 && <div className="section-title">{translate("sidebar.savedSearches")}</div>}
             {snapshot.savedSearches.map((savedSearch) => (
               <div key={savedSearch.id} className="nav-row saved-search-row">
-                <button className="nav" onClick={() => openSavedSearch(savedSearch)}>
+                <button className="nav" title={savedSearch.content.name} onClick={() => openSavedSearch(savedSearch)}>
                   <Bookmark size={15} /><span className="nav-label">{savedSearch.content.name}</span>
                 </button>
                 <span className="row-actions">

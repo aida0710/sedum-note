@@ -329,7 +329,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .nav-row .row-actions { position: absolute; right: 4px; display: none; }
 .nav-row:hover .row-actions, .nav-row:focus-within .row-actions { display: flex; }
 /* 件数を隠すのは、その場所に行の操作（「…」）が出る行だけ。操作の無い行（ビュー、タグ）では件数を出したままにする。 */
-.nav-row:has(.row-actions):hover .count, .nav-row:has(.row-actions):focus-within .count { visibility: hidden; }
+.nav-row:has(.row-actions):hover .count, .nav-row:has(.row-actions):focus-within .count { display: none; }
 .section-title { color: var(--muted); font-size: var(--font-size-caption); font-weight: 600; letter-spacing: .04em; padding: 14px 8px 4px; display: flex; align-items: center; }
 .section-title .icon-button { margin-left: auto; }
 /* ノートブックを一番上の段へ移す落とし先（「ノートブック」の見出し）。 */
@@ -337,7 +337,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .saved-search-row { display: flex; align-items: center; }
 .search-scope svg { vertical-align: -1px; margin-right: 4px; }
 .dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
-.tree-note { padding: 5px 8px; color: var(--muted); border-radius: var(--radius-row); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; width: 100%; min-height: 27px; }
+.tree-note { padding: 5px 8px; color: var(--muted); border-radius: var(--radius-row); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; width: 100%; }
 .tree-note:hover { background: var(--selected); color: var(--text); }
 .tree-note.active { background: var(--accent-soft); color: var(--text); font-weight: 600; }
 /* 検索の結果の行: 題の下に、本文の中で当たった所を 1 行で出す。 */
@@ -358,6 +358,30 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .drag-preview { position: fixed; top: -100px; left: 0; max-width: 260px; padding: 4px 10px; border-radius: var(--radius-control); background: var(--panel); color: var(--text); border: 1px solid var(--accent); box-shadow: 0 4px 12px var(--shadow); font-size: var(--font-size-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .nav-row .tree-note { padding-right: 30px; }
 .tree-empty { color: var(--muted); padding: 4px 8px; font-size: var(--font-size-small); }
+/* 左の列の木。行の高さを 1 つにそろえ、字下げは段の深さ（--depth。行が style で渡す）から決める。
+   --tree-label-offset は、一覧の行の左端からラベルまでの幅（左の余白 8 + 開閉の印 12 + 間 9 + アイコン 15 + 間 9）。
+   メモの行は、この幅だけ字下げして、題の左端を親の一覧のラベルにそろえる。 */
+.sidebar-scroll { --sidebar-row-height: 30px; --tree-indent-step: 14px; --tree-label-offset: 53px; }
+.sidebar-scroll .nav { min-height: var(--sidebar-row-height); padding-block: 0; padding-left: calc(8px + var(--depth, 0) * var(--tree-indent-step)); }
+/* アイコンを選んでいないノートブックの色の印（9px）も、アイコンと同じ 15px の幅を取る。 */
+.sidebar-scroll .nav .dot { margin-inline: 3px; }
+.sidebar-scroll .tree-note { min-height: var(--sidebar-row-height); padding-block: 0; padding-left: calc(var(--tree-label-offset) + var(--depth, 0) * var(--tree-indent-step)); }
+.sidebar-scroll .tree-note.with-snippet { padding-block: 5px; }
+/* 検索の結果は木の中に無いので、見出しと同じ左端に置く。 */
+.sidebar-scroll .tree-note.unindented { padding-left: 8px; }
+.sidebar-scroll .tree-empty { min-height: var(--sidebar-row-height); padding-block: 0; padding-left: calc(var(--tree-label-offset) + var(--depth, 0) * var(--tree-indent-step)); display: flex; align-items: center; }
+/* 行の操作（「…」）が出ている間は、その幅だけ右を空けて、名前の省略の「…」と重ならないようにする。 */
+.sidebar-scroll .nav-row:has(.row-actions):is(:hover, :focus-within) .nav { padding-right: 32px; }
+/* 見出しの右のボタンで、見出しの高さが変わらないようにする。 */
+.sidebar-scroll .section-title .icon-button { margin-block: -6px; }
+/* 名前を打っている間の行（SidebarNameRow.tsx）。開閉の印とアイコンは残し、ラベルのあった位置に欄を出す。
+   欄の中の文字が、元のラベルと同じ左端に来るよう、欄の枠と余白の分（9px）だけ左へ寄せる。 */
+.sidebar-scroll :is(.nav, .tree-note).naming { display: flex; align-items: center; overflow: visible; cursor: default; }
+.sidebar-scroll :is(.nav, .tree-note).naming:hover { background: none; }
+.sidebar-scroll .naming .inline-input { flex: 1; min-width: 0; width: auto; height: calc(var(--sidebar-row-height) - 2px); margin-left: -9px; }
+.sidebar-scroll .nav.naming .inline-input { margin-left: -8px; }
+/* まだ色の決まっていない、作りかけのノートブックの印。 */
+.sidebar-scroll .dot.pending { background: var(--line); }
 .inline-input { width: 100%; height: var(--control-height-compact); border: 1px solid var(--accent); border-radius: var(--radius-control); padding: 0 8px; background: var(--panel); }
 
 .update-chip { margin-top: auto; display: flex; align-items: center; gap: 6px; padding: 7px 8px; border-radius: var(--radius-row); color: var(--accent); background: var(--accent-soft); font-size: var(--font-size-small); text-align: left; flex: none; }

@@ -2,6 +2,7 @@
 //   ↑ ↓ で前後の行へ、Home と End で最初と最後の行へ移る（開いた一覧の中のメモも 1 行に数える）。
 //   一覧の行で → を押すと開き、← を押すと閉じる。メモの行で ← を押すと、そのメモが並ぶ一覧の行へ戻る。
 //   Enter はボタンの既定の動き（一覧を選ぶ・メモを開く）に任せる。
+//   F2 で名前の変更、メモの行の Delete でゴミ箱へ（行の側が isUnmodifiedKey で受ける）。行を消したら、次の行へフォーカスを移す。
 
 // キーで移る行。一覧の行（.nav。保存した検索の行も含む）と、メモの行。
 const TREE_ROW_SELECTOR = "button.nav, button.tree-note";
@@ -16,6 +17,20 @@ const ROW_MOVES: Record<string, (index: number, rowCount: number) => number> = {
 
 function hasModifier(event: React.KeyboardEvent): boolean {
   return event.altKey || event.ctrlKey || event.metaKey || event.shiftKey;
+}
+
+// 修飾キーなしで key を押したか。
+export function isUnmodifiedKey(event: React.KeyboardEvent, key: string): boolean {
+  return event.key === key && !hasModifier(event);
+}
+
+// メモの行を消したあと（ゴミ箱に入れる、完全に削除する）にフォーカスを移す先。次の行で、無ければ前の行。
+// 行が画面から消える前（消す操作の前）に呼ぶ。これから消すメモの行（data-note-id。同じメモは複数の一覧に並ぶ）は選ばない。
+export function rowBesideNotesToRemove(row: HTMLElement, noteIdsToRemove: string[]): HTMLElement | undefined {
+  const rows = treeRows(row.closest<HTMLElement>(".sidebar-scroll") ?? document.body);
+  const index = rows.indexOf(row);
+  const remains = (candidate: HTMLElement) => candidate.dataset.noteId === undefined || !noteIdsToRemove.includes(candidate.dataset.noteId);
+  return rows.slice(index + 1).find(remains) ?? rows.slice(0, index).reverse().find(remains);
 }
 
 function treeRows(container: HTMLElement): HTMLElement[] {

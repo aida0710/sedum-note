@@ -8,7 +8,8 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { type NotebookColors, NotebookMark } from "../shared/notebookAppearance";
 import { createNoteInView } from "./createNoteInView";
-import { InlineNameInput } from "./InlineNameInput";
+import { NewNotebookNameRow } from "./SidebarNameRow";
+import { useRowFocusAfterNaming } from "./useRowFocusAfterNaming";
 import { startNotebookDrag } from "./notebookDrag";
 import { NotebookActionsMenu } from "./NotebookActionsMenu";
 import { NotebookAppearanceDialog } from "./NotebookAppearanceDialog";
@@ -34,20 +35,17 @@ export function NotebookBranch({ node, depth, summaries, repository, navigation,
   const [addingChild, setAddingChild] = useState(false);
   const [choosingAppearance, setChoosingAppearance] = useState(false);
   const [editingProperties, setEditingProperties] = useState(false);
-  if (renaming) {
-    return (
-      <InlineNameInput initialName={notebook.content.name} placeholder={translate("sidebar.newNotebookPlaceholder")} onDone={(name) => {
-        setRenaming(false);
-        if (name && name !== notebook.content.name) {
-          void repository.updateNotebook(notebook.id, { name });
-        }
-      }} />
-    );
-  }
+  const rowButton = useRowFocusAfterNaming(renaming);
+  const renameTo = (name: string | null) => {
+    setRenaming(false);
+    if (name && name !== notebook.content.name) {
+      void repository.updateNotebook(notebook.id, { name });
+    }
+  };
   const children = (
     <>
       {addingChild && (
-        <InlineNameInput placeholder={translate("sidebar.newNotebookPlaceholder")} onDone={(name) => {
+        <NewNotebookNameRow depth={depth + 1} placeholder={translate("sidebar.newNotebookPlaceholder")} onDone={(name) => {
           setAddingChild(false);
           if (name) {
             void repository.createNotebook(name, notebook.id);
@@ -65,6 +63,8 @@ export function NotebookBranch({ node, depth, summaries, repository, navigation,
         icon={<NotebookMark notebook={notebook} colors={notebookColors} />}
         label={notebook.content.name} summaries={summaries} navigation={navigation} repository={repository} childBranches={children}
         onContextMenu={setMenuAnchor}
+        rowButtonRef={rowButton} onRename={() => setRenaming(true)}
+        renaming={renaming ? { initialName: notebook.content.name, placeholder: translate("sidebar.newNotebookPlaceholder"), onDone: renameTo } : undefined}
         onDragStart={(event) => startNotebookDrag(event, notebook)}
         actions={
           <button className="icon-button" aria-label={translate("editor.more")} aria-haspopup="menu" onClick={(event) => setMenuAnchor(event.currentTarget)}>

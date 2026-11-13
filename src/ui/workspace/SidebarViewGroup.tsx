@@ -3,7 +3,7 @@
 // 落とすと、その中へ移す（notebookDrag.ts）。
 
 import { ChevronDown, ChevronRight } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { type NoteSummary, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import { parseNoteSearchQuery } from "../../core/notes/noteSearchQuery";
 import { type SearchSnippet, searchSnippetOf } from "../../core/notes/noteSearchSnippet";
@@ -13,18 +13,13 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { canDropDraggedNotebook, dropNotebook, isNotebookDrag } from "./notebookDrag";
 import { acceptsNoteDrop, canDropDraggedNote, dropNoteOnView, isNoteDrag } from "./noteDrag";
 import { markSidebarDropTarget, useSidebarDragState } from "./sidebarDragState";
-import { expandOrCollapseViewRow } from "./sidebarKeyboard";
+import type { InlineNameInputProps } from "./InlineNameInput";
+import { expandOrCollapseViewRow, isUnmodifiedKey } from "./sidebarKeyboard";
+import { SidebarNameRow, treeDepthStyle } from "./SidebarNameRow";
 import { SidebarNoteRow } from "./SidebarNoteRow";
 import { useMovedNotesToast } from "./useMovedNotesToast";
 import { useTrashWithUndo } from "./useTrashWithUndo";
 import { viewKey, type WorkspaceNavigation } from "./useWorkspaceNavigation";
-
-// 木の 1 段ごとの字下げ。開閉の印（12px）とアイコンの間が揃う幅。
-const TREE_INDENT_STEP = 14;
-// 一覧の行の左の余白。.nav の padding と同じ。
-const ROW_PADDING_LEFT = 8;
-// メモの行は、一覧の行の開閉の印とアイコンの分だけ右に置く。
-const NOTE_ROW_PADDING_LEFT = 30;
 
 export type ViewGroupProps = {
   view: NoteView;
@@ -45,11 +40,16 @@ export type ViewGroupProps = {
   dropsOnWholeGroup?: boolean;
   // 行をドラッグし始めたとき。ドラッグして動かせる行（ノートブック）が渡す。
   onDragStart?: (event: React.DragEvent) => void;
+  // 名前を変えられる行（ノートブック）が渡す。onRename は F2 を押したとき。renaming を渡している間は、ラベルの位置に名前の欄を出す。
+  onRename?: () => void;
+  renaming?: InlineNameInputProps;
+  rowButtonRef?: Ref<HTMLButtonElement>;
 };
 
 // 開くと中のメモが並ぶ 1 行。ノートブック・タグ・ゴミ箱で同じ形を使う。
 export function ViewGroup(props: ViewGroupProps) {
   const { view, icon, label, summaries, navigation, repository, depth = 0, actions, onContextMenu, childBranches, expandedByDefault = false, dropsOnWholeGroup = false, onDragStart } = props;
+  const { onRename, renaming, rowButtonRef } = props;
   const moveToTrash = useTrashWithUndo(repository);
   const showMovedNotesToast = useMovedNotesToast(repository);
   const key = viewKey(view);
@@ -90,13 +90,18 @@ export function ViewGroup(props: ViewGroupProps) {
   const { noteSortOrder } = useDevicePreferences();
   const notes = selectNotes(summaries, { view, sortOrder: noteSortOrder });
   const isActive = viewKey(navigation.view) === key;
-  const indent = { paddingLeft: ROW_PADDING_LEFT + depth * TREE_INDENT_STEP };
-  const row = (
+  const disclosure = <span className="disclosure">{expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>;
+  const row = renaming ? <SidebarNameRow rowKind="view" depth={depth} leading={<>{disclosure}{icon}</>} {...renaming} /> : (
     <div className={`nav-row${isDropTarget && !dropsOnWholeGroup ? " drop-target" : ""}${isDraggedNotebook ? " dragging" : ""}`} {...(dropsOnWholeGroup ? {} : dropHandlers)}
       onContextMenu={onContextMenu && ((event) => { event.preventDefault(); onContextMenu(event.currentTarget); })}>
-      <button className={`nav${isActive ? " active" : ""}`} style={indent} aria-expanded={expanded} data-view-key={key}
+      <button ref={rowButtonRef} className={`nav${isActive ? " active" : ""}`} style={treeDepthStyle(depth)} aria-expanded={expanded} data-view-key={key} title={label}
         draggable={onDragStart !== undefined} onDragStart={onDragStart}
-        onKeyDown={(event) => expandOrCollapseViewRow(event, { expanded, setExpanded: (next) => navigation.setExpanded(key, next) })}
+        onKeyDown={(event) => {
+          expandOrCollapseViewRow(event, { expanded, setExpanded: (next) => navigation.setExpanded(key, next) });
+          if (onRename && isUnmodifiedKey(event, "F2")) {
+            onRename();
+          }
+        }}
         onClick={() => {
           if (isActive) {
             navigation.setExpanded(key, !expanded);
@@ -104,7 +109,7 @@ export function ViewGroup(props: ViewGroupProps) {
             navigation.selectView(view);
           }
         }}>
-        <span className="disclosure">{expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
+        {disclosure}
         {icon}
         <span className="nav-label">{label}</span>
         <span className="count">{notes.length}</span>
@@ -115,7 +120,7 @@ export function ViewGroup(props: ViewGroupProps) {
   const contents = expanded && (
     <>
       {childBranches}
-      <NoteRows notes={notes} view={view} navigation={navigation} repository={repository} depth={depth + 1} />
+      <NoteRows notes={notes} view={view} navigation={navigation} repository={repository} depth={depth} />
     </>
   );
   if (dropsOnWholeGroup) {
@@ -129,19 +134,19 @@ type NoteRowsProps = {
   view: NoteView;
   navigation: WorkspaceNavigation;
   repository: NoteRepository;
-  depth: number;
+  // メモが並ぶ一覧の行の、段の深さ。null は、木の外（検索の結果）。
+  depth: number | null;
   // 検索の結果なら、行に添える本文の一部（当たった所）。
   snippetOf?: (summary: NoteSummary) => SearchSnippet | null;
 };
 
 export function NoteRows({ notes, view, navigation, repository, depth, snippetOf }: NoteRowsProps) {
-  const paddingLeft = NOTE_ROW_PADDING_LEFT + depth * TREE_INDENT_STEP;
   if (notes.length === 0) {
-    return <div className="tree-empty" style={{ paddingLeft }}>{translate("sidebar.noNotes")}</div>;
+    return <div className="tree-empty" style={treeDepthStyle(depth)}>{translate("sidebar.noNotes")}</div>;
   }
   const listedNoteIds = notes.map(({ note }) => note.id);
   return notes.map((summary) => (
-    <SidebarNoteRow key={summary.note.id} note={summary.note} view={view} listedNoteIds={listedNoteIds} paddingLeft={paddingLeft} navigation={navigation} repository={repository}
+    <SidebarNoteRow key={summary.note.id} note={summary.note} view={view} listedNoteIds={listedNoteIds} depth={depth} navigation={navigation} repository={repository}
       snippet={snippetOf?.(summary) ?? null} />
   ));
 }
@@ -154,7 +159,7 @@ export function SearchResults({ summaries, view, navigation, repository }: Searc
   return (
     <>
       <div className="section-title">{translate("sidebar.searchResults", { count: summaries.length })}</div>
-      <NoteRows notes={summaries} view={view} navigation={navigation} repository={repository} depth={-1}
+      <NoteRows notes={summaries} view={view} navigation={navigation} repository={repository} depth={null}
         snippetOf={(summary) => searchSnippetOf(summary.plainText, words)} />
     </>
   );

@@ -335,3 +335,72 @@ test("左の列は、↑↓ で行を移り、→← で一覧を開け閉めし
   await expect(travel).not.toBeFocused();
   await expect(page.locator(".sidebar-scroll button.nav:focus")).toHaveCount(1);
 });
+
+test("左の列のメモの行で F2 を押すと名前を変えられ、決めるとフォーカスが行へ戻る。Delete でゴミ箱に入り、次の行へフォーカスが移る", async ({ page }) => {
+  await startLocalVault(page);
+  for (const title of ["一つ目", "二つ目", "三つ目"]) {
+    await createNoteOnDesktop(page, title);
+  }
+  // 並びは新しい順（三つ目、二つ目、一つ目）。
+  const secondRow = noteRow(page, "二つ目").locator(".tree-note");
+  await secondRow.focus();
+  await page.keyboard.press("F2");
+  const nameInput = page.locator(".sidebar .inline-input");
+  await expect(nameInput).toBeFocused();
+  await nameInput.fill("二つ目の改名");
+  await page.keyboard.press("Enter");
+  const renamedRow = noteRow(page, "二つ目の改名").locator(".tree-note");
+  await expect(renamedRow).toBeFocused();
+
+  // Esc でやめても、行へ戻る。
+  await page.keyboard.press("F2");
+  await nameInput.fill("使わない名前");
+  await page.keyboard.press("Escape");
+  await expect(renamedRow).toBeFocused();
+
+  await page.keyboard.press("Delete");
+  await expect(page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" })).toBeVisible();
+  await expect(noteRow(page, "二つ目の改名")).toHaveCount(0);
+  // 名前を変えたメモは更新が新しいので先頭に並んでいた。その次の行は「三つ目」。
+  await expect(noteRow(page, "三つ目").locator(".tree-note")).toBeFocused();
+});
+
+test("名前を変える欄は、元の名前と同じ位置に出て、行の高さとノートブックの印を保つ。切れた名前は title で全部読める", async ({ page }) => {
+  await startLocalVault(page);
+  const longName = "とても長い名前のノートブックで、左の列には収まらないもの";
+  await addNotebookOnDesktop(page, longName);
+  const notebookRow = viewRow(page, longName);
+  await expect(notebookRow.locator(".nav")).toHaveAttribute("title", longName);
+  const labelBefore = (await notebookRow.locator(".nav-label").boundingBox())!;
+  const rowHeightBefore = (await notebookRow.boundingBox())!.height;
+
+  await notebookRow.locator(".nav").focus();
+  await page.keyboard.press("F2");
+  const nameInput = page.locator(".sidebar .inline-input");
+  await expect(nameInput).toBeFocused();
+  const namingRow = page.locator(".sidebar .nav-row", { has: page.locator(".inline-input") });
+  // 欄の中の文字の左端（欄の左端 + 枠 1px + 余白 8px）が、元の名前の左端と同じ。
+  const inputBox = (await nameInput.boundingBox())!;
+  expect(Math.abs(inputBox.x + 9 - labelBefore.x)).toBeLessThanOrEqual(1);
+  expect((await namingRow.boundingBox())!.height).toBe(rowHeightBefore);
+  await expect(namingRow.locator(".dot, .notebook-icon")).toHaveCount(1);
+  await expect(namingRow.locator(".disclosure")).toHaveCount(1);
+  await page.keyboard.press("Escape");
+  await expect(notebookRow.locator(".nav")).toBeFocused();
+});
+
+test("左の列のメモの題は、親の一覧の名前と左端がそろい、行の高さも同じ", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "仕事");
+  await viewRow(page, "仕事").locator(".nav").click();
+  await createNoteOnDesktop(page, "議事録");
+  const textLeftOf = (selector: string) => page.locator(selector).first().evaluate((element) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    return Math.round(range.getBoundingClientRect().left);
+  });
+  const notebookGroup = '.view-group:has(> .nav-row .nav[title="仕事"])';
+  expect(await textLeftOf(`${notebookGroup} .tree-note`)).toBe(await textLeftOf(`${notebookGroup} > .nav-row .nav-label`));
+  const heights = await page.locator(".sidebar-scroll :is(.nav, .tree-note)").evaluateAll((rows) => [...new Set(rows.map((row) => row.getBoundingClientRect().height))]);
+  expect(heights).toEqual([30]);
+});
