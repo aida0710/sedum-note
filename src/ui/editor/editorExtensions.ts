@@ -10,6 +10,7 @@ import { Placeholder } from "@tiptap/extensions";
 import StarterKit from "@tiptap/starter-kit";
 import { common, createLowlight } from "lowlight";
 import type * as Y from "yjs";
+import { NOTE_TOOL_ORIGIN } from "../../core/notes/recordDocument";
 import { translate } from "../i18n/translate";
 import { AttachmentFile } from "./attachmentFileNode";
 import { AttachmentImage } from "./attachmentImageNode";
@@ -114,7 +115,8 @@ export function createEditorExtensions({ body, slashMenuController, blockMenuCon
     DateTimeShortcuts,
     TypewriterScroll.configure({ isEnabled: () => readDevicePreferences().typewriterMode, scrollContainerSelector: ".document-scroll" }),
     SearchHighlight,
-    Collaboration.configure({ fragment: body }),
+    // メモのツール（アプリ内の AI）が書いた本文も、エディタの取り消しで戻せるようにする。
+    Collaboration.configure({ fragment: body, yUndoOptions: { trackedOrigins: [NOTE_TOOL_ORIGIN] } }),
     Placeholder.configure({ placeholder: translate("editor.bodyPlaceholder") }),
   ];
 }

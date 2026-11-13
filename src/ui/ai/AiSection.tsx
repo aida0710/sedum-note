@@ -1,4 +1,4 @@
-// 設定: アプリ内の AI（つなぎ先、API キー、モデル）。このデバイスだけの設定で、API キーは暗号化して手元に置く。
+// 設定: アプリ内の AI（つなぎ先、API キー、モデル、AI に任せるメモの操作）。このデバイスだけの設定で、API キーは暗号化して手元に置く。
 // API キー（とエンドポイント）は、モデルの一覧を取ってこられたときだけ保存する（取れれば、キーが使えると分かる）。
 // モデルは、その一覧から選ぶ。
 
@@ -12,6 +12,7 @@ import { SettingCheckboxRow, SettingRow } from "../settings/SettingRow";
 import { chooseModel, fetchClaudeModels, fetchOpenAiCompatibleModels } from "./aiModelList";
 import { AiModelSelect } from "./AiModelSelect";
 import { useAiSettings } from "./aiSettingsAccess";
+import { AiToolPermissionSettings } from "./AiToolPermissionSettings";
 
 // 確かめてから保存する、つなぎ先の欄（モデルは別に選ぶ）。
 type ConnectionDraft = Pick<AiSettings, "provider"> & { claudeApiKey: string; baseUrl: string; openAiApiKey: string };
@@ -113,6 +114,7 @@ export function AiSection() {
           {draft.provider === settings.provider && (savedModels.length > 0
             ? <SettingRow controlId="ai-model" label={translate("ai.model")}>{({ id }) => <AiModelSelect id={id} />}</SettingRow>
             : <p className="hint">{translate("ai.modelsNotLoaded")}</p>)}
+          <AiToolPermissionSettings settings={settings} onChange={(changed) => void toggle.run(changed)} />
         </>
       )}
     </section>

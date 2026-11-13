@@ -3,7 +3,24 @@ import { createNoteOnDesktop, openSettingsPage, PASSPHRASE, PHONE_VIEWPORT, star
 
 // 試験では AI の提供元へつながない。届いた要求を覚えて、ストリーミングの形の決まった答えを返す。
 
-type ChatRequestBody = { model: string; max_tokens?: number; stream: boolean; fallbacks?: unknown; tools?: Array<{ name: string }>; messages: Array<{ role: string; content: string }> };
+type SentContent = string | Array<Record<string, unknown>>;
+type ChatRequestBody = { model: string; max_tokens?: number; stream: boolean; fallbacks?: unknown; tools?: Array<{ name: string }>; messages: Array<{ role: string; content: SentContent }> };
+
+// 送った発言の文（Claude の発言は、ブロックの並びで送る。文のブロックをつなぐ）。
+function sentText(content: SentContent): string {
+  return typeof content === "string" ? content : content.flatMap((block) => (block.type === "text" ? [String(block.text)] : [])).join("\n\n");
+}
+
+// 送った発言の中の、添えたメモの ID（<note id="…">）。
+function attachedNoteId(body: ChatRequestBody): string {
+  return /<note id=\\?"([0-9a-f]{32})/.exec(JSON.stringify(body.messages))![1]!;
+}
+
+// 送った会話の中の、最後のツールの結果。
+function lastToolResults(body: ChatRequestBody): Array<Record<string, unknown>> {
+  const last = body.messages[body.messages.length - 1]!.content;
+  return typeof last === "string" ? [] : last.filter((block) => block.type === "tool_result");
+}
 
 async function enableAi(page: Page): Promise<void> {
   await openSettingsPage(page, "AI");
@@ -53,48 +70,65 @@ async function mockClaudeModels(page: Page, authorizedKey = "test-key"): Promise
 
 const chat = (page: Page) => page.getByRole("region", { name: "AI チャット" });
 
-// 直しの案（propose_note_edit の呼び出し）を含む答え。
-type EditAnswer = { text: string; edit: { id: string; markdown: string; summary: string } };
+// ツールの呼び出しを含む答え。thinking なら、先に thinking ブロック（中身は空で、署名だけがある）を返す。
+type ToolAnswer = { text: string; toolCalls: Array<{ id: string; name: string; input: object }>; thinking?: boolean };
+// 届いた要求から答えを決めるもの（メモの ID など、試験を書くときに分からない値を使う）。
+type ClaudeAnswer = string | ToolAnswer | ((body: ChatRequestBody) => string | ToolAnswer);
 
 // Claude の API のストリーミングの形（Server-Sent Events）で、答えの文を 2 つに分けて返す。
-// 直しの案があれば、そのあとに道具の呼び出しの入力を 2 つに分けて返す。
-function claudeStreamBody(answer: string | EditAnswer): string {
+// ツールの呼び出しがあれば、そのあとに呼び出しごとの入力を 2 つに分けて返す。
+function claudeStreamBody(answer: string | ToolAnswer): string {
   const text = typeof answer === "string" ? answer : answer.text;
   const half = Math.ceil(text.length / 2);
   const events: Array<[string, object]> = [
     ["message_start", { type: "message_start", message: { id: "msg_test", type: "message", role: "assistant", model: "claude-opus-5-5", content: [], stop_reason: null, stop_sequence: null, usage: { input_tokens: 10, output_tokens: 1 } } }],
-    ["content_block_start", { type: "content_block_start", index: 0, content_block: { type: "text", text: "" } }],
-    ["content_block_delta", { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: text.slice(0, half) } }],
-    ["content_block_delta", { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: text.slice(half) } }],
-    ["content_block_stop", { type: "content_block_stop", index: 0 }],
   ];
-  if (typeof answer !== "string") {
-    const input = JSON.stringify({ markdown: answer.edit.markdown, summary: answer.edit.summary });
+  let index = 0;
+  if (typeof answer !== "string" && answer.thinking) {
+    events.push(
+      ["content_block_start", { type: "content_block_start", index, content_block: { type: "thinking", thinking: "", signature: "" } }],
+      ["content_block_delta", { type: "content_block_delta", index, delta: { type: "signature_delta", signature: "sig-test" } }],
+      ["content_block_stop", { type: "content_block_stop", index }],
+    );
+    index += 1;
+  }
+  events.push(
+    ["content_block_start", { type: "content_block_start", index, content_block: { type: "text", text: "" } }],
+    ["content_block_delta", { type: "content_block_delta", index, delta: { type: "text_delta", text: text.slice(0, half) } }],
+    ["content_block_delta", { type: "content_block_delta", index, delta: { type: "text_delta", text: text.slice(half) } }],
+    ["content_block_stop", { type: "content_block_stop", index }],
+  );
+  const toolCalls = typeof answer === "string" ? [] : answer.toolCalls;
+  for (const call of toolCalls) {
+    index += 1;
+    const input = JSON.stringify(call.input);
     const inputHalf = Math.ceil(input.length / 2);
     events.push(
-      ["content_block_start", { type: "content_block_start", index: 1, content_block: { type: "tool_use", id: answer.edit.id, name: "propose_note_edit", input: {} } }],
-      ["content_block_delta", { type: "content_block_delta", index: 1, delta: { type: "input_json_delta", partial_json: input.slice(0, inputHalf) } }],
-      ["content_block_delta", { type: "content_block_delta", index: 1, delta: { type: "input_json_delta", partial_json: input.slice(inputHalf) } }],
-      ["content_block_stop", { type: "content_block_stop", index: 1 }],
+      ["content_block_start", { type: "content_block_start", index, content_block: { type: "tool_use", id: call.id, name: call.name, input: {} } }],
+      ["content_block_delta", { type: "content_block_delta", index, delta: { type: "input_json_delta", partial_json: input.slice(0, inputHalf) } }],
+      ["content_block_delta", { type: "content_block_delta", index, delta: { type: "input_json_delta", partial_json: input.slice(inputHalf) } }],
+      ["content_block_stop", { type: "content_block_stop", index }],
     );
   }
   events.push(
-    ["message_delta", { type: "message_delta", delta: { stop_reason: typeof answer === "string" ? "end_turn" : "tool_use", stop_sequence: null }, usage: { output_tokens: 12 } }],
+    ["message_delta", { type: "message_delta", delta: { stop_reason: toolCalls.length === 0 ? "end_turn" : "tool_use", stop_sequence: null }, usage: { output_tokens: 12 } }],
     ["message_stop", { type: "message_stop" }],
   );
   return events.map(([name, data]) => `event: ${name}\ndata: ${JSON.stringify(data)}\n\n`).join("");
 }
 
 // Claude の API の代わり。届いた要求を覚え、answers を順に返す。
-async function mockClaudeApi(page: Page, answers: Array<string | EditAnswer>): Promise<Array<{ headers: Record<string, string>; body: ChatRequestBody }>> {
+async function mockClaudeApi(page: Page, answers: ClaudeAnswer[]): Promise<Array<{ headers: Record<string, string>; body: ChatRequestBody }>> {
   const requests: Array<{ headers: Record<string, string>; body: ChatRequestBody }> = [];
   await mockClaudeModels(page);
   await page.route("https://api.anthropic.com/v1/messages**", async (route) => {
     if (await allowPreflight(route)) {
       return;
     }
-    requests.push({ headers: route.request().headers(), body: route.request().postDataJSON() });
-    await route.fulfill({ contentType: "text/event-stream", headers: { "access-control-allow-origin": "*" }, body: claudeStreamBody(answers[requests.length - 1] ?? "") });
+    const body = route.request().postDataJSON() as ChatRequestBody;
+    requests.push({ headers: route.request().headers(), body });
+    const answer = answers[requests.length - 1] ?? "";
+    await route.fulfill({ contentType: "text/event-stream", headers: { "access-control-allow-origin": "*" }, body: claudeStreamBody(typeof answer === "function" ? answer(body) : answer) });
   });
   return requests;
 }
@@ -143,16 +177,19 @@ test("Claude の API をつなぎ先にして会話を続けられ、答えを�
   // API キーをどのヘッダーに入れるかは SDK が決める。入れたキーが送られていることだけを確かめる。
   expect(Object.values(requests[0]!.headers).some((value) => value.includes("test-key"))).toBe(true);
   expect(requests[0]!.body).toMatchObject({ model: "claude-opus-5-5", stream: true, fallbacks: "default" });
-  expect(requests[0]!.body.messages[0]!.content).toContain('<note title="買い物" open="true">');
-  expect(requests[0]!.body.messages[0]!.content).toContain("牛乳と卵を買って帰る。");
+  expect(sentText(requests[0]!.body.messages[0]!.content)).toContain('title="買い物" open="true">');
+  expect(sentText(requests[0]!.body.messages[0]!.content)).toContain("牛乳と卵を買って帰る。");
 
   // 続けて聞くと、前のやり取りも一緒に送る。
   await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("卵は何個？");
   await page.keyboard.press("Enter");
   await expect(answers).toHaveText(["- 牛乳を買う\n- 卵を買う", "卵は 6 個入りです。"]);
   expect(requests[1]!.body.messages.map((message) => message.role)).toEqual(["user", "assistant", "user"]);
-  expect(requests[1]!.body.messages[1]!.content).toBe("- 牛乳を買う\n- 卵を買う");
-  expect(requests[1]!.body.messages[2]!.content).toContain("卵は何個？");
+  expect(sentText(requests[1]!.body.messages[1]!.content)).toBe("- 牛乳を買う\n- 卵を買う");
+  expect(sentText(requests[1]!.body.messages[2]!.content)).toContain("卵は何個？");
+  // ツールの一覧は、会話の間変わらない（メモを添えたかどうかで出し入れしない）。
+  expect(requests[1]!.body.tools).toEqual(requests[0]!.body.tools);
+  expect(requests[0]!.body.tools?.map((tool) => tool.name)).toContain("search_notes");
 
   await page.locator(".ProseMirror").click();
   await page.keyboard.press("Control+End");
@@ -193,8 +230,8 @@ test("選択した文字と、「@」で指定したメモを、文脈として�
   await page.keyboard.press("Enter");
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["はい。"]);
 
-  const sent = requests[0]!.body.messages[0]!.content;
-  expect(sent).toContain('<note title="旅行の計画">\n出発は 8 月 3 日。\n</note>');
+  const sent = sentText(requests[0]!.body.messages[0]!.content);
+  expect(sent).toContain('title="旅行の計画">\n出発は 8 月 3 日。\n</note>');
   expect(sent).toContain('<selection note="持ち物">\n充電器\n</selection>');
   expect(sent).not.toContain("パスポート");
   expect(sent.endsWith("これは要る？")).toBe(true);
@@ -232,7 +269,7 @@ test("OpenAI 互換のエンドポイントをつなぎ先にして答えても�
   expect(requests[0]!.authorization).toBeUndefined();
   expect(requests[0]!.body.model).toBe("local-model");
   expect(requests[0]!.body.messages.map((message) => message.role)).toEqual(["system", "user"]);
-  expect(requests[0]!.body.messages[1]!.content).toContain("出発はいつ？");
+  expect(sentText(requests[0]!.body.messages[1]!.content)).toContain("出発はいつ？");
 
   authorized = false;
   await input.fill("もう一度");
@@ -340,7 +377,7 @@ test("会話は残り、ロックして開き直しても「残した会話」�
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["8 月 3 日です。", "朝 9 時の便です。"]);
   expect(requests[1]!.body.messages.map((message) => message.role)).toEqual(["user", "assistant", "user"]);
   // 添えたメモの本文は、残した会話には入れず、送るときに読む。
-  expect(requests[1]!.body.messages[0]!.content).toContain("出発は 8 月 3 日の朝 9 時。");
+  expect(sentText(requests[1]!.body.messages[0]!.content)).toContain("出発は 8 月 3 日の朝 9 時。");
   await chat(page).getByRole("button", { name: "残した会話" }).click();
   await expect(savedChats).toHaveCount(1);
   await savedChats.first().getByRole("button", { name: "「出発はいつ？」を消す" }).click();
@@ -368,85 +405,162 @@ async function openChatOnFruitNote(page: Page): Promise<void> {
   await saveAiSettingsAndOpenChat(page, "果物");
 }
 
-const FRUIT_EDIT: EditAnswer = { text: "誤字を直しました。", edit: { id: "toolu_fruit", markdown: "りんご\n\nバナナ\n\nみかん\n\nぶどう", summary: "「ばなな」を直し、ぶどうを足す" } };
+// 果物のメモの本文の直し（replace_note_body）。添えたメモの ID を、届いた要求から読む。
+const fruitEdit = (id: string) => (body: ChatRequestBody): ToolAnswer => ({
+  text: "誤字を直します。",
+  toolCalls: [{ id, name: "replace_note_body", input: { noteId: attachedNoteId(body), markdown: "りんご\n\nバナナ\n\nみかん\n\nぶどう" } }],
+});
+const approvalCard = (page: Page) => chat(page).getByRole("group", { name: "承認を待っている変更" });
 
-test("開いているメモの直しを頼むと、差分を見せ、適用すると直したブロックだけが入れ替わる。直していないブロックの文字色は残る", async ({ page }) => {
-  const requests = await mockClaudeApi(page, [FRUIT_EDIT, "どういたしまして。"]);
+test("開いているメモの直しを頼むと、差分を承認してから直したブロックだけが入れ替わる。文字色は残り、エディタの取り消しで戻せる", async ({ page }) => {
+  const requests = await mockClaudeApi(page, [fruitEdit("toolu_fruit"), "直しました。"]);
   await openChatOnFruitNote(page);
-  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
-  await input.fill("誤字を直して、ぶどうも足して");
+  await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("誤字を直して、ぶどうも足して");
   await page.keyboard.press("Enter");
 
-  const card = chat(page).getByLabel("メモの直しの案");
-  await expect(card).toContainText("「ばなな」を直し、ぶどうを足す");
+  const card = approvalCard(page);
+  await expect(card).toContainText("「果物」の本文を直す");
   await expect(card.getByLabel("消すブロック")).toHaveText(["ばなな"]);
   await expect(card.getByLabel("足すブロック")).toHaveText(["バナナ", "ぶどう"]);
   await expect(card.locator(".ai-edit-unchanged")).toHaveText(["変更のないブロック 1 個", "変更のないブロック 1 個"]);
-  // 案を見ただけでは、メモは変わらない。
+  await expect(chat(page).locator(".ai-tool-activity")).toContainText("承認を待っています");
+  // 承認するまでは、メモは変わらない。
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかん"]);
-  expect(requests[0]!.body.tools?.map((tool) => tool.name)).toEqual(["propose_note_edit"]);
-  expect(requests[0]!.body.messages[0]!.content).toContain('<note title="果物" open="true">');
 
-  await card.getByRole("button", { name: "適用する" }).click();
+  await card.getByRole("button", { name: "行う", exact: true }).click();
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "バナナ", "みかん", "ぶどう"]);
   await expect(page.locator('.ProseMirror [data-text-color="red"]')).toHaveText("りんご");
-  await expect(card).toContainText("適用しました。適用する前の状態は、メモの履歴に残っています。");
+  await expect(card).toHaveCount(0);
+  // 結果を AI に返して、続きの答えを受け取る。
+  await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["誤字を直します。", "直しました。"]);
+  const followUp = requests[1]!.body.messages as Array<{ role: string; content: Array<Record<string, unknown>> }>;
+  expect(followUp[1]!.content).toContainEqual(expect.objectContaining({ type: "tool_use", id: "toolu_fruit", name: "replace_note_body" }));
+  expect(lastToolResults(requests[1]!.body)).toEqual([expect.objectContaining({ type: "tool_result", tool_use_id: "toolu_fruit", is_error: false })]);
 
-  // 次の発言では、案を適用したことを AI に伝える。
-  await input.fill("ありがとう");
-  await page.keyboard.press("Enter");
-  await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["誤字を直しました。", "どういたしまして。"]);
-  const followUp = requests[1]!.body.messages as unknown as Array<{ role: string; content: Array<Record<string, unknown>> }>;
-  expect(followUp[1]!.content).toContainEqual({ type: "tool_use", id: "toolu_fruit", name: "propose_note_edit", input: { markdown: "(omitted from the history)", summary: "「ばなな」を直し、ぶどうを足す" } });
-  expect(followUp[2]!.content[0]).toEqual({ type: "tool_result", tool_use_id: "toolu_fruit", content: "The user applied the edit. The open note now contains it." });
-
-  // 適用する前の状態は、メモの履歴に残る。
+  // 直す前の状態は、メモの履歴に残る。
   await page.getByRole("button", { name: "その他の操作" }).last().click();
   await page.getByRole("menuitem", { name: "履歴" }).click();
   await expect(page.getByRole("dialog", { name: "履歴" }).getByRole("option").first()).toContainText("本文の置き換えの前（AI・MCP・プラグイン）");
+  await page.keyboard.press("Escape");
+
+  // AI の直しは、エディタの取り消しで 1 回で戻せる。
+  await page.locator(".ProseMirror p").first().click();
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかん"]);
 });
 
-test("案を出したあとでメモを書き換えると、その案は使えない。承認を待たずに適用する設定なら、案をすぐ適用する", async ({ page }) => {
-  await mockClaudeApi(page, [FRUIT_EDIT, { ...FRUIT_EDIT, edit: { ...FRUIT_EDIT.edit, id: "toolu_auto" } }]);
+test("承認を待つ間にメモを書き換えると、その変更は行わない。作る・直すを聞かずに行う設定でも、ゴミ箱に入れるときは聞く", async ({ page }) => {
+  await mockClaudeApi(page, [
+    fruitEdit("toolu_first"),
+    "書き換えられたので、直しませんでした。",
+    fruitEdit("toolu_auto"),
+    (body) => ({ text: "", toolCalls: [{ id: "toolu_trash", name: "move_note_to_trash", input: { noteId: attachedNoteId(body) } }] }),
+    "やめておきます。",
+  ]);
   await openChatOnFruitNote(page);
   const input = chat(page).getByRole("textbox", { name: "AI への発言" });
   await input.fill("直して");
   await page.keyboard.press("Enter");
-  const firstCard = chat(page).getByLabel("メモの直しの案").first();
-  await expect(firstCard.getByRole("button", { name: "適用する" })).toBeVisible();
+  await expect(approvalCard(page)).toBeVisible();
 
   await page.locator(".ProseMirror p").last().click();
   await page.keyboard.press("End");
   await page.keyboard.type("とレモン");
-  await firstCard.getByRole("button", { name: "適用する" }).click();
-  await expect(firstCard).toContainText("案を出したあとでメモが変わったので、この案は使えません。");
+  await approvalCard(page).getByRole("button", { name: "行う", exact: true }).click();
+  await expect(chat(page).locator(".ai-tool-activity")).toContainText("承認を待つ間に対象が変わったため、行いませんでした");
+  await expect(chat(page).locator(".ai-message.assistant .ai-message-text").last()).toHaveText("書き換えられたので、直しませんでした。");
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかんとレモン"]);
 
-  await chat(page).getByRole("checkbox", { name: "直しの案を、承認を待たずに適用する" }).check();
-  await page.locator(".ProseMirror p").last().click();
-  await page.keyboard.press("End");
-  for (let character = 0; character < "とレモン".length; character += 1) {
-    await page.keyboard.press("Backspace");
-  }
-  await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかん"]);
+  await chat(page).getByRole("checkbox", { name: "メモを作る・直すときは、承認を待たずに行う" }).check();
   await input.fill("もう一度直して");
   await page.keyboard.press("Enter");
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "バナナ", "みかん", "ぶどう"]);
-  await expect(chat(page).getByLabel("メモの直しの案").last()).toContainText("適用しました。");
+
+  // ゴミ箱に入れるのは、作る・直すとは別の許可（既定は毎回聞く）。
+  await expect(approvalCard(page)).toContainText("「果物」をゴミ箱に入れる");
+  await approvalCard(page).getByRole("button", { name: "行わない" }).click();
+  await expect(chat(page).locator(".ai-tool-activity").last()).toContainText("承認しなかったため、行いませんでした");
+  await expect(page.locator(".tree-note", { hasText: "果物" })).toBeVisible();
+});
+
+test("開いていないメモも、検索して読み、差分を承認して直せる。ツールの行を押すと、そのメモを開く", async ({ page }) => {
+  let tripNoteId = "";
+  const requests = await mockClaudeApi(page, [
+    { text: "探します。", toolCalls: [{ id: "toolu_search", name: "search_notes", input: { query: "沖縄" } }] },
+    (body) => {
+      tripNoteId = (JSON.parse(String(lastToolResults(body)[0]!.content)) as { notes: Array<{ noteId: string }> }).notes[0]!.noteId;
+      return { text: "", toolCalls: [{ id: "toolu_read", name: "get_note", input: { noteId: tripNoteId } }] };
+    },
+    () => ({ text: "", toolCalls: [{ id: "toolu_edit", name: "replace_note_body", input: { noteId: tripNoteId, markdown: "沖縄は 8 月 3 日に出発\n\n日焼け止めを持つ" } }] }),
+    "直しました。",
+  ]);
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "沖縄旅行");
+  await page.keyboard.type("沖縄は 8 月 3 日に出発");
+  await createNoteOnDesktop(page, "買い物");
+  await enableAi(page);
+  await page.getByLabel("API キー").fill("test-key");
+  await saveAiSettingsAndOpenChat(page, "買い物");
+  await chat(page).getByLabel(/開いているメモ: 買い物/).uncheck();
+  await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("沖縄のメモに、日焼け止めを持つと足して");
+  await page.keyboard.press("Enter");
+
+  await expect(approvalCard(page).getByLabel("足すブロック")).toHaveText(["日焼け止めを持つ"]);
+  const activities = chat(page).locator(".ai-tool-activity");
+  await expect(activities.nth(0)).toContainText("「沖縄」で検索");
+  await expect(activities.nth(0)).toContainText("1 件");
+  await expect(activities.nth(1)).toContainText("「沖縄旅行」を読む");
+  await approvalCard(page).getByRole("button", { name: "行う", exact: true }).click();
+  await expect(chat(page).locator(".ai-message.assistant .ai-message-text").last()).toHaveText("直しました。");
+  expect(requests).toHaveLength(4);
+
+  await activities.nth(2).click();
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("沖縄旅行");
+  await expect(page.locator(".ProseMirror p")).toHaveText(["沖縄は 8 月 3 日に出発", "日焼け止めを持つ"]);
+});
+
+test("承認を待っている間に止めると、何も変えずに止まり、次の発言では止めた呼び出しの結果を AI に返す。thinking ブロックは署名ごと送り返す", async ({ page }) => {
+  const requests = await mockClaudeApi(page, [
+    (body) => ({ text: "直します。", thinking: true, toolCalls: [{ id: "toolu_stopped", name: "replace_note_body", input: { noteId: attachedNoteId(body), markdown: "ちがう本文" } }] }),
+    "わかりました。",
+  ]);
+  await openChatOnFruitNote(page);
+  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
+  await input.fill("直して");
+  await page.keyboard.press("Enter");
+  await expect(approvalCard(page)).toBeVisible();
+  await chat(page).getByRole("button", { name: "止める" }).click();
+  await expect(approvalCard(page)).toHaveCount(0);
+  await expect(chat(page).locator(".ai-tool-activity")).toContainText("止めたため、行いませんでした");
+  await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかん"]);
+
+  await input.fill("やっぱりいい");
+  await page.keyboard.press("Enter");
+  await expect(chat(page).locator(".ai-message.assistant .ai-message-text").last()).toHaveText("わかりました。");
+  const sent = requests[1]!.body.messages as Array<{ role: string; content: Array<Record<string, unknown>> }>;
+  expect(sent.map((message) => message.role)).toEqual(["user", "assistant", "user"]);
+  expect(sent[1]!.content[0]).toMatchObject({ type: "thinking", signature: "sig-test" });
+  // 止めた呼び出しの結果と、次の発言を、1 つの user の発言にまとめて送る。
+  expect(sent[2]!.content[0]).toMatchObject({ type: "tool_result", tool_use_id: "toolu_stopped", is_error: true });
+  expect(sentText(sent[2]!.content).endsWith("やっぱりいい")).toBe(true);
 });
 
 test("AI が本文をそのまま返したブロックは、Markdown に出しにくいもの（段組み・コールアウト・数式・手書き・文字色）も入れ替えない", async ({ page }) => {
   await mockClaudeModels(page);
-  // 渡された開いているメモの本文を、そのまま返し、末尾に 1 段落だけ足す。
+  // 渡された開いているメモの本文を、そのまま返し、末尾に 1 段落だけ足す。結果が届いたら、文で答える。
   await page.route("https://api.anthropic.com/v1/messages**", async (route) => {
     if (await allowPreflight(route)) {
       return;
     }
     const body = route.request().postDataJSON() as ChatRequestBody;
-    const sent = JSON.stringify(body.messages[body.messages.length - 1]!.content);
-    const noteMarkdown = (JSON.parse(`"${/<note title=\\"[^"\\]*\\" open=\\"true\\">\\n([\s\S]*?)\\n<\/note>/.exec(sent)![1]!}"`) as string);
+    if (lastToolResults(body).length > 0) {
+      await route.fulfill({ contentType: "text/event-stream", headers: { "access-control-allow-origin": "*" }, body: claudeStreamBody("足しました。") });
+      return;
+    }
+    const sent = sentText(body.messages[body.messages.length - 1]!.content);
+    const noteMarkdown = /<note id="[0-9a-f]{32}" title="[^"]*" open="true">\n([\s\S]*?)\n<\/note>/.exec(sent)![1]!;
     await route.fulfill({ contentType: "text/event-stream", headers: { "access-control-allow-origin": "*" },
-      body: claudeStreamBody({ text: "足しました。", edit: { id: "toolu_echo", markdown: `${noteMarkdown}\n\nぶどう`, summary: "ぶどうを足す" } }) });
+      body: claudeStreamBody({ text: "", toolCalls: [{ id: "toolu_echo", name: "replace_note_body", input: { noteId: attachedNoteId(body), markdown: `${noteMarkdown}\n\nぶどう` } }] }) });
   });
   await startLocalVault(page);
   await createNoteOnDesktop(page, "いろいろなブロック");
@@ -485,12 +599,12 @@ test("AI が本文をそのまま返したブロックは、Markdown に出し�
   await saveAiSettingsAndOpenChat(page, "いろいろなブロック");
   await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("最後にぶどうを足して");
   await page.keyboard.press("Enter");
-  const card = chat(page).getByLabel("メモの直しの案");
+  const card = approvalCard(page);
   await expect(card.getByLabel("足すブロック")).toHaveText(["ぶどう"]);
   await expect(card.getByLabel("消すブロック")).toHaveCount(0);
 
-  await card.getByRole("button", { name: "適用する" }).click();
-  await expect(card).toContainText("適用しました。");
+  await card.getByRole("button", { name: "行う", exact: true }).click();
+  await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["足しました。"]);
   await expect(page.locator(".ProseMirror > *").last()).toHaveText("ぶどう");
   const kindsAfter = await blockKinds.evaluateAll((blocks) => blocks.map((block) => block.className || block.tagName));
   expect(kindsAfter.slice(0, kindsBefore.length)).toEqual(kindsBefore);
@@ -523,8 +637,50 @@ test("OpenAI 互換のサーバーが道具（function calling）を断ったら
   await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("このメモを直して");
   await page.keyboard.press("Enter");
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["直しの案は出せませんが、こう書けます。"]);
-  expect(requests.map((body) => body.tools?.length ?? 0)).toEqual([1, 0]);
+  expect(requests.map((body) => body.tools !== undefined)).toEqual([true, false]);
+  await expect(chat(page).locator(".ai-message.assistant")).toContainText("このつなぎ先はツールに対応していないため、添えたメモだけで答えました。");
   await expect(chat(page).getByRole("alert")).toHaveCount(0);
+});
+
+test("OpenAI 互換で、1 つの答えに 2 つの呼び出しがあれば 1 枚のカードで聞き、選んだものだけを行って、結果を呼び出しごとに返す", async ({ page }) => {
+  const requests: ChatRequestBody[] = [];
+  const toolCallLine = (index: number, call: { id?: string; name?: string; arguments: string }) => ({
+    choices: [{ delta: { tool_calls: [{ index, ...(call.id ? { id: call.id } : {}), function: { ...(call.name ? { name: call.name } : {}), arguments: call.arguments } }] } }],
+  });
+  await page.route("http://127.0.0.1:11434/v1/models", async (route) => {
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ object: "list", data: [{ id: "local-model" }] }) });
+  });
+  await page.route("http://127.0.0.1:11434/v1/chat/completions", async (route) => {
+    requests.push(route.request().postDataJSON() as ChatRequestBody);
+    const lines = requests.length === 1
+      ? [
+        toolCallLine(0, { id: "call_a", name: "create_note", arguments: '{"title":' }),
+        toolCallLine(1, { id: "call_b", name: "create_note", arguments: '{"title":"やること"}' }),
+        toolCallLine(0, { arguments: '"買うもの"}' }),
+        { choices: [{ delta: {}, finish_reason: "tool_calls" }] },
+      ]
+      : [{ choices: [{ delta: { content: "1 つ作りました。" } }] }];
+    await route.fulfill({ contentType: "text/event-stream", body: `${lines.map((line) => `data: ${JSON.stringify(line)}\n\n`).join("")}data: [DONE]\n\n` });
+  });
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "メモ");
+  await enableAi(page);
+  await page.getByLabel("つなぎ先").selectOption("openAiCompatible");
+  await saveAiSettingsAndOpenChat(page, "メモ");
+  await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("買うものとやることのメモを作って");
+  await page.keyboard.press("Enter");
+
+  const card = approvalCard(page);
+  await expect(card.getByRole("checkbox")).toHaveCount(2);
+  await card.getByRole("checkbox", { name: "メモ「やること」を作る" }).uncheck();
+  await card.getByRole("button", { name: "選んだものを行う" }).click();
+  await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["1 つ作りました。"]);
+  await expect(page.locator(".tree-note", { hasText: "買うもの" })).toBeVisible();
+  await expect(page.locator(".tree-note", { hasText: "やること" })).toHaveCount(0);
+
+  const sent = requests[1]!.messages as Array<Record<string, unknown>>;
+  expect(sent.slice(2).map((message) => [message.role, message.tool_call_id ?? null])).toEqual([["assistant", null], ["tool", "call_a"], ["tool", "call_b"]]);
+  expect(String(sent[4]!.content)).toContain("did not approve");
 });
 
 test("本文で文字を選び、上のボタンの「AI に頼む」から訳してもらうと、答えで選んだ所を入れ替えられる", async ({ page }) => {

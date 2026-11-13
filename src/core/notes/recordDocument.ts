@@ -23,6 +23,9 @@ const KEY_SEPARATOR = "|";
 export const REMOTE_ORIGIN = "remote";
 // 項目（fields）への書き込み。
 export const FIELD_ORIGIN = "field";
+// メモのツール（アプリ内の AI、MCP）による本文の書き込み。開いているエディタの取り消し（Ctrl+Z）で戻せるよう、
+// エディタの取り消しの対象に入れる（ui/editor/editorExtensions.ts）。
+export const NOTE_TOOL_ORIGIN = "noteTool";
 
 export function recordFields(doc: Y.Doc): Y.Map<FieldEntry> {
   return doc.getMap<FieldEntry>(FIELDS_MAP);

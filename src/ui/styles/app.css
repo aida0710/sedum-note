@@ -227,9 +227,20 @@ button:disabled { cursor: default; opacity: .55; }
 .ai-edit-added::before { content: "+"; color: var(--ok); }
 .ai-edit-unchanged { color: var(--muted); font-size: var(--font-size-small); padding: 0 8px; }
 .ai-edit-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
-.ai-edit-actions .hint { margin-right: auto; }
-.ai-edit-status { color: var(--muted); font-size: var(--font-size-small); }
 .ai-auto-apply { font-size: var(--font-size-small); color: var(--muted); }
+/* 答えの中の、ツールの呼び出しの 1 行。対象のメモがあれば押して開ける。 */
+.ai-tool-activity { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 6px; width: 100%; padding: 3px 6px; margin-left: -6px; border-radius: var(--radius-row); color: var(--muted); font-size: var(--font-size-small); text-align: left; line-height: 1.5; }
+.ai-tool-activity svg { flex: none; align-self: center; }
+.ai-tool-description { min-width: 0; overflow-wrap: anywhere; color: var(--text); }
+button.ai-tool-activity:hover { background: var(--selected); }
+.ai-tool-activity:is([data-status="failed"], [data-status="denied"], [data-status="rejected"], [data-status="stale"], [data-status="stopped"]) .ai-tool-description { color: var(--muted); text-decoration: line-through; }
+.ai-tool-starting { font-size: var(--font-size-small); }
+/* 承認のカード。項目ごとに、何をするかと中身（差分、前と後）を並べる。 */
+.ai-approval-item { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ai-approval-item + .ai-approval-item { border-top: 1px solid var(--line); padding-top: 8px; }
+.ai-approval-description { font-weight: 600; overflow-wrap: anywhere; }
+.ai-approval-changes { margin: 0; padding-left: 18px; font-size: var(--font-size-small); overflow-wrap: anywhere; }
+.ai-permissions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .ai-saved-chat { display: flex; align-items: center; gap: 4px; }
 .ai-saved-chat-open { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 8px; border-radius: var(--radius-row); text-align: left; }
 .ai-saved-chat-open:hover { background: var(--selected); }

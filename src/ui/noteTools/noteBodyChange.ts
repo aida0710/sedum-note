@@ -10,6 +10,7 @@ import type { JSONContent } from "@tiptap/core";
 import { prosemirrorJSONToYXmlFragment, yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
 import * as Y from "yjs";
 import { copyBodyBlocks } from "../../core/notes/bodyCopy";
+import { NOTE_TOOL_ORIGIN } from "../../core/notes/recordDocument";
 import { documentSchema } from "../editor/documentSchema";
 import { type BodyExportContext, documentBlockMarkdowns, documentBlocksToMarkdown, type MarkdownImportContext, markdownToBodyBlocks } from "../markdown/markdownDocument";
 import { alignBlocks, type BlockHunk } from "./blockDiff";
@@ -84,7 +85,7 @@ function yBlocksOf(blocks: JSONContent[]): Y.XmlElement[] {
 }
 
 // 案を本文に書く。案を作ったあとで本文が変わっていれば StaleBodyChangeError（何も書かない）。
-// 1 つのトランザクションで書くので、ほかのデバイスには 1 つの変更として届く。
+// 1 つのトランザクションで書くので、ほかのデバイスには 1 つの変更として届き、開いているエディタでは 1 回の取り消しで戻る。
 export function applyBodyChange(body: Y.XmlFragment, proposal: BodyChangeProposal, exportContext: BodyExportContext): void {
   if (!isBodyChangeCurrent(body, proposal, exportContext)) {
     throw new StaleBodyChangeError();
@@ -115,7 +116,7 @@ export function applyBodyChange(body: Y.XmlFragment, proposal: BodyChangeProposa
     }
   };
   if (body.doc) {
-    body.doc.transact(write);
+    body.doc.transact(write, NOTE_TOOL_ORIGIN);
   } else {
     write();
   }

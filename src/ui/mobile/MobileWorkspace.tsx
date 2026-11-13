@@ -74,7 +74,11 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
         {aiChat.open && (
           <ModalDialog label={translate("ai.chat")} className="ai-chat-dialog" onClose={() => aiChat.setOpen(false)}>
             <AiChat repository={repository} notes={snapshot.notes.filter((note) => note.content.trashedAt === null)} onClose={() => aiChat.setOpen(false)}
-              onOpenAiSettings={openAiSettings} />
+              onOpenAiSettings={openAiSettings} onOpenNote={(noteId) => {
+                // スマホでは、チャットのダイアログを閉じてメモを開く（チャットは裏で続く）。
+                aiChat.setOpen(false);
+                navigation.openNote(noteId);
+              }} />
           </ModalDialog>
         )}
       </div>

@@ -39,8 +39,8 @@ export const DEFAULT_AI_TOOL_PERMISSIONS: AiToolPermissions = { read: "allow", e
 export type AiSettings = {
   enabled: boolean;
   provider: AiProvider;
-  // AI が出したメモの直しの案を、承認を待たずに適用する（全部を承認する形）。適用する前の状態は、いつも履歴に残す。
-  autoApplyEdits: boolean;
+  // AI にメモの操作を許すか（種類ごと）。本文を書き換える前の状態は、いつも履歴に残す。
+  permissions: AiToolPermissions;
   claude: { apiKey: string; model: string; models: AiModelOption[] };
   // baseUrl は、/chat/completions の手前まで（例: http://127.0.0.1:11434/v1）。API キーの要らないサーバーでは空にする。
   openAiCompatible: { baseUrl: string; apiKey: string; model: string; models: AiModelOption[] };
@@ -51,7 +51,7 @@ export const DEFAULT_CLAUDE_MODEL = "claude-opus-5-5";
 export const DEFAULT_AI_SETTINGS: AiSettings = {
   enabled: false,
   provider: "claude",
-  autoApplyEdits: false,
+  permissions: DEFAULT_AI_TOOL_PERMISSIONS,
   claude: { apiKey: "", model: DEFAULT_CLAUDE_MODEL, models: [] },
   openAiCompatible: { baseUrl: "http://127.0.0.1:11434/v1", apiKey: "", model: "", models: [] },
 };
@@ -66,6 +66,7 @@ export async function readAiSettings(localStore: LocalStore, masterKey: CryptoKe
   return {
     ...DEFAULT_AI_SETTINGS,
     ...stored,
+    permissions: { ...DEFAULT_AI_SETTINGS.permissions, ...stored.permissions },
     claude: { ...DEFAULT_AI_SETTINGS.claude, ...stored.claude },
     openAiCompatible: { ...DEFAULT_AI_SETTINGS.openAiCompatible, ...stored.openAiCompatible },
   };
