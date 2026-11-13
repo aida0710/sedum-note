@@ -1,4 +1,5 @@
-// PC で本文の文字を選んだときだけ、選んだ所の上に出す書式のボタン（見出し・太字・斜体・下線・ハイライト・文字色・リンク）。
+// PC で本文の文字を選んだときだけ、選んだ所の上に出す書式のボタン（見出し・太字・斜体・下線・ハイライト・文字色・リンク）と、
+// 選んだ所を AI に頼むボタン（SelectionAiMenu.tsx）。
 // ふだんは書式のボタンを画面に並べず、書いている間は本文だけを見せる。写真・表などの挿入は「/」から使う。
 
 import { type EditorState, NodeSelection } from "@tiptap/pm/state";
@@ -6,6 +7,7 @@ import type { EditorView } from "@tiptap/pm/view";
 import type { Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { useFormattingState } from "./formattingState";
+import { SelectionAiMenu } from "./SelectionAiMenu";
 import { LinkTool, TextColorTools, TextStyleTools } from "./TextFormattingTools";
 
 // 選んだ範囲と、ボタンの間（px）。
@@ -13,6 +15,9 @@ const GAP_ABOVE_SELECTION = 8;
 
 type SelectionToolbarProps = {
   editor: Editor;
+  // AI に頼むときに、選んだ文字に添えるメモ。
+  noteId: string;
+  noteTitle: string;
   // リンク先を聞く。やめたら null。
   onAskLink: () => Promise<string | null>;
 };
@@ -33,7 +38,7 @@ function showsForSelection({ editor, view, state, from, to, element }: ShowCondi
   return view.hasFocus() || element.contains(document.activeElement);
 }
 
-export function SelectionToolbar({ editor, onAskLink }: SelectionToolbarProps) {
+export function SelectionToolbar({ editor, noteId, noteTitle, onAskLink }: SelectionToolbarProps) {
   const state = useFormattingState(editor);
   return (
     <BubbleMenu editor={editor} className="selection-toolbar" shouldShow={showsForSelection}
@@ -43,6 +48,8 @@ export function SelectionToolbar({ editor, onAskLink }: SelectionToolbarProps) {
       <TextColorTools editor={editor} state={state} />
       <span className="tool-separator" />
       <LinkTool editor={editor} state={state} onAskLink={onAskLink} />
+      <span className="tool-separator" />
+      <SelectionAiMenu editor={editor} noteId={noteId} noteTitle={noteTitle} />
     </BubbleMenu>
   );
 }

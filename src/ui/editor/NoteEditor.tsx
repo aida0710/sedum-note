@@ -303,7 +303,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
       {!isMobile && !isZoomed && (
         <NoteTopBar editor={editor} recording={audioRecorder.recording} onStopRecording={toolbarActions.onToggleRecording} trailing={trailing} />
       )}
-      {!isMobile && <SelectionToolbar editor={editor} onAskLink={askLink} />}
+      {!isMobile && <SelectionToolbar editor={editor} noteId={noteId} noteTitle={note.content.title} onAskLink={askLink} />}
       {!isMobile && isZoomed && (
         <div className="zoomed-view-top">
           <ZoomBackButton editor={editor} noteTitle={note.content.title} className="zoom-back" />

@@ -6,13 +6,17 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useM
 import { newRandomId } from "../../core/crypto/randomId";
 import { readSavedAiChats, type SavedAiChat, writeSavedAiChats } from "../../core/vault/aiChatHistory";
 import type { UnlockedVault } from "../../core/vault/vaultSession";
-import { type AiChatMessage, chatTitleOf } from "./aiConversation";
+import { type AiAttachment, type AiChatMessage, type AiQuickRequest, chatTitleOf } from "./aiConversation";
 import type { NoteEditProposal } from "./noteEditProposal";
 
 // いま開いているメモ。チャットが、選択範囲を読み、答えを入れる先。開いていなければ null。
 export type ActiveNoteEditor = { editor: Editor; noteId: string; noteTitle: string };
 
 export type SavedChat = SavedAiChat<AiChatMessage>;
+
+// チャットの外（本文で選んだ所の上のボタン）から頼まれた、まだ送っていない依頼。チャットが開いて、つなぎ先の設定を
+// 読み終えたら送る（AiChat.tsx）。
+export type AiPendingRequest = { text: string; attachments: AiAttachment[]; quickRequest: AiQuickRequest };
 
 export type AiChatSession = {
   open: boolean;
@@ -31,6 +35,8 @@ export type AiChatSession = {
   // AI が出したメモの直しの案（道具の呼び出しの ID ごと）。会話には残さず、チャットを閉じても、この画面の間は持つ。
   editProposals: ReadonlyMap<string, NoteEditProposal>;
   rememberEditProposal: (toolCallId: string, proposal: NoteEditProposal) => void;
+  pendingRequest: AiPendingRequest | null;
+  setPendingRequest: (request: AiPendingRequest | null) => void;
 };
 
 const AiChatSessionContext = createContext<AiChatSession | null>(null);
@@ -43,6 +49,7 @@ export function AiChatSessionProvider({ vault, children }: AiChatSessionProvider
   const [activeNote, setActiveNote] = useState<ActiveNoteEditor | null>(null);
   const [savedChats, setSavedChats] = useState<SavedChat[] | null>(null);
   const [editProposals, setEditProposals] = useState<ReadonlyMap<string, NoteEditProposal>>(new Map());
+  const [pendingRequest, setPendingRequest] = useState<AiPendingRequest | null>(null);
   const rememberEditProposal = useCallback((toolCallId: string, proposal: NoteEditProposal) => {
     setEditProposals((current) => new Map(current).set(toolCallId, proposal));
   }, []);
@@ -96,7 +103,8 @@ export function AiChatSessionProvider({ vault, children }: AiChatSessionProvider
 
   const session = useMemo(() => ({
     open, setOpen, messages, setMessages, activeNote, setActiveNote, savedChats, saveChat, startNewChat, openSavedChat, deleteSavedChat, editProposals, rememberEditProposal,
-  }), [open, messages, activeNote, savedChats, saveChat, startNewChat, openSavedChat, deleteSavedChat, editProposals, rememberEditProposal]);
+    pendingRequest, setPendingRequest,
+  }), [open, messages, activeNote, savedChats, saveChat, startNewChat, openSavedChat, deleteSavedChat, editProposals, rememberEditProposal, pendingRequest]);
   return <AiChatSessionContext.Provider value={session}>{children}</AiChatSessionContext.Provider>;
 }
 

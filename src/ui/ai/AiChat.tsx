@@ -16,6 +16,7 @@ import { appendMarkdownToBody } from "../markdown/appendMarkdown";
 import { bodyToMarkdown } from "../markdown/markdownDocument";
 import { markdownExportContextOf, markdownImportContextOf } from "../markdown/repositoryMarkdownContext";
 import { type ActiveNoteEditor, useAiChatSession } from "./aiChatSession";
+import { isReplaceableSelection, replaceSelectedText } from "./selectionReplacement";
 import { AI_QUICK_REQUESTS, type AiAttachment, type AiChatMessage, type AiConversation, type AiNoteEdit, type AiQuickRequest, conversationForApi, type ReadNoteForAi, withEditStatus } from "./aiConversation";
 import { AiModelSelect } from "./AiModelSelect";
 import { useAiSettings } from "./aiSettingsAccess";
@@ -50,18 +51,21 @@ function streamCompletion(settings: AiSettings, input: { conversation: AiConvers
   return streamOpenAiCompatibleCompletion({ baseUrl, apiKey, model, ...input });
 }
 
-// 開いているメモで選択している文字。選択していなければ空の文字。選択や本文が変わるたびに読み直す。
-function useSelectedText(activeNote: ActiveNoteEditor | null): string {
-  const [selectedText, setSelectedText] = useState("");
+// 開いているメモで選択している文字と、その範囲。選択していなければ text は空の文字。選択や本文が変わるたびに読み直す。
+type SelectedText = { text: string; from: number; to: number };
+const NO_SELECTED_TEXT: SelectedText = { text: "", from: 0, to: 0 };
+
+function useSelectedText(activeNote: ActiveNoteEditor | null): SelectedText {
+  const [selectedText, setSelectedText] = useState(NO_SELECTED_TEXT);
   const editor = activeNote?.editor ?? null;
   useEffect(() => {
     if (!editor) {
-      setSelectedText("");
+      setSelectedText(NO_SELECTED_TEXT);
       return undefined;
     }
     const readSelection = () => {
       const { doc, selection } = editor.state;
-      setSelectedText(selection.empty ? "" : doc.textBetween(selection.from, selection.to, "\n"));
+      setSelectedText(selection.empty ? NO_SELECTED_TEXT : { text: doc.textBetween(selection.from, selection.to, "\n"), from: selection.from, to: selection.to });
     };
     readSelection();
     editor.on("selectionUpdate", readSelection);
@@ -76,7 +80,7 @@ function useSelectedText(activeNote: ActiveNoteEditor | null): string {
 
 export function AiChat({ repository, notes, onClose, onOpenAiSettings }: AiChatProps) {
   const { settings, saveSettings } = useAiSettings();
-  const { messages, setMessages, activeNote, savedChats, saveChat, startNewChat, openSavedChat, deleteSavedChat, editProposals, rememberEditProposal } = useAiChatSession();
+  const { messages, setMessages, activeNote, savedChats, saveChat, startNewChat, openSavedChat, deleteSavedChat, editProposals, rememberEditProposal, pendingRequest, setPendingRequest } = useAiChatSession();
   // 適用している直しの案の、道具の呼び出しの ID。
   const [applyingEditId, setApplyingEditId] = useState<string | null>(null);
   // true なら、会話の代わりに、残した会話の一覧を出す。
@@ -90,7 +94,8 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings }: AiChatP
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const request = useRef<AbortController | null>(null);
   const conversationEnd = useRef<HTMLDivElement>(null);
-  const selectedText = useSelectedText(activeNote);
+  const selection = useSelectedText(activeNote);
+  const selectedText = selection.text;
   // チャットを閉じたら、途中の依頼を止める。
   useEffect(() => () => request.current?.abort(), []);
   // 新しい発言や答えの続きが届いたら、いちばん下が見えるようにする。
@@ -191,8 +196,36 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings }: AiChatP
   const currentAttachments = (): AiAttachment[] => [
     ...(includesOpenNote && openNote && !mentionedNoteIds.includes(openNote.id) ? [noteAttachment(openNote, true)] : []),
     ...mentionedNotes.map((note) => noteAttachment(note)),
-    ...(includesSelection && selectedText !== "" && activeNote ? [{ kind: "selection" as const, noteTitle: activeNote.noteTitle, text: selectedText }] : []),
+    ...(includesSelection && selectedText !== "" && activeNote
+      ? [{ kind: "selection" as const, noteTitle: activeNote.noteTitle, text: selectedText, noteId: activeNote.noteId, from: selection.from, to: selection.to }]
+      : []),
   ];
+  // 本文で選んだ所の上のボタンから頼まれた依頼は、つなぎ先の設定を読み終えたら送る。AI を有効にしていなければ、送らずに捨てる
+  // （有効にしてから、あとで思いがけず送られないように）。
+  useEffect(() => {
+    if (!pendingRequest || settings === null || running) {
+      return;
+    }
+    setPendingRequest(null);
+    if (settings.enabled) {
+      void send(pendingRequest.text, pendingRequest.attachments, pendingRequest.quickRequest);
+    }
+  });
+  // 答えで、頼んだときに選んでいた所を入れ替える。その所が変わっていたら、入れ替えずに知らせる。
+  const replaceSelection = async (answer: string, selectionAttachment: Parameters<typeof replaceSelectedText>[1]) => {
+    if (!activeNote) {
+      return;
+    }
+    const replaced = await replaceSelectedText(activeNote.editor, selectionAttachment, answer, importContext);
+    setErrorMessage(replaced ? null : translate("ai.selectionChanged"));
+  };
+  // 答えのすぐ前の発言に添えた、入れ替えられる選択範囲（開いているメモのもの）。
+  const replaceableSelectionBefore = (index: number) => {
+    const question = messages[index - 1];
+    return question?.role === "user" && activeNote
+      ? question.attachments.find((attachment) => isReplaceableSelection(attachment, activeNote.noteId)) ?? null
+      : null;
+  };
   const sendQuickRequest = (quickRequest: AiQuickRequest) => {
     if (openNote) {
       void send(translate(`ai.task.${quickRequest}`), [noteAttachment(openNote, true)], quickRequest);
@@ -250,6 +283,12 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings }: AiChatP
                 <button type="button" className="text-button" onClick={() => void navigator.clipboard.writeText(message.text)}>{translate("ai.copy")}</button>
                 {activeNote?.editor.isEditable && (
                   <>
+                    {(() => {
+                      const selectionAttachment = replaceableSelectionBefore(index);
+                      return selectionAttachment && isReplaceableSelection(selectionAttachment, activeNote.noteId) && (
+                        <button type="button" className="text-button" onClick={() => void replaceSelection(message.text, selectionAttachment)}>{translate("ai.replaceSelection")}</button>
+                      );
+                    })()}
                     <button type="button" className="text-button" onClick={() => void insertPastedMarkdown(activeNote.editor, message.text, importContext)}>{translate("ai.insertAtCursor")}</button>
                     <button type="button" className="text-button" onClick={() => void appendMarkdownToBody(message.text, repository.note(activeNote.noteId)!.body, { ...importContext, attachFile: async () => null })}>
                       {translate("ai.append")}

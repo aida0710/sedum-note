@@ -7,9 +7,11 @@ import { type AiToolCall, type AiToolDefinition, NOTE_EDIT_TOOL, noteEditInputFo
 // メモは ID だけを持ち、本文は送るたびに今の中身を読む。会話を残しても、メモの本文の写しを会話の中に残さないため
 // （メモを消したら、残した会話からも中身が消える）。AI がメモを直したあとも、AI は直したあとの本文を読める。
 // isOpenNote は、送ったときに開いていたメモ（AI が直しの案を出せるメモ）。
+// selection の noteId・from・to は、選んでいた範囲の位置。答えで選んだ所を入れ替えるときに、同じ文字のままかを確かめて使う
+// （selectionReplacement.ts）。
 export type AiAttachment =
   | { kind: "note"; noteId: string; title: string; isOpenNote?: boolean }
-  | { kind: "selection"; noteTitle: string; text: string };
+  | { kind: "selection"; noteTitle: string; text: string; noteId?: string; from?: number; to?: number };
 
 // 送るときに、メモの今の題と本文（Markdown）を読む。メモがもう無ければ null。
 export type ReadNoteForAi = (noteId: string) => { title: string; markdown: string } | null;
@@ -45,7 +47,18 @@ export const AI_QUICK_REQUESTS = {
   summarize: "Summarize the attached note. Lead with the main point, then list the key details as short bullet points. Keep names, numbers and dates exactly as written. Answer in the language of the note.",
   rewrite: "Rewrite the attached note so that it is clearer and easier to read. Keep every fact, the structure of headings and lists, and the author's tone. Do not add information that is not in the note. Answer in the language of the note.",
 } as const;
-export type AiQuickRequest = keyof typeof AI_QUICK_REQUESTS;
+// 本文で文字を選んで、選んだ所の上のボタンから頼む、決まった依頼（SelectionAiMenu.tsx）。選んだ文字を添えて送る。
+// 答えは、そのまま選んだ所と入れ替えられるよう、前置きを付けずに返させる。
+export const AI_SELECTION_REQUESTS = {
+  rewriteSelection: "Rewrite the selected text so that it is clearer and easier to read. Keep every fact and the author's tone, and do not add information. Reply with only the rewritten text, in the language of the selection.",
+  summarizeSelection: "Summarize the selected text briefly. Keep names, numbers and dates exactly as written. Reply with only the summary, in the language of the selection.",
+  translateSelectionToEnglish: "Translate the selected text into natural English. Keep the meaning, names and numbers. Reply with only the translation.",
+  translateSelectionToJapanese: "Translate the selected text into natural Japanese. Keep the meaning, names and numbers. Reply with only the translation.",
+} as const;
+export type AiSelectionRequest = keyof typeof AI_SELECTION_REQUESTS;
+
+const AI_REQUEST_PROMPTS = { ...AI_QUICK_REQUESTS, ...AI_SELECTION_REQUESTS };
+export type AiQuickRequest = keyof typeof AI_REQUEST_PROMPTS;
 
 // 属性の値を囲む引用符と重ならないよう、題の中の引用符を置き換える。
 function attributeValue(text: string): string {
@@ -65,7 +78,7 @@ function attachmentText(attachment: AiAttachment, readNote: ReadNoteForAi): stri
 
 // 文脈は発言の前に置く（長い資料を先に、問いを最後に置くと、答えの質が安定する）。
 function userContent(message: Extract<AiChatMessage, { role: "user" }>, readNote: ReadNoteForAi): string {
-  return [...message.attachments.map((attachment) => attachmentText(attachment, readNote)), message.quickRequest ? AI_QUICK_REQUESTS[message.quickRequest] : message.text].join("\n\n");
+  return [...message.attachments.map((attachment) => attachmentText(attachment, readNote)), message.quickRequest ? AI_REQUEST_PROMPTS[message.quickRequest] : message.text].join("\n\n");
 }
 
 type ConversationOptions = {

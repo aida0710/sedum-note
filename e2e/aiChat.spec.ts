@@ -526,3 +526,41 @@ test("OpenAI 互換のサーバーが道具（function calling）を断ったら
   expect(requests.map((body) => body.tools?.length ?? 0)).toEqual([1, 0]);
   await expect(chat(page).getByRole("alert")).toHaveCount(0);
 });
+
+test("本文で文字を選び、上のボタンの「AI に頼む」から訳してもらうと、答えで選んだ所を入れ替えられる", async ({ page }) => {
+  const requests = await mockClaudeApi(page, ["Hello, world"]);
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "あいさつ");
+  await page.keyboard.type("最初に、こんにちは世界、と書く。");
+  await enableAi(page);
+  await page.getByLabel("API キー").fill("test-key");
+  await page.getByRole("button", { name: "保存して確かめる" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "つなぎ先につながりました" })).toBeVisible();
+  await page.getByRole("tab", { name: "あいさつ" }).click();
+
+  // 「こんにちは世界」を選ぶ。
+  await page.locator(".ProseMirror").evaluate((element: HTMLElement & { editor?: { state: { doc: { textContent: string } }; commands: { setTextSelection: (range: { from: number; to: number }) => boolean; focus: () => boolean } } }) => {
+    const editor = element.editor!;
+    const start = editor.state.doc.textContent.indexOf("こんにちは世界") + 1;
+    editor.commands.focus();
+    editor.commands.setTextSelection({ from: start, to: start + "こんにちは世界".length });
+  });
+  const selectionToolbar = page.locator(".selection-toolbar");
+  await selectionToolbar.getByRole("button", { name: "AI に頼む" }).click();
+  await page.getByRole("menuitem", { name: "選んだ所を英語に訳す" }).click();
+
+  const answers = chat(page).locator(".ai-message.assistant .ai-message-text");
+  await expect(answers).toHaveText(["Hello, world"]);
+  const sent = JSON.stringify(requests[0]!.body);
+  expect(sent).toContain("<selection");
+  expect(sent).toContain("こんにちは世界");
+  expect(sent).toContain("Translate the selected text into natural English");
+  expect(sent).not.toContain("最初に");
+
+  await chat(page).getByRole("button", { name: "選んだ所と入れ替える" }).click();
+  await expect(page.locator(".ProseMirror p").first()).toHaveText("最初に、Hello, world、と書く。");
+  // 選んでいた所の文字が変わったあとは、入れ替えずに知らせる。
+  await chat(page).getByRole("button", { name: "選んだ所と入れ替える" }).click();
+  await expect(chat(page).getByRole("alert")).toContainText("選んでいた所の文字が変わったので、入れ替えませんでした");
+  await expect(page.locator(".ProseMirror p").first()).toHaveText("最初に、Hello, world、と書く。");
+});
