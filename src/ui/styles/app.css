@@ -980,7 +980,8 @@ details summary { cursor: pointer; color: var(--accent); }
   :is(.icon-button, .tool, .phone-back, .chips .chip, .tabbar button, .choice.swatch, .footnote-number, .ProseMirror .section-zoom, .attachment-image.selected .image-resize-handle)::before,
   .ProseMirror .fold-toggle::after { content: ""; position: absolute; inset: var(--touch-area-inset, -8px); }
   :is(.icon-button, .tool, .phone-back, .chips .chip, .tabbar button, .choice.swatch, .footnote-number) { position: relative; }
-  .phone-back { --touch-area-inset: -10px -8px; }
+  /* 文字の行の高さはブラウザで違う（WebKit は 21px）ので、高さを決めてから上下に 10px ずつ広げる。 */
+  .phone-back { --touch-area-inset: -10px -8px; min-height: 24px; }
   /* チップの帯は縦にも切り取るので、広げた範囲が入るよう帯の上下に余白を取り、その分だけ上へ寄せて位置を保つ。 */
   .chips { padding-top: 8px; margin-top: -8px; }
   .chips .chip { --touch-area-inset: -8px 0; }
