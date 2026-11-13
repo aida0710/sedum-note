@@ -7,7 +7,7 @@ import type { UnlockedVault } from "../../core/vault/vaultSession";
 import { describeError } from "../i18n/describeError";
 import { setMcpGatewayToken, startMcpGateway } from "../platform/mcpGateway";
 import { APP_VERSION } from "../update/appVersion";
-import { createNoteTools, NOTE_SERVER_INSTRUCTIONS } from "./noteTools";
+import { createMcpNoteTools, NOTE_SERVER_INSTRUCTIONS } from "./mcpNoteTools";
 
 export type McpGatewayControl = {
   // 読み込むまでは null。
@@ -33,7 +33,7 @@ export function useMcpGateway(vault: UnlockedVault): McpGatewayControl {
     name: "sedum-note",
     version: APP_VERSION,
     instructions: NOTE_SERVER_INSTRUCTIONS,
-    tools: createNoteTools(repository, { allowPermanentDelete: settings.allowPermanentDelete }),
+    tools: createMcpNoteTools(repository, { allowPermanentDelete: settings.allowPermanentDelete }),
   };
   const enabled = settings?.enabled ?? false;
   const token = settings?.token ?? "";

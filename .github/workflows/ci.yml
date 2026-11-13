@@ -46,10 +46,11 @@ jobs:
         run: integration/webdav-up.sh
       - run: npm run test:integration
       - run: npm run build
-      # MCP は PC 版にだけ同梱する。Web 版のビルドに MCP のコードが入っていないことを確かめる。
+      # MCP の窓口とプロトコルは PC 版にだけ同梱する。Web 版のビルドに、その部品が入っていないことを確かめる
+      # （メモを操作するツールの中身は、アプリ内の AI のチャットが使うので、Web 版にも入る）。
       - name: Check that the web build does not include MCP
         run: |
-          if grep -rlE 'replace_note_body|mcp_start' dist; then
+          if grep -rlE 'mcp_start|io\.modelcontextprotocol/protocolVersion' dist; then
             echo "the web build includes MCP code" >&2
             exit 1
           fi

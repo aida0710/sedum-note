@@ -3,13 +3,13 @@ import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/cli
 import { describe, expect, it } from "vitest";
 import { handleMcpRequest, MCP_PROTOCOL_VERSION } from "../../core/mcp/mcpServer";
 import { newTestRepository } from "../../core/notes/repositoryFixtures";
-import { createNoteTools, NOTE_SERVER_INSTRUCTIONS } from "./noteTools";
+import { createMcpNoteTools, NOTE_SERVER_INSTRUCTIONS } from "./mcpNoteTools";
 
 // MCP の公式のクライアントを、HTTP を通さずにこのアプリのサーバーの処理へつなぐ。
 // 仕様の読み違いは、自分で書いた要求では見つからない（サーバーと同じ読み違いをするため）。
 async function connectOfficialClient(mode: "auto" | "legacy") {
   const { repository } = await newTestRepository();
-  const server = { name: "sedum-note", version: "test", instructions: NOTE_SERVER_INSTRUCTIONS, tools: createNoteTools(repository, { allowPermanentDelete: false }) };
+  const server = { name: "sedum-note", version: "test", instructions: NOTE_SERVER_INSTRUCTIONS, tools: createMcpNoteTools(repository, { allowPermanentDelete: false }) };
   const serveInProcess: typeof fetch = async (_url, init) => {
     const headers = Object.fromEntries([...new Headers(init?.headers).entries()].map(([name, value]) => [name.toLowerCase(), value]));
     const response = await handleMcpRequest({ headers, body: String(init?.body ?? "") }, server);

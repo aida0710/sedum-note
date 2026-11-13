@@ -9,11 +9,11 @@ import { bodyPlainText } from "../../core/notes/bodyText";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { newTestRepository } from "../../core/notes/repositoryFixtures";
 import { documentSchema } from "../editor/documentSchema";
-import { createNoteTools } from "./noteTools";
+import { createMcpNoteTools } from "./mcpNoteTools";
 
 async function toolsOver(allowPermanentDelete = false): Promise<{ repository: NoteRepository; run: (name: string, toolArguments?: Record<string, unknown>) => Promise<any> }> {
   const { repository } = await newTestRepository();
-  const tools = createNoteTools(repository, { allowPermanentDelete });
+  const tools = createMcpNoteTools(repository, { allowPermanentDelete });
   const run = async (name: string, toolArguments: Record<string, unknown> = {}) => {
     const tool: McpTool | undefined = tools.find((candidate) => candidate.name === name);
     if (!tool) {
