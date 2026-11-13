@@ -7,7 +7,6 @@ import { PluginsSection } from "../plugins/PluginsSection";
 import type { VaultSession } from "../session/useVaultSession";
 import { BackupSection } from "./BackupSection";
 import { CustomCssSection } from "./CustomCssSection";
-import { DailyNoteSection } from "./DailyNoteSection";
 import { DisplaySection } from "./DisplaySection";
 import { LockSection } from "./LockSection";
 import { MarkdownSection } from "./MarkdownSection";
@@ -22,6 +21,7 @@ import { ThemeSection } from "./ThemeSection";
 import { TrashSection } from "./TrashSection";
 import { UpdateSection } from "./UpdateSection";
 import { WipeDeviceDataSection } from "./WipeDeviceDataSection";
+import { TemplateSection } from "./TemplateSection";
 
 type SettingsPageContentProps = {
   page: SettingsPage;
@@ -35,7 +35,7 @@ export function SettingsPageContent({ page, session, vault }: SettingsPageConten
   const mcpSection = useContext(McpSectionSlot);
   switch (page) {
     case "general":
-      return <><DisplaySection /><DailyNoteSection notebooks={repository.notebooks()} /><RemindersSection /><TrashSection repository={repository} /><SpacesSection /></>;
+      return <><DisplaySection /><TemplateSection /><RemindersSection /><TrashSection repository={repository} /><SpacesSection /></>;
     case "appearance":
       return <><ThemeSection /><CustomCssSection /></>;
     case "sync":

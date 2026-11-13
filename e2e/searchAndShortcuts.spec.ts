@@ -236,26 +236,6 @@ test("「/」のメニューとショートカットで、今日の日付を本�
   await expect(page.locator(".ProseMirror")).toHaveText(today + today);
 });
 
-test("デイリーノートのボタンで今日のメモを作り、もう一度押すと同じメモが開く。入れるノートブックは設定で選べる", async ({ page }) => {
-  await startLocalVault(page);
-  const today = await page.evaluate(() => {
-    const now = new Date();
-    const twoDigits = (value: number) => String(value).padStart(2, "0");
-    return `${now.getFullYear()}-${twoDigits(now.getMonth() + 1)}-${twoDigits(now.getDate())}`;
-  });
-  await page.getByRole("button", { name: "今日のメモ（デイリーノート）" }).click();
-  await expect(page.getByPlaceholder("タイトル")).toHaveValue(today);
-  await page.locator(".ProseMirror").click();
-  await page.keyboard.type("朝の記録");
-
-  await page.keyboard.press("Control+Alt+n");
-  await expect(page.getByRole("tab")).toHaveCount(2);
-  await page.keyboard.press("Control+Alt+j");
-  await expect(page.getByRole("tab")).toHaveCount(2);
-  await expect(page.getByPlaceholder("タイトル")).toHaveValue(today);
-  await expect(page.locator(".ProseMirror")).toHaveText("朝の記録");
-});
-
 test("フォーカスモードでは左の列・タブ・ツールバーが隠れ、左上の戻るボタン・Esc・ショートカットで戻る", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "集中して書く", "本文");
@@ -331,8 +311,8 @@ test("コマンドパレットを開いた直後は、最近のメモの下に�
   await page.keyboard.press("Control+k");
   const palette = page.getByRole("dialog", { name: "コマンドパレット" });
   await expect(palette.locator(".menu-heading")).toHaveText(["メモ", "操作"]);
-  await expect(palette.getByRole("option").locator(".nav-label")).toHaveText(["会議の記録", "新しいメモ", "今日のメモ（デイリーノート）", "設定を開く", "期限の一覧"]);
-  await expect(palette.getByRole("option").locator("kbd")).toHaveText(["Ctrl + Alt + N", "Ctrl + Alt + J", "Ctrl + ,", "Ctrl + Alt + E"]);
+  await expect(palette.getByRole("option").locator(".nav-label")).toHaveText(["会議の記録", "新しいメモ", "設定を開く", "期限の一覧"]);
+  await expect(palette.getByRole("option").locator("kbd")).toHaveText(["Ctrl + Alt + N", "Ctrl + ,", "Ctrl + Alt + E"]);
   // 最初に選ばれているのは、最近のメモ。下へ移って、操作を実行できる。
   await expect(palette.getByRole("option", { name: "会議の記録" })).toHaveAttribute("aria-selected", "true");
   await page.keyboard.press("ArrowDown");

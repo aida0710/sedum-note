@@ -323,7 +323,7 @@ test("メモをテンプレートにすると「テンプレート」に並び�
 });
 
 test("テンプレートの @date・@time・@title は、新しいメモを作るときと「/」で入れるときに、その時の値に置き換わる。テンプレートは変わらない", async ({ page }) => {
-  // デイリーノートの題の形式（既定は 2026-11-13 の形）に合わせて入る。
+  // テンプレートの日付と時刻の形式（既定は 2026-11-13 の形）で入る。
   await page.clock.install({ time: new Date(2026, 10, 13, 9, 5) });
   await startLocalVault(page);
   await newNote(page, "@date の日報");
@@ -353,12 +353,12 @@ test("テンプレートの @date・@time・@title は、新しいメモを作�
   await expect(page.locator(".ProseMirror p", { hasText: "作成" })).toHaveText("作成 @time、連絡先 foo@date.example");
 });
 
-test("デイリーノートの題の形式を言語の書き方にすると、テンプレートの @date・@datetime もその書き方になる", async ({ page }) => {
+test("テンプレートの日付と時刻の形式を言語の書き方にすると、@date・@datetime もその書き方になる", async ({ page }) => {
   await page.clock.install({ time: new Date(2026, 10, 13, 9, 5) });
   await startLocalVault(page);
   await openSettingsPage(page, "一般");
-  await page.getByLabel("題の形式").selectOption("long");
-  await expect(page.getByText("テンプレートの @date・@time・@datetime も、この形式になります。")).toBeVisible();
+  await page.getByLabel("日付と時刻の形式").selectOption("long");
+  await expect(page.getByText("テンプレートの @date・@time・@datetime を、この形式で入れます。")).toBeVisible();
 
   await newNote(page, "@date の日報");
   await page.keyboard.type("作成 @datetime");

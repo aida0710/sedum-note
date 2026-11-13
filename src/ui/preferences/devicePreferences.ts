@@ -1,11 +1,11 @@
-// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の組み方、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか、デイリーノートの作り方、タイプライターモード、カスタム CSS、期限の通知、常駐）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の組み方、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか、テンプレートの日付と時刻の形式、タイプライターモード、カスタム CSS、期限の通知、常駐）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
 import { type CustomTheme, parseStoredCustomTheme } from "../theme/customTheme";
 import { PAGE_ALIGNMENTS, type PageAlignment } from "../../core/notes/noteRecords";
 import { NOTE_SORT_ORDERS, type NoteSortOrder } from "../../core/notes/noteQueries";
-import { DAILY_NOTE_TITLE_FORMATS, type DailyNoteTitleFormat } from "../workspace/dailyNote";
+import { TEMPLATE_DATE_FORMATS, type TemplateDateFormat } from "../editor/templateTimeValues";
 import { DEFAULT_EDITOR_TYPOGRAPHY, type EditorTypography, settledEditorTypography } from "./editorTypography";
 import { type ShortcutOverrides, settledShortcutOverrides } from "../shortcuts/shortcutOverrides";
 
@@ -40,9 +40,8 @@ export type DevicePreferences = {
   sidebarWidth: number;
   // このデバイスで、同期を自動で流すか。切っても「今すぐ同期」は使える。
   autoSync: boolean;
-  // デイリーノートの題の形式と、新しく作るときに入れるノートブック（null なら、どこにも入れない）。
-  dailyNoteTitleFormat: DailyNoteTitleFormat;
-  dailyNoteNotebookId: string | null;
+  // テンプレートの変数（@date・@time・@datetime）の日付と時刻の形式。
+  templateDateFormat: TemplateDateFormat;
   // 打っている行を、本文の領域の中央に保つか。
   typewriterMode: boolean;
   // 自分で書いた CSS と、それを当てるか。
@@ -70,8 +69,7 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   imageAttachment: "original",
   sidebarWidth: 290,
   autoSync: true,
-  dailyNoteTitleFormat: "iso",
-  dailyNoteNotebookId: null,
+  templateDateFormat: "iso",
   typewriterMode: false,
   customCss: "",
   customCssEnabled: true,
@@ -129,6 +127,9 @@ function loadStoredPreferences(): DevicePreferences {
   }
 }
 
+// v0.7.0 までの項目。テンプレートの日付と時刻の形式は、デイリーノートの題の形式として持っていた。
+type LegacyDevicePreferences = { dailyNoteTitleFormat?: unknown };
+
 // 読めない項目だけを既定に戻す（手で書き換えた値や、別のバージョンの値で画面が壊れないように）。
 function validPreferences(stored: unknown): DevicePreferences {
   const candidate = (typeof stored === "object" && stored !== null ? stored : {}) as Partial<Record<keyof DevicePreferences, unknown>>;
@@ -145,8 +146,8 @@ function validPreferences(stored: unknown): DevicePreferences {
     showOutline: typeof candidate.showOutline === "boolean" ? candidate.showOutline : DEFAULT_DEVICE_PREFERENCES.showOutline,
     imageAttachment: IMAGE_ATTACHMENT_CHOICES.find((choice) => choice === candidate.imageAttachment) ?? DEFAULT_DEVICE_PREFERENCES.imageAttachment,
     autoSync: typeof candidate.autoSync === "boolean" ? candidate.autoSync : DEFAULT_DEVICE_PREFERENCES.autoSync,
-    dailyNoteTitleFormat: DAILY_NOTE_TITLE_FORMATS.find((format) => format === candidate.dailyNoteTitleFormat) ?? DEFAULT_DEVICE_PREFERENCES.dailyNoteTitleFormat,
-    dailyNoteNotebookId: typeof candidate.dailyNoteNotebookId === "string" ? candidate.dailyNoteNotebookId : DEFAULT_DEVICE_PREFERENCES.dailyNoteNotebookId,
+    templateDateFormat: TEMPLATE_DATE_FORMATS.find((format) => format === (candidate.templateDateFormat ?? (stored as LegacyDevicePreferences | null)?.dailyNoteTitleFormat))
+      ?? DEFAULT_DEVICE_PREFERENCES.templateDateFormat,
     typewriterMode: typeof candidate.typewriterMode === "boolean" ? candidate.typewriterMode : DEFAULT_DEVICE_PREFERENCES.typewriterMode,
     customCss: typeof candidate.customCss === "string" ? candidate.customCss : DEFAULT_DEVICE_PREFERENCES.customCss,
     customCssEnabled: typeof candidate.customCssEnabled === "boolean" ? candidate.customCssEnabled : DEFAULT_DEVICE_PREFERENCES.customCssEnabled,

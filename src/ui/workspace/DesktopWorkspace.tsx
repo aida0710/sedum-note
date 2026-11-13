@@ -2,10 +2,8 @@
 
 import { ChevronLeft, Settings } from "lucide-react";
 import { useCallback, useContext, useState } from "react";
-import { languageInUse } from "../i18n/languageInUse";
 import { translate } from "../i18n/translate";
 import { readDevicePreferences, updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
-import { dailyNoteTitle, findOrCreateDailyNote } from "./dailyNote";
 import { NoteEditor } from "../editor/NoteEditor";
 import { createNoteLinkTargets, NoteLinkTargetsContext } from "../editor/noteLinkTargets";
 import { SettingsPanel } from "../settings/SettingsPanel";
@@ -44,11 +42,6 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
   const splitNote = navigation.splitNoteId === null ? undefined : repository.note(navigation.splitNoteId);
   const databaseNotebook = snapshot.notebooks.find((notebook) => notebook.id === notebookIdOfDatabaseTab(navigation.activeTab));
   const createNote = async () => navigation.openNote((await createNoteInView(repository, navigation.view)).id);
-  const openDailyNote = async () => {
-    const { dailyNoteTitleFormat, dailyNoteNotebookId } = readDevicePreferences();
-    const title = dailyNoteTitle(dailyNoteTitleFormat, new Date(), languageInUse());
-    navigation.openNote((await findOrCreateDailyNote({ repository, title, notebookId: dailyNoteNotebookId })).id);
-  };
   // フォーカスモード: 左の列・タブ・ツールバーを隠して、本文だけにする。開き直すと戻る。
   const [focusMode, setFocusMode] = useState(false);
   const exitFocusMode = useCallback(() => setFocusMode(false), []);
@@ -79,7 +72,6 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
     graph: () => navigation.openTab(GRAPH_TAB),
     reminders: () => navigation.openTab(REMINDERS_TAB),
     aiChat: () => aiChat.setOpen(!aiChat.open),
-    dailyNote: () => void openDailyNote(),
     focusMode: () => setFocusMode((on) => !on),
     typewriterMode: () => updateDevicePreferences({ typewriterMode: !readDevicePreferences().typewriterMode }),
     lock: () => void session.lock(),
@@ -97,7 +89,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
           onClick={exitFocusMode}><ChevronLeft size={20} /><span>{translate("workspace.exitFocusMode")}</span></button>
       )}
       <Sidebar snapshot={snapshot} repository={repository} navigation={navigation} onCreateNote={() => void createNote()}
-        onOpenDailyNote={() => void openDailyNote()} onEnterFocusMode={() => setFocusMode(true)} onOpenGraph={() => navigation.openTab(GRAPH_TAB)} onOpenReminders={() => navigation.openTab(REMINDERS_TAB)}
+        onEnterFocusMode={() => setFocusMode(true)} onOpenGraph={() => navigation.openTab(GRAPH_TAB)} onOpenReminders={() => navigation.openTab(REMINDERS_TAB)}
         footer={(
           <>
             <UpdateChip onOpenSettings={() => navigation.openSettings("update")} />

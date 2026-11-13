@@ -13,7 +13,7 @@ import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
 export type PaletteCommand = { id: AppShortcutId; label: string; shortcut: string; run: () => void };
 
 // パレットを開いてすぐ（何も打つ前）に並べる、よく使う操作。
-const SUGGESTED_COMMAND_IDS: AppShortcutId[] = ["newNote", "dailyNote", "reminders", "openSettings"];
+const SUGGESTED_COMMAND_IDS: AppShortcutId[] = ["newNote", "reminders", "openSettings"];
 
 type PaletteCandidatesInput = {
   summaries: NoteSummary[];

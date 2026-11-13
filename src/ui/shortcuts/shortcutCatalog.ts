@@ -15,7 +15,6 @@ type ShortcutDefinition = { id: string; group: ShortcutGroup; label: MessageKey;
 export const SHORTCUT_DEFINITIONS = [
   { id: "commandPalette", group: "app", label: "shortcut.commandPalette", defaultKeys: { key: "k" } },
   { id: "newNote", group: "app", label: "shortcut.newNote", defaultKeys: { key: "n", alt: true } },
-  { id: "dailyNote", group: "app", label: "shortcut.dailyNote", defaultKeys: { key: "j", alt: true } },
   { id: "searchNotes", group: "app", label: "shortcut.searchNotes", defaultKeys: { key: "f", shift: true } },
   { id: "findInNote", group: "app", label: "shortcut.findInNote", defaultKeys: { key: "f" } },
   { id: "replaceInNote", group: "app", label: "shortcut.replaceInNote", defaultKeys: { key: "r" } },
