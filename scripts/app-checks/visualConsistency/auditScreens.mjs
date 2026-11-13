@@ -404,6 +404,13 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
         await dialog.getByLabel("選択肢").fill("未着手、進行中、完了");
         await dialog.getByLabel("選択肢").press("Tab");
       },
+      // 名前と選択肢は「保存」で決まり、保存せずに閉じようとすると確かめのダイアログが出て閉じない（2026-11-13 から）。
+      // あとの画面（データベース表示）がこのプロパティを使うので、保存してから閉じる。
+      close: async (page) => {
+        const dialog = page.getByRole("dialog");
+        await dialog.getByRole("button", { name: "保存", exact: true }).click();
+        await dialog.getByRole("button", { name: "閉じる" }).click();
+      },
     },
     {
       name: "note-properties",
