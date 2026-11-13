@@ -808,11 +808,23 @@ function propertyValuesOf(doc: Y.Doc): Record<string, PropertyValue> {
   return values;
 }
 
+// メモに書いてある中身を変える項目（本文を編集した時刻、タイトル、期限、プロパティの値）。
+// ノートブックの付け替え・ピン留め・お気に入り・ゴミ箱・本文の配置は、整理や見た目の変更で、中身は変わらない。
+function isNoteContentField(fieldName: string): boolean {
+  return fieldName === "editedAt" || fieldName === "title" || fieldName === "dueAt" || fieldName.startsWith(PROPERTY_VALUE_FIELD_PREFIX);
+}
+
+// メモの更新日時（「◯◯に更新」の表示と、更新順の並びに使う）。中身を変えたときだけ進める。
+// 整理しただけのメモが「今更新した」ことになって、更新順の先頭へ来ないようにする。
+function noteUpdatedAt(doc: Y.Doc): string {
+  return latestFieldTime(doc, isNoteContentField) || latestFieldTime(doc);
+}
+
 function buildView(id: string, holder: LiveHolder): LiveRecord | null {
   const { doc, revision } = holder;
-  const header = { id, updatedAt: latestFieldTime(doc), revision };
-  const createdAt = readField<string>(doc, "createdAt") ?? header.updatedAt;
   const kind = readField<RecordKind>(doc, "kind");
+  const header = { id, updatedAt: kind === "note" ? noteUpdatedAt(doc) : latestFieldTime(doc), revision };
+  const createdAt = readField<string>(doc, "createdAt") ?? header.updatedAt;
   if (kind === "notebook") {
     return {
       ...header,

@@ -79,11 +79,12 @@ export function fieldNames(doc: Y.Doc): Set<string> {
   return names;
 }
 
-// 記録がいちばん最近変えられた時刻（どの項目でも）。
-export function latestFieldTime(doc: Y.Doc): string {
+// 記録がいちばん最近変えられた時刻。isCounted を渡すと、その項目名（デバイス ID を除いた部分）の項目だけを数える。
+// 数える項目が 1 つも無ければ空文字。
+export function latestFieldTime(doc: Y.Doc, isCounted: (fieldName: string) => boolean = () => true): string {
   let latest = "";
-  for (const entry of recordFields(doc).values()) {
-    if (entry.at > latest) {
+  for (const [key, entry] of recordFields(doc)) {
+    if (entry.at > latest && isCounted(key.slice(0, key.lastIndexOf(KEY_SEPARATOR)))) {
       latest = entry.at;
     }
   }

@@ -107,3 +107,28 @@ describe("中身を変えない本文の変更", () => {
     expect(repository.note(note.id)!.updatedAt > updatedAt).toBe(true);
   });
 });
+
+describe("中身を変えない項目の変更", () => {
+  it("ノートブックへ入れる・ピン留め・お気に入り・ゴミ箱に入れて戻すだけでは、メモの更新日時は変わらない", async () => {
+    const { repository, note, updatedAt } = await writtenNote();
+    const notebook = await repository.createNotebook("仕事");
+
+    await repository.updateNote(note.id, { notebookIds: [notebook.id] });
+    await repository.updateNote(note.id, { pinned: true, bookmarked: true });
+    await repository.moveNoteToTrash(note.id);
+    await repository.restoreNoteFromTrash(note.id);
+    await repository.flush();
+
+    expect(repository.note(note.id)!.content.notebookIds).toEqual([notebook.id]);
+    expect(repository.note(note.id)!.updatedAt).toBe(updatedAt);
+  });
+
+  it("タイトルを変えたら、更新日時が変わる", async () => {
+    const { repository, note, updatedAt } = await writtenNote();
+
+    await repository.updateNote(note.id, { title: "議事録（確定）" });
+
+    expect(repository.note(note.id)!.updatedAt > updatedAt).toBe(true);
+  });
+});
+
