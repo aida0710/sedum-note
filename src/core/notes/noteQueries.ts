@@ -62,21 +62,31 @@ function belongsToView(summary: NoteSummary, view: NoteView): boolean {
 }
 
 
-export const NOTE_SORT_ORDERS = ["updatedAt", "createdAt", "title"] as const;
-// 一覧の並び順。updatedAt と createdAt は新しい順、title は名前の順。
+// 一覧の並び順。updatedAt と createdAt は新しい順、title は名前の順（A→Z）。…OldestFirst は古い順、titleDescending は名前の逆順（Z→A）。
+// 設定の選択欄はこの順に並べる。保存してある値（devicePreferences）と合わせるため、前からある名前は変えない。
+export const NOTE_SORT_ORDERS = ["updatedAt", "updatedAtOldestFirst", "createdAt", "createdAtOldestFirst", "title", "titleDescending"] as const;
 export type NoteSortOrder = (typeof NOTE_SORT_ORDERS)[number];
 
 function compareBySortOrder(left: LiveNote, right: LiveNote, sortOrder: NoteSortOrder): number {
   switch (sortOrder) {
     case "updatedAt":
       return right.updatedAt.localeCompare(left.updatedAt);
+    case "updatedAtOldestFirst":
+      return left.updatedAt.localeCompare(right.updatedAt);
     case "createdAt":
       return right.content.createdAt.localeCompare(left.content.createdAt);
+    case "createdAtOldestFirst":
+      return left.content.createdAt.localeCompare(right.content.createdAt);
     case "title":
-      // 数字は大きさで比べる（「メモ2」を「メモ10」の前に置く）。同じ名前は新しく変えた順。
-      return left.content.title.localeCompare(right.content.title, undefined, { numeric: true }) ||
-        right.updatedAt.localeCompare(left.updatedAt);
+      return compareTitles(left, right) || right.updatedAt.localeCompare(left.updatedAt);
+    case "titleDescending":
+      return compareTitles(right, left) || right.updatedAt.localeCompare(left.updatedAt);
   }
+}
+
+// 数字は大きさで比べる（「メモ2」を「メモ10」の前に置く）。同じ名前のメモは、呼び出し側で新しく変えた順にする。
+function compareTitles(left: LiveNote, right: LiveNote): number {
+  return left.content.title.localeCompare(right.content.title, undefined, { numeric: true });
 }
 
 export type NoteSelection = {

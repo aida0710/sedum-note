@@ -4,7 +4,7 @@ import { appendParagraph } from "./bodyFixtures";
 import { bodyPlainText, plainTextHashtags } from "./bodyText";
 import { noteContentFixture } from "./noteFixtures";
 import type { LiveNote, LiveNotebook } from "./noteRecords";
-import { buildNotebookTree, countTags, isNotebookWithin, type NotebookTreeNode, selectNotes, summarizeNote } from "./noteQueries";
+import { buildNotebookTree, countTags, isNotebookWithin, type NoteSortOrder, type NotebookTreeNode, selectNotes, summarizeNote } from "./noteQueries";
 import { DEFAULT_DATABASE_VIEW } from "./databaseView";
 
 function bodyWith(...paragraphs: string[]): Y.XmlFragment {
@@ -83,7 +83,7 @@ describe("selectNotes の並び順", () => {
     created("new-untouched", "メモ2", "2026-11-05T00:00:00Z", "2026-11-05T00:00:00Z"),
     summarizeNote(note("pinned", { title: "ん", pinned: true }, "2025-01-01T00:00:00Z")),
   ];
-  const idsSortedBy = (sortOrder: "updatedAt" | "createdAt" | "title") =>
+  const idsSortedBy = (sortOrder: NoteSortOrder) =>
     selectNotes(summaries, { view: { kind: "all" }, sortOrder }).map((item) => item.note.id);
 
   it("作成日の順では、新しく作ったメモを先に並べる", () => {
@@ -97,6 +97,12 @@ describe("selectNotes の並び順", () => {
 
   it("どの並び順でも、ピン留めしたメモを先に並べる", () => {
     expect(idsSortedBy("updatedAt")).toEqual(["pinned", "old-edited", "new-untouched"]);
+  });
+
+  it("古い順と、タイトルの逆順（Z→A）では、それぞれの順を逆にして並べる", () => {
+    expect(idsSortedBy("updatedAtOldestFirst")).toEqual(["pinned", "new-untouched", "old-edited"]);
+    expect(idsSortedBy("createdAtOldestFirst")).toEqual(["pinned", "old-edited", "new-untouched"]);
+    expect(idsSortedBy("titleDescending")).toEqual(["pinned", "old-edited", "new-untouched"]);
   });
 });
 
