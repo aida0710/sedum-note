@@ -411,6 +411,7 @@ export const japaneseMessages = {
   "editor.callout.danger": "コールアウト: 警告",
   "editor.divider": "区切り線",
   "editor.slashMenu": "ブロックの種類",
+  "editor.slashMenuNoMatch": "見つかりません",
   "editor.find": "メモの中を検索",
   "editor.findPlaceholder": "このメモの中を検索",
   "editor.findNext": "次の当たり",

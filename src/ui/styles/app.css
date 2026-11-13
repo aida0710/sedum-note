@@ -689,10 +689,13 @@ button.ai-tool-activity:hover { background: var(--selected); }
 @keyframes revealed-block-fade { from { background: var(--accent-soft); } to { background: transparent; } }
 /* 候補は全部を一度に見せる。画面に収まらないとき（スマホでキーボードを開いているとき）だけ中を送れるが、スクロールバーは出さない。 */
 /* 「/」のメニューにはスクロールバーを出さない。後ろにある .menu の規則（細いバー）に負けないよう、クラスを 2 つ重ねる。 */
-.menu.slash-menu { max-height: min(520px, calc(var(--visible-height, 100vh) - 24px)); overflow-y: auto; scrollbar-width: none; min-width: 220px; }
+/* 高さの上限は、打った行の上下の空きに合わせて SlashMenu.tsx が入れる。 */
+.menu.slash-menu { overflow-y: auto; scrollbar-width: none; min-width: 220px; }
 .slash-menu::-webkit-scrollbar { display: none; }
 .slash-menu .menu-item { padding-top: 5px; padding-bottom: 5px; }
 .slash-menu .menu-item.on { background: var(--selected); }
+/* 絞り込みに当たる候補が無いときの 1 行。 */
+.slash-menu .menu-empty { padding: 6px 10px; color: var(--muted); }
 .notebook-icon { flex: none; }
 .choice-grid { display: flex; flex-wrap: wrap; gap: 6px; }
 .choice { min-width: var(--control-height); height: var(--control-height); padding: 0 8px; border-radius: var(--radius-control); border: 1px solid var(--line); display: grid; place-items: center; color: var(--text); }

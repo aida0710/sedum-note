@@ -9,6 +9,8 @@ import { isImeKeyEvent } from "../shared/imeKeyEvent";
 
 // 候補を出す文字。日本語の入力のままでも出せるよう、全角の「／」でも出す。
 const SLASH_CHARACTERS = ["/", "／"];
+// 絞り込みの文字の中にあれば、候補を探しているのではなく、パスを打っていると見なす文字。
+const PATH_SEPARATOR = "/";
 
 export const SlashCommands = Extension.create<{ controller: SlashMenuController | null }>({
   name: "slashCommands",
@@ -33,9 +35,11 @@ export const SlashCommands = Extension.create<{ controller: SlashMenuController 
         command.run(editor, controller.actions);
       },
       render: () => {
-        const show = (props: { items: SlashCommand[]; clientRect?: (() => DOMRect | null) | null; command: (command: SlashCommand) => void }) => {
+        const show = (props: { items: SlashCommand[]; query: string; clientRect?: (() => DOMRect | null) | null; command: (command: SlashCommand) => void }) => {
           const anchor = props.clientRect?.() ?? null;
-          if (anchor === null || props.items.length === 0) {
+          // 当たる候補が無いときは「見つかりません」を出す（SlashMenu.tsx）。「/usr/local」のようなパスを打っている間は、何も出さない。
+          const typingPath = props.items.length === 0 && props.query.includes(PATH_SEPARATOR);
+          if (anchor === null || typingPath) {
             controller.hide();
           } else {
             controller.show({ commands: props.items, anchor, choose: props.command });

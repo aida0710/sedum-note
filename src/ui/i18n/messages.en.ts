@@ -413,6 +413,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "editor.callout.danger": "Callout: danger",
   "editor.divider": "Divider",
   "editor.slashMenu": "Block types",
+  "editor.slashMenuNoMatch": "No matches",
   "editor.find": "Find in this note",
   "editor.findPlaceholder": "Find in this note",
   "editor.findNext": "Next match",

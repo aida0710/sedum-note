@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, startLocalVault } from "./devices";
+import { createNoteOnDesktop, insertBodyHtml, startLocalVault } from "./devices";
 
 async function openNewNote(page: Page): Promise<void> {
   await startLocalVault(page);
@@ -79,6 +79,40 @@ test("Escape で候補を閉じると「/」はそのまま残り、コードの
   await page.keyboard.type("a / b");
   await expect(slashMenu(page)).toHaveCount(0);
   await expect(page.locator(".ProseMirror pre")).toHaveText("a / b");
+});
+
+test("当たる候補が無いときは「見つかりません」を出し、Enter はそのまま改行になる。パスを打っている間は何も出さない", async ({ page }) => {
+  await openNewNote(page);
+  await page.keyboard.type("/zzzz");
+  await expect(slashMenu(page)).toHaveText("見つかりません");
+  await expect(slashMenu(page).getByRole("option")).toHaveCount(0);
+  await page.keyboard.press("Enter");
+  await expect(slashMenu(page)).toHaveCount(0);
+  await expect(page.locator(".ProseMirror p")).toHaveText(["/zzzz", ""]);
+
+  await page.keyboard.type("/usr/local");
+  await expect(slashMenu(page)).toHaveCount(0);
+});
+
+test("窓の中ほどで「/」を打っても、候補は打っている行を覆わず、上下の空きに収まる", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openNewNote(page);
+  await insertBodyHtml(page, Array.from({ length: 7 }, (_unused, index) => `<p>段落 ${index + 1}</p>`).join(""));
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("/");
+  await expect(slashMenu(page)).toBeVisible();
+  const typedLine = (await page.locator(".ProseMirror p", { hasText: /^\/$/ }).boundingBox())!;
+  // 打った行は、窓の中ほどにある（下にも上にも、候補の全部は入らない）。
+  expect(typedLine.y).toBeGreaterThan(380);
+  expect(typedLine.y).toBeLessThan(520);
+  const menuBox = (await slashMenu(page).boundingBox())!;
+  const coversTypedLine = menuBox.y < typedLine.y + typedLine.height && menuBox.y + menuBox.height > typedLine.y;
+  expect(coversTypedLine).toBe(false);
+  expect(menuBox.y).toBeGreaterThanOrEqual(0);
+  expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(900);
+  // 収まらない分は、候補の中で送れる。
+  await page.keyboard.press("ArrowUp");
+  await expect(slashMenu(page).getByRole("option").last()).toBeInViewport();
 });
 
 test("候補から「メモへのリンク」を選ぶと、リンクするメモを選ぶ画面が開く", async ({ page }) => {
