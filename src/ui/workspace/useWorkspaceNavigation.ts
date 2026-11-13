@@ -6,7 +6,8 @@ import type { FindRequest } from "../editor/FindBar";
 import type { BlockToReveal } from "../editor/noteLinkTargets";
 import { SETTINGS_PAGES, type SettingsPage } from "../settings/settingsPages";
 import type { SettingRevealRequest } from "../settings/revealSetting";
-import { closeTabsIn, moveTabIn, NO_TABS, openTabIn, otherTabsThan, reopenClosedTabIn, type TabsState, tabsRightOf, togglePinnedTabIn } from "./tabState";
+import type { WorkspaceLayout } from "../../core/vault/workspaceLayout";
+import { closeTabsIn, moveTabIn, NO_TABS, openTabIn, otherTabsThan, reopenClosedTabIn, restoreTabsIn, type TabsState, tabsRightOf, togglePinnedTabIn } from "./tabState";
 
 // 設定はメモと同じくタブで開く。メモの ID（16 進）と重ならない名前にする。
 export const SETTINGS_TAB = "settings";
@@ -64,6 +65,10 @@ export type WorkspaceNavigation = {
   //（案C の試作どおり、ノートブックは開き、ほかは閉じる）。
   isExpanded: (key: string, expandedByDefault: boolean) => boolean;
   setExpanded: (key: string, expanded: boolean) => void;
+  // 利用者が開け閉めした行（行のキー → 開いているか）。手元に残す並びに入れる（useRememberedWorkspaceLayout.ts）。
+  expandedRows: ReadonlyMap<string, boolean>;
+  // 手元に残した並び（タブと、開け閉めした行）を戻す。tabExists が false を返すタブは捨てる。
+  restoreLayout: (layout: WorkspaceLayout, tabExists: (tabId: string) => boolean) => void;
   searchText: string;
   setSearchText: (text: string) => void;
   // ショートカットからの合図。押すたびに数が増え、受け取る側が欄を開いてカーソルを置く。
@@ -90,7 +95,7 @@ export function useWorkspaceNavigation(initialNoteId: string | null = null): Wor
   const [view, setView] = useState<NoteView>({ kind: "all" });
   const [tabs, setTabs] = useState<TabsState>(() => (initialNoteId === null ? NO_TABS : openTabIn(NO_TABS, initialNoteId)));
   // 利用者が開け閉めした行だけを持つ。持っていない行は既定の状態。
-  const [expandedOverrides, setExpandedOverrides] = useState<ReadonlyMap<string, boolean>>(new Map());
+  const [expandedRows, setExpandedRows] = useState<ReadonlyMap<string, boolean>>(new Map());
   const [searchText, setSearchText] = useState("");
   const [searchFocusRequest, setSearchFocusRequest] = useState(0);
   const [findInNoteRequest, setFindInNoteRequest] = useState<FindRequest>({ serial: 0, showReplace: false });
@@ -124,13 +129,19 @@ export function useWorkspaceNavigation(initialNoteId: string | null = null): Wor
   }, []);
 
   const setExpanded = useCallback((key: string, expanded: boolean) => {
-    setExpandedOverrides((current) => new Map(current).set(key, expanded));
+    setExpandedRows((current) => new Map(current).set(key, expanded));
   }, []);
 
   const isExpanded = useCallback(
-    (key: string, expandedByDefault: boolean) => expandedOverrides.get(key) ?? expandedByDefault,
-    [expandedOverrides],
+    (key: string, expandedByDefault: boolean) => expandedRows.get(key) ?? expandedByDefault,
+    [expandedRows],
   );
+
+  // 戻すまでの間に利用者が開け閉めした行は、そちらを残す。
+  const restoreLayout = useCallback<WorkspaceNavigation["restoreLayout"]>((layout, tabExists) => {
+    setTabs((current) => restoreTabsIn(current, layout, tabExists));
+    setExpandedRows((current) => new Map([...Object.entries(layout.expandedRows), ...current]));
+  }, []);
 
   const openSettings = useCallback((page?: SettingsPage) => {
     // ボタンの onClick にそのまま渡されると、押したときの出来事が来るので、ページの名前のときだけ読む。
@@ -164,7 +175,7 @@ export function useWorkspaceNavigation(initialNoteId: string | null = null): Wor
       setSettingRevealRequest((previous) => ({ serial: (previous?.serial ?? 0) + 1, label }));
       openSettings(page);
     },
-    isExpanded, setExpanded, searchText, setSearchText,
+    isExpanded, setExpanded, expandedRows, restoreLayout, searchText, setSearchText,
     searchFocusRequest, requestSearchFocus: () => setSearchFocusRequest((count) => count + 1),
     findInNoteRequest,
     requestFindInNote: (showReplace = false) => setFindInNoteRequest(({ serial }) => ({ serial: serial + 1, showReplace: showReplace === true })),

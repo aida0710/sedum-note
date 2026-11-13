@@ -29,6 +29,7 @@ import { useVaultSession, type VaultSession } from "./session/useVaultSession";
 import { MOBILE_LAYOUT_QUERY, useMediaQuery } from "./shared/useMediaQuery";
 import { DesktopWorkspace } from "./workspace/DesktopWorkspace";
 import { useWorkspaceNavigation } from "./workspace/useWorkspaceNavigation";
+import { useRememberedWorkspaceLayout } from "./workspace/useRememberedWorkspaceLayout";
 import type { UnlockedVault } from "../core/vault/vaultSession";
 import { applyCustomCss } from "./theme/customCss";
 import { AiSettingsContext, useAiSettingsOfVault } from "./ai/aiSettingsAccess";
@@ -111,6 +112,7 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
     }
   }, [isNoteWindow, windowNoteTitle]);
   const isMobile = useMediaQuery(MOBILE_LAYOUT_QUERY);
+  useRememberedWorkspaceLayout({ vault, navigation, enabled: !isNoteWindow && !isMobile });
   useLaunchRequests(vault.repository, navigation.openNote);
   const updateCheck = useUpdateCheck();
   useTrashRetention(vault, session.syncStatus);

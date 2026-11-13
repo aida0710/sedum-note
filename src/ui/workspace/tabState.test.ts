@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { closeTabsIn, moveTabIn, NO_TABS, openTabIn, otherTabsThan, reopenClosedTabIn, tabsRightOf, togglePinnedTabIn, type TabsState } from "./tabState";
+import { closeTabsIn, moveTabIn, NO_TABS, openTabIn, otherTabsThan, reopenClosedTabIn, restoreTabsIn, tabsRightOf, togglePinnedTabIn, type TabsState } from "./tabState";
 
 function tabsOf(...tabIds: string[]): TabsState {
   return tabIds.reduce(openTabIn, NO_TABS);
@@ -36,5 +36,16 @@ describe("タブの開け閉め", () => {
     const tabs = togglePinnedTabIn(tabsOf("a", "b", "c"), "a");
     expect(moveTabIn(tabs, "c", "a")).toBe(tabs);
     expect(moveTabIn(tabs, "c", "b").openTabs).toEqual(["a", "c", "b"]);
+  });
+
+  it("残した並びを戻すと、消えたメモのタブは捨て、ピン留めと選んでいたタブは戻る", () => {
+    const remembered = { openTabs: ["pinned", "gone", "b"], pinnedTabs: ["pinned", "gone"], activeTab: "b" };
+    expect(restoreTabsIn(NO_TABS, remembered, (tabId) => tabId !== "gone")).toMatchObject({ openTabs: ["pinned", "b"], pinnedTabs: ["pinned"], activeTab: "b" });
+    expect(restoreTabsIn(NO_TABS, { ...remembered, activeTab: "gone" }, (tabId) => tabId !== "gone").activeTab).toBeNull();
+  });
+
+  it("残した並びを戻すまでの間に開いたタブは、右に足して開いたままにする", () => {
+    const remembered = { openTabs: ["a", "b"], pinnedTabs: ["a"], activeTab: "a" };
+    expect(restoreTabsIn(tabsOf("shared"), remembered, () => true)).toMatchObject({ openTabs: ["a", "b", "shared"], pinnedTabs: ["a"], activeTab: "shared" });
   });
 });

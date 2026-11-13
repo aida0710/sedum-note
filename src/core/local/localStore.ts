@@ -41,7 +41,7 @@ export type LocalVersionEntry = {
 export type LocalVersionState = Omit<LocalVersionEntry, "sealed">;
 
 // remoteVersionsSweptAt は、同期先の古い履歴をまとめて消した時刻（ISO 8601）。
-export type LocalSettingName = "vault" | "deviceId" | "sealedRemoteConfig" | "sealedMcpSettings" | "sealedAiSettings" | "sealedPlugins" | "sealedAiChats" | "remoteVersionsSweptAt";
+export type LocalSettingName = "vault" | "deviceId" | "sealedRemoteConfig" | "sealedMcpSettings" | "sealedAiSettings" | "sealedPlugins" | "sealedAiChats" | "sealedWorkspaceLayout" | "remoteVersionsSweptAt";
 
 export interface LocalStore {
   readSetting<Value>(name: LocalSettingName): Promise<Value | undefined>;

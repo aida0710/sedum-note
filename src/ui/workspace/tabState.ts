@@ -58,6 +58,20 @@ export function reopenClosedTabIn(state: TabsState): TabsState {
   return { ...openTabIn(state, tabId), closedTabs: state.closedTabs.slice(0, -1) };
 }
 
+// 前に開いていたタブ（手元に残した並び）を、今の並びへ戻す。
+export type RememberedTabs = Pick<TabsState, "openTabs" | "pinnedTabs" | "activeTab">;
+
+// 残した並びを先に置き、戻すまでの間に開いたタブ（共有から開いたメモなど）はその右に足して、開いたままにする。
+// tabExists が false を返すタブ（消えたメモ、消えたノートブックのデータベース表示）は捨てる。
+export function restoreTabsIn(state: TabsState, remembered: RememberedTabs, tabExists: (tabId: string) => boolean): TabsState {
+  const rememberedTabs = remembered.openTabs.filter(tabExists);
+  const pinnedTabs = remembered.pinnedTabs.filter((tabId) => rememberedTabs.includes(tabId));
+  const openedMeanwhile = state.openTabs.filter((tabId) => !rememberedTabs.includes(tabId));
+  const unpinned = [...rememberedTabs.filter((tabId) => !pinnedTabs.includes(tabId)), ...openedMeanwhile];
+  const rememberedActiveTab = remembered.activeTab !== null && rememberedTabs.includes(remembered.activeTab) ? remembered.activeTab : null;
+  return { ...state, openTabs: [...pinnedTabs, ...unpinned], pinnedTabs, activeTab: state.activeTab ?? rememberedActiveTab };
+}
+
 // ピン留めを付け外しする。ピン留めしたタブは左のピン留めの並びの末尾へ、外したタブはピン留めの並びのすぐ右へ動かす。
 export function togglePinnedTabIn(state: TabsState, tabId: string): TabsState {
   if (!state.openTabs.includes(tabId)) {
