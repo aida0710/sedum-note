@@ -569,7 +569,7 @@ test("設定で許可していない操作を AI が呼ぶと、断った行に�
   await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("沖縄のメモを探して");
   await page.keyboard.press("Enter");
 
-  await expect(chat(page).locator(".ai-tool-activity")).toContainText("設定で許可していないため、行いませんでした");
+  await expect(chat(page).locator(".ai-tool-activity")).toContainText("設定で許可していないため、実行しませんでした");
   await chat(page).locator(".ai-message").getByRole("button", { name: "AI の設定を開く" }).click();
   await expect(page.getByLabel("メモを探す・読む")).toBeVisible();
 });

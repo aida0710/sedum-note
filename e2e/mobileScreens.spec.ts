@@ -364,10 +364,8 @@ test("設定の「同期」でも、書き出した同期の設定のファイ�
   await expect(phone.getByText("同期の設定を読みました")).toBeVisible();
   const syncKey = phone.locator("#sync-setup-key");
   await syncKey.fill(SYNC_KEY);
-  // 暗号化キーの欄で Enter を押しても、下の「保存」は送られない（同期先の欄は開いたまま）。
+  // 暗号化キーの欄の Enter は「取り込む」に効き、下の同期先の「保存」は送らない（同期先の欄は開いたまま）。
   await syncKey.press("Enter");
-  await expect(phone.getByRole("button", { name: "取り込む" })).toBeVisible();
-  await phone.getByRole("button", { name: "取り込む" }).click();
   await expect(phone.getByText("同期の設定を取り込みました")).toBeVisible();
   await expect(phone.getByLabel("バケット")).toHaveValue(remoteConfig.bucket);
 });
