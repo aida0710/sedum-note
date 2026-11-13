@@ -31,12 +31,15 @@ export function TrashActionsMenu({ anchor, trashedNoteIds, repository, onClose }
       return;
     }
     const count = trashedNoteIds.length;
-    for (const [done, noteId] of trashedNoteIds.entries()) {
-      if (done % PROGRESS_TOAST_STEP === 0) {
-        showToast({ message: translate("toast.emptyingTrash", { done, count }) });
+    // 1 件ごとに左の列へ知らせると、件数の 2 乗の時間がかかる。消し終えてから 1 回知らせる（進み具合は知らせに出す）。
+    await repository.holdChangeNotifications(async () => {
+      for (const [done, noteId] of trashedNoteIds.entries()) {
+        if (done % PROGRESS_TOAST_STEP === 0) {
+          showToast({ message: translate("toast.emptyingTrash", { done, count }) });
+        }
+        await repository.removeNotePermanently(noteId);
       }
-      await repository.removeNotePermanently(noteId);
-    }
+    });
     showToast({ message: translate("toast.trashEmptied", { count }) });
   };
   return (

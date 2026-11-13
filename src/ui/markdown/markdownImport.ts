@@ -3,6 +3,7 @@
 
 import { unzipSync } from "fflate";
 import type { NoteRepository } from "../../core/notes/noteRepository";
+import type { ReportProgress } from "../../core/progress/taskProgress";
 import { MAX_ATTACHMENT_BYTES } from "../editor/attachFiles";
 import { translate } from "../i18n/translate";
 import { UserFacingError } from "../i18n/userFacingError";
@@ -59,21 +60,45 @@ function isIgnoredPath(path: string): boolean {
   return path.startsWith("__MACOSX/") || (path.split("/").pop() ?? "").startsWith("._");
 }
 
-export async function importMarkdownNotes(repository: NoteRepository, sources: ImportSourceFile[]): Promise<{ noteCount: number }> {
+// reportProgress には、取り込んだメモの数を 1 件ごとに渡す。
+export async function importMarkdownNotes(repository: NoteRepository, sources: ImportSourceFile[], reportProgress?: ReportProgress): Promise<{ noteCount: number }> {
   const markdownSources = sources.filter((source) => MARKDOWN_FILE_PATTERN.test(source.path));
   if (markdownSources.length === 0) {
     throw new UserFacingError(translate("settings.markdownNothingToImport"));
   }
-  const sourcesByPath = new Map(sources.map((source) => [source.path.toLowerCase(), source]));
-  const storedAttachments = new Map<string, ImportedAttachment>();
-  const notebooks = new NotebooksByPath(repository);
-  const textDecoder = new TextDecoder();
+  const importer = new MarkdownNoteImporter(repository, sources);
+  // 画面には、取り込み終えてから 1 回だけ知らせる（1 件ごとに知らせると、件数の 2 乗の時間がかかる）。
+  await repository.holdChangeNotifications(async () => {
+    for (const [index, source] of markdownSources.entries()) {
+      reportProgress?.({ done: index, total: markdownSources.length });
+      await importer.importNote(source);
+    }
+    await repository.flush();
+  });
+  reportProgress?.({ done: markdownSources.length, total: markdownSources.length });
+  return { noteCount: markdownSources.length };
+}
 
-  for (const source of markdownSources) {
+// 1 件の Markdown をメモにする。同じ取り込みの中で、ノートブックと添付を使い回す。
+class MarkdownNoteImporter {
+  readonly #repository: NoteRepository;
+  readonly #sourcesByPath: Map<string, ImportSourceFile>;
+  readonly #storedAttachments = new Map<string, ImportedAttachment>();
+  readonly #notebooks: NotebooksByPath;
+  readonly #textDecoder = new TextDecoder();
+
+  constructor(repository: NoteRepository, sources: ImportSourceFile[]) {
+    this.#repository = repository;
+    this.#sourcesByPath = new Map(sources.map((source) => [source.path.toLowerCase(), source]));
+    this.#notebooks = new NotebooksByPath(repository);
+  }
+
+  async importNote(source: ImportSourceFile): Promise<void> {
+    const repository = this.#repository;
     const segments = source.path.split("/");
     const fileName = segments.pop() ?? source.path;
-    const { frontMatter, markdown } = splitFrontMatter(textDecoder.decode(source.bytes));
-    const notebookId = await notebooks.ensure(segments);
+    const { frontMatter, markdown } = splitFrontMatter(this.#textDecoder.decode(source.bytes));
+    const notebookId = await this.#notebooks.ensure(segments);
     const note = await repository.createNote({
       title: frontMatter.title ?? fileName.replace(MARKDOWN_FILE_PATTERN, ""),
       notebookIds: notebookId === null ? [] : [notebookId],
@@ -83,21 +108,21 @@ export async function importMarkdownNotes(repository: NoteRepository, sources: I
     }
     await writeMarkdownToBody(markdown, note.body, {
       noteExists: (noteId) => repository.note(noteId) !== undefined,
-      attachFile: async (relative) => {
-        const path = resolveRelativePath(source.path, relative);
-        const attached = path === null ? undefined : sourcesByPath.get(path.toLowerCase());
-        if (!attached || MARKDOWN_FILE_PATTERN.test(attached.path) || attached.bytes.length > MAX_ATTACHMENT_BYTES) {
-          return null;
-        }
-        // 複数のメモが同じファイルを指していても、添付は 1 つにする。
-        const stored = storedAttachments.get(attached.path) ?? await storeAttachment(repository, attached);
-        storedAttachments.set(attached.path, stored);
-        return stored;
-      },
+      attachFile: (relative) => this.#attachFile(source, relative),
     });
   }
-  await repository.flush();
-  return { noteCount: markdownSources.length };
+
+  async #attachFile(source: ImportSourceFile, relative: string): Promise<ImportedAttachment | null> {
+    const path = resolveRelativePath(source.path, relative);
+    const attached = path === null ? undefined : this.#sourcesByPath.get(path.toLowerCase());
+    if (!attached || MARKDOWN_FILE_PATTERN.test(attached.path) || attached.bytes.length > MAX_ATTACHMENT_BYTES) {
+      return null;
+    }
+    // 複数のメモが同じファイルを指していても、添付は 1 つにする。
+    const stored = this.#storedAttachments.get(attached.path) ?? await storeAttachment(this.#repository, attached);
+    this.#storedAttachments.set(attached.path, stored);
+    return stored;
+  }
 }
 
 // 先頭の項目に書いてあったプロパティを、メモに付ける。ノートブックに同じ名前のプロパティが無ければ、文字のプロパティとして足す。

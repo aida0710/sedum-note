@@ -94,4 +94,18 @@ describe("Markdown の書き出しと取り込み", () => {
     expect(repository.notes().map((note) => note.content.title)).toEqual(["読書メモ"]);
     await expect(importMarkdownNotes(repository, [{ path: "photo.png", bytes: new Uint8Array([1]) }])).rejects.toThrow();
   });
+
+  it("たくさん取り込んでも、画面への変更の知らせは 1 回で、進み具合は 1 件ごとに届く", async () => {
+    const repository = await newRepository();
+    let notificationCount = 0;
+    repository.subscribe(() => {
+      notificationCount += 1;
+    });
+    const progress: string[] = [];
+    const sources = ["一.md", "二.md", "三.md"].map((path) => ({ path, bytes: new TextEncoder().encode("本文\n") }));
+    await importMarkdownNotes(repository, sources, ({ done, total }) => progress.push(`${done}/${total}`));
+    expect(repository.notes()).toHaveLength(3);
+    expect(notificationCount).toBe(1);
+    expect(progress).toEqual(["0/3", "1/3", "2/3", "3/3"]);
+  });
 });

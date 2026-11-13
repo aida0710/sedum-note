@@ -22,6 +22,7 @@ import { PROPERTY_DEFINITION_FIELD_PREFIX, PROPERTY_VALUE_FIELD_PREFIX, type Pro
 import { type AttachmentReference, type LiveNote, type LiveNotebook, type LiveRecord, type LiveSavedSearch, type NotebookContent, PAGE_ALIGNMENTS, type PageAlignment, type SavedSearchContent } from "./noteRecords";
 import { type NoteVersion, NoteVersionHistory, type OverwriteReason } from "./noteVersions";
 import type { RecordChangeChannel } from "./recordChangeChannel";
+import { type RepositoryChangeOrigin, RepositoryChangeNotifier } from "./repositoryChangeNotifier";
 import { openRecordPayload, type RecordPayload, sealRecordPayload } from "./recordCodec";
 import {
   encodeRecordState,
@@ -76,9 +77,7 @@ export type TemplateNoteInput = {
   changes?: NoteChanges;
 };
 
-// local は、このデバイスで変えたもの（同期で送る必要がある）。stored は、手元の保存や
-// 同期から読み直したもの。
-export type RepositoryChangeOrigin = "local" | "stored";
+export type { RepositoryChangeOrigin } from "./repositoryChangeNotifier";
 
 // ほかのウィンドウが手元の保存に書いた中身を、開いている文書へマージするときの origin。このウィンドウの編集ではないので、
 // 保存の予約はしない（書いたのは相手のウィンドウ）。
@@ -112,7 +111,7 @@ export class RecordNotFoundError extends Error {
 export class NoteRepository {
   readonly #dependencies: NoteRepositoryDependencies;
   readonly #holders = new Map<string, Holder>();
-  readonly #listeners = new Set<(origin: RepositoryChangeOrigin) => void>();
+  readonly #changes = new RepositoryChangeNotifier();
   // このデバイスで変えて、まだ手元に保存していない記録。
   readonly #unsavedIds = new Set<string>();
   // 手元に保存して、まだ同期先へ送っていない記録。
@@ -158,8 +157,12 @@ export class NoteRepository {
   }
 
   subscribe(listener: (origin: RepositoryChangeOrigin) => void): () => void {
-    this.#listeners.add(listener);
-    return () => this.#listeners.delete(listener);
+    return this.#changes.subscribe(listener);
+  }
+
+  // たくさんの記録を続けて書く間は、変更の知らせを止め、終わったら 1 回だけ知らせる（repositoryChangeNotifier.ts）。
+  holdChangeNotifications<Result>(work: () => Promise<Result>): Promise<Result> {
+    return this.#changes.holdWhile(work);
   }
 
   notes(): LiveNote[] {
@@ -755,9 +758,7 @@ export class NoteRepository {
   }
 
   #notify(origin: RepositoryChangeOrigin): void {
-    for (const listener of this.#listeners) {
-      listener(origin);
-    }
+    this.#changes.notify(origin);
   }
 }
 
