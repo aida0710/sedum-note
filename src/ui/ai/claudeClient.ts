@@ -31,7 +31,10 @@ export function userFacingClaudeError(sdk: AnthropicModule, error: unknown, mode
     return new UserFacingError(translate("ai.error.connection"));
   }
   if (error instanceof sdk.APIError) {
-    return new UserFacingError(translate("ai.error.api", { status: String(error.status ?? ""), reason: error.message }));
+    // HTTP の番号が無い失敗（途中で切れた応答など）では、空の括弧を出さない。
+    return new UserFacingError(error.status === undefined
+      ? translate("ai.error.apiWithoutStatus", { reason: error.message })
+      : translate("ai.error.api", { status: String(error.status), reason: error.message }));
   }
   return error;
 }

@@ -37,7 +37,13 @@ export type AiChatSession = AiChatTurn & {
   openSavedChat: (chatId: string) => void;
   deleteSavedChat: (chatId: string) => Promise<void>;
   setPendingRequest: (request: AiPendingRequest | null) => void;
+  // 入力欄に書きかけの発言と、「@」で足したメモ。チャットの欄を閉じて開き直しても残るよう、ここで持つ。
+  draft: AiChatDraft;
+  setDraft: (change: (draft: AiChatDraft) => AiChatDraft) => void;
 };
+
+export type AiChatDraft = { text: string; mentionedNoteIds: string[] };
+const EMPTY_DRAFT: AiChatDraft = { text: "", mentionedNoteIds: [] };
 
 const AiChatSessionContext = createContext<AiChatSession | null>(null);
 
@@ -52,6 +58,7 @@ export function AiChatSessionProvider({ vault, children }: AiChatSessionProvider
   const [activeNote, setActiveNote] = useState<ActiveNoteEditor | null>(null);
   const [savedChats, setSavedChats] = useState<SavedChat[] | null>(null);
   const [pendingRequest, setPendingRequest] = useState<AiPendingRequest | null>(null);
+  const [draft, setDraft] = useState(EMPTY_DRAFT);
   // 今の会話を、残した会話のどれとして書くか。まだ一度も残していなければ null（初めて残すときに決める）。
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   useEffect(() => {
@@ -121,8 +128,8 @@ export function AiChatSessionProvider({ vault, children }: AiChatSessionProvider
 
   const session = useMemo(() => ({
     ...turn, open, setOpen, messages, conversationSettings, setConversationOverrides, activeNote, setActiveNote, savedChats, startNewChat, openSavedChat,
-    deleteSavedChat, setPendingRequest,
-  }), [turn, open, messages, conversationSettings, activeNote, savedChats, startNewChat, openSavedChat, deleteSavedChat]);
+    deleteSavedChat, setPendingRequest, draft, setDraft,
+  }), [turn, open, messages, conversationSettings, activeNote, savedChats, startNewChat, openSavedChat, deleteSavedChat, draft]);
   return <AiChatSessionContext.Provider value={session}>{children}</AiChatSessionContext.Provider>;
 }
 

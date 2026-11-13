@@ -239,7 +239,7 @@ test("選択した文字と、「@」で指定したメモを、文脈として�
   await expect(chat(page).locator(".ai-message.user .chip")).toHaveText(["旅行の計画", "選択範囲（3 文字）"]);
 });
 
-test("OpenAI 互換のエンドポイントをつなぎ先にして答えてもらえる。キーが断られたら、その旨を出す", async ({ page }) => {
+test("OpenAI 互換のエンドポイントをつなぎ先にして答えてもらえる。キーが断られたら、その旨を出し、設定を開くボタンと再送信のボタンを添える", async ({ page }) => {
   let authorized = true;
   const requests: Array<{ authorization: string | undefined; body: ChatRequestBody }> = [];
   await page.route("http://127.0.0.1:11434/v1/models", async (route) => {
@@ -277,6 +277,47 @@ test("OpenAI 互換のエンドポイントをつなぎ先にして答えても�
   await expect(chat(page).getByRole("alert")).toHaveText("API キーが受け付けられませんでした。「設定」の「AI」のページの API キーを確かめてください。");
   // 失敗した回の、空の答えは会話に残さない。
   await expect(chat(page).locator(".ai-message.assistant")).toHaveCount(1);
+
+  // 「再送信」は、同じ発言を 1 回だけ送り直す（発言は会話に重ねて出さない）。
+  authorized = true;
+  await chat(page).getByRole("button", { name: "再送信" }).click();
+  await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["8 月 3 日です。", "8 月 3 日です。"]);
+  await expect(chat(page).locator(".ai-message.user")).toHaveCount(2);
+  await expect(chat(page).getByRole("alert")).toHaveCount(0);
+  expect(requests.at(-1)!.body.messages.map((message) => message.role)).toEqual(["system", "user", "assistant", "user"]);
+  expect(sentText(requests.at(-1)!.body.messages[3]!.content)).toContain("もう一度");
+
+  // 失敗の案内から、設定の「AI」のページを開ける。
+  authorized = false;
+  await input.fill("三度目");
+  await page.keyboard.press("Enter");
+  await chat(page).getByRole("button", { name: "AI の設定を開く" }).click();
+  await expect(page.getByRole("checkbox", { name: "アプリ内の AI を使う" })).toBeVisible();
+});
+
+test("AI チャットを開くと入力欄にフォーカスが入り、Esc で閉じる。書きかけの発言は、閉じて開き直しても残る", async ({ page }) => {
+  await mockClaudeApi(page, []);
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "旅行の計画");
+  await enableAi(page);
+  await page.getByLabel("API キー").fill("test-key");
+  await saveAiSettingsAndOpenChat(page, "旅行の計画");
+  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
+  await expect(input).toBeFocused();
+  await page.keyboard.type("書きかけの質問");
+
+  await page.keyboard.press("Escape");
+  await expect(chat(page)).toHaveCount(0);
+  await page.keyboard.press("Control+Alt+a");
+  await expect(input).toBeFocused();
+  await expect(input).toHaveValue("書きかけの質問");
+
+  // 「@」の候補が出ている間の Esc は、候補だけを閉じる。
+  await input.fill("@旅行");
+  await expect(chat(page).getByRole("listbox", { name: "指定するメモ" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(chat(page).getByRole("listbox", { name: "指定するメモ" })).toHaveCount(0);
+  await expect(chat(page)).toBeVisible();
 });
 
 test("API キーを保存すると、モデルの一覧を取ってきてキーを確かめる。断られたキーは保存せず、モデルは一覧から選ぶ", async ({ page }) => {
@@ -502,6 +543,25 @@ test("承認を待つ間にメモを書き換えると、その変更は行わ�
   await expect(editsWithoutAsking).not.toBeChecked();
   await openSettingsPage(page, "AI");
   await expect(page.getByLabel("メモやノートブックを作る・直す")).toHaveValue("ask");
+});
+
+test("設定で許可していない操作を AI が呼ぶと、断った行に設定を開くボタンを添える", async ({ page }) => {
+  await mockClaudeApi(page, [
+    { text: "探します。", toolCalls: [{ id: "toolu_search", name: "search_notes", input: { query: "沖縄" } }] },
+    "探せませんでした。",
+  ]);
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "買い物");
+  await enableAi(page);
+  await page.getByLabel("API キー").fill("test-key");
+  await page.getByLabel("メモを探す・読む").selectOption("deny");
+  await saveAiSettingsAndOpenChat(page, "買い物");
+  await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("沖縄のメモを探して");
+  await page.keyboard.press("Enter");
+
+  await expect(chat(page).locator(".ai-tool-activity")).toContainText("設定で許可していないため、行いませんでした");
+  await chat(page).locator(".ai-message").getByRole("button", { name: "AI の設定を開く" }).click();
+  await expect(page.getByLabel("メモを探す・読む")).toBeVisible();
 });
 
 test("開いていないメモも、検索して読み、差分を承認して直せる。ツールの行を押すと、そのメモを開く", async ({ page }) => {

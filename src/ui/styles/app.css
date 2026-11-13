@@ -223,7 +223,8 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 .workspace.with-ai-chat { grid-template-columns: var(--sidebar-width) 1fr var(--ai-chat-width); }
 .workspace.with-ai-chat.focus-mode { grid-template-columns: 1fr var(--ai-chat-width); }
 .ai-chat { display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--panel); border-left: 1px solid var(--line); font-size: var(--font-size-ui); }
-.ai-chat-header { display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--line); flex: none; }
+/* PC では、ヘッダーの下の線をタブの列の下の線にそろえる（--pane-header-height）。スマホのダイアログの中では、中身の高さのまま。 */
+.ai-chat-header { display: flex; align-items: center; gap: 8px; padding: 0 10px 0 14px; min-height: var(--pane-header-height, 45px); border-bottom: 1px solid var(--line); flex: none; }
 .ai-chat-header h2 { font-size: var(--font-size-ui); font-weight: 700; margin-right: auto; white-space: nowrap; }
 .ai-chat-header .text-button { white-space: nowrap; }
 /* 文字だけのボタン（AI チャットの答えの操作、ショートカットの「既定に戻す」）。 */
@@ -271,6 +272,8 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 .ai-tool-activity svg { flex: none; align-self: center; }
 .ai-tool-description { min-width: 0; overflow-wrap: anywhere; color: var(--text); }
 button.ai-tool-activity:hover { background: var(--selected); }
+/* 許可していなくて断った行の下の「AI の設定を開く」。行の文字と左端をそろえる。 */
+.ai-chat .ai-tool-settings { align-self: flex-start; margin-left: -6px; font-size: var(--font-size-small); }
 .ai-tool-activity:is([data-status="failed"], [data-status="denied"], [data-status="rejected"], [data-status="stale"], [data-status="stopped"]) .ai-tool-description { color: var(--muted); text-decoration: line-through; }
 .ai-tool-starting { font-size: var(--font-size-small); }
 /* 承認のカード。項目ごとに、何をするかと中身（差分、前と後）を並べる。 */
@@ -405,7 +408,9 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .split-pane-header { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 14px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: var(--font-size-small); }
 .split-pane-header .nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* タブの並びと、右端の「開いているタブの一覧」のボタン。タブが多いときは並びだけを横に送り、ボタンは右端に残す。 */
-.tabs-bar { display: flex; flex: none; background: var(--sidebar); }
+/* タブの列の高さ。右の AI チャットのヘッダーも同じ高さにして、下の線をそろえる。 */
+.workspace { --pane-header-height: 42px; }
+.tabs-bar { display: flex; flex: none; height: var(--pane-header-height); background: var(--sidebar); }
 .tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--line); background: var(--sidebar); overflow-x: auto; flex: 1; min-width: 0; scrollbar-width: none; }
 .tabs-end { display: flex; align-items: center; padding: 8px 8px 0; border-bottom: 1px solid var(--line); flex: none; }
 .tab .tab-pin { color: var(--muted); flex: none; }

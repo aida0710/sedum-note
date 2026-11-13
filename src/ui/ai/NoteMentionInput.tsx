@@ -15,6 +15,8 @@ type NoteMentionInputProps = {
   onMention: (note: LiveNote) => void;
   onSubmit: () => void;
   disabled: boolean;
+  // 出したときに、入力欄にフォーカスを移すか。
+  autoFocus?: boolean;
 };
 
 // 一度に出す候補の数。これより多いときは、続きを打って絞ってもらう。
@@ -22,7 +24,7 @@ const MAX_MENTION_CANDIDATES = 8;
 // カーソルの直前の「@言葉」（空白を含まない）。行の途中の「@」でも拾う。
 const MENTION_BEFORE_CURSOR = /@([^\s@]*)$/;
 
-export function NoteMentionInput({ value, onChange, notes, onMention, onSubmit, disabled }: NoteMentionInputProps) {
+export function NoteMentionInput({ value, onChange, notes, onMention, onSubmit, disabled, autoFocus = false }: NoteMentionInputProps) {
   // 「@」のあとに打っている言葉。「@」を打っていなければ null。
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -62,7 +64,7 @@ export function NoteMentionInput({ value, onChange, notes, onMention, onSubmit, 
           ))}
         </div>
       )}
-      <textarea value={value} rows={3} disabled={disabled} placeholder={translate("ai.chatPlaceholder")} aria-label={translate("ai.chatInput")}
+      <textarea value={value} rows={3} disabled={disabled} autoFocus={autoFocus} placeholder={translate("ai.chatPlaceholder")} aria-label={translate("ai.chatInput")}
         onChange={(event) => { onChange(event.target.value); readMention(event.target.value, event.target.selectionStart); }}
         onKeyDown={(event) => {
           if (isImeKeyEvent(event.nativeEvent)) {

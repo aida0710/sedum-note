@@ -2,6 +2,7 @@
 // 対象のメモがあれば、押すとそのメモを開く。
 
 import { FilePlus, FileText, FolderPen, FolderPlus, FolderX, List, type LucideIcon, PencilLine, RotateCcw, Search, Trash2, Wrench } from "lucide-react";
+import { translate } from "../i18n/translate";
 import type { NoteToolPreview } from "../noteTools/noteTool";
 import type { AiToolActivity } from "./aiToolCalls";
 import { activityNoteId, activityStatusText, toolCallDescription } from "./aiToolActivityText";
@@ -30,9 +31,11 @@ type AiToolActivityLineProps = {
   // メモがまだあるか（消えたメモの行は押せなくする）。
   noteExists: (noteId: string) => boolean;
   onOpenNote: (noteId: string) => void;
+  // 設定の「AI」のページ（操作の許可を選ぶ所）を開く。許可していなくて断った行に添える。
+  onOpenAiSettings: () => void;
 };
 
-export function AiToolActivityLine({ activity, noteExists, onOpenNote }: AiToolActivityLineProps) {
+export function AiToolActivityLine({ activity, noteExists, onOpenNote, onOpenAiSettings }: AiToolActivityLineProps) {
   const Icon = activity.preview ? ICONS[activity.preview.kind] : Wrench;
   const status = activityStatusText(activity);
   const noteId = activityNoteId(activity);
@@ -43,8 +46,16 @@ export function AiToolActivityLine({ activity, noteExists, onOpenNote }: AiToolA
       {status && <span className="ai-tool-status">{status}</span>}
     </>
   );
-  if (noteId !== null && noteExists(noteId)) {
-    return <button type="button" className="ai-tool-activity" data-status={activity.status} onClick={() => onOpenNote(noteId)}>{content}</button>;
+  const line = noteId !== null && noteExists(noteId)
+    ? <button type="button" className="ai-tool-activity" data-status={activity.status} onClick={() => onOpenNote(noteId)}>{content}</button>
+    : <div className="ai-tool-activity" data-status={activity.status}>{content}</div>;
+  if (activity.status !== "denied") {
+    return line;
   }
-  return <div className="ai-tool-activity" data-status={activity.status}>{content}</div>;
+  return (
+    <>
+      {line}
+      <button type="button" className="text-button ai-tool-settings" onClick={onOpenAiSettings}>{translate("ai.openSettings")}</button>
+    </>
+  );
 }

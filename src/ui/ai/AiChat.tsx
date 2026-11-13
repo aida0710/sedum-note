@@ -4,7 +4,7 @@
 // 答えは、コピーするか、開いているメモのカーソルの位置か末尾に入れられる。
 // 発言を進める状態は AiChatSessionProvider が持つので、この欄を閉じても止まらない。
 
-import { ArrowUp, FileText, History, Square, TextSelect, X } from "lucide-react";
+import { ArrowUp, FileText, History, Square, SquarePen, TextSelect, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
@@ -12,6 +12,8 @@ import { insertPastedMarkdown } from "../editor/pastedMarkdown";
 import { translate } from "../i18n/translate";
 import { appendMarkdownToBody } from "../markdown/appendMarkdown";
 import { useDialogs } from "../shared/DialogProvider";
+import { isMenuOpen } from "../shared/escapeOwners";
+import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { AiApprovalCard } from "./AiApprovalCard";
 import { type ActiveNoteEditor, type SavedChat, useAiChatSession } from "./aiChatSession";
 import { AiChatMessageView, type AnswerActions } from "./AiChatMessageView";
@@ -30,6 +32,9 @@ type AiChatProps = {
   onOpenAiSettings: () => void;
   // AI が読んだ・作った・直したメモを開く（ツールの行を押したとき）。
   onOpenNote: (noteId: string) => void;
+  // PC の右の欄として出しているか。右の欄では、開いたら入力欄にフォーカスを移し、Esc で閉じる
+  //（スマホではダイアログの中に出すので、フォーカスと Esc はダイアログに任せる）。
+  isSidePanel?: boolean;
 };
 
 // 開いているメモで選択している文字と、その範囲。選択していなければ text は空の文字。選択や本文が変わるたびに読み直す。
@@ -59,19 +64,30 @@ function useSelectedText(activeNote: ActiveNoteEditor | null): SelectedText {
   return selectedText;
 }
 
-export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNote }: AiChatProps) {
+export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNote, isSidePanel = false }: AiChatProps) {
   const {
     messages, conversationSettings: settings, setConversationOverrides, activeNote, savedChats, startNewChat, openSavedChat, deleteSavedChat,
-    running, startingToolName, errorMessage, setErrorMessage, pendingApproval, send, stop,
+    running, startingToolName, errorMessage, setErrorMessage, pendingApproval, send, retry, stop, draft, setDraft,
   } = useAiChatSession();
+  const { text: input, mentionedNoteIds } = draft;
+  // 「@」の候補を選ぶと、入力の書き換えとメモの追加が続けて呼ばれるので、どちらも今の書きかけから作る。
+  const setInput = (text: string) => setDraft((current) => ({ ...current, text }));
+  const removeMention = (noteId: string) => setDraft((current) => ({ ...current, mentionedNoteIds: current.mentionedNoteIds.filter((mentioned) => mentioned !== noteId) }));
+  // 右の欄では、Esc で欄を閉じて、開いているメモの本文へフォーカスを戻す。「@」の候補とメニューが開いている間の Esc は、
+  // そちらを閉じるのに使う（候補は NoteMentionInput が先に受けて、ここへは届かない）。
+  const closeByEscape = (event: React.KeyboardEvent) => {
+    if (!isSidePanel || event.key !== "Escape" || isImeKeyEvent(event.nativeEvent) || isMenuOpen()) {
+      return;
+    }
+    onClose();
+    activeNote?.editor.view.focus();
+  };
   const dialogs = useDialogs();
   // true なら、会話の代わりに、残した会話の一覧を出す。
   const [showsHistory, setShowsHistory] = useState(false);
-  const [input, setInput] = useState("");
   // 開いているメモを文脈に足すか。選択範囲は、選択している間だけ足す（外すこともできる）。
   const [includesOpenNote, setIncludesOpenNote] = useState(true);
   const [includesSelection, setIncludesSelection] = useState(true);
-  const [mentionedNoteIds, setMentionedNoteIds] = useState<string[]>([]);
   const conversationEnd = useRef<HTMLDivElement>(null);
   const selection = useSelectedText(activeNote);
   const selectedText = selection.text;
@@ -86,8 +102,7 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNot
   const importContext = { noteExists: (noteId: string) => repository.note(noteId) !== undefined };
 
   const sendInput = (attachments: AiAttachment[]) => {
-    setInput("");
-    setMentionedNoteIds([]);
+    setDraft(() => ({ text: "", mentionedNoteIds: [] }));
     void send(input, attachments);
   };
   const currentAttachments = (): AiAttachment[] => [
@@ -144,7 +159,7 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNot
 
   if (settings?.enabled !== true) {
     return (
-      <section className="ai-chat" aria-label={translate("ai.chat")}>
+      <section className="ai-chat" aria-label={translate("ai.chat")} onKeyDown={closeByEscape}>
         <ChatHeader modelSelect={null} canStartNewChat={false} onStartNewChat={() => undefined} showsHistory={null} onToggleHistory={() => undefined} onClose={onClose} />
         <div className="ai-chat-notice">
           <p>{translate("ai.notEnabled")}</p>
@@ -155,7 +170,7 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNot
   }
   const editsWithoutAsking = settings.permissions.edit === "allow";
   return (
-    <section className="ai-chat" aria-label={translate("ai.chat")}>
+    <section className="ai-chat" aria-label={translate("ai.chat")} onKeyDown={closeByEscape}>
       <ChatHeader canStartNewChat={messages.length > 0 && !running && !showsHistory} onStartNewChat={startNewChat}
         showsHistory={showsHistory} onToggleHistory={() => setShowsHistory(!showsHistory)} onClose={onClose}
         modelSelect={(
@@ -176,11 +191,18 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNot
         {messages.length === 0 && <p className="ai-chat-notice">{translate("ai.chatDescription")}</p>}
         {messages.map((message, index) => (
           <AiChatMessageView key={index} message={message} isReceiving={running && index === messages.length - 1} answerActions={answerActionsAt(index)}
-            noteExists={importContext.noteExists} onOpenNote={onOpenNote} />
+            noteExists={importContext.noteExists} onOpenNote={onOpenNote} onOpenAiSettings={onOpenAiSettings} />
         ))}
         {startingToolName && <p className="hint ai-tool-starting">{translate("ai.tool.starting")}</p>}
         {pendingApproval && <AiApprovalCard key={pendingApproval.items[0]?.toolCallId} approval={pendingApproval} />}
         {errorMessage && <div className="form-error" role="alert">{errorMessage}</div>}
+        {/* 送るのに失敗したとき（API キーが違う、つながらない、モデルが無い）は、直す所と、送り直す手段を添える。 */}
+        {errorMessage && retry && (
+          <div className="form-actions">
+            <button type="button" className="secondary-button" onClick={onOpenAiSettings}>{translate("ai.openSettings")}</button>
+            <button type="button" className="primary-button" onClick={retry}>{translate("ai.retry")}</button>
+          </div>
+        )}
         <div ref={conversationEnd} />
       </div>
       <div className="ai-chat-composer">
@@ -200,15 +222,15 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNot
           {mentionedNotes.map((note) => (
             <span key={note.id} className="chip">
               <FileText size={12} />{note.content.title || translate("sidebar.untitled")}
-              <button type="button" aria-label={translate("ai.removeMention", { title: note.content.title })} onClick={() => setMentionedNoteIds(mentionedNoteIds.filter((noteId) => noteId !== note.id))}>
+              <button type="button" aria-label={translate("ai.removeMention", { title: note.content.title })} onClick={() => removeMention(note.id)}>
                 <X size={11} />
               </button>
             </span>
           ))}
         </div>
-        <NoteMentionInput value={input} onChange={setInput} disabled={running} onSubmit={() => sendInput(currentAttachments())}
+        <NoteMentionInput value={input} onChange={setInput} disabled={running} autoFocus={isSidePanel} onSubmit={() => sendInput(currentAttachments())}
           notes={notes.filter((note) => !mentionedNoteIds.includes(note.id))}
-          onMention={(note) => setMentionedNoteIds([...mentionedNoteIds, note.id])} />
+          onMention={(note) => setDraft((current) => ({ ...current, mentionedNoteIds: [...current.mentionedNoteIds, note.id] }))} />
         {/* 「作る・直す」を、この会話だけ、聞かずに行うか毎回聞くかで切り替える（設定で許可していなければ出さない）。 */}
         {settings.permissions.edit !== "deny" && (
           <label className="checkbox-line ai-auto-apply">
@@ -257,7 +279,12 @@ function ChatHeader({ modelSelect, canStartNewChat, onStartNewChat, showsHistory
     <header className="ai-chat-header">
       <h2>{translate("ai.chat")}</h2>
       {modelSelect}
-      {canStartNewChat && <button type="button" className="text-button" onClick={onStartNewChat}>{translate("ai.newChat")}</button>}
+      {/* 始められないとき（まだ何も話していない、答えを待っている）も同じ所に置き、隣の部品の位置が動かないようにする。 */}
+      {showsHistory !== null && (
+        <button type="button" className="icon-button" aria-label={translate("ai.newChat")} title={translate("ai.newChat")} disabled={!canStartNewChat} onClick={onStartNewChat}>
+          <SquarePen size={16} />
+        </button>
+      )}
       {showsHistory !== null && (
         <button type="button" className={`icon-button${showsHistory ? " active" : ""}`} aria-label={translate("ai.history")} aria-pressed={showsHistory} title={translate("ai.history")} onClick={onToggleHistory}>
           <History size={16} />

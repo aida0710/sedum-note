@@ -38,9 +38,10 @@ type AiChatMessageViewProps = {
   answerActions: AnswerActions;
   noteExists: (noteId: string) => boolean;
   onOpenNote: (noteId: string) => void;
+  onOpenAiSettings: () => void;
 };
 
-export function AiChatMessageView({ message, isReceiving, answerActions, noteExists, onOpenNote }: AiChatMessageViewProps) {
+export function AiChatMessageView({ message, isReceiving, answerActions, noteExists, onOpenNote, onOpenAiSettings }: AiChatMessageViewProps) {
   if (message.role === "user") {
     return (
       <div className="ai-message user">
@@ -55,7 +56,7 @@ export function AiChatMessageView({ message, isReceiving, answerActions, noteExi
       {message.parts.length === 0 && isReceiving && <div className="ai-message-text">{translate("ai.waiting")}</div>}
       {message.parts.map((part, index) => (part.kind === "text"
         ? <div key={index} className="ai-message-text">{part.text}</div>
-        : <AiToolActivityLine key={part.activity.toolCallId} activity={part.activity} noteExists={noteExists} onOpenNote={onOpenNote} />))}
+        : <AiToolActivityLine key={part.activity.toolCallId} activity={part.activity} noteExists={noteExists} onOpenNote={onOpenNote} onOpenAiSettings={onOpenAiSettings} />))}
       {message.answeredWithoutTools && <p className="hint">{translate("ai.answeredWithoutTools")}</p>}
       {answer !== "" && !isReceiving && (
         <div className="ai-message-actions">

@@ -141,7 +141,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
         </div>
       </main>
       {aiChat.open && (
-        <AiChat repository={repository} notes={snapshot.notes.filter((note) => note.content.trashedAt === null)} onClose={() => aiChat.setOpen(false)}
+        <AiChat isSidePanel repository={repository} notes={snapshot.notes.filter((note) => note.content.trashedAt === null)} onClose={() => aiChat.setOpen(false)}
           onOpenAiSettings={() => navigation.openSettings("ai")} onOpenNote={navigation.openNote} />
       )}
     </div>
