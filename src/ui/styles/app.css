@@ -564,7 +564,9 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ProseMirror pre .hljs-string, .ProseMirror pre .hljs-regexp, .ProseMirror pre .hljs-addition { color: var(--ok); }
 .ProseMirror pre .hljs-number, .ProseMirror pre .hljs-literal, .ProseMirror pre .hljs-deletion { color: var(--danger); }
 .ProseMirror pre .hljs-title, .ProseMirror pre .hljs-section, .ProseMirror pre .hljs-attr, .ProseMirror pre .hljs-attribute { color: color-mix(in srgb, var(--accent) 60%, var(--text)); font-weight: 600; }
-.ProseMirror .tableWrapper { overflow-x: auto; margin: 12px 0; }
+/* 枠を重ねる表（border-collapse）は、外側の枠の半分が表の箱の外に出る。横に送る箱（overflow）がそれを切り落とし、
+   画面の倍率によっては左や上の枠が消えていたので、箱の内側に 1px の余白を空ける。 */
+.ProseMirror .tableWrapper { overflow-x: auto; margin: 12px 0; padding: 1px; }
 .ProseMirror table { border-collapse: collapse; min-width: 100%; }
 .ProseMirror th, .ProseMirror td { border: 1px solid var(--line); padding: 5px 10px; min-width: 72px; vertical-align: top; text-align: left; position: relative; }
 .ProseMirror th { background: var(--tag); font-weight: 600; }

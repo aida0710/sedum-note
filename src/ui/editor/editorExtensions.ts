@@ -53,6 +53,8 @@ const codeHighlighter = createLowlight(common);
 
 // 幅を決めていない列と、ドラッグで縮められる列の、一番狭い幅（px）。1〜2 文字が入る幅にする。
 const TABLE_CELL_MIN_WIDTH = 72;
+// 列の境目をつかめる幅（px。境目の左右それぞれ）。既定の 5px では、マウスを境目にぴったり合わせないとつかめなかった。
+const TABLE_RESIZE_HANDLE_WIDTH = 8;
 
 // 文書の形（ノードと書式）を決める機能。エディタのほか、Markdown との変換（ui/markdown）でも使う。
 export function documentExtensions() {
@@ -71,7 +73,7 @@ export function documentExtensions() {
     CodeBlockLowlight.configure({ lowlight: codeHighlighter, enableTabIndentation: true }),
     // 列の境目をドラッグして幅を変えられる。スマホの幅では表が画面をはみ出すので、包んだ要素（tableWrapper）の中で横に送る。
     // セルは、背景色を持てるもの（ColoredTableCell・ColoredTableHeader）に置き換える。ノード名は同じ。
-    TableKit.configure({ table: { resizable: true, renderWrapper: true, cellMinWidth: TABLE_CELL_MIN_WIDTH }, tableCell: false, tableHeader: false }),
+    TableKit.configure({ table: { resizable: true, renderWrapper: true, cellMinWidth: TABLE_CELL_MIN_WIDTH, handleWidth: TABLE_RESIZE_HANDLE_WIDTH }, tableCell: false, tableHeader: false }),
     ColoredTableCell,
     ColoredTableHeader,
     Highlight,

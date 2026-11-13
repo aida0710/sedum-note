@@ -527,6 +527,37 @@ test("表の列の境目をドラッグすると、列の幅が変わる", async
   await expect(firstHeader).toHaveAttribute("colwidth", /\d+/);
 });
 
+test("文字の入った表でも、セルの中から列の境目へマウスを寄せてドラッグすると、いちばん右の列も含めて幅が変わる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "文字の入った表");
+  await page.locator(".ProseMirror").click();
+  await insertFromSlashMenu(page, "表", "表");
+  for (const text of ["品目", "数量", "メモ", "ノートパソコン", "2", "会議室で使う。来週の月曜日までに用意して、総務に連絡する"]) {
+    await page.keyboard.type(text);
+    await page.keyboard.press("Tab");
+  }
+  const headers = page.locator(".ProseMirror th");
+  const widthOf = async (index: number) => (await headers.nth(index).boundingBox())!.width;
+  // セルの中から境目の手前（境目から 3px 内側）まで寄せてから押す。境目の上ではマウスの形が変わる。
+  const dragRightBorder = async (index: number, distance: number) => {
+    const box = (await headers.nth(index).boundingBox())!;
+    const y = box.y + box.height / 2;
+    await page.mouse.move(box.x + box.width / 2, y);
+    await page.mouse.move(box.x + box.width - 3, y, { steps: 4 });
+    await expect(page.locator(".ProseMirror")).toHaveClass(/resize-cursor/);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width - 3 + distance, y, { steps: 6 });
+    await page.mouse.up();
+  };
+
+  const firstBefore = await widthOf(0);
+  await dragRightBorder(0, 80);
+  await expect.poll(() => widthOf(0)).toBeGreaterThan(firstBefore + 60);
+  const lastBefore = await widthOf(2);
+  await dragRightBorder(2, -120);
+  await expect.poll(() => widthOf(2)).toBeLessThan(lastBefore - 100);
+});
+
 test("選んだ文字にハイライトと文字色を付け、色なしで外せる。表のセルには背景色を付けられる", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "色のメモ");
