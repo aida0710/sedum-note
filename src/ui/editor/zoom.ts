@@ -157,8 +157,11 @@ export function zoomOutOneLevel(editor: Editor): boolean {
   return zoomToItem(editor, path[path.length - 2]?.position ?? null);
 }
 
+// メモの「…」の「この項目にズーム」にも、このキーを出す。
+export const ZOOM_INTO_CURSOR_KEYS: ShortcutKeys = { key: "z", alt: true };
+
 export const ZOOM_SHORTCUTS: Array<{ id: string; label: MessageKey; keys: ShortcutKeys; run: (editor: Editor) => boolean }> = [
-  { id: "zoomIntoCursor", label: "editor.zoomIntoCursor", keys: { key: "z", alt: true }, run: zoomIntoCursor },
+  { id: "zoomIntoCursor", label: "editor.zoomIntoCursor", keys: ZOOM_INTO_CURSOR_KEYS, run: zoomIntoCursor },
   { id: "zoomOutOneLevel", label: "editor.zoomOutOneLevel", keys: { key: "z", alt: true, shift: true }, run: zoomOutOneLevel },
 ];
 

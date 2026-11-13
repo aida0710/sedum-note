@@ -29,6 +29,11 @@ export const KEYBOARD_SHORTCUTS: Array<{ id: ShortcutId; label: MessageKey; keys
   { id: "lock", label: "settings.lock", keys: { key: "l" } },
 ];
 
+// ほかの画面（メモのメニューなど）に、同じキーを出すときに使う。
+export function keysOfShortcut(id: ShortcutId): ShortcutKeys {
+  return KEYBOARD_SHORTCUTS.find((shortcut) => shortcut.id === id)!.keys;
+}
+
 function matches(event: KeyboardEvent, keys: ShortcutKeys): boolean {
   const modifier = isApplePlatform() ? event.metaKey : event.ctrlKey;
   // Alt を押すと key が別の文字になる配列があるので、文字のキーは物理的な位置（code）でも見る。

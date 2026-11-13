@@ -5,10 +5,14 @@ import type { LiveNotebook } from "../../core/notes/noteRecords";
 import { translate } from "../i18n/translate";
 import { SETTINGS_PAGE_META } from "../settings/settingsPages";
 import type { SettingsSearchEntry } from "../settings/settingsSearchEntries";
+import type { ShortcutId } from "./keyboardShortcuts";
 import type { PaletteCandidate } from "./paletteItems";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
 
-export type PaletteCommand = { id: string; label: string; shortcut: string; run: () => void };
+export type PaletteCommand = { id: ShortcutId; label: string; shortcut: string; run: () => void };
+
+// パレットを開いてすぐ（何も打つ前）に並べる、よく使う操作。
+const SUGGESTED_COMMAND_IDS: ShortcutId[] = ["newNote", "dailyNote", "reminders", "openSettings"];
 
 type PaletteCandidatesInput = {
   summaries: NoteSummary[];
@@ -42,6 +46,7 @@ export function workspacePaletteCandidates({ summaries, notebooks, settingsEntri
   });
   const commandCandidates: PaletteCandidate[] = commands.map((command) => ({
     id: `command:${command.id}`, kind: "command", label: command.label, hint: command.shortcut, extraText: "", run: command.run,
+    suggested: SUGGESTED_COMMAND_IDS.includes(command.id),
   }));
   return [...notes, ...notebookCandidates, ...tags, ...settings, ...commandCandidates];
 }

@@ -1,11 +1,21 @@
-// メモの「…」メニュー: ピン留め、ノートブックを選ぶダイアログ、本文の配置（PC だけ）、テンプレートにする、複製、結合、メモの中の検索、アウトライン表示の切り替え、箇条書きへのズーム、期限、画面分割、別のウィンドウで開く、最前面に固定、プラグインのコマンド、AI チャット、履歴、ファイルへの書き出し、印刷、ゴミ箱。
+// メモの「…」メニュー。項目を意味のまとまりに分け、まとまりの間に区切り線を引く。
+//   整理: ピン留め、ノートブックを選ぶダイアログ、メモの期限、カーソルのある項目の期限
+//   複製・結合: テンプレートにする、複製、結合
+//   表示: メモの中の検索、アウトライン表示の切り替え、箇条書き・見出しへのズーム、本文の配置（PC だけ）
+//   開き方: 画面分割、別のウィンドウで開く、最前面に固定
+//   AI・履歴: AI チャット、履歴
+//   プラグイン: 有効なプラグインのコマンド
+//   書き出し・印刷: 書き出し（形式はダイアログで選ぶ）、印刷
+//   ゴミ箱
+// ショートカットのある項目は、キーを右に出す。
 
-import { AlarmClock, AppWindow, ArrowUpToLine, Check, Columns2, Copy, FileDown, FolderInput, History, ListTree, Merge, LayoutTemplate, Pin, PinOff, Printer, Puzzle, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
+import { AlarmClock, AppWindow, ArrowUpToLine, Check, Columns2, Copy, FileDown, FolderInput, History, LayoutTemplate, ListTree, type LucideIcon, Merge, Pin, PinOff, Printer, Puzzle, Search, Sparkles, Trash2, ZoomIn } from "lucide-react";
+import type { ReactNode } from "react";
 import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
-import { type MessageKey, translate } from "../i18n/translate";
-import type { NoteFileFormat } from "../markdown/noteFileExport";
+import { translate } from "../i18n/translate";
 import type { ZoomTarget } from "./zoom";
+import type { NoteMenuShortcutKeys } from "./noteMenuShortcutKeys";
 import { isPrintAvailable } from "../platform/printPage";
 import { canKeepWindowOnTop } from "../platform/noteWindows";
 import { PopupMenu } from "../shared/PopupMenu";
@@ -13,11 +23,7 @@ import { useWindowOnTop } from "../shared/useWindowOnTop";
 import { useTrashWithUndo } from "../workspace/useTrashWithUndo";
 import { PageAlignmentChoices } from "./PageAlignmentChoices";
 
-const EXPORT_FORMATS: Array<{ format: NoteFileFormat; label: MessageKey }> = [
-  { format: "markdown", label: "editor.exportMarkdown" },
-  { format: "html", label: "editor.exportHtml" },
-  { format: "text", label: "editor.exportText" },
-];
+const ICON_SIZE = 15;
 
 type NoteActionsMenuProps = {
   anchor: HTMLElement;
@@ -46,119 +52,105 @@ type NoteActionsMenuProps = {
   // メモを別のウィンドウで開く。開けない画面（スマホ）では undefined。
   onOpenInNewWindow: (() => void) | undefined;
   onShowHistory: () => void;
-  onExport: (format: NoteFileFormat) => void;
+  // 形式を選んで書き出すダイアログを開く。
+  onExport: () => void;
   // 本文の列の置き場所を選べるか。スマホの幅では列が画面いっぱいなので出さない。
   canChoosePageAlignment: boolean;
+  // 項目の右に出すショートカットのキー。
+  shortcutKeys: NoteMenuShortcutKeys;
   onClose: () => void;
 };
 
-export function NoteActionsMenu({ anchor, note, repository, onChooseNotebooks, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, zoomTarget, onZoomIn, onSetNoteDue, onSetTaskDue, pluginCommands, onOpenInSplit, onOpenInNewWindow, onShowHistory, onExport, canChoosePageAlignment, onClose }: NoteActionsMenuProps) {
+type MenuActionProps = {
+  icon: LucideIcon;
+  label: string;
+  // 項目の右に出すショートカットのキー（例: Ctrl + F）。
+  shortcutKeys?: string | null;
+  danger?: boolean;
+  onSelect: () => void;
+};
+
+function MenuAction({ icon: Icon, label, shortcutKeys = null, danger = false, onSelect }: MenuActionProps) {
+  return (
+    <button type="button" className={`menu-item${danger ? " danger" : ""}`} role="menuitem" onClick={onSelect}>
+      <Icon size={ICON_SIZE} />{label}
+      {shortcutKeys && <kbd>{shortcutKeys}</kbd>}
+    </button>
+  );
+}
+
+// 意味のまとまり。条件で項目が 1 つも出ないまとまりは、区切り線ごと消える（app.css の .menu-group）。
+function MenuGroup({ children }: { children: ReactNode }) {
+  return <div className="menu-group" role="group">{children}</div>;
+}
+
+export function NoteActionsMenu({ anchor, note, repository, onChooseNotebooks, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onToggleOutline, zoomTarget, onZoomIn, onSetNoteDue, onSetTaskDue, pluginCommands, onOpenInSplit, onOpenInNewWindow, onShowHistory, onExport, canChoosePageAlignment, shortcutKeys, onClose }: NoteActionsMenuProps) {
   const { content } = note;
+  const inTrash = content.trashedAt !== null;
   const moveToTrash = useTrashWithUndo(repository);
   const { windowIsOnTop, toggleWindowOnTop } = useWindowOnTop();
-  const runAndClose = (action: () => Promise<unknown>) => () => {
+  // メニューを閉じて、選んだ操作を実行する。
+  const closeAndRun = (action: () => unknown) => () => {
     onClose();
     void action();
   };
   return (
     <PopupMenu anchor={anchor} onClose={onClose}>
-      <button className="menu-item" role="menuitem" onClick={runAndClose(() => repository.updateNote(note.id, { pinned: !content.pinned }))}>
-        {content.pinned ? <PinOff size={15} /> : <Pin size={15} />}
-        {translate(content.pinned ? "editor.unpin" : "editor.pin")}
-      </button>
-      {onChooseNotebooks && (
-        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onChooseNotebooks(); }}>
-          <FolderInput size={15} />{translate("editor.chooseNotebooks")}
-        </button>
-      )}
-      {canChoosePageAlignment && (
-        <>
-          <div className="menu-separator" />
-          <PageAlignmentChoices selected={content.pageAlignment} onChoose={(pageAlignment) => runAndClose(() => repository.updateNote(note.id, { pageAlignment }))()} />
-        </>
-      )}
-      <div className="menu-separator" />
-      <button className="menu-item" role="menuitem" onClick={runAndClose(() => repository.updateNote(note.id, { isTemplate: !content.isTemplate, pinned: false }))}>
-        <LayoutTemplate size={15} />{translate(content.isTemplate ? "editor.stopBeingTemplate" : "editor.makeTemplate")}
-      </button>
-      <button className="menu-item" role="menuitem" onClick={runAndClose(onDuplicate)}>
-        <Copy size={15} />{translate("editor.duplicate")}
-      </button>
-      {content.trashedAt === null && (
-        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onMergeNote(); }}>
-          <Merge size={15} />{translate("editor.mergeNote")}
-        </button>
-      )}
-      <button className="menu-item" role="menuitem" onClick={() => { onClose(); onFind(); }}>
-        <Search size={15} />{translate("editor.find")}
-      </button>
-      {content.trashedAt === null && (
-        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onToggleOutline(); }}>
-          <ListTree size={15} />{translate(content.isOutline ? "editor.stopBeingOutline" : "editor.makeOutline")}
-        </button>
-      )}
-      {zoomTarget && (
-        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onZoomIn(); }}>
-          <ZoomIn size={15} />{translate(zoomTarget === "section" ? "editor.zoomIntoSection" : "editor.zoomIntoItem")}
-        </button>
-      )}
-      {content.trashedAt === null && (
-        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onSetNoteDue(); }}>
-          <AlarmClock size={15} />{translate("due.setForNote")}
-        </button>
-      )}
-      {onSetTaskDue && (
-        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onSetTaskDue(); }}>
-          <AlarmClock size={15} />{translate("due.setForTask")}
-        </button>
-      )}
-      {pluginCommands.length > 0 && content.trashedAt === null && (
-        <>
-          <div className="menu-separator" />
-          <div className="menu-heading">{translate("plugin.menuHeading")}</div>
-          {pluginCommands.map((command) => (
-            <button key={command.key} className="menu-item" role="menuitem" onClick={() => { onClose(); command.run(); }}>
-              <Puzzle size={15} />{command.title}
-            </button>
-          ))}
-          <div className="menu-separator" />
-        </>
-      )}
-      {onOpenInSplit && (
-        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onOpenInSplit(); }}>
-          <Columns2 size={15} />{translate("split.open")}
-        </button>
-      )}
-      {onOpenInNewWindow && (
-        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onOpenInNewWindow(); }}>
-          <AppWindow size={15} />{translate("window.openInNewWindow")}
-        </button>
-      )}
-      {canKeepWindowOnTop() && (
-        <button className="menu-item" role="menuitemcheckbox" aria-checked={windowIsOnTop} onClick={runAndClose(toggleWindowOnTop)}>
-          <ArrowUpToLine size={15} /><span className="nav-label">{translate("window.keepOnTop")}</span>
-          {windowIsOnTop && <Check size={15} className="menu-check" />}
-        </button>
-      )}
-      <button className="menu-item" role="menuitem" onClick={() => { onClose(); onOpenAiAssistant(); }}>
-        <Sparkles size={15} />{translate("ai.assistant")}
-      </button>
-      <button className="menu-item" role="menuitem" onClick={() => { onClose(); onShowHistory(); }}>
-        <History size={15} />{translate("editor.history")}
-      </button>
-      {EXPORT_FORMATS.map(({ format, label }) => (
-        <button key={format} className="menu-item" role="menuitem" onClick={() => { onClose(); onExport(format); }}>
-          <FileDown size={15} />{translate(label)}
-        </button>
-      ))}
-      {isPrintAvailable() && (
-        <button className="menu-item" role="menuitem" onClick={() => { onClose(); onPrint(); }}>
-          <Printer size={15} />{translate("editor.print")}
-        </button>
-      )}
-      <button className="menu-item danger" role="menuitem" onClick={runAndClose(() => moveToTrash([note.id]))}>
-        <Trash2 size={15} />{translate("editor.moveToTrash")}
-      </button>
+      <MenuGroup>
+        <MenuAction icon={content.pinned ? PinOff : Pin} label={translate(content.pinned ? "editor.unpin" : "editor.pin")}
+          onSelect={closeAndRun(() => repository.updateNote(note.id, { pinned: !content.pinned }))} />
+        {onChooseNotebooks && <MenuAction icon={FolderInput} label={translate("editor.chooseNotebooks")} onSelect={closeAndRun(onChooseNotebooks)} />}
+        {!inTrash && <MenuAction icon={AlarmClock} label={translate("due.setForNote")} onSelect={closeAndRun(onSetNoteDue)} />}
+        {onSetTaskDue && <MenuAction icon={AlarmClock} label={translate("due.setForTask")} onSelect={closeAndRun(onSetTaskDue)} />}
+      </MenuGroup>
+      <MenuGroup>
+        <MenuAction icon={LayoutTemplate} label={translate(content.isTemplate ? "editor.stopBeingTemplate" : "editor.makeTemplate")}
+          onSelect={closeAndRun(() => repository.updateNote(note.id, { isTemplate: !content.isTemplate, pinned: false }))} />
+        <MenuAction icon={Copy} label={translate("editor.duplicate")} onSelect={closeAndRun(onDuplicate)} />
+        {!inTrash && <MenuAction icon={Merge} label={translate("editor.mergeNote")} onSelect={closeAndRun(onMergeNote)} />}
+      </MenuGroup>
+      <MenuGroup>
+        <MenuAction icon={Search} label={translate("editor.find")} shortcutKeys={shortcutKeys.findInNote} onSelect={closeAndRun(onFind)} />
+        {!inTrash && (
+          <MenuAction icon={ListTree} label={translate(content.isOutline ? "editor.stopBeingOutline" : "editor.makeOutline")} onSelect={closeAndRun(onToggleOutline)} />
+        )}
+        {zoomTarget && (
+          <MenuAction icon={ZoomIn} label={translate(zoomTarget === "section" ? "editor.zoomIntoSection" : "editor.zoomIntoItem")}
+            shortcutKeys={shortcutKeys.zoomIntoCursor} onSelect={closeAndRun(onZoomIn)} />
+        )}
+        {canChoosePageAlignment && (
+          <PageAlignmentChoices selected={content.pageAlignment} onChoose={(pageAlignment) => closeAndRun(() => repository.updateNote(note.id, { pageAlignment }))()} />
+        )}
+      </MenuGroup>
+      <MenuGroup>
+        {onOpenInSplit && <MenuAction icon={Columns2} label={translate("split.open")} onSelect={closeAndRun(onOpenInSplit)} />}
+        {onOpenInNewWindow && <MenuAction icon={AppWindow} label={translate("window.openInNewWindow")} onSelect={closeAndRun(onOpenInNewWindow)} />}
+        {canKeepWindowOnTop() && (
+          <button type="button" className="menu-item" role="menuitemcheckbox" aria-checked={windowIsOnTop} onClick={closeAndRun(toggleWindowOnTop)}>
+            <ArrowUpToLine size={ICON_SIZE} /><span className="nav-label">{translate("window.keepOnTop")}</span>
+            {windowIsOnTop && <Check size={ICON_SIZE} className="menu-check" />}
+          </button>
+        )}
+      </MenuGroup>
+      <MenuGroup>
+        <MenuAction icon={Sparkles} label={translate("ai.assistant")} shortcutKeys={shortcutKeys.aiChat} onSelect={closeAndRun(onOpenAiAssistant)} />
+        <MenuAction icon={History} label={translate("editor.history")} onSelect={closeAndRun(onShowHistory)} />
+      </MenuGroup>
+      <MenuGroup>
+        {pluginCommands.length > 0 && !inTrash && (
+          <>
+            <div className="menu-heading">{translate("plugin.menuHeading")}</div>
+            {pluginCommands.map((command) => <MenuAction key={command.key} icon={Puzzle} label={command.title} onSelect={closeAndRun(command.run)} />)}
+          </>
+        )}
+      </MenuGroup>
+      <MenuGroup>
+        <MenuAction icon={FileDown} label={translate("editor.export")} onSelect={closeAndRun(onExport)} />
+        {isPrintAvailable() && <MenuAction icon={Printer} label={translate("editor.print")} onSelect={closeAndRun(onPrint)} />}
+      </MenuGroup>
+      <MenuGroup>
+        <MenuAction icon={Trash2} label={translate("editor.moveToTrash")} danger onSelect={closeAndRun(() => moveToTrash([note.id]))} />
+      </MenuGroup>
     </PopupMenu>
   );
 }

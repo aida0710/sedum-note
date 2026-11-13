@@ -1,4 +1,5 @@
-// メモをファイル（Markdown・HTML・テキスト）に書き出すボタンの動き。暗号化されないことを確かめてから、書き出して保存する。
+// メモをファイル（Markdown・HTML・テキスト）に書き出して保存する動き。書き出したファイルは暗号化されないので、
+// 呼び出す画面が、そのことを先に確かめてもらう（メモの「…」は書き出しのダイアログで、設定は確認のダイアログで）。
 
 import { useState } from "react";
 import type { LiveNote } from "../../core/notes/noteRecords";
@@ -6,7 +7,6 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { fileNameDate } from "../platform/fileNameDate";
 import { saveFile } from "../platform/saveFile";
-import { useDialogs } from "../shared/DialogProvider";
 import { type AsyncAction, useAsyncAction } from "../shared/useAsyncAction";
 import { languageInUse } from "../i18n/languageInUse";
 import { exportNotesAsFiles, type NoteFileExport, type NoteFileFormat } from "./noteFileExport";
@@ -14,19 +14,14 @@ import { exportNotesAsFiles, type NoteFileExport, type NoteFileFormat } from "./
 export type NoteFileExportRequest = { notes: LiveNote[]; format: NoteFileFormat };
 
 export type NoteFileExportAction = AsyncAction<NoteFileExportRequest> & {
-  // 最後に保存した書き出し。まだ書き出していないか、やめたら null。
+  // 最後に保存した書き出し。まだ書き出していないか、保存をやめたら null。
   saved: NoteFileExport | null;
 };
 
 export function useNoteFileExport(repository: NoteRepository): NoteFileExportAction {
-  const dialogs = useDialogs();
   const [saved, setSaved] = useState<NoteFileExport | null>(null);
   const action = useAsyncAction(async ({ notes, format }: NoteFileExportRequest) => {
     setSaved(null);
-    const accepted = await dialogs.confirm({ message: translate("markdown.exportConfirm"), confirmLabel: translate("markdown.exportConfirmLabel") });
-    if (!accepted) {
-      return;
-    }
     await repository.flush();
     const exported = await exportNotesAsFiles({
       repository, notes, format, language: languageInUse(), untitledName: translate("sidebar.untitled"), archiveName: exportArchiveName(format, new Date()),

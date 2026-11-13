@@ -150,22 +150,29 @@ test("メモを HTML とテキストで書き出せる。HTML は書式と添付
   await page.keyboard.press("Enter");
   await page.keyboard.type("日焼け止め");
 
-  const exportAs = async (menuItem: string) => {
+  // メモの「…」の「書き出す」で、形式を選ぶダイアログが開く。暗号化されないことも、同じダイアログに出る。
+  const exportAs = async (format: string) => {
     await page.getByRole("button", { name: "その他の操作" }).click();
-    await page.getByRole("menuitem", { name: menuItem }).click();
+    await page.getByRole("menuitem", { name: "書き出す" }).click();
+    const dialog = page.getByRole("dialog", { name: "メモを書き出す" });
+    await expect(dialog).toContainText("書き出したファイルは暗号化されません");
+    await dialog.getByRole("radio", { name: format }).click();
+    await expect(dialog.getByRole("radio", { name: format })).toHaveAttribute("aria-checked", "true");
     const download = page.waitForEvent("download");
-    await page.getByRole("dialog").getByRole("button", { name: "書き出す" }).click();
+    await dialog.getByRole("button", { name: "書き出す" }).click();
     const exported = await download;
+    // 確認のダイアログは重ならない（形式を選んだダイアログの「書き出す」で、そのまま書き出す）。
+    await expect(page.getByRole("dialog")).toHaveCount(0);
     return { fileName: exported.suggestedFilename(), text: await readFile(await exported.path(), "utf8") };
   };
 
-  const html = await exportAs("HTML で書き出す");
+  const html = await exportAs("HTML");
   expect(html.fileName).toBe("書き出しのメモ.html");
   expect(html.text).toContain("<h1>書き出しのメモ</h1>");
   expect(html.text).toContain("<h2>持ち物</h2>");
   expect(html.text).toContain("<p>日焼け止め</p>");
 
-  const text = await exportAs("テキストで書き出す");
+  const text = await exportAs("テキスト");
   expect(text.fileName).toBe("書き出しのメモ.txt");
   expect(text.text).toBe("書き出しのメモ\n\n持ち物\n日焼け止め\n");
 });

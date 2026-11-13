@@ -23,14 +23,17 @@ export type PaletteCandidate = PaletteItem & {
   extraText: string;
   // 新しいものを先に出すための時刻（メモ）。無ければ並べた順。
   updatedAt?: string;
+  // 何も打っていないときにも、最近のメモの下に並べる、よく使う操作か。
+  suggested?: boolean;
 };
 
 // 入力の先頭に置くと、操作だけを探す印。
 export const COMMAND_PREFIX = ">";
 // 種類ごとに一度に並べる件数。これより多いときは、打って絞ってもらう。
 const MAX_ITEMS_PER_KIND: Record<PaletteItemKind, number> = { note: 20, notebook: 8, tag: 8, setting: 10, command: 20, create: 1 };
-// 何も打っていないときに並べる、最近のメモの件数。
-const MAX_RECENT_NOTES = 30;
+// 何も打っていないときに並べる、最近のメモの件数。その下に並べるよく使う操作まで、PC の画面（高さ 820px）で
+// 送らずに見える数にしている。
+const MAX_RECENT_NOTES = 8;
 
 // 本文の中の、最初の言葉が当たった所の前後を 1 行にして出す。
 function excerptAround(text: string, word: string): string {
@@ -49,7 +52,9 @@ export function searchPalette(candidates: PaletteCandidate[], query: string): Pa
   }
   const words = searchWordsOf(query);
   if (words.length === 0) {
-    return candidates.filter((candidate) => candidate.kind === "note").sort(byNewest).slice(0, MAX_RECENT_NOTES);
+    const recentNotes = candidates.filter((candidate) => candidate.kind === "note").sort(byNewest).slice(0, MAX_RECENT_NOTES);
+    const suggestedCommands = candidates.filter((candidate) => candidate.kind === "command" && candidate.suggested);
+    return [...recentNotes, ...suggestedCommands];
   }
   return PALETTE_KIND_ORDER.flatMap((kind) => {
     const ofKind = candidates.filter((candidate) => candidate.kind === kind);

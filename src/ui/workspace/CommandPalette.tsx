@@ -1,5 +1,5 @@
 // コマンドパレット（Ctrl+K）。打った言葉で、メモ（題と本文）・ノートブック・タグ・設定の項目・操作をまとめて探し、
-// 種類ごとに並べる。「>」で始めると、操作だけを探す。
+// 種類ごとに並べる。「>」で始めると、操作だけを探す。何も打っていないときは、最近のメモと、よく使う操作を並べる。
 
 import { BookOpen, Command, FilePlus, FileText, Hash, type LucideIcon, Search, Settings } from "lucide-react";
 import { Fragment, useState } from "react";

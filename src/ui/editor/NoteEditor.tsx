@@ -33,6 +33,8 @@ import { EditorToolbar } from "./EditorToolbar";
 import { FindBar, type FindRequest } from "./FindBar";
 import { createEditorExtensions } from "./editorExtensions";
 import { NoteActionsMenu } from "./NoteActionsMenu";
+import { NoteExportDialog } from "./NoteExportDialog";
+import { noteMenuShortcutKeys } from "./noteMenuShortcutKeys";
 import { NoteHistoryDialog } from "./NoteHistoryDialog";
 import { NoteNotebooksDialog } from "./NoteNotebooksDialog";
 import { NotePicker } from "./NotePicker";
@@ -96,6 +98,7 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   const [pickingNoteToMerge, setPickingNoteToMerge] = useState(false);
   const [choosingNotebooks, setChoosingNotebooks] = useState(false);
   const [showingHistory, setShowingHistory] = useState(false);
+  const [choosingExportFormat, setChoosingExportFormat] = useState(false);
   // 目次。PC では本文の横に出したままにでき（設定に覚える）、スマホではメニューで出す。
   const { showOutline, pageAlignment: defaultPageAlignment } = useDevicePreferences();
   const [outlineAnchor, setOutlineAnchor] = useState<HTMLElement | null>(null);
@@ -177,6 +180,8 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   // 期限のダイアログを、何の期限のために開いているか（メモか、カーソルのあるチェックリストの項目か）。
   const [dueTarget, setDueTarget] = useState<"note" | "task" | null>(null);
   const exportNote = useNoteFileExport(repository);
+  // 「…」のメニューに出すショートカットのキー。findRequest を渡されないエディタ（画面分割の右側）では、Ctrl+F で検索が開かない。
+  const menuShortcutKeys = noteMenuShortcutKeys({ isMobile, receivesFindShortcut: findRequest !== NO_FIND_REQUEST });
   // リンク先や結合の相手に選べるメモ（ゴミ箱の外で、いま開いているメモ以外）。
   const otherNotes = () => repository.notes().filter((candidate) => candidate.id !== noteId && candidate.content.trashedAt === null);
   const print = useAsyncAction(printPage);
@@ -405,8 +410,12 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
           onOpenInSplit={onOpenInSplit}
           onSetNoteDue={() => setDueTarget("note")}
           onSetTaskDue={editor && isCursorInTaskItem(editor.state) ? () => setDueTarget("task") : undefined}
-          onShowHistory={() => setShowingHistory(true)} onExport={(format) => void exportNote.run({ notes: [note], format })}
-          canChoosePageAlignment={!isMobile} onClose={() => setMenuAnchor(null)} />
+          onShowHistory={() => setShowingHistory(true)} onExport={() => setChoosingExportFormat(true)}
+          canChoosePageAlignment={!isMobile} shortcutKeys={menuShortcutKeys} onClose={() => setMenuAnchor(null)} />
+      )}
+      {choosingExportFormat && (
+        <NoteExportDialog onClose={() => setChoosingExportFormat(false)}
+          onExport={(format) => { setChoosingExportFormat(false); void exportNote.run({ notes: [note], format }); }} />
       )}
       {choosingNotebooks && (
         <NoteNotebooksDialog note={note} notebooks={notebooks} repository={repository} onClose={() => setChoosingNotebooks(false)} />

@@ -252,6 +252,23 @@ test("コマンドパレット（Ctrl+K）で、メモを題で探して開け�
   await expect(page.locator(".sidebar")).toBeHidden();
 });
 
+test("コマンドパレットを開いた直後は、最近のメモの下に、よく使う操作をショートカットのキーと並べる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "会議の記録", "");
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("dialog", { name: "コマンドパレット" });
+  await expect(palette.locator(".menu-heading")).toHaveText(["メモ", "操作"]);
+  await expect(palette.getByRole("option").locator(".nav-label")).toHaveText(["会議の記録", "新しいメモ", "今日のメモ（デイリーノート）", "設定を開く", "期限の一覧"]);
+  await expect(palette.getByRole("option").locator("kbd")).toHaveText(["Ctrl + Alt + N", "Ctrl + Alt + J", "Ctrl + ,", "Ctrl + Alt + E"]);
+  // 最初に選ばれているのは、最近のメモ。下へ移って、操作を実行できる。
+  await expect(palette.getByRole("option", { name: "会議の記録" })).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect(palette).toHaveCount(0);
+  await expect(page.getByRole("tab")).toHaveCount(2);
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("");
+});
+
 test("コマンドパレットを開いてすぐ打った文字は入力欄に入り、閉じると本文の続きに書ける", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "会議の記録", "本文");

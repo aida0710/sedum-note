@@ -551,7 +551,6 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .dialog.note-picker { width: min(480px, 100%); max-height: min(560px, 90%); }
 .note-picker .sidebar-search { margin-bottom: 0; flex: none; }
 .command-palette .menu-item.on { background: var(--selected); }
-.command-palette kbd { margin-left: auto; color: var(--muted); font-size: var(--font-size-caption); }
 .command-palette .palette-item-icon { color: var(--muted); flex: none; }
 .command-palette .palette-item-hint { margin-left: auto; color: var(--muted); font-size: var(--font-size-small); max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
 .command-palette .menu-heading:not(:first-child) { margin-top: 4px; }
@@ -598,6 +597,12 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .menu-separator { height: 1px; background: var(--line); margin: 4px 0; }
 .menu-heading { color: var(--muted); font-size: var(--font-size-caption); font-weight: 600; padding: 6px 10px 2px; }
 .menu-check { margin-left: auto; color: var(--accent); }
+/* 項目の右に出すショートカットのキー（メモの「…」とコマンドパレット）。 */
+.menu-item > kbd { margin-left: auto; color: var(--muted); font-size: var(--font-size-caption); }
+/* メニューの意味のまとまり（editor/NoteActionsMenu.tsx）。条件で項目が 1 つも出なかったまとまりは :empty になるので消し、
+   中身のあるまとまりの間にだけ、.menu-separator と同じ区切り線を引く（先頭・末尾や、線が 2 本続くことが無いように）。 */
+.menu-group:empty { display: none; }
+.menu-group:not(:empty) ~ .menu-group:not(:empty) { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 4px; }
 
 /* ダイアログと知らせ */
 .dialog-backdrop { position: fixed; inset: 0; z-index: 30; background: var(--overlay); display: grid; place-items: center; padding: 16px; }
