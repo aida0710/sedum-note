@@ -914,7 +914,9 @@ test("写真の右下の持ち手をドラッグすると幅が変わり、ダ�
   await expect.poll(imageWidth).toBe(startWidth);
   await image.hover();
   const handle = page.getByRole("button", { name: /写真の大きさを変える/ });
-  // 持ち手も写真と一緒に描き直されるので、描き直しの間は位置が取れない（CI で落ちた）。取れるまで待つ。
+  // 持ち手も写真と一緒に描き直されるので、描き直しの間は位置が取れず、描き直したあとに位置が動くことがある（CI で
+  // どちらも落ちた）。hover は、持ち手が動かなくなり、その位置で押せるようになるまで待つ。そのあとの位置を使う。
+  await handle.hover();
   const handleBox = await boxAfterRendering(handle);
   await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
   await page.mouse.down();
