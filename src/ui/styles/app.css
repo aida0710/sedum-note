@@ -466,7 +466,7 @@ button:disabled { cursor: default; opacity: .55; }
    PC でズームしている間は、窓いっぱいに広げて、左の列・タブ・ほかの枠の上に重ねる（メニュー 20 とダイアログ 30 より下）。 */
 .note-editor { display: contents; }
 .note-editor.zoomed-view { position: fixed; inset: 0; z-index: 15; display: flex; flex-direction: column; background: var(--panel); }
-.zoomed-view-top { flex: none; display: flex; align-items: center; padding: 10px 14px 0; }
+.zoomed-view-top { flex: none; display: flex; align-items: center; gap: 8px; padding: 10px 14px 0; }
 /* ズームから戻るボタン。戻り先の名前が長いときは、1 行で切る。 */
 .zoom-back { display: inline-flex; align-items: center; gap: 2px; min-width: 0; max-width: min(480px, 100%); height: var(--control-height); padding: 0 10px 0 4px; border-radius: var(--radius-row); color: var(--muted); font-size: var(--font-size-ui); }
 .zoom-back > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -833,6 +833,9 @@ details summary { cursor: pointer; color: var(--accent); }
    開いているメモの本文だけを、白い紙に黒い文字で出す。テーマの色は画面のための色なので、印刷では明るい色に戻す
    （色は theme/applyAppearance.ts が要素に直接入れているので、!important で上書きする）。 */
 @media print {
+  /* ズームしている間は窓に重ねて出しているので、ふつうの流れに戻して全部のページに出す。戻るボタンは出さない。 */
+  .note-editor.zoomed-view { position: static; display: block; }
+  .zoomed-view-top { display: none !important; }
   :root {
     --canvas: #ffffff !important; --panel: #ffffff !important; --text: #1f2328 !important; --muted: #57606a !important;
     --line: #d0d7de !important; --tag: #f3f4f6 !important; --accent: #1f5fc4 !important; --accent-soft: #e6eefc !important;

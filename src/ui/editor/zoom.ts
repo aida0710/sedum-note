@@ -257,17 +257,15 @@ function sectionZoomButton(view: EditorView, headingPosition: number): HTMLEleme
   return button;
 }
 
+// ボタンは本文の直下の見出しにだけ出す。段組み・コールアウト・引用・表の中の見出しで左に出すと、隣の段の文字や
+// 枠に重なるため（中の見出しには、メモの「…」と Ctrl+Alt+Z でズームできる）。
 function sectionZoomButtons(doc: ProseMirrorNode, zoomedPosition: number | null): Decoration[] {
   const decorations: Decoration[] = [];
-  doc.descendants((node, position) => {
-    if (isHeading(node)) {
-      // ズームしているセクションの見出しには出さない（もうそこにいるので）。
-      if (position !== zoomedPosition) {
-        decorations.push(Decoration.widget(position + 1, (view) => sectionZoomButton(view, position), { side: -1, key: `section-zoom-${position}`, ignoreSelection: true }));
-      }
-      return false;
+  doc.forEach((node, position) => {
+    // ズームしているセクションの見出しには出さない（もうそこにいるので）。
+    if (isHeading(node) && position !== zoomedPosition) {
+      decorations.push(Decoration.widget(position + 1, (view) => sectionZoomButton(view, position), { side: -1, key: `section-zoom-${position}`, ignoreSelection: true }));
     }
-    return true;
   });
   return decorations;
 }

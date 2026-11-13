@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, PHONE_VIEWPORT, startLocalVault } from "./devices";
+import { createNoteOnDesktop, insertFromSlashMenu, PHONE_VIEWPORT, placeCursorAtBodyEnd, startLocalVault } from "./devices";
 
 const SCREENSHOT_DIRECTORY = process.env.SCREENSHOT_DIRECTORY;
 // ズームしている間に左上に出る、戻るボタン。名前は「「戻り先」に戻る」。
@@ -193,4 +193,56 @@ test("スマホでは、ズームしている間は上の「戻る」が 1 つ�
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("計画");
   await page.getByRole("button", { name: "戻る", exact: true }).click();
   await expect(page.getByPlaceholder("タイトル")).toHaveCount(0);
+});
+
+test("ズームしている間も、表の中では表のメニューが、録音している間は止めるボタンが、戻るボタンの右に出る", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium", "マイクの代わりの音は、Chromium の AudioContext で作る");
+  // マイクの代わりに、作った音を返す。
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = async () => {
+      const context = new AudioContext();
+      const destination = context.createMediaStreamDestination();
+      const oscillator = context.createOscillator();
+      oscillator.connect(destination);
+      oscillator.start();
+      return destination.stream;
+    };
+  });
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "表のメモ");
+  await page.keyboard.type("## 在庫");
+  await page.keyboard.press("Enter");
+  await insertFromSlashMenu(page, "表", "表");
+  const heading = page.locator(".ProseMirror h2", { hasText: "在庫" });
+  await heading.hover();
+  await heading.getByRole("button", { name: "このセクションにズーム" }).click();
+  await expect(zoomBackButton(page)).toBeVisible();
+
+  const zoomedTop = page.locator(".zoomed-view-top");
+  await page.locator(".ProseMirror td").first().click();
+  await zoomedTop.getByRole("button", { name: "表", exact: true }).click();
+  await page.getByRole("menuitem", { name: "下に行を追加" }).click();
+  await expect(page.locator(".ProseMirror tr")).toHaveCount(4);
+
+  await placeCursorAtBodyEnd(page);
+  await page.keyboard.press("Enter");
+  await insertFromSlashMenu(page, "録音", "録音する");
+  const stopButton = zoomedTop.getByRole("button", { name: "録音を止めて添付する" });
+  await expect(stopButton).toBeVisible();
+  await page.waitForTimeout(600);
+  await stopButton.click();
+  await expect(page.locator(".attachment-file")).toBeVisible();
+  await expect(stopButton).toHaveCount(0);
+});
+
+test("見出しの左のズームのボタンは、本文の直下の見出しにだけ出る（段組みやコールアウトの中の見出しには出さない）", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "入れ子の見出し");
+  await page.keyboard.type("## 外の見出し");
+  await page.keyboard.press("Enter");
+  await insertFromSlashMenu(page, "情報", "コールアウト: 情報");
+  await page.keyboard.type("## 中の見出し");
+  await expect(page.locator(".ProseMirror .callout h2")).toHaveText("中の見出し");
+  await expect(page.locator(".ProseMirror > h2").getByRole("button", { name: "このセクションにズーム" })).toHaveCount(1);
+  await expect(page.locator(".ProseMirror .callout h2").getByRole("button", { name: "このセクションにズーム" })).toHaveCount(0);
 });

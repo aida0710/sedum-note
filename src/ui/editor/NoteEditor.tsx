@@ -31,6 +31,7 @@ import { formatDateTime } from "../shared/formatTime";
 import { assignNotebookColors, NotebookMark } from "../shared/notebookAppearance";
 import { EditorToolbar } from "./EditorToolbar";
 import { NoteTopBar } from "./NoteTopBar";
+import { NoteContextTools } from "./NoteContextTools";
 import { SelectionToolbar } from "./SelectionToolbar";
 import { FindBar, type FindRequest } from "./FindBar";
 import { createEditorExtensions } from "./editorExtensions";
@@ -297,7 +298,10 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
       )}
       {!isMobile && <SelectionToolbar editor={editor} onAskLink={askLink} />}
       {!isMobile && isZoomed && (
-        <div className="zoomed-view-top"><ZoomBackButton editor={editor} noteTitle={note.content.title} className="zoom-back" /></div>
+        <div className="zoomed-view-top">
+          <ZoomBackButton editor={editor} noteTitle={note.content.title} className="zoom-back" />
+          <NoteContextTools editor={editor} recording={audioRecorder.recording} onStopRecording={toolbarActions.onToggleRecording} />
+        </div>
       )}
       {isMobile && (
         <div className="phone-top">
