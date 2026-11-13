@@ -1,7 +1,10 @@
 // 左の列の下の同期の状態。押すと設定の同期のページを開く。
+// 失敗は、色だけでなく形の違う印（警告の三角）で示し、理由を title で読めるようにする。
 
+import { TriangleAlert } from "lucide-react";
 import { useContext, useEffect, useState } from "react";
 import type { SyncStatus } from "../../core/sync/autoSync";
+import { describeError } from "../i18n/describeError";
 import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
@@ -9,10 +12,21 @@ import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 // 「n分前」を更新する間隔。
 const RELATIVE_TIME_REFRESH_MILLISECONDS = 30_000;
 const MILLISECONDS_PER_MINUTE = 60_000;
+// 失敗の印の大きさ。隣の文字（12px）と高さがそろう。
+const FAILURE_MARK_SIZE = 13;
 
 type SyncStatusInput = { status: SyncStatus | null; now: Date; unsyncedCount: number; automatic: boolean };
 
-export function describeSyncStatus({ status, now, unsyncedCount, automatic }: SyncStatusInput): { text: string; dotClass: string } {
+// failureReason は、失敗したときの理由の文。失敗していなければ null。
+type SyncStatusDescription = { text: string; dotClass: string; failureReason: string | null };
+
+export function describeSyncStatus(input: SyncStatusInput): SyncStatusDescription {
+  const { status } = input;
+  const failureReason = status?.state === "failed" ? describeError(status.error) : null;
+  return { ...syncStatusTextOf(input), failureReason };
+}
+
+function syncStatusTextOf({ status, now, unsyncedCount, automatic }: SyncStatusInput): { text: string; dotClass: string } {
   if (status === null) {
     return { text: translate("sync.notConfigured"), dotClass: "off" };
   }
@@ -48,10 +62,12 @@ export function SyncStatusLine({ status, onOpenSyncSettings }: { status: SyncSta
     return () => clearInterval(timer);
   }, []);
   const { autoSync: automatic } = useDevicePreferences();
-  const { text, dotClass } = describeSyncStatus({ status, now, unsyncedCount, automatic });
+  const { text, dotClass, failureReason } = describeSyncStatus({ status, now, unsyncedCount, automatic });
   return (
-    <button className="sync-line" onClick={() => onOpenSyncSettings()}>
-      <span className={`status-dot ${dotClass}`} /><span className="sync-line-text">{text}</span>
+    <button className="sync-line" title={failureReason === null ? undefined : translate("sync.failureReason", { status: text, reason: failureReason })}
+      onClick={() => onOpenSyncSettings()}>
+      {failureReason === null ? <span className={`status-dot ${dotClass}`} /> : <TriangleAlert size={FAILURE_MARK_SIZE} className="sync-failure-mark" />}
+      <span className="sync-line-text">{text}</span>
     </button>
   );
 }

@@ -324,3 +324,20 @@ test("同期の設定でないファイルや、QR の無い写真を選ぶと�
   await expect(page.getByRole("alert")).toContainText("画像から QR を読めませんでした");
   await expect(page.getByLabel("暗号化キー", { exact: true })).toBeHidden();
 });
+
+test("同期に失敗すると、左下の状態は色の点ではなく警告の印になり、理由を title で読める", async ({ browser }) => {
+  const remoteConfig = await newTestRemoteConfig();
+  const laptop = await openSyncedDevice(browser, { remoteConfig, join: false });
+  const syncLine = laptop.locator(".sync-line");
+  await expect(syncLine.locator(".status-dot")).toHaveCount(1);
+  await expect(syncLine).not.toHaveAttribute("title", /.+/);
+
+  // 同期先につながらなくして、「今すぐ同期」を押す。
+  await laptop.route(`${remoteConfig.endpoint}/**`, (route) => route.abort());
+  await syncLine.click();
+  await laptop.getByRole("button", { name: "今すぐ同期" }).click();
+  await expect(syncLine).toContainText("同期に失敗しました", { timeout: 20_000 });
+  await expect(syncLine.locator(".sync-failure-mark")).toHaveCount(1);
+  await expect(syncLine.locator(".status-dot")).toHaveCount(0);
+  await expect(syncLine).toHaveAttribute("title", /^同期に失敗しました: ストレージに接続できません/);
+});

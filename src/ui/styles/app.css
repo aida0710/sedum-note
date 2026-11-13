@@ -399,7 +399,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .sync-line-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sync-line .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
 .sync-line .status-dot.syncing { background: var(--accent); }
-.sync-line .status-dot.failed { background: var(--danger); }
+.sync-line .sync-failure-mark { color: var(--danger); flex: none; }
 .sync-line .status-dot.off { background: var(--muted); }
 
 .main { background: var(--panel); display: flex; flex-direction: column; min-width: 0; min-height: 0; }
