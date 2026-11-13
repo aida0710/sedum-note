@@ -680,6 +680,33 @@ test("ブロックにマウスを乗せると出る持ち手をドラッグす�
   await expect(paragraphs).toHaveText(["3 つ目", "1 つ目", "2 つ目"]);
 });
 
+test("持ち手をつかんだまま、持ち手の左右の位置を変えずに縦に動かしても、ブロックを動かせる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "縦だけのドラッグ");
+  await page.locator(".ProseMirror").click();
+  await page.keyboard.type("1 つ目");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("2 つ目");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("3 つ目");
+  const paragraphs = page.locator(".ProseMirror > p");
+  await expect(paragraphs).toHaveText(["1 つ目", "2 つ目", "3 つ目"]);
+
+  await paragraphs.nth(2).hover();
+  const handle = page.getByRole("button", { name: "ドラッグしてブロックを動かす" });
+  await expect(handle).toBeVisible();
+  // マウスは本文の左の余白（持ち手の x）のまま、1 つ目の段落の高さまで上げて落とす。
+  const handleBox = (await handle.boundingBox())!;
+  const firstParagraphBox = (await paragraphs.nth(0).boundingBox())!;
+  const handleX = handleBox.x + handleBox.width / 2;
+  await page.mouse.move(handleX, handleBox.y + handleBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handleX, firstParagraphBox.y + 2, { steps: 8 });
+  await expect(page.locator(".ProseMirror-dropcursor, .prosemirror-dropcursor-block")).toBeVisible();
+  await page.mouse.up();
+  await expect(paragraphs).toHaveText(["3 つ目", "1 つ目", "2 つ目"]);
+});
+
 test("箇条書きの項目を持ち手でドラッグすると、子の項目ごと動く", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "項目のドラッグ");

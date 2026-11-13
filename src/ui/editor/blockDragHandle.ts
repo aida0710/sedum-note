@@ -217,6 +217,20 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           };
           // 押しても、本文のカーソルと選択を動かさない（メニューの「変換」は、選んでいる何行かに効かせるため）。
           const keepEditorSelection = (event: MouseEvent) => event.preventDefault();
+          // 持ち手の x のまま縦に動かすと、マウスは本文の左の余白にあり、エディタ（view.dom）の外なので、エディタは落とし先を
+          // 探さず（落とし先の線も出ない）、落としても動かない。ブロックを運んでいる間の、本文の列の外での dragover と drop は、
+          // x を本文の中に寄せてエディタへ渡し直す。落とし先の決め方と動かし方は、エディタのものをそのまま使う。
+          const forwardDragToEditor = (event: DragEvent) => {
+            if (!view.dragging || !(event.target instanceof Node) || view.dom.contains(event.target)) {
+              return;
+            }
+            event.preventDefault();
+            const editorBox = view.dom.getBoundingClientRect();
+            const clientX = Math.min(Math.max(event.clientX, editorBox.left + 1), editorBox.right - 1);
+            view.dom.dispatchEvent(new DragEvent(event.type, {
+              clientX, clientY: event.clientY, dataTransfer: event.dataTransfer, bubbles: true, cancelable: true,
+            }));
+          };
 
           hoverArea.addEventListener("mousemove", showHandleAt);
           hoverArea.addEventListener("mouseleave", hideHandle);
@@ -227,12 +241,16 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           handle.addEventListener("dragstart", startDragging);
           handle.addEventListener("dragend", hideHandle);
           handle.addEventListener("click", openBlockMenu);
+          hoverArea.addEventListener("dragover", forwardDragToEditor);
+          hoverArea.addEventListener("drop", forwardDragToEditor);
           insertButton.addEventListener("mousedown", keepEditorSelection);
           insertButton.addEventListener("click", startBlockBelowHovered);
           return {
             destroy: () => {
               hoverArea.removeEventListener("mousemove", showHandleAt);
               hoverArea.removeEventListener("mouseleave", hideHandle);
+              hoverArea.removeEventListener("dragover", forwardDragToEditor);
+              hoverArea.removeEventListener("drop", forwardDragToEditor);
               view.dom.removeEventListener("keydown", hideForTyping);
               view.dom.removeEventListener("input", hideForTyping);
               handle.remove();
