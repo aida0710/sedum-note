@@ -4,7 +4,7 @@
 
 import type { Editor } from "@tiptap/react";
 import {
-  ArrowDown, ArrowUp, Check, Code, Copy, Heading1, Heading2, Heading3, List, ListChecks, ListOrdered, type LucideIcon, Pilcrow, TextQuote, Trash2,
+  ArrowDown, ArrowUp, Check, Code, Copy, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, List, ListChecks, ListOrdered, type LucideIcon, Pilcrow, TextQuote, Trash2,
 } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { type MessageKey, translate } from "../i18n/translate";
@@ -23,6 +23,9 @@ const KIND_ITEMS: Record<BlockKind, { label: MessageKey; Icon: LucideIcon }> = {
   heading1: { label: "editor.heading1", Icon: Heading1 },
   heading2: { label: "editor.heading2", Icon: Heading2 },
   heading3: { label: "editor.heading3", Icon: Heading3 },
+  heading4: { label: "editor.heading4", Icon: Heading4 },
+  heading5: { label: "editor.heading5", Icon: Heading5 },
+  heading6: { label: "editor.heading6", Icon: Heading6 },
   bulletList: { label: "editor.bulletList", Icon: List },
   orderedList: { label: "editor.orderedList", Icon: ListOrdered },
   taskList: { label: "editor.taskList", Icon: ListChecks },

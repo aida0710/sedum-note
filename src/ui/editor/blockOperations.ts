@@ -8,6 +8,7 @@
 import type { Editor } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { type EditorState, NodeSelection, type Selection, TextSelection, type Transaction } from "@tiptap/pm/state";
+import { HEADING_LEVELS, type HeadingLevel } from "./headingLevels";
 import { isInsideZoom } from "./zoom";
 
 const LIST_ITEM_TYPES = ["listItem", "taskItem"];
@@ -122,9 +123,13 @@ export function deleteBlock(editor: Editor, block: BlockTarget): boolean {
   return true;
 }
 
-export type BlockKind = "paragraph" | "heading1" | "heading2" | "heading3" | "bulletList" | "orderedList" | "taskList" | "blockquote" | "codeBlock";
+type HeadingKind = `heading${HeadingLevel}`;
+export type BlockKind = "paragraph" | HeadingKind | "bulletList" | "orderedList" | "taskList" | "blockquote" | "codeBlock";
 
-export const BLOCK_KINDS: BlockKind[] = ["paragraph", "heading1", "heading2", "heading3", "bulletList", "orderedList", "taskList", "blockquote", "codeBlock"];
+const headingKindOf = (level: HeadingLevel): HeadingKind => `heading${level}`;
+
+// 見出しは「/」の候補と同じ 6 段。
+export const BLOCK_KINDS: BlockKind[] = ["paragraph", ...HEADING_LEVELS.map(headingKindOf), "bulletList", "orderedList", "taskList", "blockquote", "codeBlock"];
 
 // 変換できるブロックか。文字の段落・見出し・コード・引用と、箇条書きの項目。写真や表などは変換しない。
 export function canChangeKind(block: BlockTarget): boolean {
@@ -139,8 +144,7 @@ export function kindOf(state: EditorState, block: BlockTarget): BlockKind | null
     return listName === "orderedList" ? "orderedList" : listName === "taskList" ? "taskList" : "bulletList";
   }
   if (node.type.name === "heading") {
-    const level = Number(node.attrs.level);
-    return level === 1 ? "heading1" : level === 2 ? "heading2" : level === 3 ? "heading3" : null;
+    return headingKindOf(Number(node.attrs.level) as HeadingLevel);
   }
   return ({ paragraph: "paragraph", blockquote: "blockquote", codeBlock: "codeBlock" } as Record<string, BlockKind>)[node.type.name] ?? null;
 }
@@ -173,6 +177,6 @@ export function changeBlockKind(editor: Editor, block: BlockTarget, kind: BlockK
     case "codeBlock":
       return chain.clearNodes().setCodeBlock().run();
     default:
-      return chain.clearNodes().setHeading({ level: Number(kind.slice("heading".length)) as 1 | 2 | 3 }).run();
+      return chain.clearNodes().setHeading({ level: Number(kind.slice("heading".length)) as HeadingLevel }).run();
   }
 }
