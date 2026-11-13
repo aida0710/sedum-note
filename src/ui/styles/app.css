@@ -145,7 +145,13 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 .note-query-conditions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px; background: var(--tag); color: var(--muted); }
 /* 狭い所に置く小さな選択欄と入力欄（保存した検索の条件、AI チャットの上のモデル）。 */
 .note-query-conditions select, .note-query-conditions input, .ai-model-select { height: var(--control-height-compact); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 6px; background: var(--panel); color: var(--text); font-size: var(--font-size-small); min-width: 0; }
+/* 選択欄は長い名前で幅を取りすぎないよう、200px までで縮める。言葉の欄は残りの幅を取る（2 行目に落ちないように）。 */
+.note-query-conditions select { flex: 0 1 200px; }
+.note-query-conditions input { flex: 1 1 120px; }
 .note-query-results { padding: 4px; display: flex; flex-direction: column; }
+/* 題が 2 行に折れても、アイコンは 1 行目の横に置く（アイコンの高さを 1 行にして、その中の真ん中に描く）。 */
+.note-query-results .menu-item { align-items: flex-start; }
+.note-query-results .menu-item > svg { height: 1lh; }
 .math-inline .math-rendered, .math-block .math-rendered { cursor: pointer; border-radius: var(--radius-inline); }
 .math-block { text-align: center; overflow-x: auto; }
 .math.selected .math-rendered, .math-rendered:hover { background: var(--accent-soft); }
@@ -252,7 +258,8 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 .ai-composer-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
 .ai-send-button { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); flex: none; }
 .ai-send-button:disabled { opacity: 0.4; cursor: default; }
-.ai-model-select { flex: 0 1 auto; max-width: 140px; }
+/* モデルの名前（「Claude Opus 5.5」など）が切れずに入る幅。これより長い名前は切れるので、title で全文を出す（AiModelSelect.tsx）。 */
+.ai-model-select { flex: 0 1 auto; max-width: 180px; }
 .ai-connection { display: flex; flex-direction: column; gap: 12px; }
 .ai-edit { border: 1px solid var(--line); border-radius: var(--radius-panel); padding: 8px 10px; display: flex; flex-direction: column; gap: 8px; background: var(--panel); }
 .ai-edit-summary { display: flex; align-items: center; gap: 6px; font-weight: 600; }
@@ -298,6 +305,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .mention-candidates { position: absolute; left: 0; right: 0; bottom: calc(100% + 4px); z-index: 5; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: 0 8px 24px var(--shadow); padding: 4px; display: flex; flex-direction: column; }
 .mention-candidates .menu-item.on { background: var(--selected); }
 .dialog.ai-chat-dialog { width: min(640px, 100%); height: min(720px, 92%); padding: 0; }
+/* AI を有効にしていないときは、案内とボタンだけなので、枠を中身の高さにする（画面の高さの枠に 3 行だけが浮かないように）。 */
+.dialog.ai-chat-dialog:has(.ai-chat > .ai-chat-notice) { height: auto; }
 .ai-chat-dialog .ai-chat { flex: 1; border-left: 0; border-radius: inherit; }
 .backlinks { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); }
 .backlinks h2 { font-size: var(--font-size-small); font-weight: 600; color: var(--muted); margin: 0 0 6px; }
@@ -319,6 +328,9 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .sidebar-search input { border: 0; outline: 0; background: none; flex: 1; min-width: 0; color: var(--text); }
 /* 中の入力欄の枠を消しているので、フォーカスは外側の枠で見せる。 */
 .sidebar-search:focus-within, .phone-search:focus-within { outline: 2px solid var(--accent); outline-offset: -1px; }
+/* 左の列の検索は、閉じるボタン（×）を自前で出すので、ブラウザが type="search" に付ける「×」と見た目は出さない。 */
+.sidebar-search input[type="search"] { appearance: none; }
+.sidebar-search input[type="search"]::-webkit-search-cancel-button { display: none; }
 .new-note { display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--accent); color: var(--on-accent); border-radius: var(--radius-control); height: 34px; font-weight: 600; margin-bottom: 10px; flex: none; }
 .sidebar-scroll { overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 2px; padding-bottom: 8px; }
 .nav { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: var(--radius-row); color: var(--text); text-align: left; width: 100%; min-height: 30px; }
@@ -327,6 +339,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .nav .count { margin-left: auto; color: var(--muted); font-size: var(--font-size-small); font-weight: 400; }
 .nav .nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav .disclosure { width: 12px; color: var(--muted); flex: none; display: grid; place-items: center; }
+/* 名前が長くても、行の頭のアイコン（#・☆ など）と件数は縮めない（縮めるのは名前だけ）。 */
+.nav > svg, .nav .count { flex: none; }
 .nav-row { position: relative; display: flex; align-items: center; }
 /* 左の列の行のフォーカスの枠は、行の内側に描く（外に描くと、左右は一覧のスクロールの枠で切れ、上下は隣の行に隠れる）。 */
 .sidebar-scroll :is(.nav, .tree-note):focus-visible { outline-offset: -2px; }

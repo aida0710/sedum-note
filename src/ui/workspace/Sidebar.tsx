@@ -133,7 +133,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
       {searchOpen && (
         <label className="sidebar-search">
           <Search size={14} />
-          <input ref={searchInput} autoFocus value={navigation.searchText} placeholder={translate("sidebar.searchPlaceholder")} title={translate("sidebar.searchSyntax")}
+          <input ref={searchInput} type="search" enterKeyHint="search" autoCapitalize="off" autoCorrect="off" spellCheck={false} autoFocus value={navigation.searchText} placeholder={translate("sidebar.searchPlaceholder")} title={translate("sidebar.searchSyntax")}
             onChange={(event) => navigation.setSearchText(event.target.value)}
             onKeyDown={(event) => event.key === "Escape" && !isImeKeyEvent(event.nativeEvent) && closeSearch()} />
         </label>

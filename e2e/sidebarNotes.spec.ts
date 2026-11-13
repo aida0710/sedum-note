@@ -579,3 +579,34 @@ test("ノートブックの「…」の「移動…」で、別のノートブ�
   await back.getByRole("button", { name: "最上位の階層" }).click();
   await expect.poll(async () => (await viewRow(page, "会議").locator(".nav-label").boundingBox())!.x).toBe(parentLeft);
 });
+
+test("名前の長いタグでも、左の列の行の頭のアイコンは縮まない。検索の欄は、検索のキーボードを出し、頭を大文字にしない", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "長いタグのメモ");
+  await page.keyboard.type("#とても長いタグの名前ですとても長いタグの名前ですとても長いタグの名前です ");
+  const tagIcon = page.locator(".nav", { hasText: "とても長いタグ" }).locator("> svg");
+  await expect.poll(async () => (await tagIcon.boundingBox())?.width).toBe(15);
+
+  await page.locator(".sidebar-brand").getByRole("button", { name: "検索" }).click();
+  const search = page.getByPlaceholder("メモを検索");
+  await expect(search).toHaveAttribute("type", "search");
+  await expect(search).toHaveAttribute("enterkeyhint", "search");
+  await expect(search).toHaveAttribute("autocapitalize", "off");
+});
+
+test("長い題のメモがあっても、グラフの点の題は短く切って全文を title で出し、クエリの条件は 1 行に並ぶ", async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 820 });
+  await startLocalVault(page);
+  const longTitle = "2026年度 第3四半期 プロダクト開発ロードマップと各チームの担当範囲・リリース予定日の一覧（改訂版）";
+  await createNoteOnDesktop(page, longTitle);
+  await createNoteOnDesktop(page, "まとめ");
+  await page.keyboard.type("/くえり");
+  await page.keyboard.press("Enter");
+  const conditions = page.locator(".note-query-conditions > :is(select, input)");
+  const tops = await conditions.evaluateAll((elements) => elements.map((element) => Math.round(element.getBoundingClientRect().top)));
+  expect(new Set(tops).size).toBe(1);
+
+  await page.locator(".sidebar-brand").getByRole("button", { name: "グラフ表示" }).click();
+  const point = page.locator(".note-graph-node", { has: page.locator("title", { hasText: longTitle }) });
+  await expect(point.locator("text")).toHaveText("2026年度 第3四半期 プロダ…");
+});

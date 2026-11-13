@@ -17,6 +17,14 @@ const TITLE_GAP = 12;
 const NODE_RADIUS = { minimum: 5, perLink: 1.5, maximum: 14 } as const;
 // 題を出すのは、点がこの数以下のときか、リンクのあるメモだけ（多いと文字が重なって読めないため）。
 const MAX_NODES_WITH_ALL_TITLES = 60;
+// 点の下に出す題の長さ（文字数）。長い題は隣の点の題と重なり、図の端で切れるので、ここで切って「…」を付ける。
+// 全文は、点にポインターを乗せたときの title で読める。
+const MAX_POINT_LABEL_LENGTH = 16;
+
+function pointLabelOf(title: string): string {
+  const characters = Array.from(title);
+  return characters.length <= MAX_POINT_LABEL_LENGTH ? title : `${characters.slice(0, MAX_POINT_LABEL_LENGTH).join("")}…`;
+}
 
 type Size = { width: number; height: number };
 
@@ -88,7 +96,7 @@ export function NoteGraphView({ summaries, onOpenNote }: NoteGraphViewProps) {
               onClick={() => onOpenNote(node.noteId)} onKeyDown={(event) => event.key === "Enter" && onOpenNote(node.noteId)}>
               <title>{title}</title>
               <circle cx={point.x} cy={point.y} r={radius} />
-              {(showAllTitles || node.linkCount > 0) && <text x={point.x} y={point.y + radius + TITLE_GAP} textAnchor="middle">{title}</text>}
+              {(showAllTitles || node.linkCount > 0) && <text x={point.x} y={point.y + radius + TITLE_GAP} textAnchor="middle">{pointLabelOf(title)}</text>}
             </g>
           );
         })}

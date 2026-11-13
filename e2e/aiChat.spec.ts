@@ -153,6 +153,9 @@ test("スマホでも、AI チャットの案内のボタンでメモを閉じ�
   await page.getByPlaceholder("タイトル").fill("買い物");
   await page.getByRole("button", { name: "その他の操作" }).click();
   await page.getByRole("menuitem", { name: "AI チャット" }).click();
+  // 有効でないうちは案内とボタンだけなので、枠は中身の高さ（画面の高さいっぱいにしない）。
+  const dialogHeight = (await page.getByRole("dialog", { name: "AI チャット" }).boundingBox())!.height;
+  expect(dialogHeight).toBeLessThan(PHONE_VIEWPORT.height / 2);
   await chat(page).getByRole("button", { name: "AI の設定を開く" }).click();
 
   await expect(page.getByRole("checkbox", { name: "アプリ内の AI を使う" })).toBeVisible();
@@ -363,7 +366,10 @@ test("チャットの上でモデルを変えると、その会話の次の発�
   expect(requests[0]!.body).toMatchObject({ model: "claude-opus-5-5", max_tokens: 64000 });
 
   const chatModel = chat(page).getByRole("combobox", { name: "この会話で使うモデル" });
+  // 狭い所で名前が切れても読めるよう、選んでいるモデルの名前を title でも出す。
+  await expect(chatModel).toHaveAttribute("title", "Claude Opus 5.5");
   await chatModel.selectOption("claude-sonnet-5-5");
+  await expect(chatModel).toHaveAttribute("title", "Claude Sonnet 5.5");
   await input.fill("続けて");
   await page.keyboard.press("Enter");
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["一つ目の答え", "二つ目の答え"]);

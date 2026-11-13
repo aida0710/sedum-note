@@ -19,8 +19,10 @@ export function AiModelSelect({ id, settings, onChoose, disabled = false, ariaLa
   const { model, models } = selectedModelOf(settings);
   // 前の版で手で入れたモデルが一覧に無くても、選んでいるものとして見せる（黙って別のモデルに変えない）。
   const options: AiModelOption[] = model === "" || models.some((option) => option.id === model) ? models : [{ id: model, name: model, maxOutputTokens: null }, ...models];
+  // 狭い所では名前が途中で切れることがあるので、選んでいるモデルの名前を title でも出す。
+  const selectedName = options.find((option) => option.id === model)?.name;
   return (
-    <select id={id} className={compact ? "ai-model-select" : undefined} aria-label={ariaLabel}
+    <select id={id} className={compact ? "ai-model-select" : undefined} aria-label={ariaLabel} title={selectedName}
       value={model} disabled={disabled || options.length === 0} onChange={(event) => onChoose(event.target.value)}>
       {options.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
     </select>
