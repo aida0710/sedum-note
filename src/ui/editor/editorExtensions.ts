@@ -40,6 +40,7 @@ import { TableBoundaryKeys } from "./tableBoundaryKeys";
 import { TitleBodyNavigation } from "./titleBodyNavigation";
 import { TaskItemKeys } from "./taskItemKeys";
 import { SelectAllInSteps } from "./selectAllInSteps";
+import { FoldedBlockKeys } from "./foldedBlockKeys";
 import { ZoomOutOnEscape } from "./zoomOutOnEscape";
 import { BlockKeys } from "./blockKeys";
 import { BlockEmbed } from "./blockEmbedNode";
@@ -124,6 +125,7 @@ export function createEditorExtensions({ body, slashMenuController, blockMenuCon
     TitleBodyNavigation.configure({ moveToTitle }),
     TaskItemKeys,
     SelectAllInSteps,
+    FoldedBlockKeys,
     DueMarks,
     TableShortcuts,
     TableRowFilterExtension,

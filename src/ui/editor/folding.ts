@@ -5,11 +5,12 @@
 
 import { type Editor, Extension } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
-import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
+import { type EditorState, Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 import { FOLDED_ATTRIBUTE } from "../../core/notes/bodyContentChange";
 import { translate } from "../i18n/translate";
 import { editorShortcutPlugin } from "./editorShortcutPlugin";
+import { zoomedItemPosition } from "./zoom";
 
 const LIST_ITEM_TYPES = ["listItem", "taskItem"];
 const LIST_TYPES = new Set(["bulletList", "orderedList", "taskList"]);
@@ -46,10 +47,12 @@ function toggleDecoration(position: number, collapsed: boolean): Decoration {
   return Decoration.widget(position + 1, (view) => foldToggle(view, position, collapsed), { side: -1, key: `fold-${collapsed}`, ignoreSelection: true });
 }
 
-function foldingDecorations(doc: ProseMirrorNode): DecorationSet {
+// zoomedPosition は、ズームしている項目か見出しの位置（していなければ null）。ズームしている項目・見出しそのものは、たたんであっても
+// 中身を出し、開け閉めの印も出さない（ズームした先が空に見えて、開く手段も無くなるため）。たたんだ印（属性）は変えない。
+function foldingDecorations(doc: ProseMirrorNode, zoomedPosition: number | null): DecorationSet {
   const decorations: Decoration[] = [];
   doc.descendants((node, position) => {
-    if (LIST_ITEM_TYPES.includes(node.type.name) && hasNestedList(node)) {
+    if (LIST_ITEM_TYPES.includes(node.type.name) && hasNestedList(node) && position !== zoomedPosition) {
       decorations.push(toggleDecoration(position, Boolean(node.attrs.collapsed)));
       if (node.attrs.collapsed) {
         decorations.push(Decoration.node(position, position + node.nodeSize, { class: "collapsed-item" }));
@@ -68,7 +71,7 @@ function foldingDecorations(doc: ProseMirrorNode): DecorationSet {
       decorations.push(Decoration.node(offset, offset + block.nodeSize, { class: "folded-block" }));
       return;
     }
-    if (isHeading) {
+    if (isHeading && offset !== zoomedPosition) {
       decorations.push(toggleDecoration(offset, Boolean(block.attrs.collapsed)));
       if (block.attrs.collapsed) {
         foldingHeadingLevel = Number(block.attrs.level);
@@ -175,6 +178,8 @@ export const Folding = Extension.create({
       attributes: {
         [FOLDED_ATTRIBUTE]: {
           default: false,
+          // 項目や見出しを Enter で分けたとき、新しくできたほうはたたまない（子を持たないのに、たたんだ印だけが残らないように）。
+          keepOnSplit: false,
           parseHTML: (element) => element.getAttribute("data-collapsed") === "true",
           renderHTML: (attributes) => (attributes.collapsed ? { "data-collapsed": "true" } : {}),
         },
@@ -183,17 +188,22 @@ export const Folding = Extension.create({
   },
   addProseMirrorPlugins() {
     const { editor } = this;
+    // 本文とズームの位置が同じ間は、作った飾りを使い回す（カーソルを動かすたびに作り直さない）。
+    let cached: { doc: ProseMirrorNode; zoomedPosition: number | null; decorations: DecorationSet } | null = null;
+    const decorationsOf = (state: EditorState): DecorationSet => {
+      const zoomedPosition = zoomedItemPosition(state);
+      if (cached?.doc !== state.doc || cached.zoomedPosition !== zoomedPosition) {
+        cached = { doc: state.doc, zoomedPosition, decorations: foldingDecorations(state.doc, zoomedPosition) };
+      }
+      return cached.decorations;
+    };
     return [
       // すべて折りたたむ・すべて開く（キーは設定で変えられる。メモの「…」のメニューにも出す）。
       editorShortcutPlugin({ foldAll: () => setAllFolded(editor, true), unfoldAll: () => setAllFolded(editor, false) }),
       new Plugin({
         key: foldingKey,
-        state: {
-          init: (_config, state) => foldingDecorations(state.doc),
-          apply: (transaction, decorations) => (transaction.docChanged ? foldingDecorations(transaction.doc) : decorations),
-        },
         props: {
-          decorations: (state) => foldingKey.getState(state) as DecorationSet,
+          decorations: (state) => decorationsOf(state),
         },
       }),
     ];
