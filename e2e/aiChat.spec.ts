@@ -202,6 +202,37 @@ test("Claude の API をつなぎ先にして会話を続けられ、答えを�
   await expect(page.locator(".ProseMirror")).toContainText("牛乳と卵を買って帰る。");
 });
 
+test("「@」のあとを日本語で変換している間と、変換を確定する Enter では、メモを選ばず、発言も送らない", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium", "変換は Chromium の DevTools で作る");
+  const requests = await mockClaudeApi(page, ["はい。"]);
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "りょこうの計画");
+  await page.keyboard.type("出発は 8 月 3 日。");
+  await enableAi(page);
+  await page.getByLabel("API キー").fill("test-key");
+  await saveAiSettingsAndOpenChat(page, "りょこうの計画");
+
+  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
+  await input.click();
+  await page.keyboard.type("@");
+  const devTools = await page.context().newCDPSession(page);
+  await devTools.send("Input.imeSetComposition", { text: "りょこう", selectionStart: 4, selectionEnd: 4 });
+  const candidates = chat(page).getByRole("listbox", { name: "指定するメモ" });
+  await expect(candidates.getByRole("option")).toHaveText(["りょこうの計画"]);
+  // 変換を確定する Enter（Chromium は変換中として届ける）。
+  await input.evaluate((element) => {
+    element.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", keyCode: 229, isComposing: true, bubbles: true, cancelable: true }));
+  });
+  await devTools.send("Input.insertText", { text: "りょこう" });
+  await expect(input).toHaveValue("@りょこう");
+  await expect(candidates.getByRole("option")).toHaveText(["りょこうの計画"]);
+  expect(requests).toHaveLength(0);
+  // 確定したあとの Enter で選ぶ。
+  await page.keyboard.press("Enter");
+  await expect(input).toHaveValue("");
+  await expect(chat(page).getByLabel("AI に渡す文脈").getByText("りょこうの計画", { exact: true })).toBeVisible();
+});
+
 test("選択した文字と、「@」で指定したメモを、文脈として渡せる。開いているメモは外せる", async ({ page }) => {
   const requests = await mockClaudeApi(page, ["はい。"]);
   await startLocalVault(page);
