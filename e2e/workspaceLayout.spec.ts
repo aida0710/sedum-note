@@ -1,7 +1,7 @@
 // PC の画面の並び（開いているタブ、ピン留め、選んでいるタブ、左の列の開け閉め）が、ロックと再読み込みのあとに戻ること。
 
 import { expect, type Page, test } from "@playwright/test";
-import { addNotebookOnDesktop, createNoteOnDesktop, PASSPHRASE, startLocalVault } from "./devices";
+import { addNotebookOnDesktop, createNoteOnDesktop, openSettingsPage, PASSPHRASE, startLocalVault } from "./devices";
 
 async function unlockApp(page: Page): Promise<void> {
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
@@ -81,4 +81,16 @@ test("完全に削除したメモのタブは、読み込み直したあとに�
   await page.reload();
   await unlockApp(page);
   await expect(page.getByRole("tab")).toHaveText([/残すメモ/]);
+});
+
+test("設定で開いていたページも、ロックして解除したあとに戻る", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "新しいメモ" }).waitFor();
+  await openSettingsPage(page, "外観");
+  await expect(page.getByRole("heading", { name: "テーマ", exact: true })).toBeVisible();
+
+  await page.keyboard.press("Control+l");
+  await unlockApp(page);
+  await expect(page.getByRole("tab", { name: "設定" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("heading", { name: "テーマ", exact: true })).toBeVisible();
 });

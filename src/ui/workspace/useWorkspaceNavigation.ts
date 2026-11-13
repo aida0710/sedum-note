@@ -140,6 +140,9 @@ export function useWorkspaceNavigation(initialNoteId: string | null = null): Wor
   // 戻すまでの間に利用者が開け閉めした行は、そちらを残す。
   const restoreLayout = useCallback<WorkspaceNavigation["restoreLayout"]>((layout, tabExists) => {
     setTabs((current) => restoreTabsIn(current, layout, tabExists));
+    // 戻すまでの間に設定のページを選んでいたら、そちらを残す。知らない名前のページ（前のバージョンのもの）は捨てる。
+    const rememberedPage = SETTINGS_PAGES.find((page) => page === layout.settingsPage) ?? null;
+    setSettingsPage((current) => current ?? rememberedPage);
     setExpandedRows((current) => new Map([...Object.entries(layout.expandedRows), ...current]));
   }, []);
 

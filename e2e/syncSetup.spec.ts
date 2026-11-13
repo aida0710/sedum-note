@@ -97,6 +97,10 @@ test("同期なしで始めたあと、設定で同期先を足せる。暗号�
   const keyDialog = laptop.getByRole("dialog", { name: "暗号化キー" });
   const firstKey = await keyDialog.locator("code").innerText();
   await keyDialog.getByRole("button", { name: "控えました" }).click();
+  // 同期先を初めて保存しても、開いていたタブと、設定の「同期」のページはそのまま。
+  await expect(laptop.getByRole("tab")).toHaveText([/同期の前に書いたメモ/, /設定/]);
+  await expect(laptop.getByRole("tab", { name: "設定" })).toHaveAttribute("aria-selected", "true");
+  await expect(laptop.getByRole("heading", { name: "同期", exact: true })).toBeVisible();
 
   // 暗号化キーを作り直す。パスフレーズが違うと作り直さない。
   await laptop.locator(".sync-line").click();
