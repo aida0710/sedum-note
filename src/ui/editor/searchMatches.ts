@@ -1,10 +1,12 @@
 // メモの中の検索で、本文から当たりを探す。探し方は 3 つの切り替えの組み合わせ。
-//   正規表現: 打った文字を正規表現として読む。切っているときは、空白で区切った言葉のどれかに当たる。
+//   正規表現: 打った文字を正規表現として読む。切っているときは、空白で区切った言葉のどれかに当たり、
+//     全角と半角を区別しない（「ABC」で「ＡＢＣ」に当たる。メモ全体の検索と同じ。core/notes/searchTextFolding.ts）。
 //   大文字と小文字を区別: 切っているときは区別しない。
 //   単語単位: 前後が文字（かなや漢字を含む）か数字でない所だけに当たる。
 // 段落ごとに文字をつなげて探す（太字などの書式の境目をまたぐ言葉も当たるように）。
 
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
+import { type FoldedText, foldWithPositions, originalRangeOf } from "../../core/notes/searchTextFolding";
 
 export type SearchOptions = { regex: boolean; caseSensitive: boolean; wholeWord: boolean };
 
@@ -46,14 +48,17 @@ export function findSearchMatches(doc: ProseMirrorNode, query: string, options: 
   if (query.trim() === "") {
     return NO_MATCH;
   }
+  // 正規表現は書いたとおりに読む（そろえると、式の記号まで変わる）。言葉で探すときは、本文と言葉の両方の全角と半角をそろえる。
+  const foldText = options.regex ? null : (text: string) => foldWithPositions(text, { keepsCase: options.caseSensitive });
+  const searchedQuery = foldText === null ? query : foldText(query).text;
   let regex: RegExp;
   try {
     // u は、絵文字のようなサロゲートペアを 1 文字として扱い、\p{L} を使うため。
-    regex = new RegExp(patternOf(query, options), options.caseSensitive ? "gu" : "giu");
+    regex = new RegExp(patternOf(searchedQuery, options), options.caseSensitive ? "gu" : "giu");
   } catch {
     return { matches: [], invalidPattern: true };
   }
-  return { matches: collectMatches(doc, regex, options.regex), invalidPattern: false };
+  return { matches: collectMatches(doc, regex, foldText), invalidPattern: false };
 }
 
 // 段落（文字を持つブロック）ごとに、つなげた文字と、その先頭の位置を渡す。
@@ -71,19 +76,21 @@ function forEachTextblock(doc: ProseMirrorNode, visit: (text: string, start: num
   });
 }
 
-// expandsReplacement が true（正規表現で探したとき）なら、置換の文字の $1 などを当たりの中身で展開する。
-function collectMatches(doc: ProseMirrorNode, regex: RegExp, expandsReplacement: boolean): SearchMatch[] {
+// foldText を渡したとき（言葉で探すとき）は、そろえた文字で探し、当たりを元の文字の位置へ戻す。置換の文字はそのまま入れる。
+// 渡さないとき（正規表現で探すとき）は、元の文字で探し、置換の文字の $1 などを当たりの中身で展開する。
+function collectMatches(doc: ProseMirrorNode, regex: RegExp, foldText: ((text: string) => FoldedText) | null): SearchMatch[] {
   const matches: SearchMatch[] = [];
   forEachTextblock(doc, (text, start) => {
-    for (const found of text.matchAll(regex)) {
-      const matched = found[0];
+    const folded = foldText?.(text) ?? null;
+    for (const found of (folded?.text ?? text).matchAll(regex)) {
+      const range = folded ? originalRangeOf(folded, { index: found.index, length: found[0].length }) : { index: found.index, length: found[0].length };
       // 空の当たり（^ や a*）は、色も付けられず置き換えても意味が無いので数えない。
-      if (matched.length === 0 || matched.includes(INLINE_ATOM_PLACEHOLDER)) {
+      if (range === null || range.length === 0 || text.slice(range.index, range.index + range.length).includes(INLINE_ATOM_PLACEHOLDER)) {
         continue;
       }
       matches.push({
-        from: start + found.index, to: start + found.index + matched.length,
-        replacementFor: (replacement) => (expandsReplacement ? expandRegexReplacement(replacement, found, text) : replacement),
+        from: start + range.index, to: start + range.index + range.length,
+        replacementFor: (replacement) => (folded ? replacement : expandRegexReplacement(replacement, found, text)),
       });
     }
   });

@@ -2,13 +2,17 @@
 // 全角と半角（「ＡＢＣ」と「ABC」、「１２３」と「123」、「ﾒﾓ」と「メモ」）、大文字と小文字を、同じ文字として比べる。
 // ひらがなとカタカナは別の文字のままにする。
 
-function foldCharacters(text: string): string {
-  return text.normalize("NFKC").toLocaleLowerCase();
+// keepsCase は、大文字と小文字を区別して探すとき（メモの中の検索の切り替え）に true にする。全角と半角だけをそろえる。
+export type FoldOptions = { keepsCase?: boolean };
+
+function foldCharacters(text: string, { keepsCase = false }: FoldOptions): string {
+  const widthFolded = text.normalize("NFKC");
+  return keepsCase ? widthFolded : widthFolded.toLocaleLowerCase();
 }
 
 // 当たるかどうかだけを見るとき（位置が要らないとき）に使う。
 export function foldForSearch(text: string): string {
-  return foldCharacters(text);
+  return foldCharacters(text, {});
 }
 
 // そろえた文字列と、その各文字が元の文字列のどこから来たか。
@@ -25,10 +29,10 @@ export type FoldedText = {
 // 文字列全体をそろえたのと同じ結果になり、まとまりの位置も分かる。
 const CHARACTER_WITH_MARKS = /[\s\S][\p{M}ﾞﾟ]*/gu;
 
-export function foldWithPositions(text: string): FoldedText {
+export function foldWithPositions(text: string, options: FoldOptions = {}): FoldedText {
   const folded: FoldedText = { text: "", originalStarts: [], originalEnds: [] };
   for (const match of text.matchAll(CHARACTER_WITH_MARKS)) {
-    const foldedCluster = foldCharacters(match[0]);
+    const foldedCluster = foldCharacters(match[0], options);
     folded.text += foldedCluster;
     for (let index = 0; index < foldedCluster.length; index += 1) {
       folded.originalStarts.push(match.index);

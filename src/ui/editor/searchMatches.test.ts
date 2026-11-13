@@ -34,6 +34,17 @@ describe("メモの中の検索", () => {
     expect(matches).toEqual(["Apple", "banana", "APPLE"]);
   });
 
+  it("言葉で探すと、全角と半角を区別せずに当たり、元の文字の範囲に色を付ける", () => {
+    const doc = documentOf("型番はＡＢＣ－１２３、手引きはｶﾞｲﾄﾞ");
+    const texts = (query: string, options: SearchOptions = DEFAULT_SEARCH_OPTIONS) =>
+      findSearchMatches(doc, query, options).matches.map((match) => doc.textBetween(match.from, match.to));
+    expect(texts("abc-123")).toEqual(["ＡＢＣ－１２３"]);
+    expect(texts("ガイド")).toEqual(["ｶﾞｲﾄﾞ"]);
+    // 大文字と小文字を区別するときも、全角と半角はそろえる。
+    expect(texts("ABC", { ...DEFAULT_SEARCH_OPTIONS, caseSensitive: true })).toEqual(["ＡＢＣ"]);
+    expect(texts("abc", { ...DEFAULT_SEARCH_OPTIONS, caseSensitive: true })).toEqual([]);
+  });
+
   it("大文字と小文字を区別すると、形の同じ言葉だけに当たる", () => {
     const doc = documentOf("Apple と apple");
     const texts = (options: SearchOptions) => findSearchMatches(doc, "apple", options).matches.map((match) => doc.textBetween(match.from, match.to));
