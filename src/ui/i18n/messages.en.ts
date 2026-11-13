@@ -392,8 +392,6 @@ export const englishMessages: Record<MessageKey, string> = {
   "editor.findPlaceholder": "Find in this note",
   "editor.findNext": "Next match",
   "editor.findPrevious": "Previous match",
-  "editor.makeOutline": "Turn into an outline",
-  "editor.stopBeingOutline": "Back to a normal note",
   "editor.makeTemplate": "Make this a template",
   "editor.stopBeingTemplate": "Stop being a template",
   "editor.isTemplate": "This note is a template",

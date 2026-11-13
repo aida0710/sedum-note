@@ -149,24 +149,6 @@ describe("メモの履歴", () => {
     ]);
   });
 
-  it("版に戻すと、アウトライン表示かどうかも、本文に合わせてその版のときに戻る", async () => {
-    const { repository, advance, writeLine } = await repositoryWithClock();
-    const note = await repository.createNote({ title: "箇条書き", isOutline: true });
-    await writeLine(note.id, "アウトラインの項目");
-    advance(EDIT_VERSION_INTERVAL_MILLISECONDS);
-    await repository.updateNote(note.id, { isOutline: false });
-    await writeLine(note.id, "ふつうの段落");
-    const [outlineVersion] = await repository.noteVersions(note.id);
-    await repository.restoreNoteToVersion({ noteId: note.id, versionId: outlineVersion!.id });
-    expect(repository.note(note.id)!.content.isOutline).toBe(true);
-
-    // 戻す前（ふつうの表示）の状態へ戻し直すと、アウトライン表示も外れる。
-    const beforeRestore = (await repository.noteVersions(note.id)).find((version) => version.reason === "restore")!;
-    advance(MINUTE);
-    await repository.restoreNoteToVersion({ noteId: note.id, versionId: beforeRestore.id });
-    expect(repository.note(note.id)!.content.isOutline).toBe(false);
-  });
-
   it("版に戻すと、Markdown に無い書式（文字色、セルの結合・列の幅・背景色）もそのまま戻る", async () => {
     const { repository, advance, writeLine } = await repositoryWithClock();
     const note = await repository.createNote({ title: "表のメモ" });

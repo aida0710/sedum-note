@@ -47,7 +47,6 @@ import { zoomIntoCursor, zoomTargetAtCursor } from "./zoom";
 import { useRememberedNoteView } from "./rememberedNoteView";
 import { insertDroppedNoteLink } from "./droppedNoteLink";
 import { useIsZoomed, ZoomBackButton } from "./ZoomBackButton";
-import { convertBodyToOutline } from "./outlineConversion";
 import { registerFocusRestorer } from "../shared/focusReturn";
 import { revealBlock } from "./blockIds";
 import { NoteOutline } from "./NoteOutline";
@@ -116,7 +115,6 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   const unsyncedIds = useContext(UnsyncedRecordsContext);
   const noteId = note.id;
   const inTrash = note.content.trashedAt !== null;
-  const { isOutline } = note.content;
 
   const pasteMarkdown = useAsyncAction(async (markdown: string) => {
     if (editorOfPaste.current) {
@@ -137,15 +135,14 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
   // 本文は、メモの Yjs の文書をエディタが直接読み書きする。保存と同期は NoteRepository が文書の
   // 変更を見て行い、ほかのデバイスの変更も同じ文書に入るので、開いたまま画面に出る。
   const editor = useEditor({
-    extensions: createEditorExtensions({ body: note.body, slashMenuController, isOutline }),
+    extensions: createEditorExtensions({ body: note.body, slashMenuController }),
     editable: !inTrash,
     editorProps: {
       handlePaste: (_view, event) => attachments.takeFiles(Array.from(event.clipboardData?.files ?? [])) || takeMarkdown(event.clipboardData),
       // ファイルなら添付し、左の列のメモならリンクを入れる。
       handleDrop: (view, event) => attachments.takeFiles(Array.from((event as DragEvent).dataTransfer?.files ?? [])) || insertDroppedNoteLink(view, event as DragEvent, noteId),
     },
-    // アウトライン表示を切り替えたら、入れる機能が変わるので、エディタを作り直す。
-  }, [noteId, isOutline]);
+  }, [noteId]);
   attachments.editor.current = editor;
   // AI のチャットに、いま開いているメモのエディタを知らせる（選択範囲を読み、答えを入れる先になる）。
   const aiChat = useAiChatSession();
@@ -156,24 +153,13 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
     return () => setActiveNote(null);
   }, [editor, noteId, noteTitle, setActiveNote]);
   editorOfPaste.current = editor;
-  // アウトライン表示に切り替えた直後に、本文を 1 つの箇条書きにする。切り替える前のエディタが残っている間に変えると、
-  // そのエディタが末尾に空の段落を足してしまうので、表示が切り替わってから（前のエディタを捨てたあとに）変える。
-  // 切り替えたこのデバイスで 1 回だけ行う（開くたびに直すと、2 台が同時に直して、マージで項目が重なる）。
-  const convertsBodyToOutline = useRef(false);
-  const noteBody = note.body;
-  useEffect(() => {
-    if (isOutline && convertsBodyToOutline.current) {
-      convertsBodyToOutline.current = false;
-      convertBodyToOutline(noteBody);
-    }
-  }, [isOutline, noteBody]);
   // ブロックを指すリンクから開いたときは、そのブロックまで送る。
   useEffect(() => {
     if (editor && blockToReveal?.noteId === noteId) {
       revealBlock(editor, blockToReveal.blockId);
     }
   }, [editor, noteId, blockToReveal]);
-  useRememberedNoteView({ noteId, editor, scrollContainer: documentScroll, skipRestore: blockToReveal?.noteId === noteId, isOutline });
+  useRememberedNoteView({ noteId, editor, scrollContainer: documentScroll, skipRestore: blockToReveal?.noteId === noteId });
   // ダイアログを閉じて本文へ戻るときは、エディタのカーソルの位置ごと戻す（view.focus() は今の選択を DOM へ写してから戻す）。
   useEffect(() => (editor ? registerFocusRestorer(editor.view.dom, () => editor.view.focus()) : undefined), [editor]);
 
@@ -415,11 +401,6 @@ export function NoteEditor({ note, notebooks, backlinks, unlinkedMentions, repos
           onDuplicate={async () => openNote((await repository.duplicateNote(noteId, translate("editor.duplicateTitle", { title: note.content.title || translate("sidebar.untitled") }))).id)}
           onMergeNote={() => setPickingNoteToMerge(true)}
           onOpenAiAssistant={() => aiChat.setOpen(true)}
-          onToggleOutline={() => {
-            // アウトライン表示にするときは、今の本文を 1 つの箇条書きにする（表示だけを戻すときは、本文は変えない）。
-            convertsBodyToOutline.current = !isOutline;
-            void repository.updateNote(noteId, { isOutline: !isOutline });
-          }}
           zoomTarget={editor ? zoomTargetAtCursor(editor.state) : null} onZoomIn={() => editor && zoomIntoCursor(editor)}
           onOpenInNewWindow={!isMobile && canOpenNoteWindows() ? () => void openInNewWindow.run(undefined) : undefined}
           pluginCommands={pluginCommands}

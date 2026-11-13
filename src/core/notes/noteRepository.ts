@@ -64,7 +64,6 @@ export type NoteChanges = Partial<{
   bookmarked: boolean;
   trashedAt: string | null;
   isTemplate: boolean;
-  isOutline: boolean;
   dueAt: string | null;
   pageAlignment: PageAlignment | null;
 }>;
@@ -758,9 +757,7 @@ export class NoteRepository {
   }
 }
 
-// 履歴の版へ戻すときに書く項目。戻すのは、本文の中身を表すもの（タイトルと、アウトライン表示か）だけ。
-// アウトライン表示は本文の形（1 つの箇条書き）を決めるので、本文と揃えて戻す。揃えないと、次に打ったときに
-// アウトライン表示が本文を箇条書きに組み直してしまう。
+// 履歴の版へ戻すときに書く項目。戻すのは、本文の中身を表すもの（タイトル）だけ。
 // ノートブック・ピン留め・お気に入り・ゴミ箱・期限・テンプレート・本文の配置・プロパティの値は、整理と表示のための項目で、
 // 履歴の画面には出ない。戻すと、利用者が見ていないところで変わるので、今のままにする。
 // 今と同じ値は書かない。書くと、ほかのデバイスが同時に変えたタイトルを、古い値で上書きしてしまう（項目は新しく書いた方を取る）。
@@ -769,10 +766,6 @@ function restoredNoteChanges({ current, version }: { current: Y.Doc; version: Y.
   const title = readField<string>(version, "title") ?? "";
   if (title !== (readField<string>(current, "title") ?? "")) {
     changes.title = title;
-  }
-  const isOutline = readField<boolean>(version, "isOutline") ?? false;
-  if (isOutline !== (readField<boolean>(current, "isOutline") ?? false)) {
-    changes.isOutline = isOutline;
   }
   return changes;
 }
@@ -852,7 +845,6 @@ function buildView(id: string, holder: LiveHolder): LiveRecord | null {
       bookmarked: readField<boolean>(doc, "bookmarked") ?? false,
       trashedAt: readField<string | null>(doc, "trashedAt") ?? null,
       isTemplate: readField<boolean>(doc, "isTemplate") ?? false,
-      isOutline: readField<boolean>(doc, "isOutline") ?? false,
       dueAt: dueAtOf(doc),
       pageAlignment: pageAlignmentOf(doc),
       attachments: bodyAttachments(body),
