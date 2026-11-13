@@ -82,6 +82,23 @@ describe("中身を変えない本文の変更", () => {
     expect(repository.note(note.id)!.updatedAt > updatedAt).toBe(true);
   });
 
+  it("段落を消しただけでも、編集として扱う", async () => {
+    const { repository, note, updatedAt, changeBody } = await writtenNote();
+
+    await changeBody(() => note.body.delete(1, 1));
+
+    expect(repository.note(note.id)!.updatedAt > updatedAt).toBe(true);
+    expect(await repository.noteVersions(note.id)).toHaveLength(1);
+  });
+
+  it("文字の書式だけを変えても、編集として扱う", async () => {
+    const { repository, note, heading, updatedAt, changeBody } = await writtenNote();
+
+    await changeBody(() => (heading.get(0) as Y.XmlText).format(0, 2, { bold: {} }));
+
+    expect(repository.note(note.id)!.updatedAt > updatedAt).toBe(true);
+  });
+
   it("見出しの段のような、中身に関わる属性を変えたら、編集として扱う", async () => {
     const { repository, note, heading, updatedAt, changeBody } = await writtenNote();
 
