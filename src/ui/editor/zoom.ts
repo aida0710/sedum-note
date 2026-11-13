@@ -13,8 +13,8 @@
 import { type Editor, Extension } from "@tiptap/core";
 import type { Node as ProseMirrorNode, ResolvedPos } from "@tiptap/pm/model";
 import { type EditorState, Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
-import { type MessageKey, translate } from "../i18n/translate";
-import { editorKeymapName, type ShortcutKeys } from "../shared/shortcutKeys";
+import { translate } from "../i18n/translate";
+import { editorShortcutPlugin } from "./editorShortcutPlugin";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 
 const LIST_ITEM_TYPES = ["listItem", "taskItem"];
@@ -170,15 +170,6 @@ export function zoomOutOneLevel(editor: Editor): boolean {
   return zoomToItem(editor, path[path.length - 2]?.position ?? null);
 }
 
-// メモの「…」の「この項目にズーム」にも、このキーを出す。Ctrl+.（Mac は ⌘+.）は Logseq と同じキー。
-// 戻るのは Ctrl+Shift+. か Esc（zoomOutOnEscape.ts）。Ctrl+, は設定を開くキーなので使わない。
-export const ZOOM_INTO_CURSOR_KEYS: ShortcutKeys = { key: "." };
-
-export const ZOOM_SHORTCUTS: Array<{ id: string; label: MessageKey; keys: ShortcutKeys; run: (editor: Editor) => boolean }> = [
-  { id: "zoomIntoCursor", label: "editor.zoomIntoCursor", keys: ZOOM_INTO_CURSOR_KEYS, run: zoomIntoCursor },
-  { id: "zoomOutOneLevel", label: "editor.zoomOutOneLevel", keys: { key: ".", shift: true }, run: zoomOutOneLevel },
-];
-
 function selectZoomedItem(editor: Editor): boolean {
   const zoomedPosition = zoomedItemPosition(editor.state);
   const { doc } = editor.state;
@@ -307,13 +298,16 @@ export const Zoom = Extension.create({
   priority: BEFORE_OTHER_KEYMAPS,
   addKeyboardShortcuts() {
     return {
-      ...Object.fromEntries(ZOOM_SHORTCUTS.map((shortcut) => [editorKeymapName(shortcut.keys), () => shortcut.run(this.editor as Editor)])),
       "Mod-a": ({ editor }) => selectZoomedItem(editor as Editor),
       Enter: ({ editor }) => splitZoomedTitleIntoFirstChild(editor as Editor),
     };
   },
   addProseMirrorPlugins() {
+    const editor = this.editor as Editor;
     return [
+      // カーソルの項目にズーム（既定は Logseq と同じ Ctrl+.、Mac は ⌘+.）と、1 つ上へ戻る（既定は Ctrl+Shift+.。Esc でも戻る。
+      // zoomOutOnEscape.ts）。キーは設定で変えられ、メモの「…」の「この項目にズーム」にも出す。
+      editorShortcutPlugin({ zoomIntoCursor: () => zoomIntoCursor(editor), zoomOutOneLevel: () => zoomOutOneLevel(editor) }),
       new Plugin<number | null>({
         key: zoomKey,
         state: {

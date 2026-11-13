@@ -23,6 +23,11 @@ export function shortcutText(keys: ShortcutKeys): string {
   return parts.join(" + ");
 }
 
+// 同じキーの組み合わせか。文字のキーは大文字と小文字を区別しない。
+export function sameShortcutKeys(left: ShortcutKeys, right: ShortcutKeys): boolean {
+  return left.key.toLowerCase() === right.key.toLowerCase() && Boolean(left.alt) === Boolean(right.alt) && Boolean(left.shift) === Boolean(right.shift);
+}
+
 // エディタ（Tiptap）のキーの書き方（例: Mod-Shift-Alt-Enter）。Mod は Ctrl（Mac では Command）。
 export function editorKeymapName(keys: ShortcutKeys): string {
   return ["Mod", keys.shift ? "Shift" : null, keys.alt ? "Alt" : null, keys.key].filter(Boolean).join("-");

@@ -15,8 +15,7 @@ import { Sidebar } from "./Sidebar";
 import { SyncStatusLine } from "./SyncStatusLine";
 import { createNoteInView } from "./createNoteInView";
 import { CommandPalette } from "./CommandPalette";
-import { KEYBOARD_SHORTCUTS, type ShortcutId, useKeyboardShortcuts } from "./keyboardShortcuts";
-import { shortcutText } from "../shared/shortcutKeys";
+import { APP_SHORTCUT_IDS, useKeyboardShortcuts } from "./keyboardShortcuts";
 import { UpdateChip } from "../update/UpdateChip";
 import { NotebookDatabaseView } from "./NotebookDatabaseView";
 import { NoteGraphView } from "./NoteGraphView";
@@ -32,6 +31,8 @@ import { McpSectionSlot } from "../settings/mcpSectionSlot";
 import { SETTINGS_SEARCH_ENTRIES } from "../settings/settingsSearchEntries";
 import { workspacePaletteCandidates } from "./workspacePaletteCandidates";
 import { useAiChatSession } from "../ai/aiChatSession";
+import { shortcutTextOf } from "../shortcuts/shortcutBindings";
+import { type AppShortcutId, shortcutDefinition } from "../shortcuts/shortcutCatalog";
 
 export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteWindow }: WorkspaceProps) {
   const { repository } = vault;
@@ -49,7 +50,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
   };
   // フォーカスモード: 左の列・タブ・ツールバーを隠して、本文だけにする。開き直すと戻る。
   const [focusMode, setFocusMode] = useState(false);
-  const { typewriterMode } = useDevicePreferences();
+  const { typewriterMode, shortcutOverrides } = useDevicePreferences();
   const openNeighborTab = (step: 1 | -1) => {
     const { openTabs, activeTab } = navigation;
     const neighbor = openTabs[(openTabs.indexOf(activeTab ?? "") + step + openTabs.length) % openTabs.length];
@@ -61,7 +62,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
   };
   const aiChat = useAiChatSession();
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const shortcutHandlers: Record<ShortcutId, () => void> = {
+  const shortcutHandlers: Record<AppShortcutId, () => void> = {
     commandPalette: () => setPaletteOpen(true),
     newNote: () => void createNote(),
     searchNotes: navigation.requestSearchFocus,
@@ -81,9 +82,9 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
     lock: () => void session.lock(),
   };
   useKeyboardShortcuts(shortcutHandlers);
-  // コマンドパレットに並べる操作。ショートカットの一覧と同じもの（パレットを開く操作は除く）。
-  const paletteCommands = KEYBOARD_SHORTCUTS.filter((shortcut) => shortcut.id !== "commandPalette")
-    .map((shortcut) => ({ id: shortcut.id, label: translate(shortcut.label), shortcut: shortcutText(shortcut.keys), run: shortcutHandlers[shortcut.id] }));
+  // コマンドパレットに並べる操作。どこでも効くショートカットと同じもの（パレットを開く操作は除く）。キーなしにしたものは、キーを出さない。
+  const paletteCommands = APP_SHORTCUT_IDS.filter((id) => id !== "commandPalette")
+    .map((id) => ({ id, label: translate(shortcutDefinition(id).label), shortcut: shortcutTextOf(id, shortcutOverrides) ?? "", run: shortcutHandlers[id] }));
   // MCP の欄は PC 版（デスクトップのアプリ）にだけある。無い版では、パレットの設定の項目からも外す。
   const includesMcp = useContext(McpSectionSlot) !== null;
   return (

@@ -1,49 +1,21 @@
-// PC の画面のキーボードショートカット。ブラウザが自分で使うキー（Ctrl+N、Ctrl+T、Ctrl+W、Ctrl+Tab）は
-// Web 版に届かないので、Alt を足した組み合わせにしている。Ctrl+K・Ctrl+F・Ctrl+R・Ctrl+L はブラウザの動きを止められるので、そのまま使う。
-// Mac では Ctrl の代わりに Command。
+// PC の画面の、どこでも効くキーボードショートカット（一覧と既定のキーは shortcuts/shortcutCatalog.ts の group: "app"）。
+// キーは押されたときに、このデバイスの設定（変えたキー）から読む。
 
 import { useEffect, useRef } from "react";
-import type { MessageKey } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
-import { isApplePlatform, type ShortcutKeys } from "../shared/shortcutKeys";
+import { shortcutBindings } from "../shortcuts/shortcutBindings";
+import { type AppShortcutId, shortcutsOfGroup } from "../shortcuts/shortcutCatalog";
+import { matchingShortcut } from "../shortcuts/shortcutMatching";
 
-export type ShortcutId = "commandPalette" | "newNote" | "dailyNote" | "searchNotes" | "findInNote" | "replaceInNote" | "nextTab" | "previousTab" | "closeTab" | "reopenClosedTab" | "openSettings" | "graph" | "reminders" | "aiChat" | "focusMode" | "typewriterMode" | "lock";
+export const APP_SHORTCUT_IDS = shortcutsOfGroup("app").map((definition) => definition.id as AppShortcutId);
 
-export const KEYBOARD_SHORTCUTS: Array<{ id: ShortcutId; label: MessageKey; keys: ShortcutKeys }> = [
-  { id: "commandPalette", label: "shortcut.commandPalette", keys: { key: "k" } },
-  { id: "newNote", label: "shortcut.newNote", keys: { key: "n", alt: true } },
-  { id: "dailyNote", label: "shortcut.dailyNote", keys: { key: "j", alt: true } },
-  { id: "searchNotes", label: "shortcut.searchNotes", keys: { key: "f", shift: true } },
-  { id: "findInNote", label: "shortcut.findInNote", keys: { key: "f" } },
-  { id: "replaceInNote", label: "shortcut.replaceInNote", keys: { key: "r" } },
-  { id: "nextTab", label: "shortcut.nextTab", keys: { key: "ArrowRight", alt: true } },
-  { id: "previousTab", label: "shortcut.previousTab", keys: { key: "ArrowLeft", alt: true } },
-  { id: "closeTab", label: "shortcut.closeTab", keys: { key: "w", alt: true } },
-  { id: "reopenClosedTab", label: "shortcut.reopenClosedTab", keys: { key: "t", alt: true, shift: true } },
-  { id: "openSettings", label: "shortcut.openSettings", keys: { key: "," } },
-  { id: "graph", label: "graph.title", keys: { key: "g", alt: true } },
-  { id: "reminders", label: "due.title", keys: { key: "e", alt: true } },
-  { id: "aiChat", label: "ai.chat", keys: { key: "a", alt: true } },
-  { id: "focusMode", label: "shortcut.focusMode", keys: { key: "f", alt: true } },
-  { id: "typewriterMode", label: "shortcut.typewriterMode", keys: { key: "f", alt: true, shift: true } },
-  { id: "lock", label: "settings.lock", keys: { key: "l" } },
-];
-
-// ほかの画面（メモのメニューなど）に、同じキーを出すときに使う。
-export function keysOfShortcut(id: ShortcutId): ShortcutKeys {
-  return KEYBOARD_SHORTCUTS.find((shortcut) => shortcut.id === id)!.keys;
-}
-
-function matches(event: KeyboardEvent, keys: ShortcutKeys): boolean {
-  const modifier = isApplePlatform() ? event.metaKey : event.ctrlKey;
-  // Alt を押すと key が別の文字になる配列があるので、文字のキーは物理的な位置（code）でも見る。
-  const sameKey = event.key.toLowerCase() === keys.key.toLowerCase() || event.code === `Key${keys.key.toUpperCase()}`;
-  return modifier && sameKey && event.altKey === Boolean(keys.alt) && event.shiftKey === Boolean(keys.shift);
-}
+// 既定のキー。割り当てを変えたあとも、このキーではブラウザの動き（Ctrl+R の再読み込み、Ctrl+L のアドレス欄など）を止め続ける
+// （押しただけで画面が読み込み直されて、ロックがかからないように）。
+const DEFAULT_APP_BINDINGS = shortcutsOfGroup("app").map((definition) => ({ id: definition.id, keys: definition.defaultKeys }));
 
 // ショートカットを効かせる。日本語の変換中と、ダイアログが開いている間は効かせない。
-// ダイアログが開いている間も、ブラウザの動き（Ctrl+R の再読み込みなど）は止める（押しただけで画面が読み込み直されないように）。
-export function useKeyboardShortcuts(handlers: Record<ShortcutId, () => void>): void {
+// ダイアログが開いている間も、ブラウザの動き（Ctrl+R の再読み込みなど）は止める。
+export function useKeyboardShortcuts(handlers: Record<AppShortcutId, () => void>): void {
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
   useEffect(() => {
@@ -51,13 +23,16 @@ export function useKeyboardShortcuts(handlers: Record<ShortcutId, () => void>): 
       if (isImeKeyEvent(event)) {
         return;
       }
-      const shortcut = KEYBOARD_SHORTCUTS.find((candidate) => matches(event, candidate.keys));
-      if (!shortcut) {
+      const shortcutId = matchingShortcut(event, shortcutBindings(APP_SHORTCUT_IDS));
+      if (shortcutId === null) {
+        if (matchingShortcut(event, DEFAULT_APP_BINDINGS) !== null) {
+          event.preventDefault();
+        }
         return;
       }
       event.preventDefault();
       if (!document.querySelector('[role="dialog"]')) {
-        handlersRef.current[shortcut.id]();
+        handlersRef.current[shortcutId]();
       }
     };
     window.addEventListener("keydown", onKeyDown);

@@ -8,8 +8,8 @@ import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 import { FOLDED_ATTRIBUTE } from "../../core/notes/bodyContentChange";
-import { type MessageKey, translate } from "../i18n/translate";
-import { editorKeymapName, type ShortcutKeys } from "../shared/shortcutKeys";
+import { translate } from "../i18n/translate";
+import { editorShortcutPlugin } from "./editorShortcutPlugin";
 
 const LIST_ITEM_TYPES = ["listItem", "taskItem"];
 const LIST_TYPES = new Set(["bulletList", "orderedList", "taskList"]);
@@ -133,15 +133,6 @@ export function setAllFolded(editor: Editor, collapsed: boolean): boolean {
   return true;
 }
 
-// メモの「…」の「すべて折りたたむ」「すべて開く」にも、このキーを出す。
-export const FOLD_ALL_KEYS: ShortcutKeys = { key: "[", alt: true };
-export const UNFOLD_ALL_KEYS: ShortcutKeys = { key: "]", alt: true };
-
-export const FOLDING_SHORTCUTS: Array<{ id: string; label: MessageKey; keys: ShortcutKeys; run: (editor: Editor) => boolean }> = [
-  { id: "foldAll", label: "editor.foldAll", keys: FOLD_ALL_KEYS, run: (editor) => setAllFolded(editor, true) },
-  { id: "unfoldAll", label: "editor.unfoldAll", keys: UNFOLD_ALL_KEYS, run: (editor) => setAllFolded(editor, false) },
-];
-
 export const Folding = Extension.create({
   name: "folding",
   addGlobalAttributes() {
@@ -156,11 +147,11 @@ export const Folding = Extension.create({
       },
     }];
   },
-  addKeyboardShortcuts() {
-    return Object.fromEntries(FOLDING_SHORTCUTS.map((shortcut) => [editorKeymapName(shortcut.keys), () => shortcut.run(this.editor)]));
-  },
   addProseMirrorPlugins() {
+    const { editor } = this;
     return [
+      // すべて折りたたむ・すべて開く（キーは設定で変えられる。メモの「…」のメニューにも出す）。
+      editorShortcutPlugin({ foldAll: () => setAllFolded(editor, true), unfoldAll: () => setAllFolded(editor, false) }),
       new Plugin({
         key: foldingKey,
         state: {

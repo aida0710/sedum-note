@@ -7,6 +7,7 @@ import { PAGE_ALIGNMENTS, type PageAlignment } from "../../core/notes/noteRecord
 import { NOTE_SORT_ORDERS, type NoteSortOrder } from "../../core/notes/noteQueries";
 import { DAILY_NOTE_TITLE_FORMATS, type DailyNoteTitleFormat } from "../workspace/dailyNote";
 import { DEFAULT_EDITOR_TYPOGRAPHY, type EditorTypography, settledEditorTypography } from "./editorTypography";
+import { type ShortcutOverrides, settledShortcutOverrides } from "../shortcuts/shortcutOverrides";
 
 // Web 版はほかのページと同じ origin（github.io）に載るので、キーにアプリの名前を付ける。
 const STORAGE_KEY = "sedum-note:devicePreferences";
@@ -53,6 +54,8 @@ export type DevicePreferences = {
   stayResident: boolean;
   // 本文の列の置き場所の既定。メモごとに選んだもの（NoteContent.pageAlignment）があれば、そちらが勝つ。
   pageAlignment: PageAlignment;
+  // 変えたキーボードショートカットのキー（shortcuts/shortcutOverrides.ts）。キーボードと OS がデバイスごとに違うので、同期しない。
+  shortcutOverrides: ShortcutOverrides;
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
@@ -75,6 +78,7 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   dueNotifications: false,
   stayResident: false,
   pageAlignment: "center",
+  shortcutOverrides: {},
 };
 
 let current: DevicePreferences | null = null;
@@ -150,6 +154,7 @@ function validPreferences(stored: unknown): DevicePreferences {
     stayResident: typeof candidate.stayResident === "boolean" ? candidate.stayResident : DEFAULT_DEVICE_PREFERENCES.stayResident,
     pageAlignment: PAGE_ALIGNMENTS.find((alignment) => alignment === candidate.pageAlignment) ?? DEFAULT_DEVICE_PREFERENCES.pageAlignment,
     sidebarWidth: clampSidebarWidth(typeof candidate.sidebarWidth === "number" ? candidate.sidebarWidth : DEFAULT_DEVICE_PREFERENCES.sidebarWidth),
+    shortcutOverrides: settledShortcutOverrides(candidate.shortcutOverrides),
   };
 }
 

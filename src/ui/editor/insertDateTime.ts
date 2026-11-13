@@ -3,9 +3,8 @@
 import { Extension } from "@tiptap/core";
 import type { Editor } from "@tiptap/react";
 import { languageInUse } from "../i18n/languageInUse";
-import type { MessageKey } from "../i18n/translate";
 import { formatLongDate, formatLongDateTime } from "../shared/formatTime";
-import { editorKeymapName, type ShortcutKeys } from "../shared/shortcutKeys";
+import { editorShortcutPlugin } from "./editorShortcutPlugin";
 
 export type InsertedDateTime = "date" | "dateTime";
 
@@ -18,15 +17,11 @@ export function insertCurrentDateTime(editor: Editor, kind: InsertedDateTime): b
   return editor.chain().focus().insertContent(currentDateTimeText(kind)).run();
 }
 
-export const DATE_TIME_SHORTCUTS: Array<{ id: string; label: MessageKey; keys: ShortcutKeys; kind: InsertedDateTime }> = [
-  { id: "insertDate", label: "editor.insertDate", keys: { key: "d", alt: true }, kind: "date" },
-  { id: "insertDateTime", label: "editor.insertDateTime", keys: { key: "d", alt: true, shift: true }, kind: "dateTime" },
-];
-
+// キーは設定で変えられる（既定は shortcuts/shortcutCatalog.ts）。
 export const DateTimeShortcuts = Extension.create({
   name: "dateTimeShortcuts",
-  addKeyboardShortcuts() {
-    return Object.fromEntries(DATE_TIME_SHORTCUTS.map((shortcut) =>
-      [editorKeymapName(shortcut.keys), () => insertCurrentDateTime(this.editor as Editor, shortcut.kind)]));
+  addProseMirrorPlugins() {
+    const editor = this.editor as Editor;
+    return [editorShortcutPlugin({ insertDate: () => insertCurrentDateTime(editor, "date"), insertDateTime: () => insertCurrentDateTime(editor, "dateTime") })];
   },
 });

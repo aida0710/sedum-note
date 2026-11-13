@@ -5,14 +5,15 @@ import type { LiveNotebook } from "../../core/notes/noteRecords";
 import { translate } from "../i18n/translate";
 import { SETTINGS_PAGE_META } from "../settings/settingsPages";
 import type { SettingsSearchEntry } from "../settings/settingsSearchEntries";
-import type { ShortcutId } from "./keyboardShortcuts";
+import type { AppShortcutId } from "../shortcuts/shortcutCatalog";
 import type { PaletteCandidate } from "./paletteItems";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
 
-export type PaletteCommand = { id: ShortcutId; label: string; shortcut: string; run: () => void };
+// shortcut は、キーの表記。キーなしにしたものは空。
+export type PaletteCommand = { id: AppShortcutId; label: string; shortcut: string; run: () => void };
 
 // パレットを開いてすぐ（何も打つ前）に並べる、よく使う操作。
-const SUGGESTED_COMMAND_IDS: ShortcutId[] = ["newNote", "dailyNote", "reminders", "openSettings"];
+const SUGGESTED_COMMAND_IDS: AppShortcutId[] = ["newNote", "dailyNote", "reminders", "openSettings"];
 
 type PaletteCandidatesInput = {
   summaries: NoteSummary[];

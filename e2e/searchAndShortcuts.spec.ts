@@ -94,6 +94,61 @@ test("ショートカットで、新しいメモ・タブの切り替え・タ�
   await expect(page.getByRole("tab")).toHaveCount(2);
 });
 
+test("設定でショートカットのキーを変えられる。使っているキーと編集のキーは断り、すべて既定に戻せる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "1 つ目", "");
+  await page.keyboard.press("Control+,");
+  await selectSettingsPage(page, "ショートカット");
+  const keyButton = (name: string) => page.getByRole("button", { name: `「${name}」のキーを変える` });
+
+  await keyButton("新しいメモ").click();
+  await expect(keyButton("新しいメモ")).toHaveText("キーを押してください…");
+  // 押したキーは、ほかのショートカット（Ctrl+K のコマンドパレット）に渡らず、使っているキーとして断る。
+  await page.keyboard.press("Control+k");
+  await expect(page.getByRole("alert")).toHaveText("Ctrl + K は「コマンドパレット」で使っています。先にそちらのキーを変えてください。");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.keyboard.press("Control+b");
+  await expect(page.getByRole("alert")).toContainText("Ctrl + B は、文字の編集やコピーなどに使われているので");
+  await page.keyboard.press("Control+Alt+m");
+  await expect(keyButton("新しいメモ")).toHaveText("Ctrl + Alt + M");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+
+  // 本文の中のキーも変えられる（開いているメモにも、すぐ効く）。
+  await keyButton("ブロックを複製").click();
+  await page.keyboard.press("Control+Shift+y");
+  await expect(keyButton("ブロックを複製")).toHaveText("Ctrl + Shift + Y");
+  // 「置換」を Ctrl+R から外しても、Ctrl+R のブラウザの動き（読み込み直し）は止める。アプリより後に登録した受け手で確かめる。
+  await keyButton("開いているメモの中を置換").click();
+  await page.keyboard.press("Backspace");
+  await expect(keyButton("開いているメモの中を置換")).toHaveText("キーなし");
+  await page.evaluate(() => window.addEventListener("keydown", (event) => {
+    if (event.ctrlKey && event.key === "r") {
+      (window as unknown as { ctrlRPrevented: boolean }).ctrlRPrevented = event.defaultPrevented;
+    }
+  }));
+  await page.keyboard.press("Control+r");
+  expect(await page.evaluate(() => (window as unknown as { ctrlRPrevented?: boolean }).ctrlRPrevented)).toBe(true);
+
+  await page.getByRole("tab", { name: "1 つ目" }).click();
+  await page.locator(".ProseMirror").click();
+  await page.keyboard.type("複製する段落");
+  await page.keyboard.press("Control+d");
+  await expect(page.locator(".ProseMirror p")).toHaveText(["複製する段落"]);
+  await page.keyboard.press("Control+Shift+y");
+  await expect(page.locator(".ProseMirror p")).toHaveText(["複製する段落", "複製する段落"]);
+  await page.keyboard.press("Control+Alt+n");
+  await expect(page.getByRole("tab")).toHaveCount(2);
+  await page.keyboard.press("Control+Alt+m");
+  await expect(page.getByRole("tab")).toHaveCount(3);
+
+  await page.getByRole("tab", { name: "設定" }).click();
+  await page.getByRole("button", { name: "すべて既定に戻す" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "すべて既定に戻す" }).click();
+  await expect(keyButton("新しいメモ")).toHaveText("Ctrl + Alt + N");
+  await expect(keyButton("ブロックを複製")).toHaveText("Ctrl + D");
+  await expect(keyButton("開いているメモの中を置換")).toHaveText("Ctrl + R");
+});
+
 test("メモの中の言葉を、1 つずつ、または全部まとめて置換できる。全部の置換は 1 回の取り消しで戻る", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "置換の試し", "りんご と みかん。りんご の木。りんご の実。");

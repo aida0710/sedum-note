@@ -1,6 +1,6 @@
 // 持ち手を押すと開く、ブロックのメニュー（Notion と同じ形）。
 //   変換: 本文・見出し・箇条書き・引用・コードなどに変える（文字のブロックと箇条書きの項目だけ）。何行かを選んでいるときは、選んだ行を全部変える。
-//   動かす・複製・削除: キー（blockKeys.ts）と同じ操作。キーを右に出す。
+//   動かす・複製・削除: キー（blockKeys.ts）と同じ操作。キー（設定で変えたもの）を右に出す。
 
 import type { Editor } from "@tiptap/react";
 import {
@@ -8,10 +8,11 @@ import {
 } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { type MessageKey, translate } from "../i18n/translate";
+import { useDevicePreferences } from "../preferences/devicePreferences";
 import { PopupMenu } from "../shared/PopupMenu";
-import { shortcutText } from "../shared/shortcutKeys";
 import { type BlockKind, BLOCK_KINDS, blockAt, canChangeKind, changeBlockKind, deleteBlock, duplicateBlock, kindOf, moveBlock } from "./blockOperations";
-import { DUPLICATE_BLOCK_KEYS, MOVE_BLOCK_DOWN_KEYS, MOVE_BLOCK_UP_KEYS } from "./blockKeys";
+import { shortcutTextOf } from "../shortcuts/shortcutBindings";
+import type { ShortcutId } from "../shortcuts/shortcutCatalog";
 import type { BlockMenuController } from "./blockMenuController";
 
 // メニューの項目のアイコンの大きさ。ほかのメニュー（メモの「…」など）と同じ。
@@ -33,6 +34,7 @@ type BlockMenuProps = { editor: Editor; controller: BlockMenuController };
 
 export function BlockMenu({ editor, controller }: BlockMenuProps) {
   const state = useSyncExternalStore(controller.subscribe, controller.state);
+  const { shortcutOverrides } = useDevicePreferences();
   const block = state ? blockAt(editor.state, state.position) : null;
   if (!state || !block) {
     return null;
@@ -44,7 +46,9 @@ export function BlockMenu({ editor, controller }: BlockMenuProps) {
     editor.view.focus();
   };
   const currentKind = kindOf(editor.state, block);
-  const item = (label: MessageKey, Icon: LucideIcon, onSelect: () => void, { shortcut, checked, danger }: { shortcut?: string; checked?: boolean; danger?: boolean } = {}) => (
+  // 設定で変えたキー。キーなしにしたものは出さない。
+  const keysText = (id: ShortcutId) => shortcutTextOf(id, shortcutOverrides);
+  const item = (label: MessageKey, Icon: LucideIcon, onSelect: () => void, { shortcut, checked, danger }: { shortcut?: string | null; checked?: boolean; danger?: boolean } = {}) => (
     <button key={label} type="button" className={`menu-item${danger ? " danger" : ""}`} role={checked === undefined ? "menuitem" : "menuitemradio"} aria-checked={checked}
       onMouseDown={(event) => event.preventDefault()} onClick={onSelect}>
       <Icon size={MENU_ICON_SIZE} />{translate(label)}
@@ -61,9 +65,9 @@ export function BlockMenu({ editor, controller }: BlockMenuProps) {
         </div>
       )}
       <div className="menu-group" role="group">
-        {item("editor.block.moveUp", ArrowUp, run(() => moveBlock(editor, block, -1)), { shortcut: shortcutText(MOVE_BLOCK_UP_KEYS) })}
-        {item("editor.block.moveDown", ArrowDown, run(() => moveBlock(editor, block, 1)), { shortcut: shortcutText(MOVE_BLOCK_DOWN_KEYS) })}
-        {item("editor.block.duplicate", Copy, run(() => duplicateBlock(editor, block)), { shortcut: shortcutText(DUPLICATE_BLOCK_KEYS) })}
+        {item("editor.block.moveUp", ArrowUp, run(() => moveBlock(editor, block, -1)), { shortcut: keysText("moveBlockUp") })}
+        {item("editor.block.moveDown", ArrowDown, run(() => moveBlock(editor, block, 1)), { shortcut: keysText("moveBlockDown") })}
+        {item("editor.block.duplicate", Copy, run(() => duplicateBlock(editor, block)), { shortcut: keysText("duplicateBlock") })}
       </div>
       <div className="menu-group" role="group">
         {item("editor.block.delete", Trash2, run(() => deleteBlock(editor, block)), { danger: true })}
