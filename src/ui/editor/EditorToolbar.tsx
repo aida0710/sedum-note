@@ -82,7 +82,9 @@ function ListItemTools({ editor }: { editor: Editor }) {
   const listItem = useEditorState({
     editor,
     selector: ({ editor: current }) => {
-      const type = LIST_ITEM_TYPES.find((itemType) => current.isActive(itemType)) ?? null;
+      // チェックリストを箇条書きの中に入れているときは、カーソルのある内側の項目の種類を使う（blockAtCursor はいちばん内側の項目を返す）。
+      const blockTypeName = blockAtCursor(current.state)?.node.type.name;
+      const type = LIST_ITEM_TYPES.find((itemType) => itemType === blockTypeName) ?? null;
       return { type, canIndent: type !== null && current.can().sinkListItem(type), canOutdent: type !== null && current.can().liftListItem(type) };
     },
   });

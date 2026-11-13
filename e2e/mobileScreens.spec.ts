@@ -63,17 +63,51 @@ test("スマホの下のツールバーで、箇条書きの項目を字下げ�
   await expect(body.locator("ul > li")).toHaveText(["親", "子"]);
 });
 
+test("箇条書きの中に入れたチェックリストでは、カーソルのある内側の項目を字下げする", async ({ browser }) => {
+  const page = await openPhone(browser);
+  await openNewNoteOnPhone(page, "入れ子");
+  const body = page.locator(".ProseMirror");
+  const toolbar = page.locator(".editor-bar");
+  const indent = toolbar.getByRole("button", { name: "字下げ", exact: true });
+  await body.click();
+  await toolbar.getByRole("button", { name: "箇条書き", exact: true }).click();
+  await page.keyboard.type("親");
+  await page.keyboard.press("Enter");
+  await indent.click();
+  // 内側の箇条書きだけを、チェックリストに変える。
+  await toolbar.getByRole("button", { name: "チェックリスト" }).click();
+  await page.keyboard.type("確認 1");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("確認 2");
+  await indent.click();
+  await expect(body.locator('ul[data-type="taskList"] ul[data-type="taskList"] li p')).toHaveText("確認 2");
+});
+
 test("スマホの下のツールバーは、画面に入り切らないとき、続きのある側の端をぼかす", async ({ browser }) => {
   const page = await openPhone(browser);
   await openNewNoteOnPhone(page, "ツールバー");
   const toolbar = page.locator(".editor-bar");
   await expect(toolbar).toHaveAttribute("data-more-end", "");
   await expect(toolbar).not.toHaveAttribute("data-more-start", "");
-  expect(await toolbar.evaluate((element) => getComputedStyle(element).maskImage)).toContain("linear-gradient");
+  const fadeOpacity = (edge: "::before" | "::after") => toolbar.evaluate((element, pseudo) => getComputedStyle(element, pseudo).opacity, edge);
+  expect(await fadeOpacity("::after")).toBe("1");
+  expect(await fadeOpacity("::before")).toBe("0");
+  // ぼかしの帯は、ボタンの並びを動かさない（最初のボタンは、バーの左の余白のすぐ右にある）。
+  const toolbarBox = (await toolbar.boundingBox())!;
+  const firstToolBox = (await toolbar.getByRole("button", { name: "元に戻す" }).boundingBox())!;
+  expect(firstToolBox.x - toolbarBox.x).toBe(10);
 
   await toolbar.evaluate((element) => element.scrollTo({ left: element.scrollWidth }));
   await expect(toolbar).toHaveAttribute("data-more-start", "");
   await expect(toolbar).not.toHaveAttribute("data-more-end", "");
+  expect(await fadeOpacity("::before")).toBe("1");
+  // 右端の「表」のメニューは、バーの外へ開いても切り取られずに押せる。
+  await toolbar.getByRole("button", { name: "表", exact: true }).click();
+  const tableMenu = page.getByRole("menu");
+  await expect(tableMenu).toBeVisible();
+  const menuBox = (await tableMenu.boundingBox())!;
+  const topElementIsInMenu = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[role="menu"]') !== null, { x: menuBox.x + menuBox.width / 2, y: menuBox.y + 12 });
+  expect(topElementIsInMenu).toBe(true);
 });
 
 async function backToList(page: Page): Promise<void> {
@@ -376,4 +410,28 @@ test("スマホでノートブックの中を検索すると、探している�
   await expect(page.locator(".note-item-title")).toHaveText(["中のメモ"]);
   await scope.getByRole("radio", { name: "すべてのメモ" }).click();
   await expect(page.locator(".note-item-title")).toHaveText(["中のメモ", "外のメモ"]);
+});
+
+test("スマホのチェックリストでも、折りたたみの印が画面の中に出て、チェックとは別に押せる", async ({ browser }) => {
+  const page = await openPhone(browser, { hasTouch: true });
+  await openNewNoteOnPhone(page, "チェックリスト");
+  const body = page.locator(".ProseMirror");
+  const toolbar = page.locator(".editor-bar");
+  await body.click();
+  await toolbar.getByRole("button", { name: "チェックリスト" }).click();
+  await page.keyboard.type("親");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("子");
+  await toolbar.getByRole("button", { name: "字下げ", exact: true }).click();
+  const foldToggle = body.locator("li .fold-toggle").first();
+  const toggleBox = (await foldToggle.boundingBox())!;
+  expect(toggleBox.x).toBeGreaterThanOrEqual(0);
+  // チェックの真ん中を押すと、折りたたみの印ではなくチェックに当たる。
+  const checkbox = body.locator('li input[type="checkbox"]').first();
+  const checkboxBox = (await checkbox.boundingBox())!;
+  expect(toggleBox.x + toggleBox.width).toBeLessThanOrEqual(checkboxBox.x);
+  const hitTagName = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.tagName, { x: checkboxBox.x + checkboxBox.width / 2, y: checkboxBox.y + checkboxBox.height / 2 });
+  expect(hitTagName).toBe("INPUT");
+  await foldToggle.click();
+  await expect(body.locator("li li")).toBeHidden();
 });

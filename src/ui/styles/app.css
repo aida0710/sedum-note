@@ -519,6 +519,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ProseMirror h1 > .fold-toggle, .ProseMirror h2 > .fold-toggle, .ProseMirror h3 > .fold-toggle, .ProseMirror h4 > .fold-toggle, .ProseMirror h5 > .fold-toggle, .ProseMirror h6 > .fold-toggle { left: -20px; }
 /* スマホは本文の左の余白（18px）が狭いので、見出しの印を内側に寄せて、画面の端からはみ出さないようにする。 */
 .phone .ProseMirror :is(h1, h2, h3, h4, h5, h6) > .fold-toggle { left: -17px; width: 14px; }
+/* チェックリストは字下げが無く、最上位の項目の印が画面の左の外（-16px）に出てしまうので、同じく内側に寄せる。 */
+.phone .ProseMirror ul[data-type="taskList"] > li > div > .fold-toggle { left: -17px; width: 14px; }
 /* 箇条書きへのズーム。道筋の上にないものを隠し、道筋の上の入れ物からは字下げと印を外して、項目を本文の左端から出す。 */
 .ProseMirror .zoom-hidden { display: none; }
 .ProseMirror ul.zoom-path, .ProseMirror ol.zoom-path { padding-left: 0; margin: 0; }
@@ -974,7 +976,8 @@ details summary { cursor: pointer; color: var(--accent); }
 /* 指で押す端末では、見た目の大きさは変えずに、押せる範囲を 44px（iOS と Android の指針の大きさ）まで広げる。
    小さいボタンには透明な ::before（折りたたみの印は ::before を印に使っているので ::after）を重ねる。 */
 @media (pointer: coarse) {
-  :is(.icon-button, .tool, .phone-back, .chips .chip, .tabbar button, .choice.swatch, .footnote-number, .ProseMirror .section-zoom, .image-resize-handle)::before,
+  /* 写真の大きさの持ち手は、写真を選んでいる間だけ見えるので、押せる範囲もその間だけ広げる（見えない持ち手が、写真の角でのスクロールやタップを取らないように）。 */
+  :is(.icon-button, .tool, .phone-back, .chips .chip, .tabbar button, .choice.swatch, .footnote-number, .ProseMirror .section-zoom, .attachment-image.selected .image-resize-handle)::before,
   .ProseMirror .fold-toggle::after { content: ""; position: absolute; inset: var(--touch-area-inset, -8px); }
   :is(.icon-button, .tool, .phone-back, .chips .chip, .tabbar button, .choice.swatch, .footnote-number) { position: relative; }
   .phone-back { --touch-area-inset: -10px -8px; }
@@ -988,14 +991,19 @@ details summary { cursor: pointer; color: var(--accent); }
   .phone .ProseMirror .section-zoom { --touch-area-inset: -12px -18px -12px -4px; }
   .image-resize-handle { --touch-area-inset: -14px; }
   .ProseMirror .fold-toggle { --touch-area-inset: -8px -14px; }
+  /* スマホの見出しとチェックリストの印は、文字やチェックのすぐ左にあるので、そちらの側へは広げない。 */
+  .phone .ProseMirror :is(h1, h2, h3, h4, h5, h6, ul[data-type="taskList"] > li > div) > .fold-toggle { --touch-area-inset: -8px 0 -8px -14px; }
   .menu-item { min-height: 44px; }
 }
 /* 指で使う端末にはポインターを乗せる操作が無いので、折りたたみの印をいつも薄く出す。 */
 @media (hover: none) { .ProseMirror .fold-toggle { opacity: .45; } .ProseMirror .fold-toggle.collapsed { opacity: 1; } }
-/* スマホの下のツールバーは横に送れる。まだ先がある側の端をぼかして、続きがあることを見せる（shared/useHorizontalScrollEdges.ts が data 属性を付ける）。 */
-.phone .editor-bar { --editor-bar-fade-start: 0px; --editor-bar-fade-end: 0px; mask-image: linear-gradient(to right, transparent, #000 var(--editor-bar-fade-start), #000 calc(100% - var(--editor-bar-fade-end)), transparent); }
-.phone .editor-bar[data-more-start] { --editor-bar-fade-start: 40px; }
-.phone .editor-bar[data-more-end] { --editor-bar-fade-end: 40px; }
+/* スマホの下のツールバーは横に送れる。まだ先がある側の端に、背景色へ溶ける帯を重ねて、続きがあることを見せる
+   （shared/useHorizontalScrollEdges.ts が data 属性を付ける）。帯は sticky で端に留め、幅と間隔の分を負の余白で打ち消して、ボタンの並びを動かさない。
+   mask-image は使わない（バーの中から開く色・表のメニューまで切り取られる）。 */
+.phone .editor-bar::before, .phone .editor-bar::after { content: ""; position: sticky; z-index: 1; flex: none; align-self: stretch; width: 40px; pointer-events: none; opacity: 0; }
+.phone .editor-bar::before { left: -10px; margin-right: -44px; background: linear-gradient(to right, var(--panel), transparent); }
+.phone .editor-bar::after { right: -10px; margin-left: -44px; background: linear-gradient(to left, var(--panel), transparent); }
+.phone .editor-bar[data-more-start]::before, .phone .editor-bar[data-more-end]::after { opacity: 1; }
 .tool[aria-disabled="true"] { opacity: .4; }
 .tool[aria-disabled="true"]:hover { background: none; }
 @media (max-width: 760px) {
