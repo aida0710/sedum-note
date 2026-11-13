@@ -932,6 +932,12 @@ details summary { cursor: pointer; color: var(--accent); }
 .phone .title-input { font-size: 26px; }
 .phone .editor-bar { order: 2; border-bottom: 0; border-top: 1px solid var(--line); justify-content: space-between; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
 .phone .settings { padding: 8px 16px 40px; }
+/* スマホの下のツールバーは横に送れる。まだ先がある側の端をぼかして、続きがあることを見せる（shared/useHorizontalScrollEdges.ts が data 属性を付ける）。 */
+.phone .editor-bar { --editor-bar-fade-start: 0px; --editor-bar-fade-end: 0px; mask-image: linear-gradient(to right, transparent, #000 var(--editor-bar-fade-start), #000 calc(100% - var(--editor-bar-fade-end)), transparent); }
+.phone .editor-bar[data-more-start] { --editor-bar-fade-start: 40px; }
+.phone .editor-bar[data-more-end] { --editor-bar-fade-end: 40px; }
+.tool[aria-disabled="true"] { opacity: .4; }
+.tool[aria-disabled="true"]:hover { background: none; }
 @media (max-width: 760px) {
   .field-grid { grid-template-columns: minmax(0, 1fr); }
   .entry-card { padding: 20px; }
