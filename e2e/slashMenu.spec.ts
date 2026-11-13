@@ -19,7 +19,7 @@ test("「/」を打つとブロックの候補が出て、上下のキーと Ent
     "画像を貼る", "ファイルを添付", ...(canRecord ? ["録音する"] : []), "書類のスキャン", "期限（チェックリストの項目に付ける）", "今日の日付", "今の日時", "2 段組み", "3 段組み", "埋め込み（動画・Web ページ）", "脚注", "数式", "図（Mermaid）", "手書き・図形", "クエリ（条件に合うメモの一覧）", "メモへのリンク", "ブロックへのリンク", "ブロックの埋め込み（ほかのメモの一部を出す）",
   ]);
   // 候補は枠より長いが、スクロールバーは出さない（バーの分だけ中身の幅が狭くならない）。
-  const scrollbar = await slashMenu(page).evaluate((menu) => ({
+  const scrollbar = await slashMenu(page).evaluate((menu: HTMLElement) => ({
     setting: getComputedStyle(menu).scrollbarWidth, takenWidth: menu.offsetWidth - menu.clientWidth, isScrollable: menu.scrollHeight > menu.clientHeight,
   }));
   expect(scrollbar).toEqual({ setting: "none", takenWidth: 2, isScrollable: true });
