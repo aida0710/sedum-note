@@ -27,6 +27,11 @@ describe("bodyPlainText", () => {
 });
 
 describe("plainTextHashtags", () => {
+  it("句読点やかっこのすぐ後ろの #言葉 もタグとして拾い、URL の中の # は拾わない", () => {
+    expect(plainTextHashtags("本文の一行目。#小説 #名作、「#古典」も")).toEqual(["小説", "名作", "古典"]);
+    expect(plainTextHashtags("https://example.com/#top と https://example.com/page#section と abc#def")).toEqual([]);
+  });
+
   it("#の直後に言葉が続くものだけをタグにする", () => {
     expect(plainTextHashtags("買う物 #todo と #沖縄 、見出しの # は除く")).toEqual(["todo", "沖縄"]);
   });

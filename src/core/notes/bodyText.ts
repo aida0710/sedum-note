@@ -115,7 +115,9 @@ export function bodyLinkedNoteIds(body: Y.XmlFragment): string[] {
 
 // UpNote と同じく、本文の「#言葉」をタグとして扱う。見出しの記号と区別するため、
 // # の直後に空白を置かないものだけを拾う。
-const HASHTAG_PATTERN = /(?:^|[\s　(（])#([\p{L}\p{N}_\-/]+)/gu;
+// # の前は、文字・数字・_ でなければよい（「本文。#小説」のように、句読点やかっこのすぐ後ろのタグも拾う）。
+// URL の中の #（「…/#top」「…page#top」）と、文字参照（&#123;）、続けた ## は拾わない。
+const HASHTAG_PATTERN = /(?<![\p{L}\p{N}_/&#])#([\p{L}\p{N}_\-/]+)/gu;
 
 export function plainTextHashtags(text: string): string[] {
   const tags = new Set<string>();
