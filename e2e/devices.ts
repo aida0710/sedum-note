@@ -21,6 +21,14 @@ export async function unlockApp(page: Page): Promise<void> {
   await page.getByRole("button", { name: "解除" }).click();
 }
 
+// 開いている「このデバイスのデータを削除」の確認で「すべて削除」を押し、消し終えたあとの読み込み直しを待つ。
+// アプリは消したあとに、メモリの鍵ごと捨てるためにページを読み込み直す。その前に最初の画面が見えることがあるので、画面を見るだけでは待てない。
+export async function confirmDeviceDataWipe(page: Page): Promise<void> {
+  const reloaded = page.waitForEvent("load");
+  await page.getByRole("dialog").getByRole("button", { name: "すべて削除" }).click();
+  await reloaded;
+}
+
 // 試験の同期先で使う、自分で決めた暗号化キー。
 export const SYNC_KEY = "shared-key-for-e2e";
 

@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { openSettingsPage, selectSettingsPage, startLocalVault } from "./devices";
+import { confirmDeviceDataWipe, openSettingsPage, selectSettingsPage, startLocalVault } from "./devices";
 
 async function startLocalVaultWithNote(page: Page, title: string): Promise<void> {
   await startLocalVault(page);
@@ -36,10 +36,9 @@ test("設定からこのデバイスのデータを消すと、入力の直後�
   await page.getByRole("button", { name: "このデバイスのデータを削除" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toContainText("1件のメモとノートブックは、バックアップがなければ元に戻せません");
-  await dialog.getByRole("button", { name: "すべて削除" }).click();
+  await confirmDeviceDataWipe(page);
 
   await expect(page.getByRole("heading", { name: "メモを始める" })).toBeVisible();
-  await page.waitForTimeout(500);
   expect(await storedRecordCount(page)).toBe(0);
   // 表示の設定も消えて、テーマが既定（ライト）に戻る。
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim())).toBe("#f7f7f5");
@@ -55,7 +54,7 @@ test("パスフレーズを忘れても、ロック解除の画面からデー�
   await expect(page.getByRole("heading", { name: "ロックを解除" })).toBeVisible();
 
   await page.getByRole("button", { name: "このデバイスのデータを削除" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "すべて削除" }).click();
+  await confirmDeviceDataWipe(page);
   await expect(page.getByRole("heading", { name: "メモを始める" })).toBeVisible();
   expect(await storedRecordCount(page)).toBe(0);
 });

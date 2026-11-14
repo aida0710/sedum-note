@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
-import { createNoteOnDesktop, fillSyncTarget, openSettingsPage, openSyncedDevice, PASSPHRASE, selectSettingsPage, startLocalVault, startSyncedVault, SYNC_KEY, syncNowOnDesktop } from "./devices";
+import { confirmDeviceDataWipe, createNoteOnDesktop, fillSyncTarget, openSettingsPage, openSyncedDevice, PASSPHRASE, selectSettingsPage, startLocalVault, startSyncedVault, SYNC_KEY, syncNowOnDesktop } from "./devices";
 
 const spaceSwitcher = (page: Page) => page.getByRole("button", { name: /スペースを切り替え/ });
 const noteInList = (page: Page, title: string) => page.locator(".tree-note", { hasText: title });
@@ -156,7 +156,7 @@ test("このデバイスのデータを消すと、全部のスペースが消�
   const dialog = page.getByRole("dialog");
   // 開いているスペースの 2 件だけでなく、もう 1 つのスペースの 1 件も数える。
   await expect(dialog).toContainText("3件のメモとノートブックは、バックアップがなければ元に戻せません");
-  await dialog.getByRole("button", { name: "すべて削除" }).click();
+  await confirmDeviceDataWipe(page);
 
   // 最初の画面に戻り、スペースは最初の 1 つだけになる。どちらの保存も残っていない。
   await expect(page.getByLabel("パスフレーズ（確認）")).toBeVisible();

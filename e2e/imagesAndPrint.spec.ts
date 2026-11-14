@@ -35,8 +35,8 @@ test("写真は既定では元のまま貼り、「縮小して挿入」にす�
   await openNewNote(page);
   const photo = await largePhoto(page, 4000, 3000);
   await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "IMG_0001.jpg", mimeType: "image/jpeg", buffer: photo });
-  await expect(page.locator(".attachment-image img")).toBeVisible();
-  expect(await attachedImageWidth(page)).toBe(4000);
+  // 写真の要素は、読み込みが終わる前から見えている（その間の naturalWidth は 0）。読み込みが終わるまで待って比べる。
+  await expect.poll(() => attachedImageWidth(page)).toBe(4000);
 
   await openSettingsPage(page, "一般");
   await page.getByLabel("画像を挿入するとき").selectOption("reduced");
@@ -44,8 +44,7 @@ test("写真は既定では元のまま貼り、「縮小して挿入」にす�
   await page.getByPlaceholder("タイトル").fill("小さくした写真");
   await page.getByPlaceholder("タイトル").press("Enter");
   await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "IMG_0002.jpg", mimeType: "image/jpeg", buffer: photo });
-  await expect(page.locator(".attachment-image img")).toBeVisible();
-  expect(await attachedImageWidth(page)).toBe(2048);
+  await expect.poll(() => attachedImageWidth(page)).toBe(2048);
   await expect(page.locator(".attachment-image")).toContainText("IMG_0002.jpg");
 });
 
@@ -59,13 +58,12 @@ test("「毎回確認」では、小さくするか元のままかを選べる�
   const question = page.getByRole("dialog");
   await expect(question).toContainText("画像を縮小して挿入しますか");
   await question.getByRole("button", { name: "元のサイズ" }).click();
-  await expect(page.locator(".attachment-image img")).toBeVisible();
-  expect(await attachedImageWidth(page)).toBe(3000);
+  await expect.poll(() => attachedImageWidth(page)).toBe(3000);
 
   await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "small.jpg", mimeType: "image/jpeg", buffer: await largePhoto(page, 800, 600) });
   await page.getByRole("dialog").getByRole("button", { name: "縮小" }).click();
   await expect(page.locator(".attachment-image img")).toHaveCount(2);
-  expect(await page.locator(".attachment-image img").last().evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(800);
+  await expect.poll(() => page.locator(".attachment-image img").last().evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(800);
 });
 
 test("印刷では、開いているメモの本文だけを、明るい色で出す", async ({ page }) => {
