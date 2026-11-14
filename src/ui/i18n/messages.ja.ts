@@ -742,6 +742,7 @@ export const japaneseMessages = {
   "settings.editorTypographyPreview": "本文のプレビュー",
   "settings.editorTypographySample": "あのイーハトーヴォのすきとおった風、夏でも底に冷たさをもつ青いそら。The quick brown fox jumps over the lazy dog.",
   "settings.editorTypographyReset": "テキストサイズと間隔をデフォルトに戻す",
+  "settings.editorTypographyResetOne": "{name}をデフォルト（{value}）に戻す",
   "settings.imageAttachment": "画像を挿入するとき",
   "settings.imageAttachment.original": "元のサイズで挿入",
   "settings.imageAttachment.reduced": "縮小して挿入",

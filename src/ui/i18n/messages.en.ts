@@ -743,6 +743,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "settings.editorTypographyPreview": "Note text sample",
   "settings.editorTypographySample": "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.",
   "settings.editorTypographyReset": "Reset text size and spacing",
+  "settings.editorTypographyResetOne": "Reset {name} to the default ({value})",
   "settings.imageAttachment": "When inserting images",
   "settings.imageAttachment.original": "Insert the original",
   "settings.imageAttachment.reduced": "Reduce and insert",

@@ -455,7 +455,7 @@ test("コマンドパレットは、メモの本文・ノートブック・設�
   await expect(setting).toContainText("設定 › 一般");
   await setting.click();
   await expect(page.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: "一般", exact: true })).toHaveAttribute("aria-current", "page");
-  await expect(page.getByLabel("本文のテキストサイズ")).toBeFocused();
+  await expect(page.getByLabel("本文のテキストサイズ", { exact: true })).toBeFocused();
 
   await page.keyboard.press("Control+k");
   await palette.getByRole("combobox").fill("暗号化キー");

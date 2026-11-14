@@ -52,9 +52,9 @@ test("自作のテーマは、読めない色の組み合わせでは保存で�
 test("本文の文字の大きさ・字の間・行の間を変えると、見本とエディタの文字に当たり、標準にも戻せる", async ({ page }) => {
   await startLocalVault(page);
   await openSettingsPage(page, "一般");
-  await page.getByLabel("本文のテキストサイズ").fill("20");
-  await page.getByLabel("本文の文字間隔").fill("0.08");
-  await page.getByLabel("本文の行間").fill("2.2");
+  await page.getByLabel("本文のテキストサイズ", { exact: true }).fill("20");
+  await page.getByLabel("本文の文字間隔", { exact: true }).fill("0.08");
+  await page.getByLabel("本文の行間", { exact: true }).fill("2.2");
   const sample = page.locator(".typography-preview p");
   await expect(sample).toHaveCSS("font-size", "20px");
   await expect(sample).toHaveCSS("letter-spacing", "1.6px");
@@ -70,6 +70,24 @@ test("本文の文字の大きさ・字の間・行の間を変えると、見�
   await page.getByRole("button", { name: "テキストサイズと間隔をデフォルトに戻す" }).click();
   await expect(sample).toHaveCSS("font-size", "16px");
   await expect(page.getByRole("button", { name: "テキストサイズと間隔をデフォルトに戻す" })).toBeDisabled();
+});
+
+test("つまみごとのボタンで、その項目だけをデフォルトに戻せ、戻してもつまみの位置はずれない", async ({ page }) => {
+  await startLocalVault(page);
+  await openSettingsPage(page, "一般");
+  const resetFontSize = page.getByRole("button", { name: "本文のテキストサイズをデフォルト（16px）に戻す" });
+  await expect(resetFontSize).toBeDisabled();
+  const slider = page.getByLabel("本文のテキストサイズ", { exact: true });
+  const sliderBox = await slider.boundingBox();
+
+  await slider.fill("20");
+  await page.getByLabel("本文の行間", { exact: true }).fill("2.2");
+  await resetFontSize.click();
+  await expect(page.locator(".typography-preview p")).toHaveCSS("font-size", "16px");
+  await expect(resetFontSize).toBeDisabled();
+  // ほかの項目は変えたまま。
+  await expect(page.getByLabel("本文の行間", { exact: true })).toHaveValue("2.2");
+  expect(await slider.boundingBox()).toEqual(sliderBox);
 });
 
 test("カスタム CSS は、ロックを解除している間だけ当たり、ロック解除の画面でオフにできる", async ({ page }) => {
