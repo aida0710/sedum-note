@@ -115,6 +115,25 @@ test("スマホの下のツールバーの箇条書きのボタンを、同じ�
   await expect(bulletList).toHaveAttribute("aria-pressed", "false");
 });
 
+test("指で使う端末では、押したボタンにホバーが残っても、押したままの見た目にならない", async ({ browser }) => {
+  // CDP でホバーを付けるので Chromium だけ（WebKit では送れない）。
+  test.skip(browser.browserType().name() !== "chromium", "ホバーを付けるのに CDP を使う");
+  const page = await openPhone(browser, { hasTouch: true });
+  await openNewNoteOnPhone(page, "ホバーの残り");
+  expect(await page.evaluate(() => matchMedia("(hover: none)").matches)).toBe(true);
+  const session = await page.context().newCDPSession(page);
+  await session.send("DOM.enable");
+  await session.send("CSS.enable");
+  const { root } = await session.send("DOM.getDocument");
+  // 下のツールバーのボタンと、上のバーのアイコンのボタン。押した直後の指の下に残る :hover を、そのまま付けて見る。
+  for (const selector of [".editor-bar .tool", ".icon-button"]) {
+    const { nodeId } = await session.send("DOM.querySelector", { nodeId: root.nodeId, selector });
+    await session.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: ["hover"] });
+    const background = await page.locator(selector).first().evaluate((element) => getComputedStyle(element).backgroundColor);
+    expect(background, selector).toBe("rgba(0, 0, 0, 0)");
+  }
+});
+
 test("箇条書きの中に入れたチェックリストでは、カーソルのある内側の項目を字下げする", async ({ browser }) => {
   const page = await openPhone(browser);
   await openNewNoteOnPhone(page, "入れ子");
