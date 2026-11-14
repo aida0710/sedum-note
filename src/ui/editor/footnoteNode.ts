@@ -4,8 +4,8 @@
 import { type JSONContent, Node } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { Plugin } from "@tiptap/pm/state";
+import { FOOTNOTE_NODE } from "../../core/notes/bodyText";
 
-export const FOOTNOTE_NODE = "footnoteReference";
 // Markdown から読んだ直後の、脚注の文（[^1]: 文）の仮のノード。印に文を移して、本文に入る前に消す。
 const IMPORTED_DEFINITION_NODE = "importedFootnoteDefinition";
 

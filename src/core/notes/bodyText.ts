@@ -19,6 +19,8 @@ const NOTE_REFERENCE_NODE_NAMES = new Set([NOTE_LINK_NODE, BLOCK_EMBED_NODE]);
 const ATTACHMENT_NODE_NAMES = new Set([ATTACHMENT_IMAGE_NODE, ATTACHMENT_FILE_NODE]);
 // コードのブロックのノードと、行の中のコードの書式（Tiptap の名前）。
 export const CODE_BLOCK_NODE = "codeBlock";
+// 脚注の印。脚注の文は、本文の文字ではなく、この印の属性 text に持つ。
+export const FOOTNOTE_NODE = "footnoteReference";
 export const CODE_MARK = "code";
 
 type BodyNode = Y.XmlFragment | Y.XmlElement | Y.XmlText | Y.XmlHook;
@@ -70,6 +72,25 @@ function collectText(node: BodyNode, parts: string[]): void {
   if (node instanceof Y.XmlElement && BLOCK_NODE_NAMES.has(node.nodeName)) {
     parts.push("\n");
   }
+}
+
+// 本文の脚注の文（出てくる順）。脚注の文は印の属性に持つので、bodyPlainText には入らない。
+export function bodyFootnoteTexts(body: Y.XmlFragment): string[] {
+  const texts: string[] = [];
+  const visit = (node: BodyNode) => {
+    if (node instanceof Y.XmlElement && node.nodeName === FOOTNOTE_NODE) {
+      const text = node.getAttribute("text");
+      if (typeof text === "string" && text !== "") {
+        texts.push(text);
+      }
+      return;
+    }
+    if (node instanceof Y.XmlElement || node instanceof Y.XmlFragment) {
+      node.toArray().forEach((child) => visit(child as BodyNode));
+    }
+  };
+  visit(body);
+  return texts;
 }
 
 // 本文に貼ってある添付（写真とファイル）。本文のノードから導くので、別に持つ一覧と食い違うことがない。

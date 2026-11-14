@@ -1,6 +1,6 @@
 // 画面に並べるメモの絞り込みと並べ替え。画面の部品から切り離して試験できるようにする。
 
-import { bodyLinkedNoteIds, bodyPlainText, plainTextHashtags } from "./bodyText";
+import { bodyFootnoteTexts, bodyLinkedNoteIds, bodyPlainText, plainTextHashtags } from "./bodyText";
 import { bodyDueTasks, type DueTask } from "./dueTasks";
 import { matchesNoteSearch, parseNoteSearchQuery } from "./noteSearchQuery";
 import type { LiveNote, LiveNotebook } from "./noteRecords";
@@ -24,7 +24,8 @@ export type NoteSummary = {
 };
 
 export function summarizeNote(note: LiveNote): NoteSummary {
-  const plainText = bodyPlainText(note.body);
+  // 検索と抜き出しには、脚注の文も入れる（脚注の文は本文の文字ではなく、印の属性に持つ）。
+  const plainText = [bodyPlainText(note.body), ...bodyFootnoteTexts(note.body)].join("\n").trim();
   return { note, plainText, tags: plainTextHashtags(plainText), linkedNoteIds: bodyLinkedNoteIds(note.body), dueTasks: bodyDueTasks(note.body) };
 }
 

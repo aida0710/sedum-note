@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { appendParagraph } from "./bodyFixtures";
-import { bodyPlainText, plainTextHashtags } from "./bodyText";
+import { bodyPlainText, FOOTNOTE_NODE, plainTextHashtags } from "./bodyText";
 import { noteContentFixture } from "./noteFixtures";
 import type { LiveNote, LiveNotebook } from "./noteRecords";
 import { buildNotebookTree, countTags, isNotebookWithin, type NoteSortOrder, type NotebookTreeNode, selectNotes, summarizeNote } from "./noteQueries";
@@ -51,6 +51,16 @@ describe("selectNotes", () => {
 
   it("検索はタイトルと本文の両方を見て、空白で区切った語をすべて含むものを返す", () => {
     expect(selectNotes(summaries, { view: { kind: "all" }, searchText: "牛乳 todo" }).map((item) => item.note.id)).toEqual(["a"]);
+  });
+
+  it("脚注の文にしか無い言葉でも、検索に当たる", () => {
+    const body = bodyWith("本文の段落");
+    const paragraph = body.get(0) as Y.XmlElement;
+    const footnote = new Y.XmlElement(FOOTNOTE_NODE);
+    footnote.setAttribute("text", "出典は青空文庫");
+    paragraph.insert(paragraph.length, [footnote]);
+    const withFootnote = summarizeNote(note("e", { title: "脚注のあるメモ" }, "2026-11-10T00:00:00Z", body));
+    expect(selectNotes([...summaries, withFootnote], { view: { kind: "all" }, searchText: "青空文庫" }).map((item) => item.note.id)).toEqual(["e"]);
   });
 
   it("ノートブック・タグ・ゴミ箱で絞り込める", () => {
