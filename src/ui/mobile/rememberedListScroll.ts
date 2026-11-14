@@ -60,6 +60,13 @@ export function useRememberedListScroll(scrollContainer: RefObject<HTMLElement |
     }
     const remember = () => rememberedAnchors.set(listKey, anchorOf(container));
     container.addEventListener("scroll", remember, { passive: true });
-    return () => container.removeEventListener("scroll", remember);
+    return () => {
+      container.removeEventListener("scroll", remember);
+      // 一覧が外れる直前（メモを開いた、ほかの一覧へ移った）の位置も覚える。scroll の知らせは次の描画で届くので、
+      // 送った直後にメモを開くと（遅い端末で起きる）、知らせの前に外れて古い位置が残っていた。
+      if (container.isConnected) {
+        remember();
+      }
+    };
   }, [scrollContainer, listKey]);
 }
