@@ -18,6 +18,7 @@ import type { WorkspaceProps } from "../workspace/workspaceProps";
 import { LIST_ROW_NOTE_ID_ATTRIBUTE, useRememberedListScroll } from "./rememberedListScroll";
 import { type PullState, usePullToSync } from "./usePullToSync";
 import { useSwipeActions } from "./useSwipeActions";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 export function listTitle(view: NoteView, notebooks: WorkspaceProps["snapshot"]["notebooks"]): string {
   if (view.kind === "notebook") {
@@ -62,7 +63,7 @@ export function NoteList({ title, summaries, notebooks, view, listKey, showChips
     <>
       {onBackToLibrary && (
         <div className="phone-top">
-          <button className="phone-back" onClick={onBackToLibrary}><ChevronLeft size={20} />{translate("mobile.notebooks")}</button>
+          <button className="phone-back" onClick={onBackToLibrary}><ChevronLeft size={ICON_SIZE.large} />{translate("mobile.notebooks")}</button>
         </div>
       )}
       <div className={`phone-top${onBackToLibrary ? " phone-top-below-back" : ""}`}>
@@ -70,11 +71,11 @@ export function NoteList({ title, summaries, notebooks, view, listKey, showChips
         <div className="phone-top-end">{headerEnd}</div>
       </div>
       <label className="phone-search">
-        <Search size={15} />
+        <Search size={ICON_SIZE.row} />
         <input type="search" enterKeyHint="search" autoCapitalize="off" autoCorrect="off" spellCheck={false}
           value={searchText} placeholder={translate("sidebar.searchPlaceholder")} onChange={(event) => navigation.setSearchText(event.target.value)} />
         {searchText !== "" && (
-          <button type="button" className="icon-button" aria-label={translate("mobile.clearSearch")} onClick={() => navigation.setSearchText("")}><X size={15} /></button>
+          <button type="button" className="icon-button" aria-label={translate("mobile.clearSearch")} onClick={() => navigation.setSearchText("")}><X size={ICON_SIZE.row} /></button>
         )}
       </label>
       {searchScope && <SearchScopeSwitch scopeName={title} searchesEverywhere={searchScope.searchesEverywhere} onChange={searchScope.onChange} />}
@@ -90,7 +91,7 @@ export function NoteList({ title, summaries, notebooks, view, listKey, showChips
       <div ref={listRef} className="phone-list">
         {onPullToSync && (
           <div ref={indicatorRef} className="pull-to-sync" data-state={pullState} role="status">
-            <RefreshCw size={16} />{pullState === "idle" ? "" : translate(PULL_MESSAGES[pullState])}
+            <RefreshCw size={ICON_SIZE.button} />{pullState === "idle" ? "" : translate(PULL_MESSAGES[pullState])}
           </div>
         )}
         <div ref={scrollRef} className="phone-scroll">
@@ -124,11 +125,11 @@ function NoteListItem({ summary, notebooks, notebookColors, repository, onOpen }
   return (
     <div ref={swipe.rowRef} className="note-item-row" {...{ [LIST_ROW_NOTE_ID_ATTRIBUTE]: note.id }}>
       <span className="swipe-action swipe-action-right" aria-hidden="true">
-        {pinned ? <PinOff size={16} /> : <Pin size={16} />}{translate(pinned ? "editor.unpin" : "editor.pin")}
+        {pinned ? <PinOff size={ICON_SIZE.button} /> : <Pin size={ICON_SIZE.button} />}{translate(pinned ? "editor.unpin" : "editor.pin")}
       </span>
-      <span className="swipe-action swipe-action-left" aria-hidden="true"><Trash2 size={16} />{translate("editor.moveToTrash")}</span>
+      <span className="swipe-action swipe-action-left" aria-hidden="true"><Trash2 size={ICON_SIZE.button} />{translate("editor.moveToTrash")}</span>
       <button ref={swipe.itemRef} className="note-item" {...swipe.handlers} onClick={() => onOpen(note.id)}>
-        <h3>{unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}{pinned && <Pin size={13} className="pin" />}<span className="note-item-title">{note.content.title || translate("sidebar.untitled")}</span></h3>
+        <h3>{unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}{pinned && <Pin size={ICON_SIZE.chip} className="pin" />}<span className="note-item-title">{note.content.title || translate("sidebar.untitled")}</span></h3>
         {firstImage && thumbnail.state === "ready" && <img className="thumb" src={thumbnail.url} alt="" />}
         <p>{plainText}</p>
         {/* ノートブックは、PC の左の列と同じ色の印を付けて出す（どのノートブックのメモかを、色でも見分けられる）。 */}

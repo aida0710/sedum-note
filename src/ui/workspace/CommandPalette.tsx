@@ -8,6 +8,7 @@ import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { ModalDialog } from "../shared/ModalDialog";
 import { useKeyboardListSelection } from "../shared/useKeyboardListSelection";
 import { COMMAND_PREFIX, type PaletteCandidate, type PaletteItem, type PaletteItemKind, searchPalette } from "./paletteItems";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type CommandPaletteProps = {
   candidates: PaletteCandidate[];
@@ -24,8 +25,6 @@ const KIND_META: Record<PaletteItemKind, { heading: MessageKey; icon: LucideIcon
   command: { heading: "palette.group.commands", icon: Zap },
   create: { heading: "palette.group.create", icon: FilePlus },
 };
-
-const ICON_SIZE = 15;
 
 export function CommandPalette({ candidates, onCreateNote, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
@@ -46,7 +45,7 @@ export function CommandPalette({ candidates, onCreateNote, onClose }: CommandPal
   return (
     <ModalDialog label={translate("palette.title")} className="note-picker command-palette" onClose={onClose}>
       <label className="sidebar-search">
-        <Search size={14} />
+        <Search size={ICON_SIZE.row} />
         <input autoFocus value={query} placeholder={translate("palette.placeholder")} aria-label={translate("palette.title")}
           role="combobox" aria-expanded aria-controls="command-palette-list" aria-activedescendant={items[selected] ? `palette-item-${items[selected].id}` : undefined}
           onChange={(event) => { setQuery(event.target.value); selectFirst(); }}
@@ -70,7 +69,7 @@ export function CommandPalette({ candidates, onCreateNote, onClose }: CommandPal
               {startsGroup && <div className="menu-heading" role="presentation">{translate(heading)}</div>}
               <button id={`palette-item-${item.id}`} type="button" role="option" aria-selected={index === selected}
                 className={`menu-item${index === selected ? " on" : ""}`} onClick={() => runItem(item)}>
-                <Icon size={ICON_SIZE} className="palette-item-icon" />
+                <Icon size={ICON_SIZE.row} className="palette-item-icon" />
                 <span className="nav-label">{item.label}</span>
                 {item.hint && (item.kind === "command" ? <kbd>{item.hint}</kbd> : <span className="palette-item-hint">{item.hint}</span>)}
               </button>

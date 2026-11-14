@@ -9,6 +9,7 @@ import { type MessageKey, translate } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { searchHighlightKey } from "./searchHighlightExtension";
 import { DEFAULT_SEARCH_OPTIONS, type SearchOptions } from "./searchMatches";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 // 検索の欄を開く合図。serial が変わるたびに入力欄へカーソルを置き、showReplace なら置換の欄も出す。
 export type FindRequest = { serial: number; showReplace: boolean };
@@ -18,8 +19,6 @@ type FindBarProps = {
   request: FindRequest;
   onClose: () => void;
 };
-
-const ICON_SIZE = 16;
 
 // 探し方の切り替えのボタン（VS Code と同じ並び）。
 const SEARCH_OPTION_TOGGLES: Array<{ option: keyof SearchOptions; label: MessageKey; Icon: LucideIcon }> = [
@@ -74,7 +73,7 @@ export function FindBar({ editor, request, onClose }: FindBarProps) {
         {replaceAvailable ? (
           <button type="button" className="icon-button" aria-label={translate("editor.showReplace")} title={translate("editor.showReplace")}
             aria-expanded={replaceShown} onClick={() => setReplaceShown(!replaceShown)}>
-            {replaceShown ? <ChevronDown size={ICON_SIZE} /> : <ChevronRight size={ICON_SIZE} />}
+            {replaceShown ? <ChevronDown size={ICON_SIZE.button} /> : <ChevronRight size={ICON_SIZE.button} />}
           </button>
         ) : <span />}
         <input ref={input} className={search.invalidPattern ? "invalid" : ""} value={search.query} placeholder={translate("editor.findPlaceholder")}
@@ -91,15 +90,15 @@ export function FindBar({ editor, request, onClose }: FindBarProps) {
           {SEARCH_OPTION_TOGGLES.map(({ option, label, Icon }) => (
             <button key={option} type="button" className="icon-button" aria-label={translate(label)} title={translate(label)}
               aria-pressed={search.options[option]} onClick={() => searchFor(search.query, { ...search.options, [option]: !search.options[option] })}>
-              <Icon size={ICON_SIZE} />
+              <Icon size={ICON_SIZE.button} />
             </button>
           ))}
           <span className="find-count" role="status">{countText}</span>
           <button type="button" className="icon-button" aria-label={translate("editor.findPrevious")} disabled={noMatch}
-            onClick={() => editor.commands.moveToSearchMatch(-1)}><ChevronUp size={ICON_SIZE} /></button>
+            onClick={() => editor.commands.moveToSearchMatch(-1)}><ChevronUp size={ICON_SIZE.button} /></button>
           <button type="button" className="icon-button" aria-label={translate("editor.findNext")} disabled={noMatch}
-            onClick={() => editor.commands.moveToSearchMatch(1)}><ChevronDown size={ICON_SIZE} /></button>
-          <button type="button" className="icon-button" aria-label={translate("common.close")} onClick={close}><X size={ICON_SIZE} /></button>
+            onClick={() => editor.commands.moveToSearchMatch(1)}><ChevronDown size={ICON_SIZE.button} /></button>
+          <button type="button" className="icon-button" aria-label={translate("common.close")} onClick={close}><X size={ICON_SIZE.button} /></button>
         </span>
       </div>
       {search.invalidPattern && <p className="find-error" role="alert">{translate("editor.findInvalidPattern")}</p>}

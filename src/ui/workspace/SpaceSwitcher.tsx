@@ -6,6 +6,7 @@ import { translate } from "../i18n/translate";
 import { spaceDisplayName } from "../session/spaceDisplayName";
 import { selectSpace, useSpaceRegistry } from "../session/spaceRegistry";
 import { PopupMenu } from "../shared/PopupMenu";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 export function SpaceSwitcher() {
   const { spaces, activeSpaceId } = useSpaceRegistry();
@@ -18,7 +19,7 @@ export function SpaceSwitcher() {
     <>
       <button type="button" className="space-switcher" aria-haspopup="menu" aria-label={translate("space.switchFrom", { name: spaceDisplayName(activeSpace) })}
         onClick={(event) => setMenuAnchor(event.currentTarget)}>
-        <span className="nav-label">{spaceDisplayName(activeSpace)}</span><ChevronsUpDown size={13} />
+        <span className="nav-label">{spaceDisplayName(activeSpace)}</span><ChevronsUpDown size={ICON_SIZE.chip} />
       </button>
       {menuAnchor && (
         <PopupMenu anchor={menuAnchor} onClose={() => setMenuAnchor(null)}>
@@ -27,7 +28,7 @@ export function SpaceSwitcher() {
             <button key={space.id} className="menu-item" role="menuitemradio" aria-checked={space.id === activeSpaceId}
               onClick={() => { setMenuAnchor(null); selectSpace(space.id); }}>
               <span className="nav-label">{spaceDisplayName(space)}</span>
-              {space.id === activeSpaceId && <Check size={15} className="menu-check" />}
+              {space.id === activeSpaceId && <Check size={ICON_SIZE.row} className="menu-check" />}
             </button>
           ))}
         </PopupMenu>

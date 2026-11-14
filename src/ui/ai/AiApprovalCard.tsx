@@ -8,8 +8,7 @@ import { BodyChangeDiff } from "./BodyChangeDiff";
 import type { AiApprovalItem } from "./aiToolCalls";
 import { toolCallDescription, updatedFieldText } from "./aiToolActivityText";
 import type { PendingAiApproval } from "./useAiChatTurn";
-
-const CARD_ICON_SIZE = 14;
+import { ICON_SIZE } from "../shared/iconSizes";
 
 // ピンとブックマークの前と後は "yes" / "no" で届く（noteTools/noteChangeTools.ts）。
 function changedValueText(field: string, value: string): string {
@@ -60,7 +59,7 @@ export function AiApprovalCard({ approval }: { approval: PendingAiApproval }) {
   };
   return (
     <div className="ai-edit ai-approval" role="group" aria-label={translate("ai.approval.label")}>
-      <div className="ai-edit-summary"><ShieldQuestion size={CARD_ICON_SIZE} />{translate("ai.approval.title")}</div>
+      <div className="ai-edit-summary"><ShieldQuestion size={ICON_SIZE.row} />{translate("ai.approval.title")}</div>
       {approval.items.map((item) => (
         <div key={item.toolCallId} className="ai-approval-item">
           {isSingle

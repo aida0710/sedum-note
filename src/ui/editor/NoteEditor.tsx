@@ -82,6 +82,7 @@ import { propertiesOfNote } from "../../core/notes/noteProperties";
 import { NoteFootnotes } from "./NoteFootnotes";
 import { isAudioRecordingAvailable, useAudioRecorder } from "./useAudioRecorder";
 import { useAiChatSession } from "../ai/aiChatSession";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type NoteEditorProps = {
   note: LiveNote;
@@ -285,16 +286,16 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
       <button type="button" className="icon-button" aria-label={translate("editor.outline")} aria-pressed={isMobile ? undefined : outlineShown}
         aria-haspopup={isMobile ? "menu" : undefined}
         onClick={(event) => (isMobile ? setOutlineAnchor(outlineAnchor ? null : event.currentTarget) : updateDevicePreferences({ showOutline: !showOutline }))}>
-        <ListTree size={16} />
+        <ListTree size={ICON_SIZE.button} />
       </button>
       <button type="button" className={`icon-button${note.content.bookmarked ? " bookmarked" : ""}`}
         aria-label={translate(note.content.bookmarked ? "editor.unbookmark" : "editor.bookmark")}
         onClick={() => void repository.updateNote(noteId, { bookmarked: !note.content.bookmarked })}>
-        <Star size={16} fill={note.content.bookmarked ? "currentColor" : "none"} />
+        <Star size={ICON_SIZE.button} fill={note.content.bookmarked ? "currentColor" : "none"} />
       </button>
       <button type="button" className="icon-button" aria-label={translate("editor.more")} aria-haspopup="menu"
         onClick={(event) => setMenuAnchor(menuAnchor ? null : event.currentTarget)}>
-        <MoreHorizontal size={16} />
+        <MoreHorizontal size={ICON_SIZE.button} />
       </button>
     </>
   );
@@ -387,7 +388,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
         <div className="phone-top">
           {isZoomed
             ? <ZoomBackButton editor={editor} noteTitle={note.content.title} className="phone-back zoom-back" />
-            : <button className="phone-back" onClick={onBack}><ChevronLeft size={20} />{translate("editor.back")}</button>}
+            : <button className="phone-back" onClick={onBack}><ChevronLeft size={ICON_SIZE.large} />{translate("editor.back")}</button>}
           {!isZoomed && <div className="phone-top-end">{trailing}</div>}
         </div>
       )}
@@ -424,7 +425,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
                 <NoteTagChips tags={tags} />
                 {note.content.dueAt !== null && (
                   <button type="button" className="chip due-chip" disabled={inTrash} onClick={() => setDueTarget("note")}>
-                    <AlarmClock size={12} />{translate("due.chip", { time: formatDueTime(note.content.dueAt) })}
+                    <AlarmClock size={ICON_SIZE.chip} />{translate("due.chip", { time: formatDueTime(note.content.dueAt) })}
                   </button>
                 )}
                 {unsyncedIds.has(noteId) && <span className="chip unsynced">{translate("editor.unsynced")}</span>}

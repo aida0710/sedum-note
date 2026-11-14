@@ -15,6 +15,7 @@ import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { ModalDialog } from "../shared/ModalDialog";
 import { useToast } from "../shared/ToastProvider";
 import { PropertyOptionsEditor } from "./PropertyOptionsEditor";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type NotebookPropertiesDialogProps = {
   notebook: LiveNotebook;
@@ -165,7 +166,7 @@ export function NotebookPropertiesDialog({ notebook, repository, autoFocusAddBut
                 {PROPERTY_TYPES.map((type) => <option key={type} value={type}>{translate(`property.type.${type}`)}</option>)}
               </select>
               <button type="button" className="icon-button" aria-label={translate("property.remove", { name: property.name })}
-                onClick={() => void remove(property)}><Trash2 size={14} /></button>
+                onClick={() => void remove(property)}><Trash2 size={ICON_SIZE.button} /></button>
             </div>
             {property.type === "select" && (
               <PropertyOptionsEditor propertyName={property.name} options={property.options} newOptionText={drafts[property.id]?.newOptionText ?? ""}
@@ -185,7 +186,7 @@ export function NotebookPropertiesDialog({ notebook, repository, autoFocusAddBut
                 {PROPERTY_TYPES.map((type) => <option key={type} value={type}>{translate(`property.type.${type}`)}</option>)}
               </select>
               <button type="button" className="icon-button" aria-label={translate("property.remove", { name: translate("property.newName") })}
-                onClick={() => setAddedProperty(null)}><Trash2 size={14} /></button>
+                onClick={() => setAddedProperty(null)}><Trash2 size={ICON_SIZE.button} /></button>
             </div>
             {newProperty.type === "select" && (
               <PropertyOptionsEditor propertyName={newProperty.name} options={newProperty.options} newOptionText={newProperty.newOptionText}
@@ -199,7 +200,7 @@ export function NotebookPropertiesDialog({ notebook, repository, autoFocusAddBut
       </div>
       <p className="hint">{translate("property.textSaveHint")}</p>
       <div className="form-actions">
-        <button type="button" className="secondary-button" autoFocus={autoFocusAddButton} onClick={add}><Plus size={14} />{translate("property.add")}</button>
+        <button type="button" className="secondary-button" autoFocus={autoFocusAddButton} onClick={add}><Plus size={ICON_SIZE.row} />{translate("property.add")}</button>
         {/* 保存していない文字があるときは「保存」を、無いときは「閉じる」を、目立つボタンにする。 */}
         <button type="button" className={hasDrafts ? "primary-button" : "secondary-button"} disabled={!hasDrafts} onClick={() => saveDrafts()}>{translate("common.save")}</button>
         <button type="button" className={hasDrafts ? "secondary-button" : "primary-button"} onClick={() => void close()}>{translate("common.close")}</button>

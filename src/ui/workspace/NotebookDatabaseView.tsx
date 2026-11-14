@@ -18,6 +18,7 @@ import { RadioGroup } from "../shared/RadioGroup";
 import { createNoteInView } from "./createNoteInView";
 import { DatabaseNewNoteButton } from "./DatabaseNewNoteButton";
 import { NotebookPropertiesDialog } from "./NotebookPropertiesDialog";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type NotebookDatabaseViewProps = {
   notebook: LiveNotebook;
@@ -31,7 +32,6 @@ const LAYOUT_ICONS = { table: Table, board: Columns3 } as const;
 const LAYOUT_LABELS: Record<DatabaseLayout, MessageKey> = { table: "database.layout.table", board: "database.layout.board" };
 // ボードのカードをドラッグするときの、データの種類。
 const CARD_DRAG_TYPE = "application/x-sedum-note-database-card";
-const ICON_SIZE = 14;
 // 表の、プロパティの列のほかの列（タイトル、更新、右端のプロパティを足す列）の数。
 const COLUMNS_BESIDES_PROPERTIES = 3;
 
@@ -55,7 +55,7 @@ export function NotebookDatabaseView({ notebook, notes, repository, onOpenNote }
               const Icon = LAYOUT_ICONS[layout];
               return (
                 <button key={layout} type="button" role="radio" aria-checked={view.layout === layout} onClick={() => changeView({ layout })}>
-                  <Icon size={ICON_SIZE} />{translate(LAYOUT_LABELS[layout])}
+                  <Icon size={ICON_SIZE.row} />{translate(LAYOUT_LABELS[layout])}
                 </button>
               );
             })}
@@ -96,7 +96,7 @@ function DatabaseTable({ notes, properties, view, repository, notebookView, titl
       <th key={column} aria-sort={isSorted ? view.sortDirection : undefined}>
         <button type="button" onClick={() => onSort({ sortBy: column, sortDirection: nextDirection })}>
           {label}
-          {isSorted && (view.sortDirection === "ascending" ? <ArrowUp size={ICON_SIZE} /> : <ArrowDown size={ICON_SIZE} />)}
+          {isSorted && (view.sortDirection === "ascending" ? <ArrowUp size={ICON_SIZE.row} /> : <ArrowDown size={ICON_SIZE.row} />)}
         </button>
       </th>
     );
@@ -111,7 +111,7 @@ function DatabaseTable({ notes, properties, view, repository, notebookView, titl
             {columnHeader(UPDATED_COLUMN, translate("database.updatedColumn"))}
             <th className="database-add-property">
               <button type="button" className="icon-button" aria-label={translate("property.add")} title={translate("property.add")} onClick={onEditProperties}>
-                <Plus size={ICON_SIZE} />
+                <Plus size={ICON_SIZE.row} />
               </button>
             </th>
           </tr>
@@ -165,7 +165,7 @@ function DatabaseBoard({ notes, properties, view, repository, notebookView, titl
     return (
       <div className="database-board-needs-select">
         <p>{translate("database.boardNeedsSelect")}</p>
-        <button type="button" className="secondary-button" onClick={onEditProperties}><Plus size={ICON_SIZE} />{translate("property.add")}</button>
+        <button type="button" className="secondary-button" onClick={onEditProperties}><Plus size={ICON_SIZE.row} />{translate("property.add")}</button>
       </div>
     );
   }

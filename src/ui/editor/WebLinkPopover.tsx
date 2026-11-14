@@ -6,8 +6,9 @@ import { ExternalLink, type LucideIcon, Pencil, Unlink } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { type MessageKey, translate } from "../i18n/translate";
-import { TOOL_ICON_SIZE } from "./TextFormattingTools";
+
 import { openableWebLinkUrl } from "./webLinks";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 // カーソルの行と面の間（px）。
 const GAP_BELOW_LINE = 6;
@@ -67,7 +68,7 @@ export function WebLinkPopover({ editor, onOpenLink, onAskLink }: WebLinkPopover
   const action = (label: MessageKey, Icon: LucideIcon, onPress: () => void) => (
     // 押しても、本文からフォーカスとカーソルを奪わない。
     <button type="button" className="tool" title={translate(label)} aria-label={translate(label)} onMouseDown={(event) => event.preventDefault()} onClick={onPress}>
-      <Icon size={TOOL_ICON_SIZE} />
+      <Icon size={ICON_SIZE.button} />
     </button>
   );
   return createPortal(

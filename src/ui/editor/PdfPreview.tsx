@@ -7,6 +7,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { describeError } from "../i18n/describeError";
 import { translate } from "../i18n/translate";
 import { AttachmentReaderContext } from "./attachmentReader";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type PdfLibrary = typeof import("pdfjs-dist");
 
@@ -24,7 +25,6 @@ function loadPdfLibrary(): Promise<PdfLibrary> {
 // 拡大率の選択肢。1 は、ページの幅をプレビューの幅に合わせた大きさ。
 const ZOOM_LEVELS = [0.5, 0.75, 1, 1.5, 2, 3] as const;
 const FIT_WIDTH_ZOOM_INDEX = 2;
-const ICON_SIZE = 16;
 
 type PreviewState = { state: "loading" } | { state: "ready"; document: PDFDocumentProxy } | { state: "failed"; reason: string };
 
@@ -100,11 +100,11 @@ export function PdfPreview({ attachmentId }: { attachmentId: string }) {
   return (
     <div className="pdf-preview">
       <div className="pdf-preview-bar">
-        {pageButton("editor.pdfPreviousPage", pageNumber - 1, <ChevronLeft size={ICON_SIZE} />)}
+        {pageButton("editor.pdfPreviousPage", pageNumber - 1, <ChevronLeft size={ICON_SIZE.button} />)}
         <span className="pdf-page-number">{preview.state === "loading" ? translate("editor.pdfLoading") : `${pageNumber} / ${pageCount}`}</span>
-        {pageButton("editor.pdfNextPage", pageNumber + 1, <ChevronRight size={ICON_SIZE} />)}
-        {zoomButton("editor.pdfZoomOut", zoomIndex - 1, <ZoomOut size={ICON_SIZE} />)}
-        {zoomButton("editor.pdfZoomIn", zoomIndex + 1, <ZoomIn size={ICON_SIZE} />)}
+        {pageButton("editor.pdfNextPage", pageNumber + 1, <ChevronRight size={ICON_SIZE.button} />)}
+        {zoomButton("editor.pdfZoomOut", zoomIndex - 1, <ZoomOut size={ICON_SIZE.button} />)}
+        {zoomButton("editor.pdfZoomIn", zoomIndex + 1, <ZoomIn size={ICON_SIZE.button} />)}
       </div>
       <div ref={frame} className="pdf-preview-page">
         <canvas ref={canvas} />

@@ -8,8 +8,9 @@ import { blockAtCursor, moveBlock } from "./blockOperations";
 import { useHorizontalScrollEdges } from "../shared/useHorizontalScrollEdges";
 import { useFormattingState } from "./formattingState";
 import { TableMenu } from "./TableMenu";
-import { LinkTool, TextColorTools, TextStyleTools, TOOL_ICON_SIZE } from "./TextFormattingTools";
+import { LinkTool, TextColorTools, TextStyleTools} from "./TextFormattingTools";
 import { ToolButton } from "./ToolButton";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 // 箇条書き・番号付きの項目と、チェックリストの項目。字下げは、カーソルのあるほうの種類に対して行う。
 const LIST_ITEM_TYPES = ["listItem", "taskItem"] as const;
@@ -40,25 +41,25 @@ export function EditorToolbar({ editor, onPickImage, onPickFile, onCapturePhoto,
       <HistoryTools editor={editor} />
       <span className="tool-separator" />
       <ListItemTools editor={editor} />
-      <ToolButton label="editor.bulletList" isOn={state.bulletList} onPress={() => commands().toggleBulletList().run()}><List size={TOOL_ICON_SIZE} /></ToolButton>
-      <ToolButton label="editor.taskList" isOn={state.taskList} onPress={() => commands().toggleTaskList().run()}><ListChecks size={TOOL_ICON_SIZE} /></ToolButton>
-      <ToolButton label="editor.orderedList" isOn={state.orderedList} onPress={() => commands().toggleOrderedList().run()}><ListOrdered size={TOOL_ICON_SIZE} /></ToolButton>
+      <ToolButton label="editor.bulletList" isOn={state.bulletList} onPress={() => commands().toggleBulletList().run()}><List size={ICON_SIZE.button} /></ToolButton>
+      <ToolButton label="editor.taskList" isOn={state.taskList} onPress={() => commands().toggleTaskList().run()}><ListChecks size={ICON_SIZE.button} /></ToolButton>
+      <ToolButton label="editor.orderedList" isOn={state.orderedList} onPress={() => commands().toggleOrderedList().run()}><ListOrdered size={ICON_SIZE.button} /></ToolButton>
       <span className="tool-separator" />
       <TextStyleTools editor={editor} state={state} />
       <TextColorTools editor={editor} state={state} />
       <span className="tool-separator" />
-      <ToolButton label="editor.image" isOn={false} onPress={onPickImage}><ImagePlus size={TOOL_ICON_SIZE} /></ToolButton>
-      {onCapturePhoto && <ToolButton label="editor.capturePhoto" isOn={false} onPress={onCapturePhoto}><Camera size={TOOL_ICON_SIZE} /></ToolButton>}
+      <ToolButton label="editor.image" isOn={false} onPress={onPickImage}><ImagePlus size={ICON_SIZE.button} /></ToolButton>
+      {onCapturePhoto && <ToolButton label="editor.capturePhoto" isOn={false} onPress={onCapturePhoto}><Camera size={ICON_SIZE.button} /></ToolButton>}
       <LinkTool editor={editor} state={state} onAskLink={onAskLink} />
-      <ToolButton label="editor.noteLink" isOn={false} onPress={onPickNoteLink}><FileSymlink size={TOOL_ICON_SIZE} /></ToolButton>
-      <ToolButton label="editor.file" isOn={false} onPress={onPickFile}><Paperclip size={TOOL_ICON_SIZE} /></ToolButton>
+      <ToolButton label="editor.noteLink" isOn={false} onPress={onPickNoteLink}><FileSymlink size={ICON_SIZE.button} /></ToolButton>
+      <ToolButton label="editor.file" isOn={false} onPress={onPickFile}><Paperclip size={ICON_SIZE.button} /></ToolButton>
       {onToggleRecording && (
         <ToolButton label={recording ? "editor.stopRecording" : "editor.startRecording"} isOn={recording} onPress={onToggleRecording}>
-          {recording ? <Square size={TOOL_ICON_SIZE} /> : <Mic size={TOOL_ICON_SIZE} />}
+          {recording ? <Square size={ICON_SIZE.button} /> : <Mic size={ICON_SIZE.button} />}
         </ToolButton>
       )}
-      <ToolButton label="editor.code" isOn={state.codeBlock} onPress={() => commands().toggleCodeBlock().run()}><Code size={TOOL_ICON_SIZE} /></ToolButton>
-      <TableMenu editor={editor} insideTable={state.table} iconSize={TOOL_ICON_SIZE} />
+      <ToolButton label="editor.code" isOn={state.codeBlock} onPress={() => commands().toggleCodeBlock().run()}><Code size={ICON_SIZE.button} /></ToolButton>
+      <TableMenu editor={editor} insideTable={state.table} />
     </div>
   );
 }
@@ -71,8 +72,8 @@ function HistoryTools({ editor }: { editor: Editor }) {
   });
   return (
     <>
-      <ToolButton label="editor.undo" isOn={false} isUnavailable={!history.canUndo} onPress={() => editor.chain().focus().undo().run()}><Undo2 size={TOOL_ICON_SIZE} /></ToolButton>
-      <ToolButton label="editor.redo" isOn={false} isUnavailable={!history.canRedo} onPress={() => editor.chain().focus().redo().run()}><Redo2 size={TOOL_ICON_SIZE} /></ToolButton>
+      <ToolButton label="editor.undo" isOn={false} isUnavailable={!history.canUndo} onPress={() => editor.chain().focus().undo().run()}><Undo2 size={ICON_SIZE.button} /></ToolButton>
+      <ToolButton label="editor.redo" isOn={false} isUnavailable={!history.canRedo} onPress={() => editor.chain().focus().redo().run()}><Redo2 size={ICON_SIZE.button} /></ToolButton>
     </>
   );
 }
@@ -100,10 +101,10 @@ function ListItemTools({ editor }: { editor: Editor }) {
   };
   return (
     <>
-      <ToolButton label="editor.outdentListItem" isOn={false} isUnavailable={!listItem.canOutdent} onPress={() => editor.chain().focus().liftListItem(type).run()}><IndentDecrease size={TOOL_ICON_SIZE} /></ToolButton>
-      <ToolButton label="editor.indentListItem" isOn={false} isUnavailable={!listItem.canIndent} onPress={() => editor.chain().focus().sinkListItem(type).run()}><IndentIncrease size={TOOL_ICON_SIZE} /></ToolButton>
-      <ToolButton label="editor.block.moveUp" isOn={false} onPress={() => moveItem(-1)}><ArrowUp size={TOOL_ICON_SIZE} /></ToolButton>
-      <ToolButton label="editor.block.moveDown" isOn={false} onPress={() => moveItem(1)}><ArrowDown size={TOOL_ICON_SIZE} /></ToolButton>
+      <ToolButton label="editor.outdentListItem" isOn={false} isUnavailable={!listItem.canOutdent} onPress={() => editor.chain().focus().liftListItem(type).run()}><IndentDecrease size={ICON_SIZE.button} /></ToolButton>
+      <ToolButton label="editor.indentListItem" isOn={false} isUnavailable={!listItem.canIndent} onPress={() => editor.chain().focus().sinkListItem(type).run()}><IndentIncrease size={ICON_SIZE.button} /></ToolButton>
+      <ToolButton label="editor.block.moveUp" isOn={false} onPress={() => moveItem(-1)}><ArrowUp size={ICON_SIZE.button} /></ToolButton>
+      <ToolButton label="editor.block.moveDown" isOn={false} onPress={() => moveItem(1)}><ArrowDown size={ICON_SIZE.button} /></ToolButton>
       <span className="tool-separator" />
     </>
   );

@@ -4,6 +4,7 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { useDialogs } from "../shared/DialogProvider";
 import { PopupMenu } from "../shared/PopupMenu";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type NotebookActionsMenuProps = {
   anchor: HTMLElement;
@@ -39,16 +40,16 @@ export function NotebookActionsMenu({ anchor, notebook, repository, onClose, onR
   return (
     <PopupMenu anchor={anchor} onClose={onClose}>
       {/* 中に作るものを、先にまとめる。 */}
-      <button className="menu-item" role="menuitem" onClick={choose(onAddNote)}><FilePlus size={15} />{translate("notebook.addNote")}</button>
-      <button className="menu-item" role="menuitem" onClick={choose(onAddChild)}><FolderPlus size={15} />{translate("notebook.addChild")}</button>
+      <button className="menu-item" role="menuitem" onClick={choose(onAddNote)}><FilePlus size={ICON_SIZE.row} />{translate("notebook.addNote")}</button>
+      <button className="menu-item" role="menuitem" onClick={choose(onAddChild)}><FolderPlus size={ICON_SIZE.row} />{translate("notebook.addChild")}</button>
       <div className="menu-separator" />
-      <button className="menu-item" role="menuitem" onClick={choose(onRename)}><Pencil size={15} />{translate("notebook.rename")}</button>
-      <button className="menu-item" role="menuitem" onClick={choose(onMove)}><FolderInput size={15} />{translate("notebook.move")}</button>
-      <button className="menu-item" role="menuitem" onClick={choose(onChooseAppearance)}><Palette size={15} />{translate("notebook.appearance")}</button>
-      {onOpenDatabase && <button className="menu-item" role="menuitem" onClick={choose(onOpenDatabase)}><Table size={15} />{translate("database.open")}</button>}
-      <button className="menu-item" role="menuitem" onClick={choose(onEditProperties)}><ListPlus size={15} />{translate("property.dialogTitle")}</button>
+      <button className="menu-item" role="menuitem" onClick={choose(onRename)}><Pencil size={ICON_SIZE.row} />{translate("notebook.rename")}</button>
+      <button className="menu-item" role="menuitem" onClick={choose(onMove)}><FolderInput size={ICON_SIZE.row} />{translate("notebook.move")}</button>
+      <button className="menu-item" role="menuitem" onClick={choose(onChooseAppearance)}><Palette size={ICON_SIZE.row} />{translate("notebook.appearance")}</button>
+      {onOpenDatabase && <button className="menu-item" role="menuitem" onClick={choose(onOpenDatabase)}><Table size={ICON_SIZE.row} />{translate("database.open")}</button>}
+      <button className="menu-item" role="menuitem" onClick={choose(onEditProperties)}><ListPlus size={ICON_SIZE.row} />{translate("property.dialogTitle")}</button>
       <div className="menu-separator" />
-      <button className="menu-item danger" role="menuitem" onClick={choose(() => void remove())}><Trash2 size={15} />{translate("notebook.remove")}</button>
+      <button className="menu-item danger" role="menuitem" onClick={choose(() => void remove())}><Trash2 size={ICON_SIZE.row} />{translate("notebook.remove")}</button>
     </PopupMenu>
   );
 }

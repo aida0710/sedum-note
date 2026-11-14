@@ -14,6 +14,7 @@ import { NotebookActionsMenu } from "../workspace/NotebookActionsMenu";
 import { NotebookAppearanceDialog } from "../workspace/NotebookAppearanceDialog";
 import { NotebookPropertiesDialog } from "../workspace/NotebookPropertiesDialog";
 import { MoveNotebookDialog } from "../workspace/MoveNotebookDialog";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type MobileNotebookRowProps = {
   notebook: LiveNotebook;
@@ -58,7 +59,7 @@ export function MobileNotebookRow({ notebook, depth, noteCount, notebookColors, 
       </button>
       <button className="icon-button" aria-label={translate("editor.more")} aria-haspopup="menu" aria-expanded={menuAnchor !== null}
         onClick={(event) => setMenuAnchor(event.currentTarget)}>
-        <MoreHorizontal size={18} />
+        <MoreHorizontal size={ICON_SIZE.touch} />
       </button>
       {menuAnchor && (
         <NotebookActionsMenu anchor={menuAnchor} notebook={notebook} repository={repository} onClose={() => setMenuAnchor(null)}

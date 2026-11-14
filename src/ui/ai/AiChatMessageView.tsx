@@ -5,15 +5,14 @@ import { FileText, TextSelect } from "lucide-react";
 import { translate } from "../i18n/translate";
 import { type AiAttachment, type AiChatMessage, answerTextOf } from "./aiConversation";
 import { AiToolActivityLine } from "./AiToolActivityLine";
-
-const CHIP_ICON_SIZE = 12;
+import { ICON_SIZE } from "../shared/iconSizes";
 
 function AttachmentChips({ attachments }: { attachments: AiAttachment[] }) {
   return (
     <div className="ai-context">
       {attachments.map((attachment, index) => (
         <span key={index} className="chip">
-          {attachment.kind === "note" ? <FileText size={CHIP_ICON_SIZE} /> : <TextSelect size={CHIP_ICON_SIZE} />}
+          {attachment.kind === "note" ? <FileText size={ICON_SIZE.chip} /> : <TextSelect size={ICON_SIZE.chip} />}
           {attachment.kind === "note" ? attachment.title || translate("sidebar.untitled") : translate("ai.selectionChip", { count: attachment.text.length })}
         </span>
       ))}

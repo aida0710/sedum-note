@@ -3,8 +3,7 @@
 import { FileSymlink } from "lucide-react";
 import type { LiveNote } from "../../core/notes/noteRecords";
 import { translate } from "../i18n/translate";
-
-const BACKLINK_ICON_SIZE = 14;
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type NoteBacklinksProps = {
   backlinks: LiveNote[];
@@ -24,7 +23,7 @@ export function NoteBacklinks({ backlinks, onOpenNote }: NoteBacklinksProps) {
       <h2>{translate("editor.backlinksCount", { count: backlinks.length })}</h2>
       {backlinks.map((backlink) => (
         <button key={backlink.id} type="button" className="menu-item" onClick={() => onOpenNote(backlink.id)}>
-          <FileSymlink size={BACKLINK_ICON_SIZE} />
+          <FileSymlink size={ICON_SIZE.row} />
           <span className="nav-label">{titleOf(backlink)}</span>
         </button>
       ))}

@@ -13,6 +13,7 @@ import { BLOCK_EMBED_NODE } from "../../core/notes/bodyText";
 import { translate } from "../i18n/translate";
 import { documentExtensions } from "./editorExtensions";
 import { type NoteLinkTarget, NoteLinkTargetsContext } from "./noteLinkTargets";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 // 埋め込みの中の埋め込みを、何段まで開くか。埋め込みが互いを含むと終わらなくなるので、ここで止める。
 const MAX_EMBED_DEPTH = 3;
@@ -105,7 +106,7 @@ function BlockEmbedView({ node }: ReactNodeViewProps) {
     <NodeViewWrapper className="block-embed" contentEditable={false}>
       {target.state !== "missing" && (
         <button type="button" className="block-embed-source" onClick={() => targets.openNote(noteId, serializedBlocks !== null && blockId !== null ? blockId : undefined)}>
-          <FileText size={12} />{target.title || translate("sidebar.untitled")}
+          <FileText size={ICON_SIZE.chip} />{target.title || translate("sidebar.untitled")}
         </button>
       )}
       {message !== null && <div className="tree-empty">{message}</div>}

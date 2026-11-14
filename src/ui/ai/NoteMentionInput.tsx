@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { LiveNote } from "../../core/notes/noteRecords";
 import { translate } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type NoteMentionInputProps = {
   value: string;
@@ -59,7 +60,7 @@ export function NoteMentionInput({ value, onChange, notes, onMention, onSubmit, 
               // 押しても入力欄からカーソルが外れないようにする。
               onMouseDown={(event) => event.preventDefault()}
               onClick={(event) => choose(note, event.currentTarget.closest(".mention-input")!.querySelector("textarea")!)}>
-              <FileText size={13} /><span className="nav-label">{note.content.title || translate("sidebar.untitled")}</span>
+              <FileText size={ICON_SIZE.row} /><span className="nav-label">{note.content.title || translate("sidebar.untitled")}</span>
             </button>
           ))}
         </div>

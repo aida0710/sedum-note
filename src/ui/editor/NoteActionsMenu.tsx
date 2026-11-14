@@ -22,8 +22,7 @@ import { PopupMenu } from "../shared/PopupMenu";
 import { useWindowOnTop } from "../shared/useWindowOnTop";
 import { useTrashWithUndo } from "../workspace/useTrashWithUndo";
 import { PageAlignmentChoices } from "./PageAlignmentChoices";
-
-const ICON_SIZE = 15;
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type NoteActionsMenuProps = {
   anchor: HTMLElement;
@@ -74,7 +73,7 @@ type MenuActionProps = {
 function MenuAction({ icon: Icon, label, shortcutKeys = null, danger = false, onSelect }: MenuActionProps) {
   return (
     <button type="button" className={`menu-item${danger ? " danger" : ""}`} role="menuitem" onClick={onSelect}>
-      <Icon size={ICON_SIZE} />{label}
+      <Icon size={ICON_SIZE.row} />{label}
       {shortcutKeys && <kbd>{shortcutKeys}</kbd>}
     </button>
   );
@@ -127,8 +126,8 @@ export function NoteActionsMenu({ anchor, note, repository, onChooseNotebooks, o
         {onOpenInNewWindow && <MenuAction icon={AppWindow} label={translate("window.openInNewWindow")} onSelect={closeAndRun(onOpenInNewWindow)} />}
         {canKeepWindowOnTop() && (
           <button type="button" className="menu-item" role="menuitemcheckbox" aria-checked={windowIsOnTop} onClick={closeAndRun(toggleWindowOnTop)}>
-            <ArrowUpToLine size={ICON_SIZE} /><span className="nav-label">{translate("window.keepOnTop")}</span>
-            {windowIsOnTop && <Check size={ICON_SIZE} className="menu-check" />}
+            <ArrowUpToLine size={ICON_SIZE.row} /><span className="nav-label">{translate("window.keepOnTop")}</span>
+            {windowIsOnTop && <Check size={ICON_SIZE.row} className="menu-check" />}
           </button>
         )}
       </MenuGroup>

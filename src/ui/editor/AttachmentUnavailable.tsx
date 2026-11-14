@@ -3,6 +3,7 @@
 import { RotateCw } from "lucide-react";
 import { translate } from "../i18n/translate";
 import type { AttachmentUnavailableReason } from "./attachmentReader";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 const REASON_MESSAGES = {
   notDelivered: "editor.attachmentNotDelivered",
@@ -15,7 +16,7 @@ export function AttachmentUnavailable({ reason, onReload, className }: Attachmen
   return (
     <div className={`attachment-unavailable ${className}`} role="status">
       <span>{translate(REASON_MESSAGES[reason])}</span>
-      <button type="button" className="secondary-button" onClick={onReload}><RotateCw size={14} />{translate("editor.reloadAttachment")}</button>
+      <button type="button" className="secondary-button" onClick={onReload}><RotateCw size={ICON_SIZE.row} />{translate("editor.reloadAttachment")}</button>
     </div>
   );
 }

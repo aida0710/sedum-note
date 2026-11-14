@@ -8,6 +8,7 @@ import { notebookTreeRows } from "../editor/notebookTreeRows";
 import { assignNotebookColors } from "../shared/notebookAppearance";
 import { MobileNotebookRow } from "./MobileNotebookRow";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type MobileLibraryProps = {
   snapshot: WorkspaceProps["snapshot"];
@@ -35,7 +36,7 @@ export function MobileLibrary({ snapshot, repository, onPick, onOpenSavedSearch,
       <div className="phone-top">
         <h2>{translate("mobile.notebooks")}</h2>
         <div className="phone-top-end">
-          <button className="icon-button" aria-label={translate("sidebar.newNotebook")} onClick={() => void addNotebook()}><FolderPlus size={18} /></button>
+          <button className="icon-button" aria-label={translate("sidebar.newNotebook")} onClick={() => void addNotebook()}><FolderPlus size={ICON_SIZE.touch} /></button>
         </div>
       </div>
       <div className="phone-scroll">
@@ -47,27 +48,27 @@ export function MobileLibrary({ snapshot, repository, onPick, onOpenSavedSearch,
         {tags.length > 0 && <div className="section-title">{translate("sidebar.tags")}</div>}
         {tags.map(({ tag, count }) => (
           <button key={tag} className="library-row" onClick={() => onPick({ kind: "tag", tag })}>
-            <Hash size={15} /><span className="library-row-label">{tag}</span><span className="count">{count}</span>
+            <Hash size={ICON_SIZE.row} /><span className="library-row-label">{tag}</span><span className="count">{count}</span>
           </button>
         ))}
         {/* PC で保存した検索も、ここから開ける（保存と削除は PC の左の列で行う）。 */}
         {snapshot.savedSearches.length > 0 && <div className="section-title">{translate("sidebar.savedSearches")}</div>}
         {snapshot.savedSearches.map((savedSearch) => (
           <button key={savedSearch.id} className="library-row" onClick={() => onOpenSavedSearch(savedSearch)}>
-            <Bookmark size={15} /><span className="library-row-label">{savedSearch.content.name}</span>
+            <Bookmark size={ICON_SIZE.row} /><span className="library-row-label">{savedSearch.content.name}</span>
           </button>
         ))}
         <div className="section-title" />
         <button className="library-row" onClick={onOpenReminders}>
-          <AlarmClock size={15} />{translate("due.title")}
+          <AlarmClock size={ICON_SIZE.row} />{translate("due.title")}
           <span className="count">{dueItemsOf(snapshot.summaries).filter((item) => !item.done).length}</span>
         </button>
         <button className="library-row" onClick={() => onPick({ kind: "templates" })}>
-          <LayoutTemplate size={15} />{translate("sidebar.templates")}
+          <LayoutTemplate size={ICON_SIZE.row} />{translate("sidebar.templates")}
           <span className="count">{selectNotes(snapshot.summaries, { view: { kind: "templates" } }).length}</span>
         </button>
         <button className="library-row" onClick={() => onPick({ kind: "trash" })}>
-          <Trash2 size={15} />{translate("sidebar.trash")}
+          <Trash2 size={ICON_SIZE.row} />{translate("sidebar.trash")}
           <span className="count">{selectNotes(snapshot.summaries, { view: { kind: "trash" } }).length}</span>
         </button>
       </div>

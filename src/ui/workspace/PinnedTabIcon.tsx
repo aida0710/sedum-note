@@ -5,8 +5,7 @@ import { AlarmClock, FileText, type LucideIcon, Settings, Table, Waypoints } fro
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { assignNotebookColors } from "../shared/notebookAppearance";
 import { GRAPH_TAB, notebookIdOfDatabaseTab, REMINDERS_TAB, SETTINGS_TAB } from "./useWorkspaceNavigation";
-
-const PINNED_TAB_ICON_SIZE = 16;
+import { ICON_SIZE } from "../shared/iconSizes";
 
 function iconOfTab(tabId: string): LucideIcon {
   if (tabId === SETTINGS_TAB) {
@@ -28,7 +27,7 @@ export function PinnedTabIcon({ tabId, repository }: { tabId: string; repository
   const color = notebookId === undefined ? undefined : assignNotebookColors(repository.notebooks()).colorOf(notebookId);
   return (
     <span className="tab-pinned-icon" style={color === undefined ? undefined : { color }}>
-      <Icon size={PINNED_TAB_ICON_SIZE} />
+      <Icon size={ICON_SIZE.button} />
     </span>
   );
 }

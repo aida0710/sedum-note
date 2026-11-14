@@ -14,6 +14,7 @@ import { useAsyncAction } from "../shared/useAsyncAction";
 import { AttachmentReaderContext, useAttachmentUrl } from "./attachmentReader";
 import { AttachmentUnavailable } from "./AttachmentUnavailable";
 import { PdfPreview } from "./PdfPreview";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 const PDF_MIME_TYPE = "application/pdf";
 const AUDIO_MIME_PREFIX = "audio/";
@@ -48,25 +49,25 @@ function AttachmentFileView({ node }: ReactNodeViewProps) {
   const [previewShown, setPreviewShown] = useState(false);
   return (
     <NodeViewWrapper className={`attachment-file${previewShown || playerShown ? " with-preview" : ""}`} data-drag-handle>
-      <FileText size={20} className="attachment-file-icon" />
+      <FileText size={ICON_SIZE.large} className="attachment-file-icon" />
       <span className="attachment-file-name">{attributes.fileName}</span>
       {save.busy
         ? <ProgressStatus label={translate("editor.fileSaving")} progress={null} />
         : <span className="attachment-file-size">{save.errorMessage ?? formatByteSize(attributes.byteLength)}</span>}
       <button type="button" className="icon-button" disabled={save.busy} aria-label={translate("editor.saveFile", { name: attributes.fileName })}
         onClick={() => void save.run(undefined)}>
-        <Download size={16} />
+        <Download size={ICON_SIZE.button} />
       </button>
       {isPdf && (
         <button type="button" className="icon-button" aria-pressed={previewShown} aria-label={translate("editor.pdfPreview", { name: attributes.fileName })}
           onClick={() => setPreviewShown(!previewShown)}>
-          <Eye size={16} />
+          <Eye size={ICON_SIZE.button} />
         </button>
       )}
       {isAudio && (
         <button type="button" className="icon-button" aria-pressed={playerShown} aria-label={translate("editor.playAudio", { name: attributes.fileName })}
           onClick={() => setPlayerShown(!playerShown)}>
-          <Play size={16} />
+          <Play size={ICON_SIZE.button} />
         </button>
       )}
       {isPdf && previewShown && <PdfPreview attachmentId={attributes.attachmentId} />}

@@ -5,10 +5,7 @@ import { type Editor, useEditorState } from "@tiptap/react";
 import { Square } from "lucide-react";
 import { translate } from "../i18n/translate";
 import { TableMenu } from "./TableMenu";
-import { TOOL_ICON_SIZE } from "./TextFormattingTools";
-
-// 録音を止めるボタンの、四角の大きさ（px）。文字（12px）に合わせる。
-const STOP_ICON_SIZE = 12;
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type NoteContextToolsProps = {
   editor: Editor;
@@ -21,10 +18,10 @@ export function NoteContextTools({ editor, recording, onStopRecording }: NoteCon
   const insideTable = useEditorState({ editor, selector: ({ editor: current }) => current.isActive("table") });
   return (
     <>
-      {insideTable && <TableMenu editor={editor} insideTable iconSize={TOOL_ICON_SIZE} />}
+      {insideTable && <TableMenu editor={editor} insideTable />}
       {recording && onStopRecording && (
         <button type="button" className="recording-stop" onMouseDown={(event) => event.preventDefault()} onClick={onStopRecording}>
-          <Square size={STOP_ICON_SIZE} fill="currentColor" />{translate("editor.stopRecording")}
+          <Square size={ICON_SIZE.chip} fill="currentColor" />{translate("editor.stopRecording")}
         </button>
       )}
     </>

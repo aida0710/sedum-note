@@ -8,11 +8,11 @@ import { useDevicePreferences } from "../preferences/devicePreferences";
 import type { SlashCommand } from "./slashCommands";
 import type { SlashMenuController } from "./slashMenuController";
 import { slashMenuSections } from "./slashMenuSections";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 // メニューと、打った位置・画面の端との間。
 const MENU_GAP = 6;
 const VIEWPORT_MARGIN = 8;
-const MENU_ICON_SIZE = 15;
 // メニューの高さの上限（px）。候補は多いので、これを超える分はメニューの中で送る。
 const MENU_MAX_HEIGHT = 520;
 // 下の端まで送ったと見なす残り（px）。画面の倍率で、送れる量の端に小数の残りが出るため。
@@ -153,7 +153,7 @@ function SlashMenuOption({ command, descriptionId, selected, onChoose }: SlashMe
       // 押しても本文のカーソルを外さない。
       onMouseDown={(event) => event.preventDefault()}
       onClick={onChoose}>
-      <command.icon size={MENU_ICON_SIZE} />
+      <command.icon size={ICON_SIZE.row} />
       <span className="slash-menu-label">
         <span className="slash-menu-name">{name}</span>
         {description !== undefined && <span className="slash-menu-description" id={descriptionId}>{description}</span>}

@@ -13,6 +13,7 @@ import { type SettingRevealRequest, useRevealSetting } from "./revealSetting";
 import { UnreadableRecordsNotice } from "./UnreadableRecordsNotice";
 import { useDialogs } from "../shared/DialogProvider";
 import { runAfterConfirmingDraftDiscard } from "./unsavedSettingsDrafts";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type SettingsPanelProps = {
   session: VaultSession;
@@ -83,7 +84,7 @@ function PhoneSettings({ session, vault, pages, page, onSelectPage, onBackToPage
     <>
       {/* 戻るボタンの右に、開いているページの名前を出す（「< 設定　一般」）。ページの中の見出しと重ならないよう、見出しにはしない。 */}
       <div className="phone-top">
-        <button type="button" className="phone-back" onClick={onBackToPageList}><ChevronLeft size={20} />{translate("settings.title")}</button>
+        <button type="button" className="phone-back" onClick={onBackToPageList}><ChevronLeft size={ICON_SIZE.large} />{translate("settings.title")}</button>
         <span className="phone-top-title">{translate(SETTINGS_PAGE_META[shownPage].label)}</span>
       </div>
       <div className="document-scroll">

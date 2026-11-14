@@ -11,6 +11,7 @@ import { NOTE_LINK_NODE } from "../../core/notes/bodyText";
 import { translate } from "../i18n/translate";
 import { type NoteLinkTarget, NoteLinkTargetsContext } from "./noteLinkTargets";
 import { NoteLinkPreview } from "./NoteLinkPreview";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 // ポインターを乗せてから見本を出すまでの待ち時間（ms）。通りすぎただけで出さないように。
 const PREVIEW_DELAY_MILLISECONDS = 450;
@@ -71,7 +72,7 @@ function NoteLinkView({ node }: ReactNodeViewProps) {
       {/* 指したブロックが消えていても、メモは開ける。 */}
       <button type="button" disabled={target.state === "missing"} onClick={() => { hidePreview(); targets.openNote(noteId, blockIsMissing ? undefined : blockId ?? undefined); }}
         onMouseEnter={(event) => target.state !== "missing" && showPreviewSoon(event.currentTarget)} onMouseLeave={hidePreview}>
-        <FileText size={13} />{noteLinkLabel(target)}
+        <FileText size={ICON_SIZE.row} />{noteLinkLabel(target)}
       </button>
       {previewAnchor && target.state !== "missing" && <NoteLinkPreview anchor={previewAnchor} title={target.title} text={previewText()} />}
     </NodeViewWrapper>

@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import type { LiveNotebook } from "../../core/notes/noteRecords";
 import { PALETTE_COLORS, type PaletteColorName } from "../theme/paletteColors";
+import { ICON_SIZE } from "./iconSizes";
 
 export const NOTEBOOK_COLOR_CHOICES = PALETTE_COLORS;
 export type NotebookColorName = PaletteColorName;
@@ -18,7 +19,6 @@ export type NotebookIconName = keyof typeof NOTEBOOK_ICON_CHOICES;
 
 // 自動で割り当てる色の順。
 const AUTOMATIC_COLOR_NAMES: NotebookColorName[] = ["blue", "orange", "green", "purple", "yellow", "pink", "cyan"];
-const NOTEBOOK_ICON_SIZE = 14;
 
 export type NotebookColors = { colorOf: (notebookId: string) => string };
 
@@ -36,5 +36,5 @@ export function assignNotebookColors(notebooks: LiveNotebook[]): NotebookColors 
 export function NotebookMark({ notebook, colors }: { notebook: LiveNotebook; colors: NotebookColors }) {
   const color = colors.colorOf(notebook.id);
   const Icon = NOTEBOOK_ICON_CHOICES[notebook.content.iconName as NotebookIconName];
-  return Icon ? <Icon size={NOTEBOOK_ICON_SIZE} color={color} className="notebook-icon" /> : <span className="dot" style={{ background: color }} />;
+  return Icon ? <Icon size={ICON_SIZE.row} color={color} className="notebook-icon" /> : <span className="dot" style={{ background: color }} />;
 }

@@ -3,6 +3,7 @@
 import { ChevronRight } from "lucide-react";
 import { translate } from "../i18n/translate";
 import { SETTINGS_PAGE_META, type SettingsPage } from "./settingsPages";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type SettingsNavigationProps = {
   pages: SettingsPage[];
@@ -19,7 +20,7 @@ export function SettingsNavigation({ pages, current, onSelect }: SettingsNavigat
         return (
           <button key={page} type="button" className={`nav${page === current ? " active" : ""}`} aria-current={page === current ? "page" : undefined}
             onClick={() => onSelect(page)}>
-            <Icon size={15} />
+            <Icon size={ICON_SIZE.row} />
             <span className="nav-label">{translate(label)}</span>
           </button>
         );
@@ -35,9 +36,9 @@ export function SettingsPageList({ pages, onSelect }: Omit<SettingsNavigationPro
         const { label, icon: Icon } = SETTINGS_PAGE_META[page];
         return (
           <button key={page} type="button" className="library-row" onClick={() => onSelect(page)}>
-            <Icon size={18} />
+            <Icon size={ICON_SIZE.touch} />
             <span>{translate(label)}</span>
-            <ChevronRight size={18} className="settings-page-list-chevron" />
+            <ChevronRight size={ICON_SIZE.touch} className="settings-page-list-chevron" />
           </button>
         );
       })}

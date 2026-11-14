@@ -5,6 +5,7 @@ import type { NoteView } from "../../core/notes/noteQueries";
 import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import { shortcutTextOf } from "../shortcuts/shortcutBindings";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type EmptyEditorPaneProps = {
   // 左の列で選んでいる一覧。
@@ -25,7 +26,7 @@ export function EmptyEditorPane({ view, trashHasNotes, onCreateNote }: EmptyEdit
   return (
     <div className="empty-state">
       <p>{translate("editor.empty")}</p>
-      <button type="button" className="primary-button" onClick={onCreateNote}><Plus size={16} />{translate("editor.emptyCreateNote")}</button>
+      <button type="button" className="primary-button" onClick={onCreateNote}><Plus size={ICON_SIZE.button} />{translate("editor.emptyCreateNote")}</button>
       {/* キーを外している（設定の「ショートカット」）ときは、キーの案内を出さない。 */}
       {newNote !== null && commandPalette !== null && <p className="hint">{translate("editor.emptyShortcuts", { newNote, commandPalette })}</p>}
     </div>

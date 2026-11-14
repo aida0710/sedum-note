@@ -62,7 +62,7 @@ export function ThemeSection() {
               <button type="button" className="secondary-button" onClick={() => setEditedTheme(selectedCustomTheme)}>{translate("theme.edit")}</button>
             </>
           )}
-          <button type="button" className="secondary-button" onClick={startNewTheme}><Plus size={14} /> {translate("theme.create")}</button>
+          <button type="button" className="secondary-button" onClick={startNewTheme}><Plus size={ICON_SIZE.row} /> {translate("theme.create")}</button>
         </div>
       )}
     </section>

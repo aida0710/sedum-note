@@ -19,6 +19,7 @@ import type { NotesInView } from "./useNotesByView";
 import { NotebookPropertiesDialog } from "./NotebookPropertiesDialog";
 import { MoveNotebookDialog } from "./MoveNotebookDialog";
 import { databaseTabId, viewKey } from "./useWorkspaceNavigation";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 export type NotebookBranchProps = {
   notebookColors: NotebookColors;
@@ -71,7 +72,7 @@ export function NotebookBranch({ node, depth, notesInView, repository, navigatio
         onDragStart={(event) => startNotebookDrag(event, notebook)}
         actions={
           <button className="icon-button" aria-label={translate("editor.more")} aria-haspopup="menu" onClick={(event) => setMenuAnchor(event.currentTarget)}>
-            <MoreHorizontal size={14} />
+            <MoreHorizontal size={ICON_SIZE.button} />
           </button>
         } />
       {menuAnchor && (

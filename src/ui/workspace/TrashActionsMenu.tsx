@@ -7,6 +7,7 @@ import { translate } from "../i18n/translate";
 import { useDialogs } from "../shared/DialogProvider";
 import { PopupMenu } from "../shared/PopupMenu";
 import { useToast } from "../shared/ToastProvider";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 // 進み具合の知らせを書き換える間隔（件数）。1 件ごとに書き換えると、知らせの数字が読めない速さで変わる。
 const PROGRESS_TOAST_STEP = 20;
@@ -45,7 +46,7 @@ export function TrashActionsMenu({ anchor, trashedNoteIds, repository, onClose }
   return (
     <PopupMenu anchor={anchor} onClose={onClose}>
       <button className="menu-item danger" role="menuitem" disabled={trashedNoteIds.length === 0} onClick={() => void emptyTrash()}>
-        <Trash2 size={15} />{translate("sidebar.emptyTrash", { count: trashedNoteIds.length })}
+        <Trash2 size={ICON_SIZE.row} />{translate("sidebar.emptyTrash", { count: trashedNoteIds.length })}
       </button>
     </PopupMenu>
   );

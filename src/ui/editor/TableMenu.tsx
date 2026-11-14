@@ -17,8 +17,9 @@ import { tableHeadersAtSelection } from "./tableHeaders";
 import { tableRowFilterKey } from "./tableRowFilter";
 import { canSortRows, moveRowOrColumn, sortRowsByColumn } from "./tableRowOrder";
 import { useDialogs } from "../shared/DialogProvider";
+import { ICON_SIZE } from "../shared/iconSizes";
 
-type TableMenuProps = { editor: Editor; insideTable: boolean; iconSize: number };
+type TableMenuProps = { editor: Editor; insideTable: boolean };
 
 const COLUMN_ALIGNMENTS: Array<{ alignment: ColumnAlignment; label: MessageKey; Icon: LucideIcon }> = [
   { alignment: "left", label: "editor.table.alignLeft", Icon: AlignLeft },
@@ -28,18 +29,15 @@ const COLUMN_ALIGNMENTS: Array<{ alignment: ColumnAlignment; label: MessageKey; 
 
 type MenuItemOptions = { danger?: boolean; disabled?: boolean; checked?: boolean };
 
-// メニューの項目のアイコンの大きさ。ほかのメニュー（メモの「…」など）と同じにする。
-const MENU_ICON_SIZE = 15;
-
-export function TableMenu({ editor, insideTable, iconSize }: TableMenuProps) {
+export function TableMenu({ editor, insideTable }: TableMenuProps) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const item = (label: MessageKey, Icon: LucideIcon, run: () => void, { danger = false, disabled = false, checked }: MenuItemOptions = {}) => (
     <button type="button" className={`menu-item${danger ? " danger" : ""}${checked ? " on" : ""}`} disabled={disabled}
       role={checked === undefined ? "menuitem" : "menuitemcheckbox"} aria-checked={checked}
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => { setAnchor(null); run(); }}>
-      <Icon size={MENU_ICON_SIZE} />{translate(label)}
-      {checked && <Check size={MENU_ICON_SIZE} className="menu-check" />}
+      <Icon size={ICON_SIZE.row} />{translate(label)}
+      {checked && <Check size={ICON_SIZE.row} className="menu-check" />}
     </button>
   );
   const commands = () => editor.chain().focus();
@@ -63,7 +61,7 @@ export function TableMenu({ editor, insideTable, iconSize }: TableMenuProps) {
       <button type="button" className={`tool${insideTable ? " on" : ""}`} title={translate("editor.table")} aria-label={translate("editor.table")}
         aria-haspopup="menu" onMouseDown={(event) => event.preventDefault()}
         onClick={(event) => setAnchor(anchor ? null : event.currentTarget)}>
-        <Table size={iconSize} />
+        <Table size={ICON_SIZE.button} />
       </button>
       {anchor && (
         <PopupMenu anchor={anchor} onClose={() => setAnchor(null)} align="start" takesFocus={false}>
@@ -98,7 +96,7 @@ export function TableMenu({ editor, insideTable, iconSize }: TableMenuProps) {
                     title={translate(label)} aria-label={translate(label)} aria-pressed={columnAlignment === alignment}
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => { setAnchor(null); setColumnAlignment(editor, alignment); }}>
-                    <Icon size={iconSize} />
+                    <Icon size={ICON_SIZE.button} />
                   </button>
                 ))}
               </div>

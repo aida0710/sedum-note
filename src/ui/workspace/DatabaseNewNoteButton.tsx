@@ -8,13 +8,12 @@ import { Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { translate } from "../i18n/translate";
 import { InlineNameInput } from "./InlineNameInput";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type DatabaseNewNoteButtonProps = {
   // 決めたタイトル（空ではない）でメモを作る。
   onCreate: (title: string) => void;
 };
-
-const ICON_SIZE = 14;
 
 export function DatabaseNewNoteButton({ onCreate }: DatabaseNewNoteButtonProps) {
   const [typingTitle, setTypingTitle] = useState(false);
@@ -45,7 +44,7 @@ export function DatabaseNewNoteButton({ onCreate }: DatabaseNewNoteButtonProps) 
   }
   return (
     <button ref={buttonRef} type="button" className="database-new-note-button" onClick={() => setTypingTitle(true)}>
-      <Plus size={ICON_SIZE} />{translate("database.newNote")}
+      <Plus size={ICON_SIZE.row} />{translate("database.newNote")}
     </button>
   );
 }

@@ -5,6 +5,7 @@ import { type Editor, useEditorState } from "@tiptap/react";
 import { ChevronLeft } from "lucide-react";
 import { translate } from "../i18n/translate";
 import { zoomedItemPosition, zoomOutOneLevel, zoomPath } from "./zoom";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 // エディタがズームしているか。ズームの出入りのときだけ描き直す。
 export function useIsZoomed(editor: Editor | null): boolean {
@@ -26,7 +27,7 @@ export function ZoomBackButton({ editor, noteTitle, className }: ZoomBackButtonP
   return (
     <button type="button" className={className} aria-label={translate("editor.zoomBackTo", { name: destination })}
       title={translate("editor.zoomBackHint", { name: destination })} onClick={() => zoomOutOneLevel(editor)}>
-      <ChevronLeft size={20} />
+      <ChevronLeft size={ICON_SIZE.large} />
       <span>{destination}</span>
     </button>
   );

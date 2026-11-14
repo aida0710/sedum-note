@@ -15,6 +15,7 @@ import { translate } from "../i18n/translate";
 import { GRAPH_TAB, notebookIdOfDatabaseTab, REMINDERS_TAB, SETTINGS_TAB, type WorkspaceNavigation } from "./useWorkspaceNavigation";
 import { pinnedTabsRightEdge, useStickyPinnedTabs } from "./stickyPinnedTabs";
 import { PinnedTabIcon } from "./PinnedTabIcon";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 // タブが並びの外にはみ出していれば、並びだけを横に送って見せる。scrollIntoView は、並びを縦にも送り（中身が 1px 高い）、
 // 外側の画面まで送ることがあるので使わない。左端に留めたピン留めのタブの下に隠れている所も、外と同じに扱う。
@@ -152,7 +153,7 @@ function OpenTabsBar({ navigation, repository }: NoteTabsProps) {
             {!isPinned && (
               <button className="tab-close" aria-label={translate("editor.closeTab")}
                 onClick={(event) => { event.stopPropagation(); navigation.closeTab(tabId); }}>
-                <X size={12} />
+                <X size={ICON_SIZE.chip} />
               </button>
             )}
           </div>
@@ -162,32 +163,32 @@ function OpenTabsBar({ navigation, repository }: NoteTabsProps) {
       <div className="tabs-end">
         <button type="button" className="icon-button" aria-label={translate("tabs.list")} title={translate("tabs.list")} aria-haspopup="menu"
           onClick={(event) => setTabListAnchor(tabListAnchor ? null : event.currentTarget)}>
-          <ChevronDown size={16} />
+          <ChevronDown size={ICON_SIZE.button} />
         </button>
       </div>
       {tabMenu && (
         <PopupMenu anchor={tabMenu.anchor} onClose={() => setTabMenu(null)}>
           <button className="menu-item" role="menuitem" onClick={runAndCloseMenu(() => navigation.closeTab(tabMenu.tabId))}>
-            <X size={15} />{translate("editor.closeTab")}
+            <X size={ICON_SIZE.row} />{translate("editor.closeTab")}
           </button>
           <button className="menu-item" role="menuitem" onClick={runAndCloseMenu(() => navigation.closeOtherTabs(tabMenu.tabId))}>
-            <X size={15} />{translate("tabs.closeOthers")}
+            <X size={ICON_SIZE.row} />{translate("tabs.closeOthers")}
           </button>
           <button className="menu-item" role="menuitem" onClick={runAndCloseMenu(() => navigation.closeTabsToRight(tabMenu.tabId))}>
-            <X size={15} />{translate("tabs.closeToRight")}
+            <X size={ICON_SIZE.row} />{translate("tabs.closeToRight")}
           </button>
           <div className="menu-separator" />
           {repository.note(tabMenu.tabId) && (
             <button className="menu-item" role="menuitem" onClick={runAndCloseMenu(() => navigation.openInSplit(tabMenu.tabId))}>
-              <Columns2 size={15} />{translate("split.open")}
+              <Columns2 size={ICON_SIZE.row} />{translate("split.open")}
             </button>
           )}
           <button className="menu-item" role="menuitem" onClick={runAndCloseMenu(() => navigation.togglePinnedTab(tabMenu.tabId))}>
-            {navigation.pinnedTabs.includes(tabMenu.tabId) ? <PinOff size={15} /> : <Pin size={15} />}
+            {navigation.pinnedTabs.includes(tabMenu.tabId) ? <PinOff size={ICON_SIZE.row} /> : <Pin size={ICON_SIZE.row} />}
             {translate(navigation.pinnedTabs.includes(tabMenu.tabId) ? "tabs.unpin" : "tabs.pin")}
           </button>
           <button className="menu-item" role="menuitem" onClick={runAndCloseMenu(() => navigation.reopenClosedTab())}>
-            <RotateCcw size={15} />{translate("shortcut.reopenClosedTab")}
+            <RotateCcw size={ICON_SIZE.row} />{translate("shortcut.reopenClosedTab")}
           </button>
         </PopupMenu>
       )}
@@ -196,7 +197,7 @@ function OpenTabsBar({ navigation, repository }: NoteTabsProps) {
           {navigation.openTabs.map((tabId) => (
             <button key={tabId} className="menu-item" role="menuitem" onClick={() => { setTabListAnchor(null); navigation.openTab(tabId); }}>
               <span className="nav-label">{labelOf(tabId)}</span>
-              {navigation.activeTab === tabId && <Check size={15} className="menu-check" />}
+              {navigation.activeTab === tabId && <Check size={ICON_SIZE.row} className="menu-check" />}
             </button>
           ))}
         </PopupMenu>

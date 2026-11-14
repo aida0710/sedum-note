@@ -10,6 +10,7 @@ import { NoteQuerySourceContext } from "../editor/noteQuerySource";
 import { translate } from "../i18n/translate";
 import type { RepositorySnapshot } from "../session/useRepositorySnapshot";
 import type { WorkspaceNavigation } from "./useWorkspaceNavigation";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type SplitNotePaneProps = {
   note: LiveNote;
@@ -24,7 +25,7 @@ export function SplitNotePane({ note, snapshot, repository, navigation }: SplitN
       <header className="split-pane-header">
         <span className="nav-label">{note.content.title || translate("sidebar.untitled")}</span>
         <button type="button" className="icon-button" aria-label={translate("split.close")} title={translate("split.close")} onClick={navigation.closeSplit}>
-          <X size={15} />
+          <X size={ICON_SIZE.row} />
         </button>
       </header>
       {/* 右側のメモの中のリンクは、左のタブで開く（右側は、開いたメモのままにする）。 */}

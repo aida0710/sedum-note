@@ -12,6 +12,7 @@ import { SYNC_SETUP_FILE_EXTENSION } from "./syncSetupFileName";
 import { QrCodeScannerDialog } from "./QrCodeScannerDialog";
 import { canUseCamera, readQrCodeFromImage } from "./syncSetupQrCode";
 import type { SyncTargetForm } from "./useSyncTargetForm";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 export function SyncSetupImport({ form }: { form: SyncTargetForm }) {
   const fileInput = useRef<HTMLInputElement>(null);
@@ -60,11 +61,11 @@ export function SyncSetupImport({ form }: { form: SyncTargetForm }) {
     <div className="sync-setup-import">
       <span className="hint">{translate("syncSetup.importHint")}</span>
       <div className="sync-setup-import-buttons">
-        <button type="button" className="secondary-button" onClick={() => fileInput.current?.click()}><Upload size={15} />{translate("syncSetup.pickFile")}</button>
+        <button type="button" className="secondary-button" onClick={() => fileInput.current?.click()}><Upload size={ICON_SIZE.row} />{translate("syncSetup.pickFile")}</button>
         {canUseCamera() && (
-          <button type="button" className="secondary-button" onClick={() => setScanning(true)}><Camera size={15} />{translate("syncSetup.scanQrCode")}</button>
+          <button type="button" className="secondary-button" onClick={() => setScanning(true)}><Camera size={ICON_SIZE.row} />{translate("syncSetup.scanQrCode")}</button>
         )}
-        <button type="button" className="secondary-button" onClick={() => qrCodeInput.current?.click()}><QrCode size={15} />{translate("syncSetup.pickQrCodeImage")}</button>
+        <button type="button" className="secondary-button" onClick={() => qrCodeInput.current?.click()}><QrCode size={ICON_SIZE.row} />{translate("syncSetup.pickQrCodeImage")}</button>
         <input ref={fileInput} type="file" accept={`.${SYNC_SETUP_FILE_EXTENSION},application/json`} hidden aria-label={translate("syncSetup.pickFile")} onChange={readPicked(false)} />
         {/* カメラを使えないとき（許可しなかった、カメラの無い PC）のために、QR の写った画像からも読めるようにする。 */}
         <input ref={qrCodeInput} type="file" accept="image/*" hidden aria-label={translate("syncSetup.pickQrCodeImage")} onChange={readPicked(true)} />

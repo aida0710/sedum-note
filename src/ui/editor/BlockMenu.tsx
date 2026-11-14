@@ -14,9 +14,7 @@ import { type BlockKind, BLOCK_KINDS, blockAt, canChangeKind, changeBlockKind, d
 import { shortcutTextOf } from "../shortcuts/shortcutBindings";
 import type { ShortcutId } from "../shortcuts/shortcutCatalog";
 import type { BlockMenuController } from "./blockMenuController";
-
-// メニューの項目のアイコンの大きさ。ほかのメニュー（メモの「…」など）と同じ。
-const MENU_ICON_SIZE = 15;
+import { ICON_SIZE } from "../shared/iconSizes";
 
 const KIND_ITEMS: Record<BlockKind, { label: MessageKey; Icon: LucideIcon }> = {
   paragraph: { label: "editor.paragraph", Icon: Pilcrow },
@@ -54,8 +52,8 @@ export function BlockMenu({ editor, controller }: BlockMenuProps) {
   const item = (label: MessageKey, Icon: LucideIcon, onSelect: () => void, { shortcut, checked, danger }: { shortcut?: string | null; checked?: boolean; danger?: boolean } = {}) => (
     <button key={label} type="button" className={`menu-item${danger ? " danger" : ""}`} role={checked === undefined ? "menuitem" : "menuitemradio"} aria-checked={checked}
       onMouseDown={(event) => event.preventDefault()} onClick={onSelect}>
-      <Icon size={MENU_ICON_SIZE} />{translate(label)}
-      {checked && <Check size={MENU_ICON_SIZE} className="menu-check" />}
+      <Icon size={ICON_SIZE.row} />{translate(label)}
+      {checked && <Check size={ICON_SIZE.row} className="menu-check" />}
       {shortcut && <kbd>{shortcut}</kbd>}
     </button>
   );

@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 import { useState } from "react";
 import { translate } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type PropertyOptionsEditorProps = {
   propertyName: string;
@@ -54,7 +55,7 @@ export function PropertyOptionsEditor({ propertyName, options, newOptionText, on
         <span key={option} className="chip property-option">
           <button type="button" className="property-option-name" title={translate("property.renameOption", { option })} onClick={() => setRenaming({ option, name: option })}>{option}</button>
           <button type="button" className="property-option-remove" aria-label={translate("property.removeOption", { option })} onClick={() => onRemove(option)}>
-            <X size={12} />
+            <X size={ICON_SIZE.chip} />
           </button>
         </span>
       )))}

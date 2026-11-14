@@ -6,19 +6,17 @@ import { Baseline, Bold, Heading, Highlighter, Italic, Link, Underline } from "l
 import { ColorMenu } from "./ColorMenu";
 import type { FormattingState } from "./formattingState";
 import { ToolButton } from "./ToolButton";
-
-// ツールバーのアイコンの大きさ。
-export const TOOL_ICON_SIZE = 16;
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type TextFormattingToolsProps = { editor: Editor; state: FormattingState };
 
 export function TextStyleTools({ editor, state }: TextFormattingToolsProps) {
   return (
     <>
-      <ToolButton label="editor.heading" isOn={state.heading} onPress={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}><Heading size={TOOL_ICON_SIZE} /></ToolButton>
-      <ToolButton label="editor.bold" isOn={state.bold} onPress={() => editor.chain().focus().toggleBold().run()}><Bold size={TOOL_ICON_SIZE} /></ToolButton>
-      <ToolButton label="editor.italic" isOn={state.italic} onPress={() => editor.chain().focus().toggleItalic().run()}><Italic size={TOOL_ICON_SIZE} /></ToolButton>
-      <ToolButton label="editor.underline" isOn={state.underline} onPress={() => editor.chain().focus().toggleUnderline().run()}><Underline size={TOOL_ICON_SIZE} /></ToolButton>
+      <ToolButton label="editor.heading" isOn={state.heading} onPress={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}><Heading size={ICON_SIZE.button} /></ToolButton>
+      <ToolButton label="editor.bold" isOn={state.bold} onPress={() => editor.chain().focus().toggleBold().run()}><Bold size={ICON_SIZE.button} /></ToolButton>
+      <ToolButton label="editor.italic" isOn={state.italic} onPress={() => editor.chain().focus().toggleItalic().run()}><Italic size={ICON_SIZE.button} /></ToolButton>
+      <ToolButton label="editor.underline" isOn={state.underline} onPress={() => editor.chain().focus().toggleUnderline().run()}><Underline size={ICON_SIZE.button} /></ToolButton>
     </>
   );
 }
@@ -26,9 +24,9 @@ export function TextStyleTools({ editor, state }: TextFormattingToolsProps) {
 export function TextColorTools({ editor, state }: TextFormattingToolsProps) {
   return (
     <>
-      <ColorMenu label="editor.highlight" icon={<Highlighter size={TOOL_ICON_SIZE} />} appearance="background" selected={state.highlightColor}
+      <ColorMenu label="editor.highlight" icon={<Highlighter size={ICON_SIZE.button} />} appearance="background" selected={state.highlightColor}
         onChoose={(colorName) => (colorName ? editor.chain().focus().setHighlight(colorName).run() : editor.chain().focus().unsetHighlight().run())} />
-      <ColorMenu label="editor.textColor" icon={<Baseline size={TOOL_ICON_SIZE} />} appearance="text" selected={state.textColor}
+      <ColorMenu label="editor.textColor" icon={<Baseline size={ICON_SIZE.button} />} appearance="text" selected={state.textColor}
         onChoose={(colorName) => (colorName ? editor.chain().focus().setTextColor(colorName).run() : editor.chain().focus().unsetTextColor().run())} />
     </>
   );
@@ -51,5 +49,5 @@ export function LinkTool({ editor, state, onAskLink }: LinkToolProps) {
       editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
     }
   };
-  return <ToolButton label="editor.link" isOn={state.link} onPress={() => void toggleLink()}><Link size={TOOL_ICON_SIZE} /></ToolButton>;
+  return <ToolButton label="editor.link" isOn={state.link} onPress={() => void toggleLink()}><Link size={ICON_SIZE.button} /></ToolButton>;
 }

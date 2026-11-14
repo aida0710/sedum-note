@@ -22,6 +22,7 @@ import { AiModelSelect } from "./AiModelSelect";
 import { NoteMentionInput } from "./NoteMentionInput";
 import { SavedChatList } from "./SavedChatList";
 import { isReplaceableSelection, replaceSelectedText } from "./selectionReplacement";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type AiChatProps = {
   repository: NoteRepository;
@@ -210,20 +211,20 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNot
           {openNote && (
             <label className="chip toggle">
               <input type="checkbox" checked={includesOpenNote} onChange={(event) => setIncludesOpenNote(event.target.checked)} />
-              <FileText size={12} />{translate("ai.openNoteChip", { title: openNote.content.title || translate("sidebar.untitled") })}
+              <FileText size={ICON_SIZE.chip} />{translate("ai.openNoteChip", { title: openNote.content.title || translate("sidebar.untitled") })}
             </label>
           )}
           {selectedText !== "" && (
             <label className="chip toggle">
               <input type="checkbox" checked={includesSelection} onChange={(event) => setIncludesSelection(event.target.checked)} />
-              <TextSelect size={12} />{translate("ai.selectionChip", { count: selectedText.length })}
+              <TextSelect size={ICON_SIZE.chip} />{translate("ai.selectionChip", { count: selectedText.length })}
             </label>
           )}
           {mentionedNotes.map((note) => (
             <span key={note.id} className="chip">
-              <FileText size={12} />{note.content.title || translate("sidebar.untitled")}
+              <FileText size={ICON_SIZE.chip} />{note.content.title || translate("sidebar.untitled")}
               <button type="button" aria-label={translate("ai.removeMention", { title: note.content.title })} onClick={() => removeMention(note.id)}>
-                <X size={11} />
+                <X size={ICON_SIZE.chip} />
               </button>
             </span>
           ))}
@@ -248,11 +249,11 @@ export function AiChat({ repository, notes, onClose, onOpenAiSettings, onOpenNot
           {/* 動いている間は、送るボタンが止めるボタンに変わる（Claude や ChatGPT と同じ置き場所）。 */}
           {running ? (
             <button type="button" className="ai-send-button" aria-label={translate("ai.stop")} title={translate("ai.stop")} onClick={stop}>
-              <Square size={13} fill="currentColor" />
+              <Square size={ICON_SIZE.chip} fill="currentColor" />
             </button>
           ) : (
             <button type="button" className="ai-send-button" aria-label={translate("ai.send")} title={translate("ai.send")} disabled={input.trim() === ""} onClick={() => sendInput(currentAttachments())}>
-              <ArrowUp size={16} />
+              <ArrowUp size={ICON_SIZE.button} />
             </button>
           )}
         </div>
@@ -282,15 +283,15 @@ function ChatHeader({ modelSelect, canStartNewChat, onStartNewChat, showsHistory
       {/* 始められないとき（まだ何も話していない、答えを待っている）も同じ所に置き、隣の部品の位置が動かないようにする。 */}
       {showsHistory !== null && (
         <button type="button" className="icon-button" aria-label={translate("ai.newChat")} title={translate("ai.newChat")} disabled={!canStartNewChat} onClick={onStartNewChat}>
-          <SquarePen size={16} />
+          <SquarePen size={ICON_SIZE.button} />
         </button>
       )}
       {showsHistory !== null && (
         <button type="button" className="icon-button" aria-label={translate("ai.history")} aria-pressed={showsHistory} title={translate("ai.history")} onClick={onToggleHistory}>
-          <History size={16} />
+          <History size={ICON_SIZE.button} />
         </button>
       )}
-      <button type="button" className="icon-button" aria-label={translate("ai.closeChat")} onClick={onClose}><X size={16} /></button>
+      <button type="button" className="icon-button" aria-label={translate("ai.closeChat")} onClick={onClose}><X size={ICON_SIZE.button} /></button>
     </header>
   );
 }

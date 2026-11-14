@@ -5,6 +5,7 @@ import { MAX_SAVED_AI_CHATS } from "../../core/vault/aiChatHistory";
 import { translate } from "../i18n/translate";
 import { formatDateTime } from "../shared/formatTime";
 import type { SavedChat } from "./aiChatSession";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type SavedChatListProps = { chats: SavedChat[]; disabled: boolean; onOpen: (chatId: string) => void; onDelete: (chat: SavedChat) => void };
 
@@ -23,7 +24,7 @@ export function SavedChatList({ chats, disabled, onOpen, onDelete }: SavedChatLi
               <span className="ai-saved-chat-time">{formatDateTime(chat.updatedAt)}</span>
             </button>
             <button type="button" className="icon-button" disabled={disabled} aria-label={translate("ai.deleteChat", { title })} onClick={() => onDelete(chat)}>
-              <Trash2 size={14} />
+              <Trash2 size={ICON_SIZE.button} />
             </button>
           </div>
         );

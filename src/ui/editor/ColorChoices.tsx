@@ -12,8 +12,6 @@ type ColorChoicesProps = {
   onChoose: (colorName: EditorColorName | null) => void;
 };
 
-const NO_COLOR_ICON_SIZE = 16;
-
 export function ColorChoices({ appearance, selected, onChoose }: ColorChoicesProps) {
   // 押してもエディタの選択が外れないようにする。
   const keepEditorSelection = (event: React.MouseEvent) => event.preventDefault();
@@ -21,7 +19,7 @@ export function ColorChoices({ appearance, selected, onChoose }: ColorChoicesPro
     <div className="choice-grid color-choices" role="group">
       <button type="button" className={`choice swatch${selected === null ? " on" : ""}`} aria-label={translate("editor.noColor")} aria-pressed={selected === null}
         onMouseDown={keepEditorSelection} onClick={() => onChoose(null)}>
-        <Ban size={NO_COLOR_ICON_SIZE} />
+        <Ban size={ICON_SIZE.button} />
       </button>
       {EDITOR_COLOR_NAMES.map((colorName) => (
         <button key={colorName} type="button" className={`choice swatch${selected === colorName ? " on" : ""}`}

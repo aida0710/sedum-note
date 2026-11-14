@@ -6,6 +6,7 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { canDropDraggedNotebook, dropNotebook, isNotebookDrag, TOP_LEVEL_NOTEBOOK_DROP_KEY } from "./notebookDrag";
 import { markSidebarDropTarget, useSidebarDragState } from "./sidebarDragState";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type NotebookSectionTitleProps = { repository: NoteRepository; onAddNotebook: () => void };
 
@@ -33,7 +34,7 @@ export function NotebookSectionTitle({ repository, onAddNotebook }: NotebookSect
         void dropNotebook(event, null, repository);
       }}>
       {translate("sidebar.notebooks")}
-      <button className="icon-button" aria-label={translate("sidebar.newNotebook")} onClick={onAddNotebook}><Plus size={14} /></button>
+      <button className="icon-button" aria-label={translate("sidebar.newNotebook")} onClick={onAddNotebook}><Plus size={ICON_SIZE.button} /></button>
     </div>
   );
 }

@@ -14,6 +14,7 @@ import { ModalDialog } from "../shared/ModalDialog";
 import { assignNotebookColors, NotebookMark } from "../shared/notebookAppearance";
 import { treeDepthStyle } from "../shared/treeDepthStyle";
 import { notebookTreeRows } from "./notebookTreeRows";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 // 一覧の中で ↑ ↓ で移る項目（ノートブックのチェックボックスと、作成して追加の行）。
 const LIST_ITEM_SELECTOR = ".notebook-choice input, .notebook-create";
@@ -49,7 +50,7 @@ export function NoteNotebooksDialog({ note, notebooks, repository, onClose }: No
   return (
     <ModalDialog label={title} title={title} description={translate("editor.notebookPickerDescription")} className="note-picker" onClose={onClose}>
       <label className="sidebar-search">
-        <Search size={14} />
+        <Search size={ICON_SIZE.row} />
         <input autoFocus value={searchText} placeholder={translate("editor.notebookPickerSearchPlaceholder")} onChange={(event) => setSearchText(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "ArrowDown" && !isImeKeyEvent(event.nativeEvent)) {
@@ -77,7 +78,7 @@ export function NoteNotebooksDialog({ note, notebooks, repository, onClose }: No
         ))}
         {canCreate && (
           <button type="button" className="menu-item notebook-create" onClick={() => void createAndAdd()}>
-            <FolderPlus size={15} /><span className="nav-label">{translate("editor.notebookPickerCreate", { name: nameToCreate })}</span>
+            <FolderPlus size={ICON_SIZE.row} /><span className="nav-label">{translate("editor.notebookPickerCreate", { name: nameToCreate })}</span>
           </button>
         )}
       </div>

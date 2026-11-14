@@ -7,6 +7,7 @@ import { translate } from "../i18n/translate";
 import { PopupMenu } from "../shared/PopupMenu";
 import { resetNoteSelection } from "./noteSelection";
 import { useTrashWithUndo } from "./useTrashWithUndo";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type SelectedNotesMenuProps = {
   anchor: HTMLElement;
@@ -39,16 +40,16 @@ export function SelectedNotesMenu({ anchor, noteIds, inTrash, repository, onClos
     <PopupMenu anchor={anchor} onClose={onClose}>
       {inTrash && (
         <button className="menu-item" role="menuitem" onClick={choose(restoreAll)}>
-          <RotateCcw size={15} />{translate("sidebar.restoreSelected", { count: targetIds.length })}
+          <RotateCcw size={ICON_SIZE.row} />{translate("sidebar.restoreSelected", { count: targetIds.length })}
         </button>
       )}
-      <button className="menu-item" role="menuitem" onClick={choose(() => undefined)}><X size={15} />{translate("sidebar.clearSelection")}</button>
+      <button className="menu-item" role="menuitem" onClick={choose(() => undefined)}><X size={ICON_SIZE.row} />{translate("sidebar.clearSelection")}</button>
       {/* 危険な操作は、ほかのメニューと同じく最後に置く。 */}
       {!inTrash && (
         <>
           <div className="menu-separator" />
           <button className="menu-item danger" role="menuitem" onClick={choose(() => moveToTrash(targetIds))}>
-            <Trash2 size={15} />{translate("sidebar.trashSelected", { count: targetIds.length })}
+            <Trash2 size={ICON_SIZE.row} />{translate("sidebar.trashSelected", { count: targetIds.length })}
           </button>
         </>
       )}

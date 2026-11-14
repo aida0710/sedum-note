@@ -10,10 +10,7 @@ import { type AiSelectionRequest, AI_SELECTION_REQUESTS } from "../ai/aiConversa
 import { useAiChatSession } from "../ai/aiChatSession";
 import { translate } from "../i18n/translate";
 import { PopupMenu } from "../shared/PopupMenu";
-import { TOOL_ICON_SIZE } from "./TextFormattingTools";
-
-// メニューの項目のアイコンの大きさ。ほかのメニューと同じ。
-const MENU_ICON_SIZE = 15;
+import { ICON_SIZE } from "../shared/iconSizes";
 
 const REQUEST_ICONS: Record<AiSelectionRequest, typeof Sparkles> = {
   rewriteSelection: PenLine,
@@ -46,7 +43,7 @@ export function SelectionAiMenu({ editor, noteId, noteTitle }: SelectionAiMenuPr
     <>
       <button type="button" className="tool" title={translate("ai.selectionMenu")} aria-label={translate("ai.selectionMenu")} aria-haspopup="menu"
         onMouseDown={(event) => event.preventDefault()} onClick={(event) => setAnchor(anchor ? null : event.currentTarget)}>
-        <Sparkles size={TOOL_ICON_SIZE} />
+        <Sparkles size={ICON_SIZE.button} />
       </button>
       {anchor && (
         <PopupMenu anchor={anchor} onClose={() => setAnchor(null)} align="start" takesFocus={false}>
@@ -54,13 +51,13 @@ export function SelectionAiMenu({ editor, noteId, noteTitle }: SelectionAiMenuPr
             const Icon = REQUEST_ICONS[quickRequest];
             return (
               <button key={quickRequest} type="button" className="menu-item" role="menuitem" onMouseDown={(event) => event.preventDefault()} onClick={() => request(quickRequest)}>
-                <Icon size={MENU_ICON_SIZE} />{translate(`ai.task.${quickRequest}`)}
+                <Icon size={ICON_SIZE.row} />{translate(`ai.task.${quickRequest}`)}
               </button>
             );
           })}
           <div className="menu-separator" />
           <button type="button" className="menu-item" role="menuitem" onMouseDown={(event) => event.preventDefault()} onClick={askInChat}>
-            <MessageSquare size={MENU_ICON_SIZE} />{translate("ai.askInChat")}
+            <MessageSquare size={ICON_SIZE.row} />{translate("ai.askInChat")}
           </button>
         </PopupMenu>
       )}

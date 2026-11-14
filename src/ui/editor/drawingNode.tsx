@@ -8,6 +8,7 @@ import { type PointerEvent as ReactPointerEvent, useRef, useState } from "react"
 import { type MessageKey, translate } from "../i18n/translate";
 import { ColorChoices } from "./ColorChoices";
 import { type EditorColorName, editorColorValue, isEditorColorName } from "./editorColors";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 export const DRAWING_NODE = "drawing";
 const DRAWING_STROKE_NODE = "drawingStroke";
@@ -23,7 +24,6 @@ const STROKE_WIDTH = 3;
 const ERASER_HIT_WIDTH = 18;
 // ペンの線で、前の点からこれ以上動いたら次の点を足す（座標の単位）。細かすぎる点でデータが膨らまないようにする。
 const MIN_POINT_DISTANCE = 2;
-const TOOL_ICON_SIZE = 15;
 
 const DRAWING_SHAPES = ["pen", "line", "rectangle", "ellipse"] as const;
 type DrawingShape = (typeof DRAWING_SHAPES)[number];
@@ -161,7 +161,7 @@ function DrawingView({ node, editor, getPos }: ReactNodeViewProps) {
           {TOOLS.map(({ tool: choice, icon: Icon, label }) => (
             <button key={choice} type="button" className="icon-button" aria-pressed={tool === choice} aria-label={translate(label)} title={translate(label)}
               onClick={() => setTool(choice)}>
-              <Icon size={TOOL_ICON_SIZE} />
+              <Icon size={ICON_SIZE.button} />
             </button>
           ))}
           <ColorChoices appearance="text" selected={color} onChoose={setColor} />

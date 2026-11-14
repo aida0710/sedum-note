@@ -7,6 +7,7 @@ import { isImeKeyEvent } from "./imeKeyEvent";
 import { ModalDialog } from "./ModalDialog";
 import { containsAllWords, searchWordsOf } from "./searchWords";
 import { useKeyboardListSelection } from "./useKeyboardListSelection";
+import { ICON_SIZE } from "./iconSizes";
 
 // 一度に並べる件数。これより多いときは検索で絞ってもらう。
 const MAX_LISTED_CHOICES = 50;
@@ -36,7 +37,7 @@ export function SearchablePicker({ title, description, choices, searchPlaceholde
   return (
     <ModalDialog label={title} title={title} description={description} className="note-picker" onClose={onCancel}>
       <label className="sidebar-search">
-        <Search size={14} />
+        <Search size={ICON_SIZE.row} />
         <input autoFocus value={searchText} placeholder={searchPlaceholder} aria-label={searchPlaceholder}
           onChange={(event) => { setSearchText(event.target.value); selectFirst(); }}
           onKeyDown={(event) => {

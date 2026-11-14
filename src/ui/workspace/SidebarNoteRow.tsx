@@ -22,6 +22,7 @@ import { treeDepthStyle } from "../shared/treeDepthStyle";
 import { useRowFocusAfterNaming } from "./useRowFocusAfterNaming";
 import { useTrashWithUndo } from "./useTrashWithUndo";
 import { viewKey } from "./useWorkspaceNavigation";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type SidebarNoteRowProps = {
   note: LiveNote;
@@ -148,7 +149,7 @@ function SidebarNoteRowContent({ note, view, listedNoteIds, depth, activeTab, op
       <span className="row-actions">
         <button className="icon-button" aria-label={translate("sidebar.noteActions", { title })} aria-haspopup="menu"
           onClick={(event) => setMenuAnchor(event.currentTarget)}>
-          <MoreHorizontal size={14} />
+          <MoreHorizontal size={ICON_SIZE.button} />
         </button>
       </span>
       {menuAnchor && opensSelectionMenu && (
@@ -156,23 +157,23 @@ function SidebarNoteRowContent({ note, view, listedNoteIds, depth, activeTab, op
       )}
       {menuAnchor && !opensSelectionMenu && (
         <PopupMenu anchor={menuAnchor} onClose={() => setMenuAnchor(null)}>
-          <button className="menu-item" role="menuitem" onClick={choose(() => setRenaming(true))}><Pencil size={15} />{translate("notebook.rename")}</button>
+          <button className="menu-item" role="menuitem" onClick={choose(() => setRenaming(true))}><Pencil size={ICON_SIZE.row} />{translate("notebook.rename")}</button>
           {!inTrash && (
             <>
               <button className="menu-item" role="menuitem" onClick={choose(() => repository.updateNote(note.id, { bookmarked: !content.bookmarked }))}>
-                {content.bookmarked ? <StarOff size={15} /> : <Star size={15} />}{translate(content.bookmarked ? "editor.unbookmark" : "editor.bookmark")}
+                {content.bookmarked ? <StarOff size={ICON_SIZE.row} /> : <Star size={ICON_SIZE.row} />}{translate(content.bookmarked ? "editor.unbookmark" : "editor.bookmark")}
               </button>
               <button className="menu-item" role="menuitem" onClick={choose(() => repository.updateNote(note.id, { pinned: !content.pinned }))}>
-                {content.pinned ? <PinOff size={15} /> : <Pin size={15} />}{translate(content.pinned ? "editor.unpin" : "editor.pin")}
+                {content.pinned ? <PinOff size={ICON_SIZE.row} /> : <Pin size={ICON_SIZE.row} />}{translate(content.pinned ? "editor.unpin" : "editor.pin")}
               </button>
               <div className="menu-separator" />
-              <button className="menu-item danger" role="menuitem" onClick={choose(() => moveToTrash([note.id]))}><Trash2 size={15} />{translate("editor.moveToTrash")}</button>
+              <button className="menu-item danger" role="menuitem" onClick={choose(() => moveToTrash([note.id]))}><Trash2 size={ICON_SIZE.row} />{translate("editor.moveToTrash")}</button>
             </>
           )}
           {inTrash && (
             <>
-              <button className="menu-item" role="menuitem" onClick={choose(() => repository.restoreNoteFromTrash(note.id))}><RotateCcw size={15} />{translate("editor.restore")}</button>
-              <button className="menu-item danger" role="menuitem" onClick={choose(removePermanently)}><Trash2 size={15} />{translate("editor.removePermanently")}</button>
+              <button className="menu-item" role="menuitem" onClick={choose(() => repository.restoreNoteFromTrash(note.id))}><RotateCcw size={ICON_SIZE.row} />{translate("editor.restore")}</button>
+              <button className="menu-item danger" role="menuitem" onClick={choose(removePermanently)}><Trash2 size={ICON_SIZE.row} />{translate("editor.removePermanently")}</button>
             </>
           )}
         </PopupMenu>

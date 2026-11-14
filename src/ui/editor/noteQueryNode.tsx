@@ -9,6 +9,7 @@ import { EMPTY_NOTE_QUERY, type NoteQueryCondition, noteQueryConditionFrom, note
 import { translate } from "../i18n/translate";
 import { NoteLinkTargetsContext } from "./noteLinkTargets";
 import { NoteQuerySourceContext } from "./noteQuerySource";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 export const NOTE_QUERY_NODE = "noteQuery";
 // Markdown で条件を書くコードの囲みの言語。
@@ -28,7 +29,7 @@ function NoteQueryView({ node, updateAttributes, editor }: ReactNodeViewProps) {
   return (
     <NodeViewWrapper className="note-query" contentEditable={false}>
       <div className="note-query-conditions">
-        <ListFilter size={14} />
+        <ListFilter size={ICON_SIZE.row} />
         <select value={condition.notebookId ?? NO_CHOICE} disabled={!editable} aria-label={translate("query.notebook")}
           onChange={(event) => change({ notebookId: event.target.value || null, propertyId: null, propertyValue: "" })}>
           <option value={NO_CHOICE}>{translate("query.anyNotebook")}</option>
@@ -58,7 +59,7 @@ function NoteQueryView({ node, updateAttributes, editor }: ReactNodeViewProps) {
         {matches.length === 0 && <div className="tree-empty">{translate("query.noResults")}</div>}
         {matches.slice(0, MAX_LISTED_NOTES).map(({ note }) => (
           <button key={note.id} type="button" className="menu-item" onClick={() => openNote(note.id)}>
-            <FileText size={13} /><span className="nav-label">{note.content.title || translate("sidebar.untitled")}</span>
+            <FileText size={ICON_SIZE.row} /><span className="nav-label">{note.content.title || translate("sidebar.untitled")}</span>
           </button>
         ))}
         {matches.length > MAX_LISTED_NOTES && <div className="tree-empty">{translate("query.moreResults", { count: matches.length - MAX_LISTED_NOTES })}</div>}

@@ -40,6 +40,7 @@ import { useToast } from "../shared/ToastProvider";
 import { describeError } from "../i18n/describeError";
 import { useCurrentSpaceId } from "../session/currentSpace";
 import { useSpaceRegistry } from "../session/spaceRegistry";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteWindow }: WorkspaceProps) {
   const { repository } = vault;
@@ -111,7 +112,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
     <div className={`workspace${isNoteWindow ? " note-window" : ""}${isNoteWindow && navigation.openTabs.length <= 1 ? " single-note" : ""}${focusMode ? " focus-mode" : ""}${typewriterMode ? " typewriter-mode" : ""}${aiChat.open ? " with-ai-chat" : ""}`}>
       {focusMode && (
         <button type="button" className="zoom-back focus-mode-exit" aria-label={translate("workspace.exitFocusMode")} title={translate("workspace.exitFocusModeHint")}
-          onClick={exitFocusMode}><ChevronLeft size={20} /><span>{translate("workspace.exitFocusMode")}</span></button>
+          onClick={exitFocusMode}><ChevronLeft size={ICON_SIZE.large} /><span>{translate("workspace.exitFocusMode")}</span></button>
       )}
       <Sidebar snapshot={snapshot} repository={repository} navigation={navigation} onCreateNote={() => void createNote()}
         onEnterFocusMode={() => setFocusMode(true)} onOpenGraph={() => navigation.openTab(GRAPH_TAB)} onOpenReminders={() => navigation.openTab(REMINDERS_TAB)}
@@ -122,7 +123,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
               <SyncStatusLine status={session.syncStatus} onOpenSyncSettings={() => navigation.openSettings("sync")} />
               <button type="button" className="icon-button" aria-label={translate("settings.title")} title={translate("settings.title")}
                 onClick={() => navigation.openSettings()}>
-                <Settings size={16} />
+                <Settings size={ICON_SIZE.button} />
               </button>
             </div>
           </>

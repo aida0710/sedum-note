@@ -27,6 +27,7 @@ import { useAiChatSession } from "../ai/aiChatSession";
 import { ModalDialog } from "../shared/ModalDialog";
 import { useDialogs } from "../shared/DialogProvider";
 import { runAfterConfirmingDraftDiscard } from "../settings/unsavedSettingsDrafts";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type MobileTab = "notes" | "notebooks" | "bookmarked" | "settings";
 
@@ -175,13 +176,13 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
       )}
       {/* ゴミ箱の中には新しいメモを作れないので、「＋」を出さない。 */}
       {view && view.kind !== "trash" && (
-        <button className="fab" aria-label={translate("sidebar.newNote")} onClick={() => void createNote(view)}><Plus size={26} /></button>
+        <button className="fab" aria-label={translate("sidebar.newNote")} onClick={() => void createNote(view)}><Plus size={ICON_SIZE.fab} /></button>
       )}
       <nav className="tabbar">
-        <button className={tab === "notes" ? "on" : ""} onClick={() => selectTab("notes")}><FileText size={18} />{translate("mobile.notes")}</button>
-        <button className={tab === "notebooks" ? "on" : ""} onClick={() => selectTab("notebooks")}><FolderOpen size={18} />{translate("mobile.notebooks")}</button>
-        <button className={tab === "bookmarked" ? "on" : ""} onClick={() => selectTab("bookmarked")}><Star size={18} />{translate("mobile.bookmarked")}</button>
-        <button className={tab === "settings" ? "on" : ""} onClick={() => selectTab("settings")}><Settings size={18} />{translate("mobile.settings")}</button>
+        <button className={tab === "notes" ? "on" : ""} onClick={() => selectTab("notes")}><FileText size={ICON_SIZE.touch} />{translate("mobile.notes")}</button>
+        <button className={tab === "notebooks" ? "on" : ""} onClick={() => selectTab("notebooks")}><FolderOpen size={ICON_SIZE.touch} />{translate("mobile.notebooks")}</button>
+        <button className={tab === "bookmarked" ? "on" : ""} onClick={() => selectTab("bookmarked")}><Star size={ICON_SIZE.touch} />{translate("mobile.bookmarked")}</button>
+        <button className={tab === "settings" ? "on" : ""} onClick={() => selectTab("settings")}><Settings size={ICON_SIZE.touch} />{translate("mobile.settings")}</button>
       </nav>
     </div>
   );

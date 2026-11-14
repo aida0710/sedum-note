@@ -11,6 +11,7 @@ import { type MessageKey, translate } from "../i18n/translate";
 import { formatDueTime } from "../shared/formatTime";
 import { useToast } from "../shared/ToastProvider";
 import { useCurrentTime } from "../shared/useCurrentTime";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 // 「期限切れ」への切り替わりを見直す間隔。期限は分の単位なので、1 分より細かく見る。
 const DUE_REFRESH_INTERVAL_MILLISECONDS = 30_000;
@@ -39,7 +40,7 @@ export function RemindersView({ summaries, repository, onOpenNote, onBack }: Rem
       {/* スマホでは、ほかの画面と同じ上の行（「< 戻る」）を出す。 */}
       {onBack && (
         <div className="phone-top">
-          <button type="button" className="phone-back" onClick={onBack}><ChevronLeft size={20} />{translate("editor.back")}</button>
+          <button type="button" className="phone-back" onClick={onBack}><ChevronLeft size={ICON_SIZE.large} />{translate("editor.back")}</button>
         </div>
       )}
     <div className="document-scroll">
@@ -91,7 +92,7 @@ function DueItemRow({ item, repository, onOpenNote }: { item: DueItem; repositor
     <li className="reminder-row">
       {task
         ? <input type="checkbox" checked={task.done} aria-label={translate("due.markDone", { text: task.text })} onChange={toggleDone} />
-        : <AlarmClock size={15} className="reminder-note-mark" aria-hidden />}
+        : <AlarmClock size={ICON_SIZE.row} className="reminder-note-mark" aria-hidden />}
       <button type="button" className="reminder-text" onClick={() => onOpenNote(item.noteId)}>
         <span>{task ? task.text || noteTitle : noteTitle}</span>
         <span className="hint">{task ? noteTitle : translate("due.noteDue")}</span>
@@ -100,7 +101,7 @@ function DueItemRow({ item, repository, onOpenNote }: { item: DueItem; repositor
       {!task && (
         <button type="button" className="icon-button" aria-label={translate("due.removeFrom", { title: noteTitle })} title={translate("due.remove")}
           onClick={() => void removeNoteDue()}>
-          <X size={14} />
+          <X size={ICON_SIZE.button} />
         </button>
       )}
     </li>

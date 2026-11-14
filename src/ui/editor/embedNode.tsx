@@ -7,6 +7,7 @@ import { Play } from "lucide-react";
 import { useState } from "react";
 import { translate } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 export const EMBED_NODE = "embed";
 const EMBED_INPUT_CLASS = "embed-url-input";
@@ -64,7 +65,7 @@ function EmbedView({ node, updateAttributes, editor }: ReactNodeViewProps) {
       ) : (
         <div className="embed-card">
           <span className="embed-url">{url}</span>
-          <button type="button" className="secondary-button" onClick={() => setLoaded(true)}><Play size={14} />{translate("editor.embedLoad")}</button>
+          <button type="button" className="secondary-button" onClick={() => setLoaded(true)}><Play size={ICON_SIZE.row} />{translate("editor.embedLoad")}</button>
         </div>
       )}
     </NodeViewWrapper>

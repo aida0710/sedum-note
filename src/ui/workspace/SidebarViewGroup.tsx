@@ -24,6 +24,7 @@ import { useMovedNotesToast } from "./useMovedNotesToast";
 import type { NotesInView } from "./useNotesByView";
 import { useTrashWithUndo } from "./useTrashWithUndo";
 import { viewKey, type WorkspaceNavigation } from "./useWorkspaceNavigation";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 // ドラッグ中に、畳んだ一覧の上にとどまってから開くまでの時間。通り過ぎるだけでは開かず、止まって待つには長すぎない長さ
 //（ファイルの管理の画面で、フォルダの上にとどまると開くまでと同じくらい）。
@@ -112,7 +113,7 @@ export function ViewGroup(props: ViewGroupProps) {
   const isActive = viewKey(navigation.view) === key;
   // 中にメモもノートブックも無いノートブックは、開いても何も出ないので、開閉の印を出さない（印の幅は残して、名前の左端をそろえる）。
   const isEmptyNotebook = notebookId !== null && notes.length === 0 && !hasChildNotebooks;
-  const disclosure = <span className="disclosure">{isEmptyNotebook ? null : expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>;
+  const disclosure = <span className="disclosure">{isEmptyNotebook ? null : expanded ? <ChevronDown size={ICON_SIZE.chip} /> : <ChevronRight size={ICON_SIZE.chip} />}</span>;
   const row = renaming ? <SidebarNameRow rowKind="view" depth={depth} leading={<>{disclosure}{icon}</>} {...renaming} /> : (
     <div className={`nav-row${isDropTarget && !dropsOnWholeGroup ? " drop-target" : ""}${isDraggedNotebook ? " dragging" : ""}`} {...(dropsOnWholeGroup ? {} : dropHandlers)}
       onContextMenu={onContextMenu && ((event) => { event.preventDefault(); onContextMenu(event.currentTarget); })}>

@@ -31,6 +31,7 @@ import { TrashActionsMenu } from "./TrashActionsMenu";
 import { AppIcon } from "../shared/AppIcon";
 import { SidebarCount } from "./SidebarCount";
 import type { LiveSavedSearch } from "../../core/notes/noteRecords";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 type SidebarProps = {
   snapshot: RepositorySnapshot;
@@ -119,26 +120,26 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
         <AppIcon className="sidebar-brand-icon" size={18} /><span className="sidebar-brand-name">{translate("app.name")}</span>
         <span className="sidebar-brand-actions">
           <button className="icon-button" aria-label={translate("graph.title")} title={translate("graph.title")} onClick={onOpenGraph}>
-            <Waypoints size={16} />
+            <Waypoints size={ICON_SIZE.button} />
           </button>
           <button className="icon-button" aria-label={translate("shortcut.focusMode")} title={translate("shortcut.focusMode")} onClick={onEnterFocusMode}>
-            <Maximize2 size={16} />
+            <Maximize2 size={ICON_SIZE.button} />
           </button>
         <button className="icon-button" aria-label={translate("sidebar.search")} onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}>
-          {searchOpen ? <X size={16} /> : <Search size={16} />}
+          {searchOpen ? <X size={ICON_SIZE.button} /> : <Search size={ICON_SIZE.button} />}
         </button>
         </span>
       </div>
       <SpaceSwitcher />
       {searchOpen && (
         <label className="sidebar-search">
-          <Search size={14} />
+          <Search size={ICON_SIZE.row} />
           <input ref={searchInput} type="search" enterKeyHint="search" autoCapitalize="off" autoCorrect="off" spellCheck={false} autoFocus value={navigation.searchText} placeholder={translate("sidebar.searchPlaceholder")} title={translate("sidebar.searchSyntax")}
             onChange={(event) => navigation.setSearchText(event.target.value)}
             onKeyDown={(event) => event.key === "Escape" && !isImeKeyEvent(event.nativeEvent) && closeSearch()} />
         </label>
       )}
-      <button className="new-note" onClick={onCreateNote}><Plus size={16} />{translate("sidebar.newNote")}</button>
+      <button className="new-note" onClick={onCreateNote}><Plus size={ICON_SIZE.button} />{translate("sidebar.newNote")}</button>
       {/* 落とせる一覧の外（タグ、見出し、行の間）に来たら、落とし先の光りを消す。一覧の外へ出たときも消す。 */}
       <div className="sidebar-scroll" onKeyDown={moveFocusBetweenRows}
         onDragOver={(event) => (isNoteDrag(event) || isNotebookDrag(event)) && markSidebarDropTarget(null)}
@@ -148,34 +149,34 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
             {scopedView && (
               <SearchScopeSwitch scopeName={scopeName} searchesEverywhere={searchEverywhere} onChange={setSearchEverywhere} />
             )}
-            <button className="search-scope" onClick={() => void saveSearch()}><Bookmark size={13} />{translate("sidebar.saveSearch")}</button>
+            <button className="search-scope" onClick={() => void saveSearch()}><Bookmark size={ICON_SIZE.chip} />{translate("sidebar.saveSearch")}</button>
             <SearchResults summaries={selectNotes(summaries, { view: searchView, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNameOf: notebookNameLookup(snapshot.notebooks) })}
               view={searchView} navigation={navigation} repository={repository} />
           </>
         ) : (
           <>
             {/* ノートブックが無いうちは、メモを並べる所がほかに無いので開いておく。 */}
-            <ViewGroup view={{ kind: "all" }} icon={<FileText size={15} />} label={translate("sidebar.allNotes")} notesInView={notesInView} navigation={navigation} repository={repository}
+            <ViewGroup view={{ kind: "all" }} icon={<FileText size={ICON_SIZE.row} />} label={translate("sidebar.allNotes")} notesInView={notesInView} navigation={navigation} repository={repository}
               expandedByDefault={notebookTree.length === 0} />
-            <ViewGroup view={{ kind: "bookmarked" }} icon={<Star size={15} />} label={translate("sidebar.bookmarked")} notesInView={notesInView} navigation={navigation} repository={repository} />
+            <ViewGroup view={{ kind: "bookmarked" }} icon={<Star size={ICON_SIZE.row} />} label={translate("sidebar.bookmarked")} notesInView={notesInView} navigation={navigation} repository={repository} />
             {/* 期限の一覧は、メモの並びではないので開け閉めは無い。押すとタブで開く。数は、済んでいない期限。 */}
             <div className="nav-row">
               <button className={`nav${navigation.activeTab === REMINDERS_TAB ? " active" : ""}`} onClick={onOpenReminders}>
                 <span className="disclosure" />
-                <AlarmClock size={15} />
+                <AlarmClock size={ICON_SIZE.row} />
                 <span className="nav-label">{translate("due.title")}</span>
                 <SidebarCount count={dueItemsOf(summaries).filter((item) => !item.done).length} />
               </button>
             </div>
             {/* テンプレートとゴミ箱も、メモの並びの 1 つとして、上のまとまりに置く（タグの見出しの下に置くと、タグの 1 つに見える）。 */}
             {summaries.some((summary) => summary.note.content.isTemplate && summary.note.content.trashedAt === null) && (
-              <ViewGroup view={{ kind: "templates" }} icon={<LayoutTemplate size={15} />} label={translate("sidebar.templates")} notesInView={notesInView} navigation={navigation} repository={repository} />
+              <ViewGroup view={{ kind: "templates" }} icon={<LayoutTemplate size={ICON_SIZE.row} />} label={translate("sidebar.templates")} notesInView={notesInView} navigation={navigation} repository={repository} />
             )}
-            <ViewGroup view={{ kind: "trash" }} icon={<Trash2 size={15} />} label={translate("sidebar.trash")} notesInView={notesInView} navigation={navigation} repository={repository}
+            <ViewGroup view={{ kind: "trash" }} icon={<Trash2 size={ICON_SIZE.row} />} label={translate("sidebar.trash")} notesInView={notesInView} navigation={navigation} repository={repository}
               onContextMenu={setTrashMenuAnchor}
               actions={
                 <button className="icon-button" aria-label={translate("sidebar.trashActions")} aria-haspopup="menu" onClick={(event) => setTrashMenuAnchor(event.currentTarget)}>
-                  <MoreHorizontal size={14} />
+                  <MoreHorizontal size={ICON_SIZE.button} />
                 </button>
               } />
             {trashMenuAnchor && <TrashActionsMenu anchor={trashMenuAnchor} trashedNoteIds={trashedNoteIds} repository={repository} onClose={() => setTrashMenuAnchor(null)} />}
@@ -195,17 +196,17 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
             {snapshot.savedSearches.map((savedSearch) => (
               <div key={savedSearch.id} className="nav-row saved-search-row">
                 <button className="nav" title={savedSearch.content.name} onClick={() => openSavedSearch(savedSearch)}>
-                  <Bookmark size={15} /><span className="nav-label">{savedSearch.content.name}</span>
+                  <Bookmark size={ICON_SIZE.row} /><span className="nav-label">{savedSearch.content.name}</span>
                 </button>
                 <span className="row-actions">
                   <button className="icon-button" aria-label={translate("sidebar.removeSavedSearch", { name: savedSearch.content.name })}
-                    onClick={() => void removeSavedSearch(savedSearch)}><X size={14} /></button>
+                    onClick={() => void removeSavedSearch(savedSearch)}><X size={ICON_SIZE.button} /></button>
                 </span>
               </div>
             ))}
             {tags.length > 0 && <div className="section-title">{translate("sidebar.tags")}</div>}
             {tags.map(({ tag }) => (
-              <ViewGroup key={tag} view={{ kind: "tag", tag }} icon={<Hash size={15} />} label={tag} notesInView={notesInView} navigation={navigation} repository={repository} />
+              <ViewGroup key={tag} view={{ kind: "tag", tag }} icon={<Hash size={ICON_SIZE.row} />} label={tag} notesInView={notesInView} navigation={navigation} repository={repository} />
             ))}
           </>
         )}

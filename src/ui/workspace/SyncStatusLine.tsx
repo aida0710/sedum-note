@@ -10,12 +10,11 @@ import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import { formatCount } from "../shared/formatCount";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 // 「n分前」を更新する間隔。
 const RELATIVE_TIME_REFRESH_MILLISECONDS = 30_000;
 const MILLISECONDS_PER_MINUTE = 60_000;
-// 失敗の印の大きさ。隣の文字（12px）と高さがそろう。
-const FAILURE_MARK_SIZE = 13;
 
 type SyncStatusInput = { status: SyncStatus | null; now: Date; unsyncedCount: number; automatic: boolean };
 
@@ -78,7 +77,7 @@ export function SyncStatusLine({ status, onOpenSyncSettings }: { status: SyncSta
     // 失敗の理由と、狭い列で切れる件数の文は、title で全文を読めるようにする。
     <button className="sync-line" title={failureReason === null ? (status?.state === "syncing" ? text : undefined) : translate("sync.failureReason", { status: text, reason: failureReason })}
       onClick={() => onOpenSyncSettings()}>
-      {failureReason === null ? <span className={`status-dot ${dotClass}`} /> : <TriangleAlert size={FAILURE_MARK_SIZE} className="sync-failure-mark" />}
+      {failureReason === null ? <span className={`status-dot ${dotClass}`} /> : <TriangleAlert size={ICON_SIZE.chip} className="sync-failure-mark" />}
       <span className="sync-line-text">{text}</span>
     </button>
   );

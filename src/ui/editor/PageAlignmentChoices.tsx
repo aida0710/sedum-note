@@ -3,14 +3,13 @@
 import { AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, type LucideIcon } from "lucide-react";
 import { PAGE_ALIGNMENTS, type PageAlignment } from "../../core/notes/noteRecords";
 import { translate } from "../i18n/translate";
+import { ICON_SIZE } from "../shared/iconSizes";
 
 const PAGE_ALIGNMENT_ICONS: Record<PageAlignment, LucideIcon> = {
   left: AlignHorizontalJustifyStart,
   center: AlignHorizontalJustifyCenter,
   right: AlignHorizontalJustifyEnd,
 };
-
-const ICON_SIZE = 16;
 
 type PageAlignmentChoicesProps = {
   // このメモで選んでいる置き場所。null は既定（表示の設定）に従う。
@@ -32,7 +31,7 @@ export function PageAlignmentChoices({ selected, onChoose }: PageAlignmentChoice
             <button key={alignment} type="button" className={`choice${selected === alignment ? " on" : ""}`}
               aria-label={translate(`pageAlignment.${alignment}`)} title={translate(`pageAlignment.${alignment}`)} aria-pressed={selected === alignment}
               onClick={() => onChoose(alignment)}>
-              <Icon size={ICON_SIZE} />
+              <Icon size={ICON_SIZE.button} />
             </button>
           );
         })}

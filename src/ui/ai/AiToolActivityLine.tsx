@@ -6,8 +6,7 @@ import { translate } from "../i18n/translate";
 import type { NoteToolPreview } from "../noteTools/noteTool";
 import type { AiToolActivity } from "./aiToolCalls";
 import { activityNoteId, activityStatusText, toolCallDescription } from "./aiToolActivityText";
-
-const ACTIVITY_ICON_SIZE = 13;
+import { ICON_SIZE } from "../shared/iconSizes";
 
 const ICONS: Record<NoteToolPreview["kind"], LucideIcon> = {
   searchNotes: Search,
@@ -41,7 +40,7 @@ export function AiToolActivityLine({ activity, noteExists, onOpenNote, onOpenAiS
   const noteId = activityNoteId(activity);
   const content = (
     <>
-      <Icon size={ACTIVITY_ICON_SIZE} />
+      <Icon size={ICON_SIZE.chip} />
       <span className="ai-tool-description">{toolCallDescription(activity.preview, activity.toolName)}</span>
       {status && <span className="ai-tool-status">{status}</span>}
     </>
