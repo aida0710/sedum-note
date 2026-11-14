@@ -16,15 +16,15 @@ test("「/」を打つとブロックの候補がまとまりの見出しの下�
   // まだ何も選んでいないので「最近使った」は無い。
   await expect(slashMenu(page).getByRole("group")).toHaveText(["基本", "ブロック", "メディア", "挿入", "リンク"].map((heading) => new RegExp(`^${heading}`)));
   await expect(slashMenu(page).locator(".slash-menu-name")).toHaveText([
-    "テキスト", "見出し 1", "見出し 2", "見出し 3", "見出し 4", "見出し 5", "見出し 6", "箇条書きリスト", "番号付きリスト", "チェックリスト", "引用", "区切り線",
-    "コード", "表", "コールアウト: 情報", "コールアウト: ヒント", "コールアウト: 注意", "コールアウト: 警告", "2 段組み", "3 段組み", "数式", "図", "手書き・図形",
+    "テキスト", "見出し1", "見出し2", "見出し3", "見出し4", "見出し5", "見出し6", "箇条書きリスト", "番号付きリスト", "チェックリスト", "引用", "区切り線",
+    "コード", "表", "コールアウト: 情報", "コールアウト: ヒント", "コールアウト: 注意", "コールアウト: 警告", "2段組み", "3段組み", "数式", "図", "手書き・図形",
     "画像", "ファイル", ...(canRecord ? ["録音"] : []), "書類のスキャン", "埋め込み",
     "今日の日付", "現在の日時", "期限", "脚注", "クエリ",
     "メモへのリンク", "ブロックへのリンク", "ブロックの埋め込み",
   ]);
   // 分かりにくい名前には 2 行目に説明を添え、行の頭の書き方で作れるものには、その書き方を薄く添える。
   await expect(slashMenu(page).getByRole("option", { name: "埋め込み", exact: true })).toHaveAccessibleDescription("動画・Webページ");
-  await expect(slashMenu(page).getByRole("option", { name: "見出し 2" }).locator("kbd")).toHaveText("##");
+  await expect(slashMenu(page).getByRole("option", { name: "見出し2" }).locator("kbd")).toHaveText("##");
   await expect(slashMenu(page).getByRole("option", { name: "チェックリスト" }).locator("kbd")).toHaveText("[ ]");
   // 候補は枠より長いが、スクロールバーは出さない（バーの分だけ中身の幅が狭くならない）。
   const scrollbar = await slashMenu(page).evaluate((menu: HTMLElement) => ({
@@ -32,7 +32,7 @@ test("「/」を打つとブロックの候補がまとまりの見出しの下�
   }));
   expect(scrollbar).toEqual({ setting: "none", takenWidth: 2, isScrollable: true });
   await page.keyboard.press("ArrowDown");
-  await expect(slashMenu(page).getByRole("option", { name: "見出し 1" })).toHaveAttribute("aria-selected", "true");
+  await expect(slashMenu(page).getByRole("option", { name: "見出し1" })).toHaveAttribute("aria-selected", "true");
   await page.keyboard.press("Enter");
   await expect(slashMenu(page)).toHaveCount(0);
   await page.keyboard.type("大きな見出し");
@@ -242,7 +242,7 @@ test("「/」から図を入れると Mermaid の図が出る。カーソルが�
 test("「/」から段組みを入れると、ブロックを横に並べて書ける。空の段には「ここに書く」が出る", async ({ page }) => {
   await openNewNote(page);
   await page.keyboard.type("/だんぐみ");
-  await slashMenu(page).getByRole("option", { name: "2 段組み" }).click();
+  await slashMenu(page).getByRole("option", { name: "2段組み" }).click();
   const columns = page.locator(".ProseMirror .column");
   await expect(columns).toHaveCount(2);
   // 空の段には「ここに書く」を薄く出し、書くと消える。
@@ -294,9 +294,9 @@ test("埋め込みは、URL を入れても外へつながず、「読み込む�
   await openNewNote(page);
   await page.keyboard.type("/うめこみ");
   await page.keyboard.press("Enter");
-  await page.getByRole("textbox", { name: "埋め込む URL" }).fill("http://example.com/");
+  await page.getByRole("textbox", { name: "埋め込むURL" }).fill("http://example.com/");
   await expect(page.getByText("https://で始まるURLを入力してください。")).toBeVisible();
-  await page.getByRole("textbox", { name: "埋め込む URL" }).fill("https://www.youtube.com/watch?v=abcdefghijk");
+  await page.getByRole("textbox", { name: "埋め込むURL" }).fill("https://www.youtube.com/watch?v=abcdefghijk");
   await page.keyboard.press("Enter");
 
   const embed = page.locator(".ProseMirror .embed");

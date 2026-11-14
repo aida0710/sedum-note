@@ -74,7 +74,7 @@ test("本文の文字の大きさ・字の間・行の間を変えると、見�
 
 test("カスタム CSS は、ロックを解除している間だけ当たり、ロック解除の画面でオフにできる", async ({ page }) => {
   await openAppearanceOfNewVault(page);
-  await page.getByRole("textbox", { name: "カスタム CSS" }).fill(".settings-navigation h1 { letter-spacing: 7px; }");
+  await page.getByRole("textbox", { name: "カスタムCSS" }).fill(".settings-navigation h1 { letter-spacing: 7px; }");
   await page.getByRole("button", { name: "適用" }).click();
   const headingSpacing = () => page.getByRole("heading", { name: "設定", exact: true }).evaluate((heading) => getComputedStyle(heading).letterSpacing);
   await expect.poll(headingSpacing).toBe("7px");
@@ -82,7 +82,7 @@ test("カスタム CSS は、ロックを解除している間だけ当たり、
   await page.reload();
   await expect(page.getByRole("heading", { name: "ロックを解除" })).toBeVisible();
   expect(await page.locator("#sedum-note-custom-css").count()).toBe(0);
-  await page.getByLabel("カスタム CSS をオフにして開く").click();
+  await page.getByLabel("カスタムCSSをオフにして開く").click();
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await page.getByRole("button", { name: "解除" }).click();
   await openSettingsPage(page, "外観");

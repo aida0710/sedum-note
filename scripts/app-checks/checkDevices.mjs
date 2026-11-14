@@ -29,7 +29,7 @@ export const REMOTE_FIELDS = [
   ["バケット", "remote-bucket", "bucket"],
   ["リージョン", "remote-region", "region"],
   ["フォルダ", "remote-prefix", "prefix"],
-  ["アクセスキー ID", "remote-access-key", "accessKeyId"],
+  ["アクセスキーID", "remote-access-key", "accessKeyId"],
   ["シークレットアクセスキー", "remote-secret-key", "secretAccessKey"],
 ];
 

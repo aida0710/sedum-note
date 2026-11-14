@@ -219,7 +219,7 @@ test("正規表現で探して、$1 を使って置換できる。読めない�
 test("本文の文字数が出て、選んでいる間は選んだ範囲の文字数も出る", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "文字数の試し", "あいう えお");
-  await expect(page.locator(".character-count")).toHaveText("5 文字");
+  await expect(page.locator(".character-count")).toHaveText("5文字");
   await page.keyboard.press("Shift+ArrowLeft");
   await page.keyboard.press("Shift+ArrowLeft");
   await expect(page.locator(".character-count")).toHaveText("5文字中2文字を選択");

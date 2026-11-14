@@ -30,7 +30,7 @@ export async function fillRemoteConfigFields(page: Page, remoteConfig: S3RemoteC
   await page.getByLabel("バケット").fill(remoteConfig.bucket);
   await page.getByLabel("リージョン").fill(remoteConfig.region);
   await page.getByLabel("フォルダ").fill(remoteConfig.prefix);
-  await page.getByLabel("アクセスキー ID").fill(remoteConfig.accessKeyId);
+  await page.getByLabel("アクセスキーID").fill(remoteConfig.accessKeyId);
   await page.getByLabel("シークレットアクセスキー").fill(remoteConfig.secretAccessKey);
 }
 

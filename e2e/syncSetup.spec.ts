@@ -135,7 +135,7 @@ test("自動の同期を切ると、編集しても送らず、「今すぐ同�
   await createNoteOnDesktop(laptop, "自動の同期を切って書いたメモ");
   // 自動なら 2 秒後に送る。それより長く待っても、未送信のまま。
   await laptop.waitForTimeout(4_000);
-  await expect(laptop.locator(".sync-line")).toContainText("未送信 1件");
+  await expect(laptop.locator(".sync-line")).toContainText("未送信1件");
 
   await laptop.reload();
   await laptop.getByLabel("パスフレーズ").fill(PASSPHRASE);

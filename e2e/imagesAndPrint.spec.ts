@@ -77,7 +77,7 @@ test("印刷では、開いているメモの本文だけを、明るい色で�
 
   await page.evaluate(() => { window.print = () => { (window as unknown as { printed: boolean }).printed = true; }; });
   await page.getByRole("button", { name: "その他の操作" }).click();
-  await page.getByRole("menuitem", { name: "印刷・PDF で保存" }).click();
+  await page.getByRole("menuitem", { name: "印刷・PDFで保存" }).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { printed?: boolean }).printed)).toBe(true);
 
   await page.emulateMedia({ media: "print" });
@@ -90,7 +90,7 @@ test("印刷では、開いているメモの本文だけを、明るい色で�
 
 test("印刷では、段組みも紙の幅からはみ出さない", async ({ page }) => {
   await openNewNote(page);
-  await insertFromSlashMenu(page, "dangumi", "2 段組み");
+  await insertFromSlashMenu(page, "dangumi", "2段組み");
   await page.emulateMedia({ media: "print" });
   await expect(page.locator(".ProseMirror .columns")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
@@ -112,7 +112,7 @@ test("まだ届いていない写真と音声は、届いていないことと�
   await image.getByRole("button", { name: "再読み込み" }).click();
   await expect(image.getByRole("status")).toContainText("まだこのデバイスに届いていません");
 
-  await page.getByRole("button", { name: "届いていない.m4a を再生" }).click();
+  await page.getByRole("button", { name: "届いていない.m4aを再生" }).click();
   const audio = page.locator(".attachment-file");
   await expect(audio.getByRole("status")).toContainText("まだこのデバイスに届いていません");
   await expect(audio.getByRole("button", { name: "再読み込み" })).toBeVisible();

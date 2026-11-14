@@ -714,7 +714,7 @@ test("AI が本文をそのまま返したブロックは、Markdown に出し�
   await page.keyboard.press("End");
   await page.keyboard.press("Enter");
   await page.keyboard.type("/だんぐみ");
-  await page.getByRole("listbox", { name: "ブロックの種類" }).getByRole("option", { name: "2 段組み" }).click();
+  await page.getByRole("listbox", { name: "ブロックの種類" }).getByRole("option", { name: "2段組み" }).click();
   await page.keyboard.type("左の段");
   await page.locator(".ProseMirror .column").nth(1).click();
   await page.keyboard.type("右の段");

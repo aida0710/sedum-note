@@ -38,7 +38,7 @@ test("写真以外のファイルを添付でき、保存すると同じ中身�
   await expect(fileNode).toContainText("KB");
 
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "見積書.pdf を保存" }).click();
+  await page.getByRole("button", { name: "見積書.pdfを保存" }).click();
   const saved = await download;
   expect(saved.suggestedFilename()).toBe("見積書.pdf");
   expect(await readFile(await saved.path())).toEqual(contents);
@@ -81,7 +81,7 @@ test("バックアップを書き出し、別のデバイスの最初の画面�
   await target.getByRole("button", { name: "バックアップするメモ" }).click();
   await expect(target.locator(".ProseMirror")).toContainText("戻ってくる本文");
   const restoredFile = target.waitForEvent("download");
-  await target.getByRole("button", { name: "memo.txt を保存" }).click();
+  await target.getByRole("button", { name: "memo.txtを保存" }).click();
   expect((await readFile(await (await restoredFile).path())).toString()).toBe("添付の中身");
 });
 
@@ -202,7 +202,7 @@ test("添付した PDF は、メモの中でプレビューを開いて、ペー
   await page.locator('input[type="file"]:not([accept])').setInputFiles({ name: "資料.pdf", mimeType: "application/pdf", buffer: twoPagePdf() });
   await expect(page.locator(".attachment-file")).toContainText("資料.pdf");
 
-  await page.getByRole("button", { name: "資料.pdf をプレビュー" }).click();
+  await page.getByRole("button", { name: "資料.pdfをプレビュー" }).click();
   const preview = page.locator(".pdf-preview");
   await expect(preview.locator(".pdf-page-number")).toHaveText("1 / 2");
   const canvasWidth = () => preview.locator("canvas").evaluate((canvas) => canvas.getBoundingClientRect().width);
@@ -215,7 +215,7 @@ test("添付した PDF は、メモの中でプレビューを開いて、ペー
   await preview.getByRole("button", { name: "拡大" }).click();
   await expect.poll(canvasWidth).toBeGreaterThan(fittedWidth * 1.3);
 
-  await page.getByRole("button", { name: "資料.pdf をプレビュー" }).click();
+  await page.getByRole("button", { name: "資料.pdfをプレビュー" }).click();
   await expect(preview).toHaveCount(0);
 });
 

@@ -174,7 +174,7 @@ test("設定に保存していない入力を残したまま、ほかのペー�
   await page.getByRole("button", { name: "設定", exact: true }).click();
   const pages = page.getByRole("navigation", { name: "設定のページ" });
   await pages.getByRole("button", { name: "外観", exact: true }).click();
-  const css = page.getByRole("textbox", { name: "カスタム CSS" });
+  const css = page.getByRole("textbox", { name: "カスタムCSS" });
   await css.fill(".ProseMirror { line-height: 2; }");
 
   // ほかのページへ: やめると、今のページと入力が残る。

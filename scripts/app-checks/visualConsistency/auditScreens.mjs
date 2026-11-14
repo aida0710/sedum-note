@@ -145,7 +145,7 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
         await placeCursorAtEnd(page);
         await page.locator('input[type="file"]:not([accept])').setInputFiles([SAMPLE_TEXT_FILE, SAMPLE_PDF]);
         await page.locator(".attachment-file").last().waitFor();
-        await page.getByRole("button", { name: `${SAMPLE_PDF.name} をプレビュー` }).click();
+        await page.getByRole("button", { name: `${SAMPLE_PDF.name}をプレビュー` }).click();
         await page.waitForTimeout(1500);
         await page.locator(".attachment-file").last().scrollIntoViewIfNeeded();
         await captureScreen("attachments");

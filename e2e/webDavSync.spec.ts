@@ -34,7 +34,7 @@ async function serveWebDav(context: BrowserContext, server: MemoryWebDavServer):
 async function fillWebDavTarget(page: Page, password: string): Promise<void> {
   await page.getByLabel("ほかのデバイスと同期する").check();
   await page.getByRole("radio", { name: "WebDAV" }).click();
-  await page.getByLabel("フォルダの URL").fill(FOLDER_URL);
+  await page.getByLabel("フォルダのURL").fill(FOLDER_URL);
   await page.getByLabel("ユーザー名").fill("tester");
   await page.getByLabel("パスワード", { exact: true }).fill(password);
 }
@@ -88,11 +88,11 @@ test("WebDAV の URL が https でなければ、接続を確かめる前に知�
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await page.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
   await fillWebDavTarget(page, "secret");
-  await page.getByLabel("フォルダの URL").fill("http://webdav.sedum-note.test/files/tester/notes");
+  await page.getByLabel("フォルダのURL").fill("http://webdav.sedum-note.test/files/tester/notes");
   await page.getByRole("button", { name: "接続を確認" }).click();
   await expect(page.getByRole("alert")).toContainText("フォルダのURLはhttps://で始めてください。");
 
-  await page.getByLabel("フォルダの URL").fill(FOLDER_URL);
+  await page.getByLabel("フォルダのURL").fill(FOLDER_URL);
   await page.getByRole("button", { name: "接続を確認" }).click();
   await expect(page.getByRole("status")).toContainText("空の同期先です");
   await page.getByRole("radio", { name: "自分で入力する" }).click();

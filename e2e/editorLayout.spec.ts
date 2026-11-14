@@ -179,7 +179,7 @@ test("作ったばかりの空のメモには文字数と更新日時を出さ�
   await expect(page.locator(".document-meta .character-count")).toHaveCount(0);
   await expect(page.locator(".document-meta .updated")).toHaveCount(0);
   await page.keyboard.type("題");
-  await expect(page.locator(".document-meta .character-count")).toHaveText("0 文字");
+  await expect(page.locator(".document-meta .character-count")).toHaveText("0文字");
   await expect(page.locator(".document-meta .updated")).toBeVisible();
 });
 

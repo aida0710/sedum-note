@@ -938,7 +938,7 @@ test("持ち手を押すとブロックのメニューが開き、変換・動�
 
   let menu = await openMenuOf("二");
   await expect(menu.getByRole("menuitemradio", { name: "テキスト" })).toHaveAttribute("aria-checked", "true");
-  await menu.getByRole("menuitemradio", { name: "見出し 2" }).click();
+  await menu.getByRole("menuitemradio", { name: "見出し2" }).click();
   await expect(body.locator("h2")).toHaveText("二");
 
   menu = await openMenuOf("三");
@@ -975,7 +975,7 @@ test("行の左の「＋」を押すと、すぐ下に行を足して「/」の�
   await insertButton.click();
   const slashMenu = page.getByRole("listbox", { name: "ブロックの種類" });
   await expect(slashMenu).toBeVisible();
-  await slashMenu.getByRole("option", { name: "見出し 2", exact: true }).click();
+  await slashMenu.getByRole("option", { name: "見出し2", exact: true }).click();
   await page.keyboard.type("足した見出し");
   await expect(body.locator("> *")).toHaveText(["上の行", "足した見出し", "下の行"]);
 });
@@ -1158,7 +1158,7 @@ test("グラフ表示は、メモを点、メモ同士のリンクを線にし�
 
   await page.getByRole("button", { name: "グラフ表示" }).click();
   const graph = page.locator(".note-graph");
-  await expect(graph).toContainText("メモ 3 件、リンク 1 本");
+  await expect(graph).toContainText("メモ3件、リンク1本");
   await expect(graph.locator(".note-graph-node")).toHaveCount(3);
   await expect(graph.locator(".note-graph-edge")).toHaveCount(1);
   await graph.getByRole("button", { name: "リンク先" }).click();
