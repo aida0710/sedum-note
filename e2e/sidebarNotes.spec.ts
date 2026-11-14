@@ -13,7 +13,7 @@ test("メモをノートブックへドラッグすると、そのノートブ�
   await startLocalVault(page);
   await createNoteOnDesktop(page, "買い物");
   await addNotebookOnDesktop(page, "旅行");
-  await expect(viewRow(page, "旅行").locator(".count")).toHaveText("0");
+  await expect(viewRow(page, "旅行").locator(".count")).toHaveCount(0);
 
   await viewRow(page, "すべてのメモ").locator(".nav").click();
   await noteRow(page, "買い物").locator(".tree-note").dragTo(viewRow(page, "旅行"));
@@ -43,7 +43,7 @@ test("メモを別のノートブックの中のメモの上へ落としても�
   await page.mouse.up();
 
   await expect(viewRow(page, "旅行").locator(".count")).toHaveText("2");
-  await expect(viewRow(page, "仕事").locator(".count")).toHaveText("0");
+  await expect(viewRow(page, "仕事").locator(".count")).toHaveCount(0);
   await expect(page.locator(".view-group.drop-target")).toHaveCount(0);
   await expect(page.locator(".nav-row.dragging")).toHaveCount(0);
 });
@@ -62,11 +62,11 @@ test("メモを畳んだノートブックへ落とすと、移した先を知�
 
   await noteRow(page, "議事録").locator(".tree-note").dragTo(travelRow);
   await expect(viewRow(page, "旅行").locator(".count")).toHaveText("1");
-  await expect(viewRow(page, "仕事").locator(".count")).toHaveText("0");
+  await expect(viewRow(page, "仕事").locator(".count")).toHaveCount(0);
   await expect(travelRow).toHaveAttribute("aria-expanded", "true");
   const toast = page.getByRole("status").filter({ hasText: "「議事録」を「旅行」に移動しました" });
   await toast.getByRole("button", { name: "元に戻す" }).click();
-  await expect(viewRow(page, "旅行").locator(".count")).toHaveText("0");
+  await expect(viewRow(page, "旅行").locator(".count")).toHaveCount(0);
   await expect(viewRow(page, "仕事").locator(".count")).toHaveText("1");
 });
 
@@ -134,7 +134,7 @@ test("メモをゴミ箱へドラッグすると知らせが出て、「元に�
   await expect(trashCount).toHaveText("1");
   const toast = page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" });
   await toast.getByRole("button", { name: "元に戻す" }).click();
-  await expect(trashCount).toHaveText("0");
+  await expect(trashCount).toHaveCount(0);
   await expect(toast).toBeHidden();
 });
 
@@ -327,7 +327,7 @@ test("Ctrl と Shift で左の列のメモを複数選び、まとめてノー�
   await expect(trashCount).toHaveText("2");
   const toast = page.getByRole("status").filter({ hasText: "2 件のメモをゴミ箱に入れました" });
   await toast.getByRole("button", { name: "元に戻す" }).click();
-  await expect(trashCount).toHaveText("0");
+  await expect(trashCount).toHaveCount(0);
 
   // 選んだメモの 1 つで Delete を押すと、選んだメモがまとめてゴミ箱に入り、選択は外れる。
   await row(3).click();
@@ -638,4 +638,42 @@ test("タブが多くても、ピン留めしたタブは並びを送っても�
   const third = (await page.locator(".tab[title='とても長い題のメモ その 3']").boundingBox())!;
   expect(third.x).toBeGreaterThanOrEqual(pinnedBoxes[1]!.right - 1);
   await expect(strip).toHaveAttribute("data-more-end", "");
+});
+
+test("左の列は、選んだノートブックに地を塗らず、開いているメモの行だけに地を付ける。件数の 0 と空のノートブックの「メモはありません」は出さない", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "仕事");
+  await addNotebookOnDesktop(page, "趣味");
+  await viewRow(page, "仕事").locator(".nav").click();
+  await createNoteOnDesktop(page, "議事録");
+
+  const workRow = viewRow(page, "仕事").locator(".nav");
+  await expect(workRow).toHaveClass(/active/);
+  await expect(workRow).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(workRow).toHaveCSS("font-weight", "600");
+  await expect(noteRow(page, "議事録").locator(".tree-note")).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+
+  // 空のノートブックは、件数・「メモはありません」・開閉の印を出さない。
+  const hobbyGroup = page.locator(".view-group", { has: page.locator(".nav-label", { hasText: "趣味" }) });
+  await expect(hobbyGroup.locator(".count")).toHaveCount(0);
+  await expect(hobbyGroup.locator(".tree-empty")).toHaveCount(0);
+  await expect(hobbyGroup.locator(".disclosure svg")).toHaveCount(0);
+  await expect(viewRow(page, "仕事").locator(".count")).toHaveText("1");
+});
+
+test("中にノートブックがある、開いたノートブックには、階層の線を引く", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "仕事");
+  await addNotebookOnDesktop(page, "旅行");
+  await viewRow(page, "仕事").hover();
+  await viewRow(page, "仕事").getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "中にノートブックを追加" }).click();
+  await page.getByPlaceholder("ノートブックの名前").fill("会議");
+  await page.getByPlaceholder("ノートブックの名前").press("Enter");
+
+  const groupOf = (name: string) => page.locator(".view-group", { has: page.locator(":scope > .nav-row .nav-label", { hasText: name }) });
+  await expect(groupOf("仕事")).toHaveClass(/with-child-notebooks/);
+  await expect(groupOf("旅行")).not.toHaveClass(/with-child-notebooks/);
+  // 線は開閉の印の真下（左の余白 8px + 印の幅の半分 6px）にある。
+  expect(await groupOf("仕事").evaluate((group) => getComputedStyle(group, "::after").left)).toBe("14px");
 });

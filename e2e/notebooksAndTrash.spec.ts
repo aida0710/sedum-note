@@ -100,7 +100,7 @@ test("ゴミ箱の自動削除は、既定ではオフ。日数は Enter か「�
   await page.reload();
   await page.getByLabel("パスフレーズ").fill("correct horse battery");
   await page.getByRole("button", { name: "解除" }).click();
-  await expect(page.locator(".nav-row", { hasText: "ゴミ箱" }).locator(".count")).toHaveText("0");
+  await expect(page.locator(".nav-row", { hasText: "ゴミ箱" }).locator(".count")).toHaveCount(0);
 });
 
 test("プロパティの名前は Enter か「保存」で決まる。決めずに閉じるときと、消すときは確かめる", async ({ page }) => {
@@ -414,7 +414,7 @@ test("メモの「…」の「ノートブックを選ぶ」では、入って�
   await expect(chips).toHaveCount(0);
   await dialog.getByRole("button", { name: "閉じる" }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(notebookRow(page, "旅行").locator(".count")).toHaveText("0");
+  await expect(notebookRow(page, "旅行").locator(".count")).toHaveCount(0);
 
   // 開き直すと、今の状態（どこにも入っていない）で開く。
   const reopened = await openNotebookPicker(page);
@@ -552,7 +552,7 @@ test("ゴミ箱の行のメニューから、件数を確かめてゴミ箱を�
   await page.getByRole("button", { name: "ゴミ箱の操作" }).click();
   await page.getByRole("menuitem", { name: "ゴミ箱を空にする（2件）" }).click();
   await confirmation.getByRole("button", { name: "完全に削除" }).click();
-  await expect(trashRow.locator(".count")).toHaveText("0");
+  await expect(trashRow.locator(".count")).toHaveCount(0);
   await expect(page.getByRole("status").filter({ hasText: "2件のメモを完全に削除しました" })).toBeVisible();
   await expect(page.locator(".sidebar .tree-note", { hasText: "残すメモ" })).toHaveCount(1);
 });

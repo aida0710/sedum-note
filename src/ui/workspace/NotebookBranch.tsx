@@ -64,7 +64,7 @@ export function NotebookBranch({ node, depth, notesInView, repository, navigatio
     <>
       <ViewGroup view={view} depth={depth} expandedByDefault dropsOnWholeGroup
         icon={<NotebookMark notebook={notebook} colors={notebookColors} />}
-        label={notebook.content.name} notesInView={notesInView} navigation={navigation} repository={repository} childBranches={children}
+        label={notebook.content.name} notesInView={notesInView} navigation={navigation} repository={repository} childBranches={children} hasChildNotebooks={node.children.length > 0}
         onContextMenu={setMenuAnchor}
         rowButtonRef={rowButton} onRename={() => setRenaming(true)}
         renaming={renaming ? { initialName: notebook.content.name, placeholder: translate("sidebar.newNotebookPlaceholder"), onDone: renameTo } : undefined}

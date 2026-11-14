@@ -307,7 +307,7 @@ test("メモをテンプレートにすると「テンプレート」に並び�
   await page.getByRole("button", { name: "その他の操作" }).click();
   await page.getByRole("menuitem", { name: "テンプレートにする" }).click();
   // ふつうの一覧からは外れ、「テンプレート」に並ぶ。
-  await expect(page.locator(".nav-row", { hasText: "すべてのメモ" }).locator(".count")).toHaveText("0");
+  await expect(page.locator(".nav-row", { hasText: "すべてのメモ" }).locator(".count")).toHaveCount(0);
   await expect(page.locator(".nav-row", { hasText: "テンプレート" }).locator(".count")).toHaveText("1");
 
   await page.getByRole("button", { name: "このテンプレートから新しいメモを作る" }).click();

@@ -359,6 +359,11 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .nav { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: var(--radius-row); color: var(--text); text-align: left; width: 100%; min-height: 30px; }
 .nav:hover { background: var(--selected); }
 .nav.active { background: var(--selected); font-weight: 600; }
+/* 左の列で選んだビュー（ノートブック・タグなど）は、地を塗らずに太字とアイコンの色だけで示す。地を塗るのは開いているメモの 1 行だけにする
+   （選んだビューと開いているメモの 2 行が、同時に選ばれて見えないように）。 */
+.sidebar-scroll .nav.active { background: none; }
+.sidebar-scroll .nav.active:hover { background: var(--selected); }
+.sidebar-scroll .nav.active > svg { color: var(--accent); }
 .nav .count { margin-left: auto; color: var(--muted); font-size: var(--font-size-small); font-weight: 400; }
 .nav .nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav .disclosure { width: 12px; color: var(--muted); flex: none; display: grid; place-items: center; }
@@ -378,7 +383,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .saved-search-row { display: flex; align-items: center; }
 .search-scope svg { vertical-align: -1px; margin-right: 4px; }
 .dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
-.tree-note { padding: 5px 8px; color: var(--muted); border-radius: var(--radius-row); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; width: 100%; }
+.tree-note { padding: 5px 8px; color: var(--text); border-radius: var(--radius-row); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; width: 100%; }
 .tree-note:hover { background: var(--selected); color: var(--text); }
 .tree-note.active { background: var(--accent-soft); color: var(--text); font-weight: 600; }
 /* 検索の結果の行: 題の下に、本文の中で当たった所を 1 行で出す。 */
@@ -393,6 +398,9 @@ button.ai-tool-activity:hover { background: var(--selected); }
    中の行の並びと間隔は、.sidebar-scroll の直下に並べていたときと同じにする。 */
 .view-group { display: flex; flex-direction: column; gap: 2px; border-radius: var(--radius-row); }
 .view-group.drop-target { background: var(--accent-soft); outline: 1px dashed var(--accent); outline-offset: -1px; }
+/* 中にノートブックがある、開いたノートブックの階層の線。開閉の印の中心（行の左の余白 8px + 段の字下げ + 印の幅 12px の半分）の真下から、中身の終わりまで引く。 */
+.sidebar-scroll .view-group.with-child-notebooks { position: relative; }
+.sidebar-scroll .view-group.with-child-notebooks::after { content: ""; position: absolute; left: calc(8px + var(--depth, 0) * var(--tree-indent-step) + 6px); top: calc(var(--sidebar-row-height) + 2px); bottom: 2px; width: 1px; background: var(--line); pointer-events: none; }
 /* ドラッグして持ち上げたメモの、元の行。 */
 .nav-row.dragging .tree-note, .nav-row.dragging > .nav { opacity: .5; outline: 1px dashed var(--muted); outline-offset: -1px; }
 /* ドラッグしている間、指の下に出す札（shared/dragPreview.ts）。写し取ったらすぐ消すので、画面の外に置いて描く。 */
@@ -413,6 +421,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .sidebar-scroll .tree-empty { min-height: var(--sidebar-row-height); padding-block: 0; padding-left: calc(var(--tree-label-offset) + var(--depth, 0) * var(--tree-indent-step)); display: flex; align-items: center; }
 /* 行の操作（「…」）が出ている間は、その幅だけ右を空けて、名前の省略の「…」と重ならないようにする。 */
 .sidebar-scroll .nav-row:has(.row-actions):is(:hover, :focus-within) .nav { padding-right: 32px; }
+/* 区切りの見出し（ノートブック・タグ…）の前を広くあけて、まとまりの切れ目を見せる。 */
+.sidebar-scroll .section-title { padding-top: 20px; }
 /* 見出しの右のボタンで、見出しの高さが変わらないようにする。 */
 .sidebar-scroll .section-title .icon-button { margin-block: -6px; }
 /* 名前を打っている間の行（SidebarNameRow.tsx）。開閉の印とアイコンは残し、ラベルのあった位置に欄を出す。

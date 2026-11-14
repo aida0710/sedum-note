@@ -19,6 +19,7 @@ import { expandOrCollapseViewRow, isUnmodifiedKey } from "./sidebarKeyboard";
 import { SidebarNameRow } from "./SidebarNameRow";
 import { treeDepthStyle } from "./treeDepthStyle";
 import { SidebarNoteRow } from "./SidebarNoteRow";
+import { SidebarCount } from "./SidebarCount";
 import { useMovedNotesToast } from "./useMovedNotesToast";
 import type { NotesInView } from "./useNotesByView";
 import { useTrashWithUndo } from "./useTrashWithUndo";
@@ -41,6 +42,8 @@ export type ViewGroupProps = {
   // 行を右クリックしたとき。メニューを持つ行（ノートブック）が渡す。
   onContextMenu?: (row: HTMLElement) => void;
   childBranches?: ReactNode;
+  // 中にノートブックがあるか（ノートブックの一覧だけ）。空のノートブックの見分けと、階層の線に使う。
+  hasChildNotebooks?: boolean;
   // 利用者がまだ開け閉めしていないときに開いておくか。
   expandedByDefault?: boolean;
   // 行だけでなく、中のメモと入れ子の一覧を含めた範囲全体を落とし先にするか（ノートブック）。
@@ -56,7 +59,7 @@ export type ViewGroupProps = {
 
 // 開くと中のメモが並ぶ 1 行。ノートブック・タグ・ゴミ箱で同じ形を使う。
 export function ViewGroup(props: ViewGroupProps) {
-  const { view, icon, label, notesInView, navigation, repository, depth = 0, actions, onContextMenu, childBranches, expandedByDefault = false, dropsOnWholeGroup = false, onDragStart } = props;
+  const { view, icon, label, notesInView, navigation, repository, depth = 0, actions, onContextMenu, childBranches, hasChildNotebooks = false, expandedByDefault = false, dropsOnWholeGroup = false, onDragStart } = props;
   const { onRename, renaming, rowButtonRef } = props;
   const moveToTrash = useTrashWithUndo(repository);
   const showMovedNotesToast = useMovedNotesToast(repository);
@@ -107,7 +110,9 @@ export function ViewGroup(props: ViewGroupProps) {
   }, [isDropTarget, expanded, notebookId, key, setExpanded]);
   const notes = notesInView(view);
   const isActive = viewKey(navigation.view) === key;
-  const disclosure = <span className="disclosure">{expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>;
+  // 中にメモもノートブックも無いノートブックは、開いても何も出ないので、開閉の印を出さない（印の幅は残して、名前の左端をそろえる）。
+  const isEmptyNotebook = notebookId !== null && notes.length === 0 && !hasChildNotebooks;
+  const disclosure = <span className="disclosure">{isEmptyNotebook ? null : expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>;
   const row = renaming ? <SidebarNameRow rowKind="view" depth={depth} leading={<>{disclosure}{icon}</>} {...renaming} /> : (
     <div className={`nav-row${isDropTarget && !dropsOnWholeGroup ? " drop-target" : ""}${isDraggedNotebook ? " dragging" : ""}`} {...(dropsOnWholeGroup ? {} : dropHandlers)}
       onContextMenu={onContextMenu && ((event) => { event.preventDefault(); onContextMenu(event.currentTarget); })}>
@@ -129,7 +134,7 @@ export function ViewGroup(props: ViewGroupProps) {
         {disclosure}
         {icon}
         <span className="nav-label">{label}</span>
-        <span className="count">{notes.length}</span>
+        <SidebarCount count={notes.length} />
       </button>
       {actions && <span className="row-actions">{actions}</span>}
     </div>
@@ -137,11 +142,18 @@ export function ViewGroup(props: ViewGroupProps) {
   const contents = expanded && (
     <>
       {childBranches}
-      <NoteRows notes={notes} view={view} navigation={navigation} repository={repository} depth={depth} />
+      {/* 空のノートブックに「メモはありません」は出さない（件数を出さないことと開閉の印が無いことで分かる）。 */}
+      {(notebookId === null || notes.length > 0) && <NoteRows notes={notes} view={view} navigation={navigation} repository={repository} depth={depth} />}
     </>
   );
   if (dropsOnWholeGroup) {
-    return <div className={`view-group${isDropTarget ? " drop-target" : ""}`} {...dropHandlers}>{row}{contents}</div>;
+    // 開いていて中にノートブックがあるときは、階層の線を引く（.view-group.with-child-notebooks）。線の位置は段の深さから決める。
+    const showsHierarchyLine = expanded && hasChildNotebooks;
+    return (
+      <div className={`view-group${isDropTarget ? " drop-target" : ""}${showsHierarchyLine ? " with-child-notebooks" : ""}`} style={treeDepthStyle(depth)} {...dropHandlers}>
+        {row}{contents}
+      </div>
+    );
   }
   return <>{row}{contents}</>;
 }

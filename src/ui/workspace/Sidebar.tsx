@@ -28,6 +28,7 @@ import { useDialogs } from "../shared/DialogProvider";
 import { useToast } from "../shared/ToastProvider";
 import { TrashActionsMenu } from "./TrashActionsMenu";
 import { AppIcon } from "../shared/AppIcon";
+import { SidebarCount } from "./SidebarCount";
 import type { LiveSavedSearch } from "../../core/notes/noteRecords";
 
 type SidebarProps = {
@@ -167,7 +168,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
                 <span className="disclosure" />
                 <AlarmClock size={15} />
                 <span className="nav-label">{translate("due.title")}</span>
-                <span className="count">{dueItemsOf(summaries).filter((item) => !item.done).length}</span>
+                <SidebarCount count={dueItemsOf(summaries).filter((item) => !item.done).length} />
               </button>
             </div>
             {/* テンプレートとゴミ箱も、メモの並びの 1 つとして、上のまとまりに置く（タグの見出しの下に置くと、タグの 1 つに見える）。 */}

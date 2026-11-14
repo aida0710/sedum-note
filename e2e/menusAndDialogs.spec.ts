@@ -123,7 +123,7 @@ test("続けてゴミ箱に入れると、知らせは 1 つにまとまり、�
   await toast.getByRole("button", { name: "元に戻す" }).click();
   await expect(page.locator(".trash-banner")).toBeHidden();
   const trashCount = page.locator(".sidebar .nav").filter({ hasText: "ゴミ箱" }).locator(".count");
-  await expect(trashCount).toHaveText("0");
+  await expect(trashCount).toHaveCount(0);
 });
 
 test("知らせは、ポインターを乗せている間は消えない", async ({ page }) => {
