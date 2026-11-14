@@ -14,6 +14,7 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { GRAPH_TAB, notebookIdOfDatabaseTab, REMINDERS_TAB, SETTINGS_TAB, type WorkspaceNavigation } from "./useWorkspaceNavigation";
 import { pinnedTabsRightEdge, useStickyPinnedTabs } from "./stickyPinnedTabs";
+import { PinnedTabIcon } from "./PinnedTabIcon";
 
 // タブが並びの外にはみ出していれば、並びだけを横に送って見せる。scrollIntoView は、並びを縦にも送り（中身が 1px 高い）、
 // 外側の画面まで送ることがあるので使わない。左端に留めたピン留めのタブの下に隠れている所も、外と同じに扱う。
@@ -122,7 +123,7 @@ function OpenTabsBar({ navigation, repository }: NoteTabsProps) {
         const isOn = navigation.activeTab === tabId;
         return (
           <div key={tabId} className={`tab${isOn ? " on" : ""}${isPinned ? " pinned" : ""}${draggedTabId === tabId ? " dragging" : ""}${dropTargetTabId === tabId && draggedTabId !== tabId ? " drop-target" : ""}`}
-            role="tab" aria-selected={isOn} tabIndex={isOn ? 0 : -1} title={label} aria-haspopup="menu"
+            role="tab" aria-selected={isOn} tabIndex={isOn ? 0 : -1} title={label} aria-label={isPinned ? label : undefined} aria-haspopup="menu"
             onKeyDown={(event) => moveOrOpenMenuByKey(event, tabId)}
             draggable
             onDragStart={(event) => {
@@ -144,7 +145,8 @@ function OpenTabsBar({ navigation, repository }: NoteTabsProps) {
             onClick={() => navigation.openTab(tabId)}
             onContextMenu={(event) => { event.preventDefault(); setTabMenu({ tabId, anchor: event.currentTarget }); }}
             onAuxClick={(event) => event.button === 1 && !isPinned && navigation.closeTab(tabId)}>
-            {isPinned && <Pin size={12} className="tab-pin" aria-label={translate("tabs.pinned")} />}
+            {/* ピン留めしたタブは、アイコンだけを出す（題は title で出し、読み上げの名前にもする）。 */}
+            {isPinned && <PinnedTabIcon tabId={tabId} repository={repository} />}
             <span className="tab-label">{label}</span>
             {/* ピン留めしたタブは、うっかり閉じないよう × を出さない（右クリックのメニューからは閉じられる）。 */}
             {!isPinned && (

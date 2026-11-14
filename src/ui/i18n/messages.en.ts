@@ -532,7 +532,6 @@ export const englishMessages: Record<MessageKey, string> = {
   "tabs.closeToRight": "Close tabs to the right",
   "tabs.pin": "Pin tab",
   "tabs.unpin": "Unpin tab",
-  "tabs.pinned": "Pinned tab",
   "tabs.list": "Open tabs",
   "shortcut.reopenClosedTab": "Reopen closed tab",
   "editor.back": "Back",

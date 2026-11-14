@@ -530,7 +530,6 @@ export const japaneseMessages = {
   "tabs.closeToRight": "右のタブを閉じる",
   "tabs.pin": "タブをピン留め",
   "tabs.unpin": "タブのピン留めを外す",
-  "tabs.pinned": "ピン留めしたタブ",
   "tabs.list": "開いているタブの一覧",
   "shortcut.reopenClosedTab": "閉じたタブを開き直す",
   "editor.back": "戻る",

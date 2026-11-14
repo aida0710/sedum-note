@@ -461,14 +461,19 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .tabs-bar { display: flex; flex: none; height: var(--pane-header-height); background: var(--sidebar); }
 .tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--line); background: var(--sidebar); overflow-x: auto; flex: 1; min-width: 0; scrollbar-width: none; }
 .tabs-end { display: flex; align-items: center; padding: 8px 8px 0; border-bottom: 1px solid var(--line); flex: none; }
-.tab .tab-pin { color: var(--muted); flex: none; }
-.tab { display: flex; align-items: center; gap: 6px; padding: 7px 8px 7px 14px; border-radius: var(--radius-control) var(--radius-control) 0 0; color: var(--muted); font-size: var(--font-size-small); max-width: 220px; flex: none; border: 1px solid transparent; }
-.tab .tab-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* タブは、並びに入り切らないときは最小幅（96px）まで縮め、それでも入らないときだけ横に溢れさせる（右の端で見えなくなるのを減らす）。 */
+.tab { display: flex; align-items: center; gap: 6px; padding: 7px 8px 7px 14px; border-radius: var(--radius-control) var(--radius-control) 0 0; color: var(--muted); font-size: var(--font-size-ui); max-width: 220px; flex: 0 1 200px; min-width: 96px; border: 1px solid transparent; }
+.tab .tab-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* ピン留めしたタブは、ノートブックの色のアイコンだけの小さなタブにする（PinnedTabIcon.tsx。題は title で出す）。 */
+.tab.pinned { flex: none; min-width: 0; width: 40px; padding: 7px 0; justify-content: center; }
+.tab.pinned .tab-label { display: none; }
+.tab-pinned-icon { display: grid; place-items: center; }
 /* タブとタブの間の区切り線。開いているタブと、マウスを乗せたタブの両隣には出さない（タブの形と線が重なって見えるため）。 */
 .tab { position: relative; }
 .tab + .tab::before { content: ""; position: absolute; left: -2px; top: 9px; bottom: 8px; width: 1px; background: var(--line); }
 .tab.on::before, .tab.on + .tab::before, .tab:hover::before, .tab:hover + .tab::before { background: none; }
-.tab:hover:not(.on) { background: var(--selected); }
+/* マウスを乗せたタブは、並びの地と開いているタブの地の中間の色（開いているタブと見分けがつくように）。 */
+.tab:hover:not(.on) { background: color-mix(in srgb, var(--panel) 40%, var(--sidebar)); }
 .tab .tab-close { width: 18px; height: 18px; border-radius: var(--radius-inline); display: grid; place-items: center; visibility: hidden; }
 .tab:hover .tab-close, .tab.on .tab-close { visibility: visible; }
 .tab .tab-close:hover { background: var(--selected); }
@@ -476,7 +481,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .tab:focus-visible { outline-offset: -2px; }
 /* マウスを乗せられない画面（タッチ）では、選んでいないタブの「×」も薄く出しておく。 */
 @media (hover: none) { .tab:not(.on) .tab-close { visibility: visible; opacity: .6; } }
-.tab.on { background: var(--panel); color: var(--text); font-weight: 600; border-color: var(--line); border-bottom-color: var(--panel); margin-bottom: -1px; }
+/* 開いているタブは、太字にせず（切り替えるたびに隣のタブが動かないように）、地の色と枠で示す。 */
+.tab.on { background: var(--panel); color: var(--text); border-color: var(--line); border-bottom-color: var(--panel); margin-bottom: -1px; }
 /* ピン留めしたタブは、並びを横に送っても左端に留める（left は workspace/stickyPinnedTabs.ts が入れる）。下を通るタブが透けないよう地を塗る。 */
 .tab.pinned { position: sticky; z-index: 1; }
 .tab.pinned:not(.on, :hover) { background: var(--sidebar); }

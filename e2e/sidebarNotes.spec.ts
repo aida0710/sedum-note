@@ -613,7 +613,8 @@ test("長い題のメモがあっても、グラフの点の題は短く切っ�
 
 test("タブが多くても、ピン留めしたタブは並びを送っても左端に残る。並びの続きがある側の端は印が付く", async ({ page }) => {
   await startLocalVault(page);
-  for (let index = 1; index <= 10; index += 1) {
+  // タブは最小幅まで縮んでから溢れるので、縮めても並びに入り切らない数を開く。
+  for (let index = 1; index <= 16; index += 1) {
     await createNoteOnDesktop(page, `とても長い題のメモ その ${index}`);
   }
   const strip = page.getByRole("tablist");
@@ -676,4 +677,30 @@ test("中にノートブックがある、開いたノートブックには、�
   await expect(groupOf("旅行")).not.toHaveClass(/with-child-notebooks/);
   // 線は開閉の印の真下（左の余白 8px + 印の幅の半分 6px）にある。
   expect(await groupOf("仕事").evaluate((group) => getComputedStyle(group, "::after").left)).toBe("14px");
+});
+
+test("開いているタブは太字にせず、タブが多いと最小幅まで縮んで並びに収まる。ピン留めのタブはアイコンだけの小さなタブになる", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "旅行");
+  await viewRow(page, "旅行").locator(".nav").click();
+  for (let index = 1; index <= 8; index += 1) {
+    await createNoteOnDesktop(page, `とても長い題のメモ その ${index}`);
+  }
+  const strip = page.locator(".tabs");
+  await expect(page.locator(".tab.on")).toHaveCSS("font-weight", "400");
+  // 8 つのタブが縮んで、横に送らずに全部見える。
+  expect(await strip.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  const widths = await page.getByRole("tab").evaluateAll((tabs) => tabs.map((tab) => Math.round(tab.getBoundingClientRect().width)));
+  expect(Math.max(...widths)).toBeLessThan(200);
+  expect(Math.min(...widths)).toBeGreaterThanOrEqual(96);
+
+  await page.getByRole("tab", { name: "とても長い題のメモ その 3" }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "タブをピン留め" }).click();
+  const pinned = page.getByRole("tab", { name: "とても長い題のメモ その 3" });
+  await expect(pinned).toHaveCSS("width", "40px");
+  await expect(pinned).toHaveAttribute("title", "とても長い題のメモ その 3");
+  // アイコンは、メモのノートブック（旅行）の色。
+  const notebookColor = await viewRow(page, "旅行").locator(".dot").evaluate((dot) => getComputedStyle(dot).backgroundColor);
+  await expect(pinned.locator(".tab-pinned-icon")).toHaveCSS("color", notebookColor);
 });
