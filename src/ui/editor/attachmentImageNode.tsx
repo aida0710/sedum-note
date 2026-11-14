@@ -19,7 +19,7 @@ function AttachmentImageView({ node, editor, selected, updateAttributes }: React
   const imageElement = useRef<HTMLImageElement>(null);
   const setWidth = (width: number | null) => updateAttributes({ width });
   return (
-    <NodeViewWrapper className={`attachment-image${attributes.width ? " sized" : ""}${selected ? " selected" : ""}`} data-drag-handle>
+    <NodeViewWrapper className={`attachment-image${image.state === "ready" ? " loaded" : ""}${attributes.width ? " sized" : ""}${selected ? " selected" : ""}`} data-drag-handle>
       {image.state === "ready" && (
         <img ref={imageElement} src={image.url} alt={attributes.fileName} draggable={false} decoding="async" style={attributes.width ? { width: attributes.width } : undefined} />
       )}

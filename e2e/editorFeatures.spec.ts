@@ -1034,6 +1034,41 @@ test("写真の右下の持ち手をドラッグすると幅が変わり、ダ�
   await expect.poll(imageWidth).toBe(startWidth);
 });
 
+test("本文の列より狭い写真でも、持ち手は写真の右下の角に出て、ドラッグすると写真の右の端が指に付いてくる", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "小さい写真");
+  const photo = await page.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 300;
+    canvas.height = 200;
+    const context = canvas.getContext("2d")!;
+    context.fillStyle = "#3d7fd6";
+    context.fillRect(0, 0, 300, 200);
+    return canvas.toDataURL("image/png");
+  });
+  await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "小.png", mimeType: "image/png", buffer: Buffer.from(photo.split(",")[1]!, "base64") });
+  const image = page.locator(".attachment-image img");
+  await expect.poll(async () => Math.round((await image.boundingBox())?.width ?? 0)).toBe(300);
+  await image.hover();
+  const handle = page.getByRole("button", { name: /画像のサイズを変更/ });
+  await handle.hover();
+  const handleBox = await boxAfterRendering(handle);
+  const imageBox = (await image.boundingBox())!;
+  const imageRight = imageBox.x + imageBox.width;
+  // 持ち手は写真の右下の角の内側にある（列の右の端ではない）。
+  expect(imageRight - (handleBox.x + handleBox.width)).toBeGreaterThanOrEqual(0);
+  expect(imageRight - (handleBox.x + handleBox.width)).toBeLessThanOrEqual(10);
+
+  const grabX = handleBox.x + handleBox.width / 2;
+  await page.mouse.move(grabX, handleBox.y + handleBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(grabX + 60, handleBox.y + handleBox.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(async () => Math.round((await image.boundingBox())?.width ?? 0)).toBe(420);
+  const resized = (await image.boundingBox())!;
+  expect(Math.abs(resized.x + resized.width - (imageRight + 60))).toBeLessThanOrEqual(1);
+});
+
 test("PC では、書式のボタンを上に並べず、文字を選んだときだけその上に出す。表のメニューは表の中にいる間だけ上のバーに出る", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "書式のメモ");

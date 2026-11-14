@@ -941,12 +941,17 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .ProseMirror hr.ProseMirror-selectednode { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: var(--radius-inline); }
 .attachment-file.ProseMirror-selectednode { outline: 2px solid var(--accent); }
 .attachment-image.ProseMirror-selectednode { outline: 2px solid var(--accent); }
-/* 幅を決めた写真は、枠を写真の幅に合わせて列の中央に置く（枠の地の色が写真の横に出ないように）。 */
-.attachment-image.sized { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
+/* 読み込めた写真と、幅を決めた写真は、枠を写真の幅に合わせて列の中央に置く。枠の地の色が写真の横に出ないようにし、
+   右下の持ち手を写真の角に置く（列より狭い写真で、持ち手が写真から離れた列の端に出ると、つかんだ所と写真の端がずれる）。 */
+.attachment-image:is(.loaded, .sized) { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
 .attachment-image.sized img { max-width: 100%; }
 /* 写真の右下の、大きさを変える持ち手。ポインターを乗せたときと、写真を選んだときに出す（スマホは選んだとき）。 */
 .image-resize-handle { position: absolute; right: 6px; bottom: 6px; width: 16px; height: 16px; border-radius: 4px; background: var(--panel); border: 2px solid var(--accent); cursor: nwse-resize; opacity: 0; touch-action: none; }
 .attachment-image:hover .image-resize-handle, .attachment-image.selected .image-resize-handle, .image-resize-handle:focus-visible { opacity: 1; }
+/* マウスでは、見た目は小さいまま、つかめる範囲を 28px に広げる（16px の角を狙うのは難しい）。指で押す端末は、下の (pointer: coarse) で広げる。 */
+@media (pointer: fine) {
+  .image-resize-handle::before { content: ""; position: absolute; inset: -8px; }
+}
 
 /* メニュー */
 /* メニューはツールバーの中に置くこともあるので、文字の色を親（補助の色）から引き継がない。 */
@@ -1008,6 +1013,9 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 /* カードの上の端は、中身の量によらず窓の高さの 12% の所に固定する（同期の欄を開いても、カードが上へ跳ねないように）。
    中身が窓に入り切らないときは、ページではなくカードの中だけを送り、ボタンの行はカードの下の端に固定する。 */
 .entry { --entry-card-top: 12vh; --entry-card-padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); justify-items: center; align-items: start; height: 100%; padding: max(var(--entry-card-top), env(safe-area-inset-top)) 16px 24px; overflow: hidden; }
+/* ロックの画面は、PC でもスマホでもカードを縦の真ん中に置く（上の端の固定だと、スマホでは指の届きにくい画面の上に寄る）。
+   ロックの画面は中身の量がほとんど変わらないので、最初の画面のような上の端の固定は要らない。 */
+.entry.unlock-entry { align-items: center; padding-top: max(24px, env(safe-area-inset-top)); }
 .entry-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-dialog); width: min(520px, 100%); max-height: 100%; overflow-y: auto; padding: var(--entry-card-padding) var(--entry-card-padding) 0; display: flex; flex-direction: column; gap: 14px; }
 .entry-card > .form-actions { position: sticky; bottom: 0; z-index: var(--layer-sticky); margin: 0 calc(var(--entry-card-padding) * -1); padding: 14px var(--entry-card-padding) 20px; background: var(--panel); border-top: 1px solid var(--line); }
 /* カードの上のアプリのアイコンと名前（entry/EntryBrand.tsx）。 */
@@ -1311,9 +1319,6 @@ details summary { cursor: pointer; color: var(--accent); }
 @media (max-width: 760px) {
   .field-grid { grid-template-columns: minmax(0, 1fr); }
   .entry { --entry-card-padding: 20px; }
-  /* スマホのロックの画面は、カードを縦の真ん中に置く（上の端の固定だと、指の届きにくい画面の上に寄る）。
-     ロックの画面は中身の量がほとんど変わらないので、最初の画面のような上の端の固定は要らない。 */
-  .entry.unlock-entry { align-items: center; padding-top: max(24px, env(safe-area-inset-top)); }
 }
 
 /* ── 印刷（PDF での保存も同じ） ─────────────────────────
