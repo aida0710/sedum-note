@@ -72,6 +72,7 @@ import { BlockMenuController } from "./blockMenuController";
 import { BlockMenu } from "./BlockMenu";
 import { NoteCharacterCount } from "./NoteCharacterCount";
 import { NoteTitleInput } from "./NoteTitleInput";
+import { useNarrowBody } from "./useNarrowBody";
 import { NoteTagChips } from "./NoteTagChips";
 import { NoteBacklinks } from "./NoteBacklinks";
 import { NoteProperties } from "./NoteProperties";
@@ -121,6 +122,8 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
   const { openNote, blockToReveal } = useContext(NoteLinkTargetsContext);
   const titleInput = useRef<HTMLTextAreaElement>(null);
   const documentScroll = useRef<HTMLDivElement>(null);
+  // スマホは、本文の余白がもともと狭い（app.css の .phone .document）。
+  const narrowBody = useNarrowBody(documentScroll, !isMobile);
   const dialogs = useDialogs();
   const attachments = useNoteAttachments(repository);
   // 録った音は、ほかのファイルと同じように添付する。
@@ -368,7 +371,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
       )}
       {findBarOpen && <FindBar editor={editor} request={findRequest} onClose={() => setFindBarOpen(false)} />}
       <div className="document-area">
-      <div className="document-scroll" ref={documentScroll}
+      <div className={`document-scroll${narrowBody ? " narrow-body" : ""}`} ref={documentScroll}
         onMouseDown={(event) => { if (placeCursorFromBlankArea(editor.view, event)) { event.preventDefault(); } }}>
         <div className={`document align-${note.content.pageAlignment ?? defaultPageAlignment}`} onClick={openLinkOnModifierClick}>
           {inTrash && (
@@ -403,8 +406,12 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
                 )}
                 {unsyncedIds.has(noteId) && <span className="chip unsynced">{translate("editor.unsynced")}</span>}
                 {/* 作ったばかりの空のメモには、文字数（0 文字）と更新日時を出さない。 */}
-                {!isNewEmptyNote && <NoteCharacterCount editor={editor} />}
-                {!isNewEmptyNote && <span className="updated">{translate("editor.updatedAt", { time: formatDateTime(note.updatedAt) })}</span>}
+                {!isNewEmptyNote && (
+                  <span className="document-meta-end">
+                    <NoteCharacterCount editor={editor} />
+                    <span className="updated">{translate("editor.updatedAt", { time: formatDateTime(note.updatedAt) })}</span>
+                  </span>
+                )}
               </div>
               {/* 作ったばかりの空のメモは、すぐ打てるようにタイトルにカーソルを置く。 */}
               <NoteTitleInput inputRef={titleInput} title={note.content.title} readOnly={inTrash}

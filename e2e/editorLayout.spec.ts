@@ -210,3 +210,19 @@ test("番号が 2 桁・3 桁の項目でも、折りたたみの印が番号に
     expect(fold.x + fold.width).toBeLessThanOrEqual(itemLeft - numberWidth);
   }
 });
+
+test("AI チャットを開いて本文の欄が狭くなると、右の余白を詰めて文字の幅を残す。左の余白（持ち手の場所）はそのまま", async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 820 });
+  await openNoteWith(page, "<p>狭い欄の本文</p>");
+  const documentBox = async () => page.locator(".document").evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { left: parseFloat(style.paddingLeft), right: parseFloat(style.paddingRight) };
+  });
+  const wide = await documentBox();
+  await page.keyboard.press("Control+Alt+A");
+  await expect(page.locator(".ai-chat")).toBeVisible();
+  await expect.poll(async () => (await documentBox()).right).toBeLessThan(wide.right);
+  expect((await documentBox()).left).toBe(wide.left);
+  await page.keyboard.press("Control+Alt+A");
+  await expect.poll(async () => (await documentBox()).right).toBe(wide.right);
+});
