@@ -1,7 +1,7 @@
 // 確認と 1 行の入力のダイアログ。window.confirm・prompt は WebView ごとに出方が違い
 // （Android の WebView では出ないことがある）、試験からも見えないので、画面の中に出す。
 
-import { createContext, type KeyboardEvent, type ReactNode, useCallback, useContext, useId, useState } from "react";
+import { createContext, type KeyboardEvent, type ReactNode, useCallback, useContext, useId, useMemo, useState } from "react";
 import { translate } from "../i18n/translate";
 import { ModalDialog } from "./ModalDialog";
 import { preventSubmitByImeKey } from "./imeKeyEvent";
@@ -41,8 +41,10 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     ({ title, message, confirmLabel, initialValue = "" }) => new Promise((resolve) => setRequest({ kind: "prompt", title, message, initialValue, confirmLabel, resolve })),
     [],
   );
+  // 同じ入れ物を渡し続ける。開くたびに新しい入れ物にすると、useDialogs を使う部品（左の列のメモの行など）が全部描き直される。
+  const dialogs = useMemo(() => ({ confirm, prompt }), [confirm, prompt]);
   return (
-    <DialogContext.Provider value={{ confirm, prompt }}>
+    <DialogContext.Provider value={dialogs}>
       {children}
       {request && <DialogView request={request} onDone={() => setRequest(null)} />}
     </DialogContext.Provider>

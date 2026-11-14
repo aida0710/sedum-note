@@ -2,7 +2,7 @@
 
 import { bodyFootnoteTexts, bodyLinkedNoteIds, bodyPlainText, plainTextHashtags } from "./bodyText";
 import { bodyDueTasks, type DueTask } from "./dueTasks";
-import { matchesNoteSearch, parseNoteSearchQuery } from "./noteSearchQuery";
+import { matchesNoteSearch, parseNoteSearchQuery, type SearchableNote } from "./noteSearchQuery";
 import type { LiveNote, LiveNotebook } from "./noteRecords";
 
 export type NoteView =
@@ -106,12 +106,23 @@ export function notebookNameLookup(notebooks: Array<{ id: string; content: { nam
 }
 
 // ピン留めを先に、残りは選んだ並び順で返す。
+// 検索で比べる形。変わっていないメモの NoteSummary はスナップショットをまたいで同じ入れ物なので、同じ形を返し、
+// 検索の側で覚えている、そろえた本文を使い回せるようにする。
+const searchableNoteOfSummary = new WeakMap<NoteSummary, SearchableNote>();
+
+function searchableNoteOf(summary: NoteSummary): SearchableNote {
+  let searchable = searchableNoteOfSummary.get(summary);
+  if (searchable === undefined) {
+    searchable = { title: summary.note.content.title, plainText: summary.plainText, tags: summary.tags, notebookIds: summary.note.content.notebookIds };
+    searchableNoteOfSummary.set(summary, searchable);
+  }
+  return searchable;
+}
+
 export function selectNotes(summaries: NoteSummary[], { view, searchText = "", sortOrder = "updatedAt", notebookNameOf = () => undefined }: NoteSelection): NoteSummary[] {
   const query = parseNoteSearchQuery(searchText);
   return summaries
-    .filter((summary) => belongsToView(summary, view) && matchesNoteSearch({
-      title: summary.note.content.title, plainText: summary.plainText, tags: summary.tags, notebookIds: summary.note.content.notebookIds,
-    }, query, notebookNameOf))
+    .filter((summary) => belongsToView(summary, view) && matchesNoteSearch(searchableNoteOf(summary), query, notebookNameOf))
     .sort((left, right) => {
       if (left.note.content.pinned !== right.note.content.pinned) {
         return left.note.content.pinned ? -1 : 1;

@@ -6,7 +6,7 @@ import { type JSONContent, mergeAttributes, Node, NodeViewWrapper, type ReactNod
 import { EditorContent, useEditor } from "@tiptap/react";
 import { yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
 import { FileText } from "lucide-react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type * as Y from "yjs";
 import { BLOCK_ID_ATTRIBUTE, isBlockId, LINKABLE_BLOCK_NODE_NAMES } from "../../core/notes/bodyBlocks";
 import { BLOCK_EMBED_NODE } from "../../core/notes/bodyText";
@@ -62,7 +62,10 @@ function useEmbeddedBlocks(body: Y.XmlFragment | null, blockId: string | null): 
 
 // 埋め込んだ中身を、本文と同じ見た目で、読み取り専用で出す。
 function EmbeddedBlocks({ serializedBlocks }: { serializedBlocks: string }) {
-  const editor = useEditor({ extensions: documentExtensions(), editable: false });
+  // 拡張は 1 回だけ作る。描くたびに作ると、useEditor が設定が変わったと見て、描くたび（メモを保存するたび）に
+  // エディタの設定を当て直す。
+  const extensions = useMemo(() => documentExtensions(), []);
+  const editor = useEditor({ extensions, editable: false });
   useEffect(() => {
     // 中身の中のノード（リンク、数式、埋め込み）は React で描かれ、その場で描き切ろうとする。React が画面を
     // 更新している最中（この effect の中）にはそれができないので、更新が済んだ直後に入れる。

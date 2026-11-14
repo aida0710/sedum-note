@@ -55,14 +55,35 @@ export type SearchableNote = {
 };
 
 // notebookNameOf は、ノートブックの ID から名前を引く（無ければ undefined）。
-export function matchesNoteSearch(note: SearchableNote, query: NoteSearchQuery, notebookNameOf: (notebookId: string) => string | undefined): boolean {
-  const haystack = foldForSearch(`${note.title}\n${note.plainText}`);
-  if (!query.words.every((word) => haystack.includes(word))) {
-    return false;
+// 題と本文をそろえた形は、同じ SearchableNote なら覚えておく（検索している間は、保存のたびに全部のメモを比べ直すため）。
+const foldedTextOfNote = new WeakMap<SearchableNote, string>();
+
+function foldedTextOf(note: SearchableNote): string {
+  let folded = foldedTextOfNote.get(note);
+  if (folded === undefined) {
+    folded = foldForSearch(`${note.title}\n${note.plainText}`);
+    foldedTextOfNote.set(note, folded);
   }
-  const tags = note.tags.map(foldForSearch);
-  if (!query.tags.every((tag) => tags.includes(tag))) {
-    return false;
+  return folded;
+}
+
+// 言葉・タグ・ノートブックのうち、検索に入っていないものは、そろえる手間をかけずに通す（検索していないときも、
+// 左の列の一覧を作るたびにここを通るので、長いメモの本文を毎回そろえると重い）。
+export function matchesNoteSearch(note: SearchableNote, query: NoteSearchQuery, notebookNameOf: (notebookId: string) => string | undefined): boolean {
+  if (query.words.length > 0) {
+    const haystack = foldedTextOf(note);
+    if (!query.words.every((word) => haystack.includes(word))) {
+      return false;
+    }
+  }
+  if (query.tags.length > 0) {
+    const tags = note.tags.map(foldForSearch);
+    if (!query.tags.every((tag) => tags.includes(tag))) {
+      return false;
+    }
+  }
+  if (query.notebookNames.length === 0) {
+    return true;
   }
   const notebookNames = note.notebookIds.map((notebookId) => foldForSearch(notebookNameOf(notebookId) ?? ""));
   return query.notebookNames.every((name) => notebookNames.some((notebookName) => notebookName.includes(name)));
