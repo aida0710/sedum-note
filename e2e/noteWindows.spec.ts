@@ -53,6 +53,23 @@ test("メモを別のウィンドウで開くと、ロックの解除のあと�
   await expect(page.locator(".ProseMirror")).toHaveText("牛乳と卵");
 });
 
+test("左の列のメモを Ctrl+クリックすると、そのメモを別のウィンドウで開く。元のウィンドウのタブは増えない", async ({ page, context }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "旅の予定");
+  await page.keyboard.type("宿を取る");
+  await createNoteOnDesktop(page, "別のメモ");
+  const tabsBefore = await page.getByRole("tab").count();
+
+  const opened = context.waitForEvent("page");
+  await page.locator(".tree-note", { hasText: "旅の予定" }).first().click({ modifiers: ["ControlOrMeta"] });
+  const noteWindow = await opened;
+  await unlock(noteWindow);
+  await expect(noteWindow.getByPlaceholder("タイトル")).toHaveValue("旅の予定");
+  await expect(noteWindow.locator(".ProseMirror")).toHaveText("宿を取る");
+  await expect(page.getByRole("tab")).toHaveCount(tabsBefore);
+  await expect(page.locator(".tree-note.selected")).toHaveCount(0);
+});
+
 test("同期は片方のタブだけが行い、もう片方のタブで書いた文字も、ほかのデバイスへ届く", async ({ page, context, browser }) => {
   const remoteConfig = await newTestRemoteConfig();
   await startSyncedVault(page, { remoteConfig, join: false });

@@ -295,33 +295,31 @@ test("左の列のメモを本文へドラッグすると、落とした所に�
 });
 
 
-test("Ctrl と Shift で左の列のメモを複数選び、まとめてノートブックへ移したり、ゴミ箱に入れたりできる", async ({ page }) => {
+test("Shift で左の列のメモを複数選び、まとめてノートブックへ移したり、ゴミ箱に入れたりできる", async ({ page }) => {
   await startLocalVault(page);
   await addNotebookOnDesktop(page, "旅行");
   await viewRow(page, "すべてのメモ").locator(".nav").click();
-  for (const title of ["りんご", "みかん", "ぶどう", "もも"]) {
+  for (const title of ["りんご", "みかん", "ぶどう", "もも", "なし"]) {
     await createNoteOnDesktop(page, title);
   }
   const titles = await page.locator(".tree-note").allTextContents();
   const row = (index: number) => noteRow(page, titles[index]!).locator(".tree-note");
 
-  // 普通に押したメモから、Shift で押したメモまでを選ぶ。Ctrl で押すと 1 件ずつ外せ、どちらでもメモは開かない。
+  // 普通に押したメモから、Shift で押したメモまでを選ぶ。Shift で押したメモは開かない。
   await row(0).click();
-  await row(2).click({ modifiers: ["Shift"] });
-  await expect(page.locator(".tree-note.selected")).toHaveCount(3);
-  await row(1).click({ modifiers: ["ControlOrMeta"] });
-  await expect(page.locator(".tree-note.selected")).toHaveText([titles[0]!, titles[2]!]);
+  await row(1).click({ modifiers: ["Shift"] });
+  await expect(page.locator(".tree-note.selected")).toHaveText([titles[0]!, titles[1]!]);
   await expect(page.locator(".tree-note.active")).toHaveText(titles[0]!);
 
   // 選んだメモの 1 つをドラッグすると、選んだメモがまとめて移り、選択は外れる。
-  await row(2).dragTo(viewRow(page, "旅行"));
+  await row(1).dragTo(viewRow(page, "旅行"));
   await expect(viewRow(page, "旅行").locator(".count")).toHaveText("2");
   await expect(page.locator(".tree-note.selected")).toHaveCount(0);
 
-  // 開いているメモに Ctrl で足して、右クリックのメニューからまとめてゴミ箱に入れる。
-  await row(3).click();
-  await row(1).click({ modifiers: ["ControlOrMeta"] });
-  await row(1).click({ button: "right" });
+  // 開いているメモから Shift で選んで、右クリックのメニューからまとめてゴミ箱に移動する。
+  await row(2).click();
+  await row(3).click({ modifiers: ["Shift"] });
+  await row(3).click({ button: "right" });
   await page.getByRole("menuitem", { name: "選択した2件をゴミ箱に移動" }).click();
   const trashCount = viewRow(page, "ゴミ箱").locator(".count");
   await expect(trashCount).toHaveText("2");
@@ -330,9 +328,9 @@ test("Ctrl と Shift で左の列のメモを複数選び、まとめてノー�
   await expect(trashCount).toHaveCount(0);
 
   // 選んだメモの 1 つで Delete を押すと、選んだメモがまとめてゴミ箱に入り、選択は外れる。
-  await row(3).click();
-  await row(1).click({ modifiers: ["ControlOrMeta"] });
-  await row(1).press("Delete");
+  await row(2).click();
+  await row(3).click({ modifiers: ["Shift"] });
+  await row(3).press("Delete");
   await expect(trashCount).toHaveText("2");
   await expect(page.locator(".tree-note.selected")).toHaveCount(0);
 });

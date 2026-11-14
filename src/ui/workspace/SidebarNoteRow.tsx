@@ -1,7 +1,8 @@
 // 左の列のメモの 1 行。押すと開く（ノートブックの木の中では仮のタブで。tabState.ts）。中クリックは、いつも普通のタブで開く。
+// Ctrl（Mac では Command）を押しながら押すと、別のウィンドウで開く（別のウィンドウを開けない Android のアプリでは、普通のタブ）。
 // ダブルクリックで名前を変え、仮のタブも普通のタブにする。
 // 「…」か右クリックでメニュー（名前の変更・お気に入り・ピン留め・ゴミ箱）を出し、
-// ドラッグして別の一覧へ落とせる。Ctrl（Mac では Command）か Shift を押しながら押すと、開かずに選ぶ（noteSelection.ts）。
+// ドラッグして別の一覧へ落とせる。Shift を押しながら押すと、開かずに範囲を選ぶ（noteSelection.ts）。
 
 import { MoreHorizontal, Pencil, Pin, PinOff, RotateCcw, Star, StarOff, Trash2 } from "lucide-react";
 import { memo, useState } from "react";
@@ -9,14 +10,18 @@ import type { NoteView } from "../../core/notes/noteQueries";
 import type { SearchSnippet } from "../../core/notes/noteSearchSnippet";
 import type { LiveNote } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
+import { describeError } from "../i18n/describeError";
 import { translate } from "../i18n/translate";
+import { canOpenNoteWindows, openNoteInNewWindow } from "../platform/noteWindows";
 import type { LanguageChoice } from "../preferences/devicePreferences";
+import { useCurrentSpaceId } from "../session/currentSpace";
 import { useDialogs } from "../shared/DialogProvider";
 import { PopupMenu } from "../shared/PopupMenu";
 import { isApplePlatform } from "../shared/shortcutKeys";
+import { useToast } from "../shared/ToastProvider";
 import { startNoteDrag } from "./noteDrag";
 import { useSidebarDragState } from "./sidebarDragState";
-import { resetNoteSelection, selectNoteRange, toggleNoteSelection, useNoteSelection } from "./noteSelection";
+import { resetNoteSelection, selectNoteRange, useNoteSelection } from "./noteSelection";
 import { SelectedNotesMenu } from "./SelectedNotesMenu";
 import { extendNoteSelectionByKey, focusViewRowOfNote, isUnmodifiedKey, rowBesideNotesToRemove } from "./sidebarKeyboard";
 import { SidebarNameRow } from "./SidebarNameRow";
@@ -41,7 +46,7 @@ type SidebarNoteRowProps = {
   activeTab: string | null;
   // 普通に押したとき（Enter も）。木の中は仮のタブで、検索の結果は普通のタブで開く。
   openNote: (noteId: string) => void;
-  // 中クリックしたとき。いつも普通のタブで開く。
+  // 中クリックしたときと、別のウィンドウを開けない所で Ctrl（Mac では Command）を押しながら押したとき。いつも普通のタブで開く。
   openNoteInNewTab: (noteId: string) => void;
   // ダブルクリックしたとき。仮のタブで開いていたら、普通のタブにする。
   keepPreviewTab: (tabId: string) => void;
@@ -65,6 +70,8 @@ export const SidebarNoteRow = memo(SidebarNoteRowContent, isSameRow);
 
 function SidebarNoteRowContent({ note, view, listedNoteIds, depth, activeTab, openNote, openNoteInNewTab, keepPreviewTab, repository, unsynced, snippet = null }: SidebarNoteRowProps) {
   const dialogs = useDialogs();
+  const showToast = useToast();
+  const spaceId = useCurrentSpaceId();
   const moveToTrash = useTrashWithUndo(repository);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [renaming, setRenaming] = useState(false);
@@ -101,14 +108,22 @@ function SidebarNoteRowContent({ note, view, listedNoteIds, depth, activeTab, op
     }
     return accepted;
   };
+  const openInNewWindow = () => {
+    if (!canOpenNoteWindows()) {
+      openNoteInNewTab(note.id);
+      return;
+    }
+    openNoteInNewWindow({ noteId: note.id, spaceId, title }).catch((error: unknown) => showToast({ message: describeError(error) }));
+  };
   const selectOrOpen = (event: React.MouseEvent) => {
-    const selectionContext = { orderedIds: listedNoteIds, openNoteId: activeTab };
+    if (event.shiftKey) {
+      selectNoteRange(note.id, { orderedIds: listedNoteIds, openNoteId: activeTab });
+      return;
+    }
+    resetNoteSelection(note.id);
     if (isApplePlatform() ? event.metaKey : event.ctrlKey) {
-      toggleNoteSelection(note.id, selectionContext);
-    } else if (event.shiftKey) {
-      selectNoteRange(note.id, selectionContext);
+      openInNewWindow();
     } else {
-      resetNoteSelection(note.id);
       openNote(note.id);
     }
   };
