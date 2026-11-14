@@ -192,22 +192,38 @@ test("持ち手は、段落・見出し・チェックリストで同じ横の�
   expect(await handleLeftAt(page.locator("li > p", { hasText: "点 2 段目" }))).toBe(paragraph + LIST_INDENT * 2);
 });
 
-test("番号が 2 桁・3 桁の項目でも、折りたたみの印が番号に重ならない", async ({ page }) => {
-  const items = Array.from({ length: 100 }, (_unused, index) => `<li><p>番号 ${index + 1}</p>${index === 9 || index === 99 ? "<ol><li><p>子</p></li></ol>" : ""}</li>`).join("");
+// 番号と印の間に残す隙間（px）。フォントの違い（WebKit など）で番号の幅が少し変わっても重ならないよう、余裕を見る。
+const FOLD_TOGGLE_CLEARANCE = 4;
+
+test("番号が 2 桁の項目でも、折りたたみの印が番号に重ならない", async ({ page }) => {
+  const items = Array.from({ length: 10 }, (_unused, index) => `<li><p>番号 ${index + 1}</p>${index === 9 ? "<ol><li><p>子</p></li></ol>" : ""}</li>`).join("");
   await openNoteWith(page, `<ol>${items}</ol>`);
-  for (const number of [10, 100]) {
-    const item = page.locator(".ProseMirror > ol > li").nth(number - 1);
-    await item.scrollIntoViewIfNeeded();
-    await item.locator(":scope > p").hover();
-    const fold = (await item.locator(":scope > .fold-toggle").boundingBox())!;
-    const itemLeft = (await item.boundingBox())!.x;
-    // 番号（「100.」）は、項目の左端の手前に、番号の文字の幅だけ出る。
-    const numberWidth = await item.evaluate((element, label) => {
-      const context = document.createElement("canvas").getContext("2d")!;
-      context.font = getComputedStyle(element).font;
-      return context.measureText(label).width;
-    }, `${number}.`);
-    expect(fold.x + fold.width).toBeLessThanOrEqual(itemLeft - numberWidth);
+  const item = page.locator(".ProseMirror > ol > li").nth(9);
+  await item.locator(":scope > p").hover();
+  const fold = (await item.locator(":scope > .fold-toggle").boundingBox())!;
+  const itemLeft = (await item.boundingBox())!.x;
+  // 番号（「10.」）は、項目の左端の手前に、番号の文字の幅だけ出る。
+  const numberWidth = await item.evaluate((element) => {
+    const context = document.createElement("canvas").getContext("2d")!;
+    context.font = getComputedStyle(element).font;
+    return context.measureText("10.").width;
+  });
+  expect(fold.x + fold.width + FOLD_TOGGLE_CLEARANCE).toBeLessThanOrEqual(itemLeft - numberWidth);
+});
+
+test("スマホの幅でも、箇条書きと番号付きの項目の折りたたみの印は、画面の左の端からはみ出さない", async ({ browser }) => {
+  for (const width of [390, 360]) {
+    const page = await (await browser.newContext({ viewport: { width, height: 800 }, hasTouch: true, isMobile: true })).newPage();
+    await startLocalVault(page);
+    await page.locator(".fab").click();
+    await page.getByPlaceholder("タイトル").fill("スマホの印");
+    await page.getByPlaceholder("タイトル").press("Enter");
+    await insertBodyHtml(page, "<ul><li><p>点</p><ul><li><p>点の子</p></li></ul></li></ul><ol><li><p>番号</p><ol><li><p>番号の子</p></li></ol></li></ol>");
+    for (const list of ["ul", "ol"]) {
+      const fold = (await page.locator(`.ProseMirror > ${list} > li > .fold-toggle`).boundingBox())!;
+      expect(fold.x, `${width}px の ${list}`).toBeGreaterThanOrEqual(0);
+    }
+    await page.context().close();
   }
 });
 

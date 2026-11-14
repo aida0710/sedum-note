@@ -30,18 +30,18 @@ function emptyItemWithChildrenDepth(state: EditorState): number | null {
 }
 
 // 前の項目の後ろに、子の箇条書きを足す。前の項目の最後が同じ種類の箇条書きなら、その続きの項目にする。
+// 前の項目がたたんであれば開く（たたんだまま足すと、移した子の項目が見えなくなる）。
 function withChildrenAppended(previousItem: ProseMirrorNode, children: ProseMirrorNode[]): ProseMirrorNode {
   const lastChild = previousItem.lastChild;
   const [firstList, ...otherLists] = children;
-  if (lastChild && firstList && lastChild.type === firstList.type) {
-    const mergedList = lastChild.copy(lastChild.content.append(firstList.content));
-    return previousItem.copy(previousItem.content.replaceChild(previousItem.childCount - 1, mergedList).append(Fragment.from(otherLists)));
-  }
-  return previousItem.copy(previousItem.content.append(Fragment.from(children)));
+  const content = lastChild && firstList && lastChild.type === firstList.type
+    ? previousItem.content.replaceChild(previousItem.childCount - 1, lastChild.copy(lastChild.content.append(firstList.content))).append(Fragment.from(otherLists))
+    : previousItem.content.append(Fragment.from(children));
+  return previousItem.type.create({ ...previousItem.attrs, [FOLDED_ATTRIBUTE]: false }, content, previousItem.marks);
 }
 
-// 消したあとのカーソルの置き場所: 前の項目の中で見えている最後の行の末尾（項目の中身の先頭からの位置）。
-// 前の項目がたたんであれば、子は隠れているので、その項目の行の末尾にする。
+// 消したあとのカーソルの置き場所: 消す前に見えていた、すぐ上の行の末尾（項目の中身の先頭からの位置）。
+// 前の項目がたたんであれば、子は隠れていたので、その項目の行の末尾にする。
 function endOfLastVisibleLine(item: ProseMirrorNode): number {
   const firstLine = item.firstChild;
   if (item.attrs[FOLDED_ATTRIBUTE] === true && firstLine?.isTextblock) {

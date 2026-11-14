@@ -337,6 +337,27 @@ test("空の子の項目を Backspace で消しても、前後の項目の深さ
   await expect.poll(() => listOutline(page)).toEqual(["一", "  二の続き", "  三", "四"]);
 });
 
+test("前の項目がたたんであるとき、空の子の項目を Backspace で消すと、前の項目を開いて子の項目を見せる", async ({ page }) => {
+  await openNoteWith(page, '<ul><li data-collapsed="true"><p>たたんだ項目</p><ul><li><p>隠れた子</p></li></ul></li><li><p></p><ul><li><p>動く子</p></li></ul></li></ul>');
+  await page.evaluate(() => {
+    type TextblockNode = { isTextblock: boolean; content: { size: number } };
+    const body = document.querySelector(".ProseMirror") as HTMLElement & {
+      editor: { state: { doc: { descendants: (visit: (node: TextblockNode, position: number) => boolean) => void } }; commands: { setTextSelection: (position: number) => boolean }; view: { focus: () => void } };
+    };
+    let emptyItem: number | null = null;
+    body.editor.state.doc.descendants((node, position) => {
+      if (emptyItem === null && node.isTextblock && node.content.size === 0) emptyItem = position + 1;
+      return emptyItem === null;
+    });
+    body.editor.commands.setTextSelection(emptyItem!);
+    body.editor.view.focus();
+  });
+  await page.keyboard.press("Backspace");
+  await expect(page.locator(".ProseMirror p", { hasText: "動く子" })).toBeVisible();
+  await expect(page.locator(".ProseMirror p", { hasText: "隠れた子" })).toBeVisible();
+  await expect.poll(() => listOutline(page)).toEqual(["たたんだ項目", "  隠れた子", "  動く子"]);
+});
+
 test("見出しの末尾の Enter でできた行は段落で、Tab を押しても見出しにも箇条書きにもならない", async ({ page }) => {
   await openNoteWith(page, "<h2>見出し</h2>");
   await placeCursorInBlock(page, "見出し", "end");

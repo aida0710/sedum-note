@@ -620,6 +620,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .phone .ProseMirror :is(h1, h2, h3, h4, h5, h6) > .fold-toggle { left: -17px; width: 14px; }
 /* チェックリストは字下げが無く、最上位の項目の印が画面の左の外（-16px）に出てしまうので、同じく内側に寄せる。 */
 .phone .ProseMirror ul[data-type="taskList"] > li > div > .fold-toggle { left: -17px; width: 14px; }
+/* スマホには持ち手が無いので、点・番号の項目の印は、本文の左の余白（18px）と字下げ（24px）の左端に置く（画面の端からはみ出さず、「10.」とも重ならない）。 */
+.phone .ProseMirror li > .fold-toggle { left: -42px; width: 14px; }
 /* 箇条書きへのズーム。道筋の上にないものを隠し、道筋の上の入れ物からは字下げと印を外して、項目を本文の左端から出す。 */
 .ProseMirror .zoom-hidden { display: none; }
 .ProseMirror ul.zoom-path, .ProseMirror ol.zoom-path { padding-left: 0; margin: 0; }
