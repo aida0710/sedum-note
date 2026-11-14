@@ -97,9 +97,9 @@ function matchesException(split, exception) {
     && (exception.element === undefined || exception.element.test(split.element));
 }
 
-// 役割の決まった値。:root の変数で決めている役割は、測った値の多さではなく、変数の値を基準にする
-// （どの画面を撮ったかで、いちばん多い値が入れ替わらないように）。--control-height。
-const USUAL_VALUES = { "text-field": { height: "32" }, select: { height: "32" } };
+// 役割の決まった値。測った値の多さではなく、この値を基準にする（どの画面を撮ったかで、いちばん多い値が入れ替わらないように）。
+// 入力欄と選択欄は --control-height、メニューの項目は「…」などのふつうのメニュー（PopupMenu）の行の高さ。
+const USUAL_VALUES = { "text-field": { height: "32" }, select: { height: "32" }, "menu-item": { height: "33" } };
 
 // 役割と値ごとに、基準の値（決まった値か、いちばん多い値）と違う部品を 1 件ずつ挙げる（同じ部品が何画面に出ても、項目がいくつあっても 1 件）。
 export function roleValueSplits(parts) {

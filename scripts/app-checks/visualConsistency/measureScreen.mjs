@@ -171,7 +171,11 @@ export function measureScreen() {
     }
     if (!container || container === document.body) continue;
     if (container.getBoundingClientRect().height > SINGLE_LINE_CONTROL_MAX_HEIGHT * 2) continue;
-    const sameLine = textLineRects(container).filter((rect) => rect.bottom > icon.top && rect.top < icon.bottom);
+    // 入れ物の中に開いたメニュー（ツールバーから開いた表のメニューなど）の文字は、同じ行の文字ではない。
+    const overlays = [...container.querySelectorAll(".menu, [role=menu], [role=dialog]")].filter((overlay) => !overlay.contains(svg));
+    const sameLine = textLineRects(container)
+      .filter((rect) => !overlays.some((overlay) => { const box = overlay.getBoundingClientRect(); return rect.left >= box.left && rect.right <= box.right && rect.top >= box.top && rect.bottom <= box.bottom; }))
+      .filter((rect) => rect.bottom > icon.top && rect.top < icon.bottom);
     if (sameLine.length === 0) continue;
     // アイコンにいちばん近い文字の行（文字の大きさが違う文字が並ぶときは、近い方の文字に合わせる）。
     const nearest = sameLine.reduce((best, rect) => Math.abs(horizontalCenter(rect) - horizontalCenter(icon)) < Math.abs(horizontalCenter(best) - horizontalCenter(icon)) ? rect : best);
