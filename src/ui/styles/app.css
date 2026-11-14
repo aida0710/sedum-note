@@ -896,10 +896,11 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .command-palette .palette-item-hint { margin-left: auto; color: var(--muted); font-size: var(--font-size-small); max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
 .command-palette .menu-heading:not(:first-child) { margin-top: 4px; }
 .note-picker-list { overflow-y: auto; min-height: 80px; display: flex; flex-direction: column; }
+/* 選ぶ一覧（パレット、リンクするメモ、ノートブックを選ぶ）の名前は 1 行に収め、長い名前は「…」で切る（左の列の行と同じ）。 */
+.note-picker-list .nav-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* ノートブックを選ぶダイアログの行（editor/NoteNotebooksDialog.tsx）。行のどこを押しても付け外しする。 */
 /* 階層の段（--depth）ごとに、子のチェックボックスが親のノートブックの印の真下に来る幅（チェックボックスと、.menu-item の間）だけ字下げする。 */
 .menu-item.notebook-choice { cursor: pointer; padding-left: calc(10px + var(--depth, 0) * (var(--checkbox-size) + 10px)); }
-.notebook-choice .nav-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 絞り込みで、名前に当たった子の親として残しただけの行。 */
 .notebook-choice.ancestor-only { color: var(--muted); }
 /* フォーカスの枠は、小さなチェックボックスではなく行に出す（一覧のどこにいるかを見やすくするため）。 */

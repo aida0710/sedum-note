@@ -1,7 +1,7 @@
 // 画面のあちこちで使う部品の見た目が、置き場所でばらばらにならないか。
 
 import { expect, type Locator, test } from "@playwright/test";
-import { addNotebookOnDesktop, createNoteOnDesktop, openSettingsPage, startLocalVault } from "./devices";
+import { addNotebookOnDesktop, createNoteOnDesktop, insertFromSlashMenu, openSettingsPage, placeCursorAtBodyEnd, startLocalVault } from "./devices";
 
 const headingStyleOf = (heading: Locator) => heading.evaluate((element) => {
   const style = getComputedStyle(element);
@@ -114,6 +114,36 @@ test("区切りの無い長い名前でも、データベース表示の見出�
   const title = page.getByRole("dialog").locator(".dialog-title");
   await expect(title).toContainText(longName);
   expect(await title.evaluate((element) => element.scrollWidth - element.clientWidth)).toBe(0);
+});
+
+test("区切りの無い長い題でも、コマンドパレットとリンクするメモの一覧では 1 行に収まって「…」で切れ、行の外へはみ出さない", async ({ page }) => {
+  const longTitle = `Averyveryverylongtitlewithoutanyspaces_${"0123456789".repeat(8)}`;
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, longTitle);
+  await createNoteOnDesktop(page, "リンク元");
+  const expectOneEllipsizedLine = async (row: Locator) => {
+    const label = row.locator(".nav-label");
+    expect(await row.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    expect(await label.evaluate((element) => element.scrollWidth > element.clientWidth && getComputedStyle(element).textOverflow === "ellipsis")).toBe(true);
+    // 題の文字が 1 行の箱だけに並ぶ（折り返していない）。
+    expect(await label.evaluate((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return new Set([...range.getClientRects()].map((rect) => Math.round(rect.top))).size;
+    })).toBe(1);
+  };
+
+  await page.keyboard.press("Control+K");
+  const palette = page.getByRole("dialog");
+  await page.keyboard.type("Averyvery");
+  await expectOneEllipsizedLine(palette.getByRole("option", { name: longTitle }));
+  await page.keyboard.press("Escape");
+  await expect(palette).toHaveCount(0);
+
+  await placeCursorAtBodyEnd(page);
+  await insertFromSlashMenu(page, "メモへのリンク", "メモへのリンク");
+  const picker = page.getByRole("dialog", { name: "リンクするメモを選ぶ" });
+  await expectOneEllipsizedLine(picker.getByRole("button", { name: longTitle }));
 });
 
 test("ダイアログの幅は、ダイアログごとの幅（履歴は 760px）になり、ほかは既定の 420px になる", async ({ page }) => {
