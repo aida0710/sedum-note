@@ -136,6 +136,18 @@ test("自動の同期を切ると、編集しても送らず、「今すぐ同�
   // 自動なら 2 秒後に送る。それより長く待っても、未送信のまま。
   await laptop.waitForTimeout(4_000);
   await expect(laptop.locator(".sync-line")).toContainText("未送信1件");
+  // 本文の上の「未送信」の札は、文字が色の付いた背景の端に付かない。
+  await laptop.getByRole("tab", { name: "自動の同期を切って書いたメモ" }).click();
+  const unsyncedChip = laptop.locator(".document-meta .chip.unsynced");
+  await expect(unsyncedChip).toHaveText("未送信");
+  const textInset = await unsyncedChip.evaluate((chip) => {
+    const range = document.createRange();
+    range.selectNodeContents(chip);
+    const [text, box] = [range.getBoundingClientRect(), chip.getBoundingClientRect()];
+    return { left: text.left - box.left, right: box.right - text.right };
+  });
+  expect(textInset.left).toBeGreaterThanOrEqual(6);
+  expect(textInset.right).toBeGreaterThanOrEqual(6);
 
   await laptop.reload();
   await laptop.getByLabel("パスフレーズ").fill(PASSPHRASE);

@@ -638,6 +638,9 @@ button.ai-tool-activity:hover { background: var(--selected); }
 
 .unsynced-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 6px; vertical-align: middle; flex: none; }
 .chip.unsynced { background: var(--accent-soft); color: var(--accent); }
+/* 本文の上の行の札は背景なしで左の余白を 0 にしているが、「未送信」だけは背景があるので、左右に余白を戻す（文字が背景の端に付かないように）。
+   右の札との間は、ほかの札の右の余白（8px）と同じだけ空ける。 */
+.document-meta .chip.unsynced { padding: 0 8px; margin-right: 8px; }
 /* 題は折り返す textarea。高さは中身に合わせて NoteTitleInput.tsx が入れる。 */
 .title-input { display: block; font-size: 30px; line-height: 1.4; letter-spacing: .02em; font-weight: 700; border: 0; outline: 0; width: 100%; background: none; margin-bottom: 20px; padding: 0; resize: none; overflow: hidden; overflow-wrap: anywhere; }
 .title-input::placeholder { color: var(--muted); opacity: .6; }
