@@ -112,7 +112,19 @@ export function useDevicePreferences(): DevicePreferences {
 
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  // ほかのウィンドウ（Web 版ならほかのタブ）で変えた設定も読み直す。古いまま使うと、前から開いていたウィンドウが、ほかのウィンドウで
+  // 変えた設定（言語やテーマ、自動でロックするまでの時間など）を前の値のまま使い続ける。
+  const reload = (event: StorageEvent) => {
+    if (event.key === STORAGE_KEY) {
+      current = loadStoredPreferences();
+      listener();
+    }
+  };
+  window.addEventListener("storage", reload);
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener("storage", reload);
+  };
 }
 
 function notifyListeners(): void {
