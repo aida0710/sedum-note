@@ -2,7 +2,7 @@
 //（dumpsys vibrator_manager の Recent vibrations）で確かめる。対象は、チェックリストのチェック、設定のスイッチ、
 // 一覧を払う操作と引いて同期の、しきい値を越えた瞬間。設定で切ると振動しないことも見る。
 // 長押しで開くメニューでは、WebView が OS の長押しの振動を出すので、アプリからは振動を要求しないことを見る。
-// 指の操作は、OS から届く本物のタッチにするため adb の input で送る（DevTools から送ると長押しにならない）。
+// 指の操作は、OS から届く本物のタッチにするため adb の input で送る。
 //
 // 前提: integration/s3-up.sh、`adb reverse tcp:18333 tcp:18333`（引いて同期には同期先が要る）。
 //   デバッグ版の APK を入れ、初回の画面のまま起動して、WebView の DevTools を DEVTOOLS_PORT（既定 9333）へ forward しておく。

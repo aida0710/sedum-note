@@ -33,4 +33,7 @@ test("Web 版では、チェックボックスや設定のスイッチを押し�
   await expect(page.getByRole("switch", { name: "操作したときに振動する" })).toHaveCount(0);
 
   expect(await page.evaluate(() => (window as WindowWithVibrateCalls).vibrateCalls)).toEqual([]);
+  // 差し替えが効いていること（効いていなくても上は空になるので）。
+  await page.evaluate(() => navigator.vibrate(1));
+  expect(await page.evaluate(() => (window as WindowWithVibrateCalls).vibrateCalls)).toEqual([1]);
 });

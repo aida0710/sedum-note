@@ -11,8 +11,8 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
-    <!-- チェック・スイッチ・長押し・払う操作のときに、短く振動させる（src/ui/platform/hapticFeedback.ts）。
-         WebView の navigator.vibrate は、この権限が無いと振動を要求しない。 -->
+    <!-- チェック・スイッチ・一覧のスワイプと引っ張って同期のときに、短く振動させる（src/ui/platform/hapticFeedback.ts）。
+         WebView の navigator.vibrate は、この権限が無いと true を返すだけで振動しない。 -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- AndroidTV support -->
