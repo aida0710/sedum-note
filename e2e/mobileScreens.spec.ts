@@ -15,6 +15,17 @@ async function openNewNoteOnPhone(page: Page, title: string): Promise<void> {
   await page.getByPlaceholder("タイトル").fill(title);
 }
 
+test("スマホでは、部品の文字が PC より 1px 大きく、一覧のメモの題は 15px になる。本文は PC と同じ大きさのまま", async ({ browser }) => {
+  const page = await openPhone(browser);
+  await openNewNoteOnPhone(page, "文字の大きさ");
+  await page.locator(".ProseMirror").click();
+  await page.keyboard.type("本文");
+  await expect(page.locator(".phone")).toHaveCSS("font-size", "14px");
+  await expect(page.locator(".ProseMirror")).toHaveCSS("font-size", "16px");
+  await page.locator(".phone-back").first().click();
+  await expect(page.locator(".note-item h3").first()).toHaveCSS("font-size", "15px");
+});
+
 test("スマホの下のツールバーで、打った文字を元に戻してやり直せる", async ({ browser }) => {
   const page = await openPhone(browser);
   await openNewNoteOnPhone(page, "取り消し");

@@ -26,12 +26,13 @@
   --checkbox-size: 16px;          /* チェックボックスとラジオボタン */
   /* チェックボックス・ラジオボタン・つまみは、どのテーマでもテーマの色で描く（決めないと、ブラウザの既定の青になる）。 */
   accent-color: var(--accent);
-  /* 画面の部品の文字の大きさは 5 段にする（本文は表示の設定の --editor-font-size）。 */
+  /* 画面の部品の文字の大きさは、次の 6 つにする（本文は表示の設定の --editor-font-size）。スマホでは .phone が一部を大きくする。 */
   --font-size-caption: 11px; /* 区切りの見出し、写真の名前、スマホの下のタブ */
   --font-size-small: 12px;   /* 補足、ヒント、入力欄のラベル、件数、タブ、チップ */
   --font-size-ui: 13px;      /* 画面の部品の基本 */
   --font-size-heading: 15px; /* 設定の欄とダイアログの見出し */
   --font-size-title: 20px;   /* ページの見出し（設定、データベース表示、最初の画面） */
+  --font-size-list-title: 14px; /* スマホの一覧の行（メモの題、ノートブックや設定のページの行） */
   /* 等幅の文字。総称の monospace だけにすると、日本語の Windows では MS ゴシックになるので、OS ごとの等幅のフォントを先に挙げる。 */
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Cascadia Mono", "DejaVu Sans Mono", "Noto Sans Mono CJK JP", monospace;
   font-family: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
@@ -1045,7 +1046,9 @@ details summary { cursor: pointer; color: var(--accent); }
 .theme-color-field input[type="color"] { width: 34px; height: var(--control-height-compact); padding: 0; border: 1px solid var(--line); border-radius: var(--radius-row); background: none; flex: none; }
 
 /* ── スマホの組み方 ───────────────────────── */
-.phone { display: flex; flex-direction: column; height: 100%; background: var(--panel); }
+/* スマホでは、部品の文字を PC より 1px 大きくする（PC の 13px では、指で持って離して見る画面には小さい）。
+   部品の文字は :root の font-size を受け継ぐので、ここでも font-size を決め直す。 */
+.phone { display: flex; flex-direction: column; height: 100%; background: var(--panel); --font-size-ui: 14px; --font-size-heading: 16px; --font-size-list-title: 15px; font-size: var(--font-size-ui); }
 .phone-top { padding: 14px 16px 8px; display: flex; align-items: center; gap: 10px; flex: none; padding-top: max(14px, env(safe-area-inset-top)); }
 .phone-top h2 { font-size: var(--font-size-title); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .phone-top .phone-top-end { margin-left: auto; display: flex; gap: 6px; color: var(--muted); align-items: center; }
@@ -1078,7 +1081,7 @@ details summary { cursor: pointer; color: var(--accent); }
   .note-item-row .note-item, .phone-list .phone-scroll, .pull-to-sync { transition: none; }
 }
 .note-item { padding: 12px 16px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; text-align: left; width: 100%; }
-.note-item h3 { font-size: 14px; font-weight: 600; display: flex; gap: 6px; align-items: center; min-width: 0; white-space: nowrap; }
+.note-item h3 { font-size: var(--font-size-list-title); font-weight: 600; display: flex; gap: 6px; align-items: center; min-width: 0; white-space: nowrap; }
 /* 長い題は「…」で切る（h3 は印と題を横に並べる flex なので、省略は題の span に付ける）。 */
 .note-item-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .note-item h3 > :not(.note-item-title) { flex: none; }
@@ -1093,7 +1096,7 @@ details summary { cursor: pointer; color: var(--accent); }
 .chip-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .note-item .thumb { grid-row: 1 / span 3; grid-column: 2; width: 52px; height: 52px; border-radius: var(--radius-row); object-fit: cover; background: var(--tag); }
 .pin { color: var(--accent); flex: none; }
-.library-row { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--line); width: 100%; text-align: left; font-size: 14px; }
+.library-row { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--line); width: 100%; text-align: left; font-size: var(--font-size-list-title); }
 .library-row .count { margin-left: auto; color: var(--muted); font-size: var(--font-size-small); flex: none; }
 .library-row > svg, .library-row :is(.dot, .notebook-icon) { flex: none; }
 .library-row-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
