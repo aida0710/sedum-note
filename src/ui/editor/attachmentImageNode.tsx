@@ -7,6 +7,7 @@ import { useRef } from "react";
 import { ATTACHMENT_IMAGE_NODE } from "../../core/notes/bodyText";
 import { translate } from "../i18n/translate";
 import { useAttachmentUrl } from "./attachmentReader";
+import { AttachmentUnavailable } from "./AttachmentUnavailable";
 import { startImageResize } from "./imageResize";
 
 // width: 写真の幅（px）。null なら幅を決めず、本文の幅に収まる大きさで出す。
@@ -28,7 +29,7 @@ function AttachmentImageView({ node, editor, selected, updateAttributes }: React
           onDoubleClick={() => setWidth(null)} />
       )}
       {image.state === "loading" && <div className="placeholder">{translate("editor.imageLoading")}</div>}
-      {image.state === "missing" && <div className="placeholder">{translate("editor.imageMissing")}</div>}
+      {image.state === "unavailable" && <AttachmentUnavailable reason={image.reason} onReload={image.reload} className="placeholder" />}
       {attributes.fileName && <span className="file-name">{attributes.fileName}</span>}
     </NodeViewWrapper>
   );

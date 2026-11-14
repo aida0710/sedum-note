@@ -241,6 +241,10 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 .note-graph-node text { fill: var(--muted); font-size: var(--font-size-caption); pointer-events: none; }
 .note-graph-node:hover text, .note-graph-node:focus-visible text { fill: var(--text); }
 .attachment-audio { flex: 0 0 100%; margin-top: 8px; width: 100%; height: 36px; }
+/* 添付を読めなかったときの案内と「再読み込み」（editor/AttachmentUnavailable.tsx）。音声の欄では、高さを決めずに折り返す。 */
+.attachment-unavailable { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px; color: var(--muted); font-size: var(--font-size-ui); }
+.attachment-unavailable.attachment-audio { height: auto; justify-content: flex-start; }
+.attachment-unavailable .secondary-button { display: inline-flex; align-items: center; gap: 6px; }
 .editor-bar .tool.on svg.lucide-square { color: var(--danger); }
 /* AI のチャット。PC では画面の右の欄、スマホではダイアログの中に出す。 */
 .workspace.with-ai-chat { grid-template-columns: var(--sidebar-width) 1fr var(--ai-chat-width); }

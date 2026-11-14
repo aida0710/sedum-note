@@ -95,3 +95,25 @@ test("印刷では、段組みも紙の幅からはみ出さない", async ({ pa
   await expect(page.locator(".ProseMirror .columns")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
 });
+
+test("まだ届いていない写真と音声は、届いていないことと「再読み込み」を出す", async ({ page }) => {
+  await openNewNote(page);
+  const missingId = "f".repeat(32);
+  await page.evaluate((attachmentId) => {
+    const body = document.querySelector(".ProseMirror") as HTMLElement & { editor: { commands: { insertContent: (content: unknown) => boolean } } };
+    body.editor.commands.insertContent([
+      { type: "attachmentImage", attrs: { attachmentId, fileName: "届いていない.png", mimeType: "image/png" } },
+      { type: "attachmentFile", attrs: { attachmentId, fileName: "届いていない.m4a", mimeType: "audio/mp4", byteLength: 1000 } },
+    ]);
+  }, missingId);
+  const image = page.locator(".attachment-image");
+  await expect(image.getByRole("status")).toContainText("まだこのデバイスに届いていません");
+  await expect(image.getByRole("button", { name: "再読み込み" })).toBeVisible();
+  await image.getByRole("button", { name: "再読み込み" }).click();
+  await expect(image.getByRole("status")).toContainText("まだこのデバイスに届いていません");
+
+  await page.getByRole("button", { name: "届いていない.m4a を再生" }).click();
+  const audio = page.locator(".attachment-file");
+  await expect(audio.getByRole("status")).toContainText("まだこのデバイスに届いていません");
+  await expect(audio.getByRole("button", { name: "再読み込み" })).toBeVisible();
+});

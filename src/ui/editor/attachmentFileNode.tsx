@@ -11,6 +11,7 @@ import { saveFile } from "../platform/saveFile";
 import { formatByteSize } from "../shared/formatByteSize";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { AttachmentReaderContext, useAttachmentUrl } from "./attachmentReader";
+import { AttachmentUnavailable } from "./AttachmentUnavailable";
 import { PdfPreview } from "./PdfPreview";
 
 const PDF_MIME_TYPE = "application/pdf";
@@ -18,13 +19,16 @@ const AUDIO_MIME_PREFIX = "audio/";
 
 export type AttachmentFileAttributes = { attachmentId: string; fileName: string; mimeType: string; byteLength: number };
 
-// 添付した音声を、その場で再生する。開いたときに復号して、再生を始める。
+// 添付した音声を、その場で再生する。開いたときに復号して、再生を始める。読み込んでいる間と、読めなかったときは、そう出す。
 function AttachmentAudioPlayer({ attachmentId, mimeType }: { attachmentId: string; mimeType: string }) {
   const audio = useAttachmentUrl(attachmentId, mimeType);
-  if (audio.state === "missing") {
-    return <div className="attachment-audio form-error" role="alert">{translate("editor.fileMissing")}</div>;
+  if (audio.state === "unavailable") {
+    return <AttachmentUnavailable reason={audio.reason} onReload={audio.reload} className="attachment-audio" />;
   }
-  return audio.state === "ready" ? <audio className="attachment-audio" src={audio.url} controls autoPlay /> : null;
+  if (audio.state === "loading") {
+    return <div className="attachment-audio hint" role="status">{translate("editor.audioLoading")}</div>;
+  }
+  return <audio className="attachment-audio" src={audio.url} controls autoPlay />;
 }
 
 function AttachmentFileView({ node }: ReactNodeViewProps) {
