@@ -25,6 +25,8 @@ import { NoteQuerySourceContext } from "../editor/noteQuerySource";
 import { AiChat } from "../ai/AiChat";
 import { useAiChatSession } from "../ai/aiChatSession";
 import { ModalDialog } from "../shared/ModalDialog";
+import { useDialogs } from "../shared/DialogProvider";
+import { runAfterConfirmingDraftDiscard } from "../settings/unsavedSettingsDrafts";
 
 type MobileTab = "notes" | "notebooks" | "bookmarked" | "settings";
 
@@ -39,6 +41,7 @@ function existingView(view: NoteView | null, notebooks: WorkspaceProps["snapshot
 export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<WorkspaceProps, "isNoteWindow">) {
   const { repository } = vault;
   const aiChat = useAiChatSession();
+  const dialogs = useDialogs();
   const [tab, setTab] = useState<MobileTab>("notes");
   // 「ノートブック」タブで開いている一覧（ノートブック・タグ・テンプレート・ゴミ箱）。null ならノートブックの一覧を出す。
   const [pickedLibraryView, setPickedLibraryView] = useState<NoteView | null>(null);
@@ -107,7 +110,9 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
     );
   }
 
-  const selectTab = (next: MobileTab) => {
+  // 設定のページを開いたまま下のタブで移ると、そのページの打ちかけ（保存していない入力）が消えるので、あれば聞いてから移る。
+  const selectTab = (next: MobileTab) => runAfterConfirmingDraftDiscard(dialogs.confirm, () => moveToTab(next));
+  const moveToTab = (next: MobileTab) => {
     if (settingsPageOpen) {
       closeSettingsPage();
     }

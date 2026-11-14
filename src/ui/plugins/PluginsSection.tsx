@@ -12,6 +12,7 @@ import { useDialogs } from "../shared/DialogProvider";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 import { ModalDialog } from "../shared/ModalDialog";
 import { useAsyncAction } from "../shared/useAsyncAction";
+import { useUnsavedSettingsDraft } from "../settings/unsavedSettingsDrafts";
 import { sendPluginRequest, usePlugins } from "./pluginAccess";
 
 const READ_LABELS: Record<PluginRead, MessageKey> = {
@@ -46,6 +47,7 @@ export function PluginsSection() {
   const { plugins, installPlugin, removePlugin, setPluginEnabled } = usePlugins();
   const dialogs = useDialogs();
   const [sourceText, setSourceText] = useState("");
+  useUnsavedSettingsDraft("pluginSource", sourceText.trim() !== "");
   // 取ってきて、入れる前の確認を待っているプラグイン。
   const [reviewing, setReviewing] = useState<InstalledPlugin | null>(null);
   const [problem, setProblem] = useState<string | null>(null);

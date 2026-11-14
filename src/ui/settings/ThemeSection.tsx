@@ -11,12 +11,15 @@ import type { CustomTheme } from "../theme/customTheme";
 import { useThemeInUse } from "../theme/themeInUse";
 import { CustomThemeEditor } from "./CustomThemeEditor";
 import { ThemeSample } from "./ThemeSample";
+import { useUnsavedSettingsDraft } from "./unsavedSettingsDrafts";
 
 export function ThemeSection() {
   const { themeId, customThemes } = useDevicePreferences();
   const themeInUse = useThemeInUse();
   const dialogs = useDialogs();
   const [editedTheme, setEditedTheme] = useState<CustomTheme | null>(null);
+  // 作っている（直している）テーマは、保存するまで打ちかけとして数える。
+  useUnsavedSettingsDraft("customTheme", editedTheme !== null);
   const selectedCustomTheme = customThemes.find((theme) => theme.id === themeId);
 
   const startNewTheme = () =>

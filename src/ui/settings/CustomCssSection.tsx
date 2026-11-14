@@ -4,12 +4,14 @@ import { useState } from "react";
 import { translate } from "../i18n/translate";
 import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { SettingCheckboxRow } from "./SettingRow";
+import { useUnsavedSettingsDraft } from "./unsavedSettingsDrafts";
 
 const CSS_EDITOR_ROWS = 8;
 
 export function CustomCssSection() {
   const { customCss, customCssEnabled } = useDevicePreferences();
   const [draft, setDraft] = useState(customCss);
+  useUnsavedSettingsDraft("customCss", draft !== customCss);
   return (
     <section className="settings-section">
       <h2>{translate("settings.customCss")}</h2>

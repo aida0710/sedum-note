@@ -138,3 +138,31 @@ test("開けない記録があると、設定に件数と次の手と記録の I
   await notice.getByText("開けない記録の ID").click();
   await expect(notice.locator("code")).toHaveText(brokenId);
 });
+
+test("設定に保存していない入力を残したまま、ほかのページやタブへ移ろうとすると聞く。やめれば入力が残る", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await page.getByPlaceholder("タイトル").fill("買い物");
+  await page.getByRole("button", { name: "設定", exact: true }).click();
+  const pages = page.getByRole("navigation", { name: "設定のページ" });
+  await pages.getByRole("button", { name: "外観", exact: true }).click();
+  const css = page.getByRole("textbox", { name: "カスタム CSS" });
+  await css.fill(".ProseMirror { line-height: 2; }");
+
+  // ほかのページへ: やめると、今のページと入力が残る。
+  await pages.getByRole("button", { name: "一般", exact: true }).click();
+  const confirmation = page.getByRole("dialog").filter({ hasText: "保存していない変更があります" });
+  await confirmation.getByRole("button", { name: "キャンセル" }).click();
+  await expect(css).toHaveValue(".ProseMirror { line-height: 2; }");
+
+  // ほかのタブへ: 捨ててよいと答えると移る。
+  await page.getByRole("tab", { name: "買い物" }).click();
+  await confirmation.getByRole("button", { name: "保存せずに移る" }).click();
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("買い物");
+
+  // 打ちかけが無ければ、聞かずに移る。
+  await page.getByRole("button", { name: "設定", exact: true }).click();
+  await pages.getByRole("button", { name: "一般", exact: true }).click();
+  await expect(confirmation).toHaveCount(0);
+  await expect(pages.getByRole("button", { name: "一般", exact: true })).toHaveAttribute("aria-current", "page");
+});

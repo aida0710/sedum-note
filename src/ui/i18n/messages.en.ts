@@ -675,6 +675,8 @@ export const englishMessages: Record<MessageKey, string> = {
   "settings.unreadableNextStepSynced": "If the records in the sync storage are not damaged, delete this device's data and join the synced notes again to open them. Changes not sent yet are lost, so export a backup first.",
   "settings.unreadableNextStepLocal": "Sync is not set up, so these records cannot be recovered from anywhere else. Your other notes can be used as they are.",
   "settings.unreadableIds": "IDs of the records that cannot be opened",
+  "settings.unsavedDraftsConfirm": "There are unsaved changes. Leave without saving them?",
+  "settings.discardDrafts": "Leave without saving",
   "settings.display": "Display",
   "settings.language": "Language",
   "settings.language.system": "Match the system",

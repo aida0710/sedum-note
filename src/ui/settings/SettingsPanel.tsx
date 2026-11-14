@@ -11,6 +11,8 @@ import { SettingsPageContent } from "./SettingsPageContent";
 import { FIRST_SETTINGS_PAGE, SETTINGS_PAGE_META, type SettingsPage, settingsPagesFor } from "./settingsPages";
 import { type SettingRevealRequest, useRevealSetting } from "./revealSetting";
 import { UnreadableRecordsNotice } from "./UnreadableRecordsNotice";
+import { useDialogs } from "../shared/DialogProvider";
+import { runAfterConfirmingDraftDiscard } from "./unsavedSettingsDrafts";
 
 type SettingsPanelProps = {
   session: VaultSession;
@@ -27,8 +29,12 @@ type SettingsPanelProps = {
   revealRequest?: SettingRevealRequest | null;
 };
 
-export function SettingsPanel({ session, vault, unreadableCount, isMobile, page, onSelectPage, onBackToPageList, revealRequest = null }: SettingsPanelProps) {
+export function SettingsPanel({ session, vault, unreadableCount, isMobile, page, onSelectPage: selectPage, onBackToPageList: backToPageList, revealRequest = null }: SettingsPanelProps) {
   const pages = settingsPagesFor({ isMobile });
+  // ページを移ると、今のページの打ちかけ（保存していない入力）は消えるので、あれば捨ててよいかを聞いてから移る。
+  const { confirm } = useDialogs();
+  const onSelectPage = (next: SettingsPage | null) => runAfterConfirmingDraftDiscard(confirm, () => selectPage(next));
+  const onBackToPageList = backToPageList && (() => runAfterConfirmingDraftDiscard(confirm, backToPageList));
   // 項目を探す範囲は、ページの中身だけ（左のページの一覧の「同期」などを当てないように）。
   const pageContent = useRef<HTMLDivElement>(null);
   useRevealSetting(revealRequest, pageContent);

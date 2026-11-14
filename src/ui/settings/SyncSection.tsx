@@ -19,6 +19,7 @@ import { useSyncTargetForm } from "../sync/useSyncTargetForm";
 import { SettingCheckboxRow } from "./SettingRow";
 import { SyncKeySection } from "./SyncKeySection";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
+import { useUnsavedSettingsDraft } from "./unsavedSettingsDrafts";
 
 type SyncSectionProps = {
   session: VaultSession;
@@ -63,6 +64,9 @@ type SyncTargetEditorProps = Pick<SyncSectionProps, "session" | "vault"> & {
 function SyncTargetEditor({ session, vault, onClose }: SyncTargetEditorProps) {
   const form = useSyncTargetForm(session, vault.remoteConfig);
   const [passphrase, setPassphrase] = useState("");
+  // 入れ始めたときの同期先と違うか、確かめた結果か暗号化キーかパスフレーズを入れていれば、打ちかけ。
+  const [initialRemoteConfig] = useState(form.remoteConfig);
+  useUnsavedSettingsDraft("syncTarget", JSON.stringify(form.remoteConfig) !== JSON.stringify(initialRemoteConfig) || form.checked !== null || passphrase !== "");
   const [problem, setProblem] = useState<string | null>(null);
   const save = useAsyncAction(session.connectSyncTarget);
   const placesNewVault = form.checked?.inspected.state === "empty";

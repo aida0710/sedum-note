@@ -8,6 +8,7 @@ import { translate } from "../i18n/translate";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { SettingCheckboxRow, SettingRow } from "../settings/SettingRow";
+import { useUnsavedSettingsDraft } from "../settings/unsavedSettingsDrafts";
 import { type ConnectionDraft, connectionOf, fetchConnectionModels, type VerifiedConnection, withVerifiedConnection } from "./aiConnection";
 import { AiModelSelect } from "./AiModelSelect";
 import { useAiSettings } from "./aiSettingsAccess";
@@ -17,6 +18,8 @@ export function AiSection() {
   const { settings, updateSettings } = useAiSettings();
   const [draft, setDraft] = useState<ConnectionDraft | null>(settings && connectionOf(settings));
   const [verified, setVerified] = useState<VerifiedConnection | null>(null);
+  // 接続先と API キーは「保存して確かめる」で保存する。保存したものと違えば打ちかけ。
+  useUnsavedSettingsDraft("aiConnection", settings !== null && draft !== null && JSON.stringify(draft) !== JSON.stringify(connectionOf(settings)));
   // 保存した設定の読み込みが済んだら、入力欄に入れる。最初の 1 度だけにする（「使う」を保存し終えたときに入れ直すと、
   // その間に打った API キーが消える）。
   const loaded = settings !== null;

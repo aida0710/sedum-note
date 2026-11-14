@@ -673,6 +673,8 @@ export const japaneseMessages = {
   "settings.unreadableNextStepSynced": "同期先の記録が壊れていなければ、このデバイスのデータを消して同期先のメモに参加し直すと開けます。まだ送っていない変更は消えるので、先にバックアップを書き出してください。",
   "settings.unreadableNextStepLocal": "同期していないので、この記録をほかの場所から取り戻すことはできません。ほかのメモは、このまま使えます。",
   "settings.unreadableIds": "開けない記録の ID",
+  "settings.unsavedDraftsConfirm": "保存していない変更があります。保存せずに移りますか？",
+  "settings.discardDrafts": "保存せずに移る",
 
   "settings.display": "表示",
   "settings.language": "言語",

@@ -1,10 +1,12 @@
 // どの一覧を開いているか、どのメモをタブで開いているか。
 
-import { useCallback, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { NoteView } from "../../core/notes/noteQueries";
 import type { FindRequest } from "../editor/FindBar";
 import type { BlockToReveal } from "../editor/noteLinkTargets";
 import { SETTINGS_PAGES, type SettingsPage } from "../settings/settingsPages";
+import { runAfterConfirmingDraftDiscard } from "../settings/unsavedSettingsDrafts";
+import { useDialogs } from "../shared/DialogProvider";
 import type { SettingRevealRequest } from "../settings/revealSetting";
 import type { WorkspaceLayout } from "../../core/vault/workspaceLayout";
 import { closeTabsIn, moveTabIn, NO_TABS, openTabIn, otherTabsThan, reopenClosedTabIn, restoreTabsIn, type TabsState, tabsRightOf, togglePinnedTabIn } from "./tabState";
@@ -104,10 +106,29 @@ export function useWorkspaceNavigation(initialNoteId: string | null = null): Wor
 
   const [blockToReveal, setBlockToReveal] = useState<BlockToReveal | null>(null);
 
+  // 設定のタブから離れると設定の画面が閉じ、保存していない打ちかけが消えるので、あれば捨ててよいかを聞いてから離れる。
+  // 押した時点の開いているタブを読むので、描くたびに写しておく。
+  const activeTabNow = useRef(tabs.activeTab);
+  const settingsPageNow = useRef(settingsPage);
+  useLayoutEffect(() => {
+    activeTabNow.current = tabs.activeTab;
+    settingsPageNow.current = settingsPage;
+  });
+  const { confirm } = useDialogs();
+  const leaveSettingsThen = useCallback((nextActiveTab: string | null, move: () => void) => {
+    if (activeTabNow.current === SETTINGS_TAB && nextActiveTab !== SETTINGS_TAB) {
+      runAfterConfirmingDraftDiscard(confirm, move);
+    } else {
+      move();
+    }
+  }, [confirm]);
+
   const openTab = useCallback((tabId: string) => {
-    setTabs((current) => openTabIn(current, tabId));
-    setBlockToReveal(null);
-  }, []);
+    leaveSettingsThen(tabId, () => {
+      setTabs((current) => openTabIn(current, tabId));
+      setBlockToReveal(null);
+    });
+  }, [leaveSettingsThen]);
 
   const openNote = useCallback((noteId: string, blockId?: string) => {
     openTab(noteId);
@@ -117,9 +138,11 @@ export function useWorkspaceNavigation(initialNoteId: string | null = null): Wor
 
   // 開いているタブを閉じたら、その右（無ければ左）のタブを開く（tabState.ts）。
   const closeTabs = useCallback((tabIds: string[]) => {
-    setTabs((current) => closeTabsIn(current, tabIds));
-    setBlockToReveal(null);
-  }, []);
+    leaveSettingsThen(tabIds.includes(SETTINGS_TAB) ? null : SETTINGS_TAB, () => {
+      setTabs((current) => closeTabsIn(current, tabIds));
+      setBlockToReveal(null);
+    });
+  }, [leaveSettingsThen]);
   const closeTab = useCallback((tabId: string) => closeTabs([tabId]), [closeTabs]);
   const [splitNoteId, setSplitNoteId] = useState<string | null>(null);
   const closeSplit = useCallback(() => setSplitNoteId(null), []);
@@ -148,11 +171,22 @@ export function useWorkspaceNavigation(initialNoteId: string | null = null): Wor
 
   const openSettings = useCallback((page?: SettingsPage) => {
     // ボタンの onClick にそのまま渡されると、押したときの出来事が来るので、ページの名前のときだけ読む。
-    if (page !== undefined && SETTINGS_PAGES.includes(page)) {
-      setSettingsPage(page);
+    if (page === undefined || !SETTINGS_PAGES.includes(page)) {
+      openTab(SETTINGS_TAB);
+      return;
     }
-    openTab(SETTINGS_TAB);
-  }, [openTab]);
+    // 設定を開いたまま別のページへ移るとき（AI チャットの「AI の設定を開く」、パレットの設定の項目など）も、打ちかけがあれば聞く。
+    const changesShownPage = activeTabNow.current === SETTINGS_TAB && settingsPageNow.current !== page;
+    const showPage = () => {
+      setSettingsPage(page);
+      openTab(SETTINGS_TAB);
+    };
+    if (changesShownPage) {
+      runAfterConfirmingDraftDiscard(confirm, showPage);
+    } else {
+      showPage();
+    }
+  }, [openTab, confirm]);
 
   const selectView = useCallback((next: NoteView) => {
     setView(next);
@@ -167,10 +201,11 @@ export function useWorkspaceNavigation(initialNoteId: string | null = null): Wor
     pinnedTabs: tabs.pinnedTabs,
     togglePinnedTab: (tabId) => setTabs((current) => togglePinnedTabIn(current, tabId)),
     reopenClosedTab: () => {
-      if (tabs.closedTabs.length === 0) {
+      const reopened = tabs.closedTabs.at(-1);
+      if (reopened === undefined) {
         return false;
       }
-      setTabs(reopenClosedTabIn);
+      leaveSettingsThen(reopened.tabId, () => setTabs(reopenClosedTabIn));
       return true;
     },
     settingsPage, selectSettingsPage: setSettingsPage, settingRevealRequest,
