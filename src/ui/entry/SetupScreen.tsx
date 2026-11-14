@@ -148,7 +148,7 @@ export function SetupScreen({ session, spaceId }: { session: VaultSession; space
           {usesSync && syncTargetForm.checked === null && !action.busy && <span className="hint">{translate("syncTarget.checkFirst")}</span>}
           {addedSpace !== null && (
             <button type="button" className="secondary-button" disabled={action.busy || cancelAddedSpace.busy} onClick={() => void cancelAddedSpace.run(undefined)}>
-              {translate("space.cancelAdding")}
+              {translate("common.cancel")}
             </button>
           )}
           <button className="primary-button" type="submit" disabled={action.busy || (usesSync && syncTargetForm.checked === null)}>
