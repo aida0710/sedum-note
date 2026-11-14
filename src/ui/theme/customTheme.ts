@@ -1,17 +1,15 @@
 // 利用者が作るテーマ。色を自由に選べるが、文字が読めなくなる組み合わせは保存させない
 // （読めないテーマを使うと、直すための設定の画面も読めなくなる）。
 
-import { contrastRatio } from "./colorContrast";
+import { contrastRatio, NON_TEXT_CONTRAST_MINIMUM, TEXT_CONTRAST_MINIMUM } from "./colorContrast";
 import { isHexColor, THEME_COLOR_NAMES, type Theme, type ThemeColorName, type ThemeColors, type ThemeScheme } from "./themeColors";
 
 export type CustomTheme = Theme & { name: string };
 
 export const CUSTOM_THEME_NAME_MAX_LENGTH = 40;
 
-// 本文の文字に要るコントラスト比（WCAG 2 の AA）。
-const TEXT_CONTRAST_MINIMUM = 4.5;
 // 補助の文字とアクセントの色に要るコントラスト比（大きな文字・部品の AA）。
-const SECONDARY_CONTRAST_MINIMUM = 3;
+const SECONDARY_CONTRAST_MINIMUM = NON_TEXT_CONTRAST_MINIMUM;
 
 type ContrastRule = { foreground: ThemeColorName; background: ThemeColorName; minimum: number };
 

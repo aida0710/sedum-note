@@ -1,7 +1,7 @@
 // 文字色。Markdown には書けないので、Markdown で書き出すと色は落ちて文字だけが残る。
 
 import { Mark } from "@tiptap/core";
-import { colorNameFromAttribute, type EditorColorName, editorColorValue } from "./editorColors";
+import { colorNameFromAttribute, type EditorColorName, editorTextColorValue } from "./editorColors";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -19,7 +19,7 @@ export const TextColor = Mark.create({
       color: {
         default: null,
         parseHTML: (element) => colorNameFromAttribute(element, "data-text-color"),
-        renderHTML: ({ color }: { color: EditorColorName | null }) => (color ? { "data-text-color": color, style: `color: ${editorColorValue(color)}` } : {}),
+        renderHTML: ({ color }: { color: EditorColorName | null }) => (color ? { "data-text-color": color, style: `color: ${editorTextColorValue(color)}` } : {}),
       },
     };
   },

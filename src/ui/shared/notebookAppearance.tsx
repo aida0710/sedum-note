@@ -5,12 +5,10 @@ import {
   Book, Briefcase, Calendar, Camera, Code, Folder, GraduationCap, Heart, Home, Lightbulb, type LucideIcon, Music, Plane, ShoppingCart, Star, Users, Utensils,
 } from "lucide-react";
 import type { LiveNotebook } from "../../core/notes/noteRecords";
+import { PALETTE_COLORS, type PaletteColorName } from "../theme/paletteColors";
 
-export const NOTEBOOK_COLOR_CHOICES = {
-  blue: "#2f6fde", orange: "#e07a3f", green: "#2da44e", purple: "#b55fd6", yellow: "#d4a017", pink: "#cf4f7a", cyan: "#1f9bb4",
-  red: "#d1242f", teal: "#0f8f7a", brown: "#8a6240", gray: "#7a808a",
-} as const;
-export type NotebookColorName = keyof typeof NOTEBOOK_COLOR_CHOICES;
+export const NOTEBOOK_COLOR_CHOICES = PALETTE_COLORS;
+export type NotebookColorName = PaletteColorName;
 
 export const NOTEBOOK_ICON_CHOICES = {
   folder: Folder, book: Book, briefcase: Briefcase, home: Home, heart: Heart, star: Star, plane: Plane, utensils: Utensils,

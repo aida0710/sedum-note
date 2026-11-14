@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { BUILT_IN_THEMES, DARK_THEME, LIGHT_THEME } from "./builtInThemes";
-import { contrastRatio, readableTextColorOn } from "./colorContrast";
+import { colorWithContrast, contrastRatio, NON_TEXT_CONTRAST_MINIMUM, readableTextColorOn } from "./colorContrast";
 import { findContrastProblems, parseStoredCustomTheme, schemeOfColors } from "./customTheme";
+import { PALETTE_COLORS, type PaletteColorName, paletteTextColorVariable } from "./paletteColors";
 import { raisedSurfaceColor } from "./raisedSurfaceColor";
+import { themeCssVariables } from "./themeCssVariables";
 
 describe("contrastRatio", () => {
   it("黒と白は 21、同じ色は 1 になる", () => {
@@ -51,6 +53,31 @@ describe("組み込みのテーマの小さい文字", () => {
       expect(raised).toBe(theme.colors.panel);
     }
     expect(contrastRatio(theme.colors.muted, raised)).toBeGreaterThanOrEqual(SMALL_TEXT_MINIMUM_CONTRAST);
+  });
+});
+
+describe("テーマから作る色", () => {
+  const themes = BUILT_IN_THEMES.map((theme) => [theme.id, theme] as const);
+
+  it.each(themes)("%s の本文の文字色は、どの色を選んでも本文の地の上で読める", (_id, theme) => {
+    const variables = themeCssVariables(theme.colors);
+    for (const name of Object.keys(PALETTE_COLORS) as PaletteColorName[]) {
+      expect(contrastRatio(variables[paletteTextColorVariable(name)]!, theme.colors.panel), name).toBeGreaterThanOrEqual(SMALL_TEXT_MINIMUM_CONTRAST);
+    }
+  });
+
+  it.each(themes)("%s のお気に入りの星の黄色は本文の地の上で見分けられ、検索の当たりの文字は黄色の上で読める", (_id, theme) => {
+    const variables = themeCssVariables(theme.colors);
+    expect(contrastRatio(variables["--bookmark"]!, theme.colors.panel)).toBeGreaterThanOrEqual(NON_TEXT_CONTRAST_MINIMUM);
+    expect(contrastRatio(variables["--on-bookmark"]!, variables["--bookmark"]!)).toBeGreaterThanOrEqual(SMALL_TEXT_MINIMUM_CONTRAST);
+  });
+});
+
+describe("colorWithContrast", () => {
+  it("足りているときは元の色のまま、足りないときは文字の色へ寄せて下限に届かせる", () => {
+    expect(colorWithContrast({ color: "#d1242f", background: "#ffffff", towards: "#1f2328", minimum: 4.5 })).toBe("#d1242f");
+    const darkened = colorWithContrast({ color: "#d4a017", background: "#ffffff", towards: "#1f2328", minimum: 4.5 });
+    expect(contrastRatio(darkened, "#ffffff")).toBeGreaterThanOrEqual(4.5);
   });
 });
 

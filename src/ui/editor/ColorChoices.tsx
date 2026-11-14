@@ -2,7 +2,7 @@
 
 import { Ban } from "lucide-react";
 import { translate } from "../i18n/translate";
-import { EDITOR_COLOR_NAMES, type EditorColorName, editorColorValue, tintedBackground } from "./editorColors";
+import { EDITOR_COLOR_NAMES, type EditorColorName, editorTextColorValue, tintedBackground } from "./editorColors";
 
 type ColorChoicesProps = {
   // 見本の色の出し方。背景に使う色は薄めて出し、文字色はそのまま出す。
@@ -24,7 +24,7 @@ export function ColorChoices({ appearance, selected, onChoose }: ColorChoicesPro
       </button>
       {EDITOR_COLOR_NAMES.map((colorName) => (
         <button key={colorName} type="button" className={`choice swatch${selected === colorName ? " on" : ""}`}
-          style={{ background: appearance === "background" ? tintedBackground(colorName) : editorColorValue(colorName) }}
+          style={{ background: appearance === "background" ? tintedBackground(colorName) : editorTextColorValue(colorName) }}
           aria-label={translate(`notebook.color.${colorName}`)} aria-pressed={selected === colorName}
           onMouseDown={keepEditorSelection} onClick={() => onChoose(colorName)} />
       ))}

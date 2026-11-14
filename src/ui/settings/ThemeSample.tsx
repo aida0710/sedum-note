@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { translate } from "../i18n/translate";
-import { themeCssVariables } from "../theme/applyAppearance";
+import { themeCssVariables } from "../theme/themeCssVariables";
 import type { ThemeColors } from "../theme/themeColors";
 
 export function ThemeSample({ colors }: { colors: ThemeColors }) {

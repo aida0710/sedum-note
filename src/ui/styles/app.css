@@ -1,8 +1,8 @@
 /* 色と寸法は、選ばれた案C（artifacts/design-options/2026-11-10/prototype.html）に合わせる。角丸・部品の高さ・文字の大きさは、
    案C の値をもとに役割ごとに 1 つにそろえた（下の変数。案C のタブ 12.5px、チップ 11.5px、写真の角丸 10px は、それぞれ 12px、12px、8px にした）。 */
 :root {
-  /* テーマの色（--canvas、--text など）と --editor-font-size は theme/applyAppearance.ts が入れる。 */
-  --bookmark: #d4a017;
+  /* テーマの色（--canvas、--text など）と、テーマから作る色（--raised、--bookmark、本文の文字色の --text-color-*）、
+     --editor-font-size は theme/applyAppearance.ts が入れる。 */
   --shadow: rgba(0, 0, 0, .14);
   --shadow-strong: rgba(0, 0, 0, .2);
   --shadow-faint: rgba(0, 0, 0, .08);
@@ -11,9 +11,10 @@
   --overlay: rgba(0, 0, 0, .32);
   /* 押している間の地。マウスを乗せたときの地（--selected）より一段濃い。 */
   --pressed: color-mix(in srgb, var(--selected) 82%, var(--text));
-  /* 写真の上に重ねるファイル名。写真の色に関わらず読めるよう、テーマに合わせない。 */
+  /* 写真の上に重ねるファイル名。写真の色に関わらず読めるよう、テーマに合わせない。
+     帯の濃さは、真っ白な写真の上でも白い文字が 4.5:1 を超える量（.35 では 2.4:1 まで落ちた）。 */
   --caption-text: #fff;
-  --caption-background: rgba(0, 0, 0, .35);
+  --caption-background: rgba(0, 0, 0, .6);
   /* PC の画面の右に出す、AI のチャットの欄の幅。 */
   --ai-chat-width: 380px;
   /* 角丸は、部品の役割ごとに 1 つの値にする（値は案C の試作から: 行とアイコンのボタン 6px、ボタンと入力欄 8px、カード 10px）。 */
@@ -716,10 +717,11 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div > p { color: var(--muted); text-decoration: line-through; }
 .ProseMirror ul[data-type="taskList"] li > div { flex: 1; }
 .ProseMirror .callout { border-left: 3px solid var(--callout-color); background: color-mix(in srgb, var(--callout-color) 12%, transparent); border-radius: var(--radius-control); padding: 8px 13px; }
-.ProseMirror .callout[data-callout="note"] { --callout-color: #2f6fde; }
-.ProseMirror .callout[data-callout="tip"] { --callout-color: #2da44e; }
-.ProseMirror .callout[data-callout="warning"] { --callout-color: #d4a017; }
-.ProseMirror .callout[data-callout="danger"] { --callout-color: #d1242f; }
+/* コールアウトの色は、テーマの色から取る（テーマに合わせて変わり、地の上で見分けられる）。 */
+.ProseMirror .callout[data-callout="note"] { --callout-color: var(--accent); }
+.ProseMirror .callout[data-callout="tip"] { --callout-color: var(--ok); }
+.ProseMirror .callout[data-callout="warning"] { --callout-color: var(--bookmark); }
+.ProseMirror .callout[data-callout="danger"] { --callout-color: var(--danger); }
 .ProseMirror blockquote { border-left: 2px solid var(--line); padding: 2px 0 2px 15px; color: var(--muted); }
 .ProseMirror code { font-family: var(--font-mono); background: var(--tag); border-radius: var(--radius-inline); padding: 2px 6px; font-size: .86em; }
 /* コードは本文より小さい字と狭い行の間にし、長い行は折り返さずに、枠の中で横に送る。 */
@@ -798,7 +800,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .color-choices .choice.swatch { width: 26px; height: 26px; min-width: 26px; color: var(--muted); border-color: var(--line); }
 .ProseMirror mark { color: inherit; border-radius: var(--radius-inline); padding: 0 1px; }
 .search-match { background: color-mix(in srgb, var(--bookmark) 35%, transparent); border-radius: var(--radius-inline); }
-.search-match.active { background: var(--bookmark); color: #16181c; }
+.search-match.active { background: var(--bookmark); color: var(--on-bookmark); }
 /* メモの中の検索。左から「置換の欄の開閉」「入力欄（横幅いっぱい）」「操作」の 3 列にし、検索と置換の 2 行で列をそろえる
    （置換の入力欄の左右の端が、検索の入力欄とそろうように）。閉じる × は 1 行目の右端。 */
 .find-bar { display: grid; grid-template-columns: var(--control-height-compact) minmax(0, 1fr) auto; align-items: center; gap: 4px 6px; padding: 6px 14px; border-bottom: 1px solid var(--line); flex: none; }
@@ -1238,11 +1240,7 @@ details summary { cursor: pointer; color: var(--accent); }
   /* ズームしている間は窓に重ねて出しているので、ふつうの流れに戻して全部のページに出す。戻るボタンは出さない。 */
   .note-editor.zoomed-view { position: static; display: block; }
   .zoomed-view-top { display: none !important; }
-  :root {
-    --canvas: #ffffff !important; --panel: #ffffff !important; --text: #1f2328 !important; --muted: #57606a !important;
-    --line: #d0d7de !important; --tag: #f3f4f6 !important; --accent: #1f5fc4 !important; --accent-soft: #e6eefc !important;
-    color-scheme: light !important;
-  }
+  /* 色は、theme/printColors.ts が印刷のときだけ当たる変数として入れる（白い紙の上で読める色）。 */
   html, body { height: auto; overflow: visible; }
   #root { position: static; height: auto; }
   .workspace, .phone, .main, .document-area { display: block; height: auto; overflow: visible; }

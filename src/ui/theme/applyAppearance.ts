@@ -3,35 +3,14 @@
 
 import { applySystemBarColors } from "../platform/systemBars";
 import type { EditorTypography } from "../preferences/editorTypography";
-import { readableTextColorOn } from "./colorContrast";
-import { raisedSurfaceColor } from "./raisedSurfaceColor";
-
-const SWITCH_KNOB_COLOR = "#ffffff";
-import { THEME_COLOR_NAMES, type Theme, type ThemeColorName, type ThemeColors } from "./themeColors";
-
-// accentSoft → --accent-soft
-function cssVariableName(colorName: ThemeColorName): string {
-  return `--${colorName.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
-}
-
-// 設定の見本のように、画面の一部だけを別のテーマで描くときにも使う。
-export function themeCssVariables(colors: ThemeColors): Record<string, string> {
-  const variables: Record<string, string> = {
-    "--on-accent": readableTextColorOn(colors.accent),
-    "--on-danger": readableTextColorOn(colors.danger),
-    "--raised": raisedSurfaceColor(colors),
-    // スイッチ（設定のオンとオフ）のつまみ。どのテーマでも白にして、オンの色の上でもオフの灰色の上でも、つまみと分かるようにする。
-    "--switch-knob": SWITCH_KNOB_COLOR,
-  };
-  for (const name of THEME_COLOR_NAMES) {
-    variables[cssVariableName(name)] = colors[name];
-  }
-  return variables;
-}
+import { applyPrintColors } from "./printColors";
+import type { Theme } from "./themeColors";
+import { themeCssVariables } from "./themeCssVariables";
 
 type Appearance = { theme: Theme; editorTypography: EditorTypography; sidebarWidth: number };
 
 export function applyAppearance({ theme, editorTypography, sidebarWidth }: Appearance): void {
+  applyPrintColors();
   const root = document.documentElement;
   for (const [name, value] of Object.entries(themeCssVariables(theme.colors))) {
     root.style.setProperty(name, value);

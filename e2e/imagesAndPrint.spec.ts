@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, insertFromSlashMenu, openSettingsPage, startLocalVault } from "./devices";
+import { createNoteOnDesktop, insertBodyHtml, insertFromSlashMenu, openSettingsPage, startLocalVault } from "./devices";
 
 // 写真の代わりの、細かいむらのある大きな画像を作る。
 async function largePhoto(page: Page, width: number, height: number): Promise<Buffer> {
@@ -116,4 +116,27 @@ test("まだ届いていない写真と音声は、届いていないことと�
   const audio = page.locator(".attachment-file");
   await expect(audio.getByRole("status")).toContainText("まだこのデバイスに届いていません");
   await expect(audio.getByRole("button", { name: "再読み込み" })).toBeVisible();
+});
+
+// 計算した色（rgb(...)）と白い紙のコントラスト比。
+function contrastWithWhitePaper(rgb: string): number {
+  const [red, green, blue] = (rgb.match(/\d+/g) ?? []).map(Number).map((channel) => {
+    const value = channel / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  const luminance = 0.2126 * (red ?? 0) + 0.7152 * (green ?? 0) + 0.0722 * (blue ?? 0);
+  return 1.05 / (luminance + 0.05);
+}
+
+test("暗いテーマから印刷しても、コードの色と本文の文字色は白い紙の上で読める", async ({ page }) => {
+  await openNewNote(page);
+  await insertBodyHtml(page, '<pre><code class="language-js">const name = "sedum"; const count = 42;</code></pre><p><span data-text-color="yellow">黄色の文字</span></p>');
+  await openSettingsPage(page, "外観");
+  await page.getByRole("radio", { name: "ダーク", exact: true }).click();
+  await page.getByRole("tab", { name: "写真のメモ" }).click();
+  await page.emulateMedia({ media: "print" });
+  for (const selector of [".ProseMirror pre .hljs-string", ".ProseMirror pre .hljs-number", ".ProseMirror [data-text-color]"]) {
+    const color = await page.locator(selector).first().evaluate((element) => getComputedStyle(element).color);
+    expect(contrastWithWhitePaper(color), selector).toBeGreaterThanOrEqual(4.5);
+  }
 });
