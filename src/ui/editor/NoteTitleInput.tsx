@@ -3,7 +3,7 @@
 //   ↓: 題の最後の行にカーソルがあるとき、本文の先頭へ移る。
 // 題は 1 文字ごとに保存する（同期される記録へ書く）が、日本語の変換中の未確定の文字は保存せず、確定したときに保存する。
 
-import { type RefObject, useEffect, useLayoutEffect, useState } from "react";
+import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { translate } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { isCaretOnLastLine } from "./textareaCaretLine";
@@ -32,9 +32,11 @@ function fitHeightToContent(textarea: HTMLTextAreaElement): void {
 
 export function NoteTitleInput({ inputRef, title, readOnly, autoFocus, onTitleChange, onMoveToBody }: NoteTitleInputProps) {
   const [draft, setDraft] = useState(title);
-  // ほかのデバイスが題を変えたら、打っている最中でなければ表示を差し替える。
+  // 欄にフォーカスが入ってから、この欄で打ったか。フォーカスがあっても、まだ打っていなければ（新しいメモで最初からフォーカスが
+  // 入る欄など）、ほかのデバイスやウィンドウが付けた題を出す。打ったあとは、打ちかけの文字を上書きしない。
+  const typedSinceFocus = useRef(false);
   useEffect(() => {
-    if (document.activeElement !== inputRef.current) {
+    if (document.activeElement !== inputRef.current || !typedSinceFocus.current) {
       setDraft(title);
     }
   }, [title, inputRef]);
@@ -61,7 +63,9 @@ export function NoteTitleInput({ inputRef, title, readOnly, autoFocus, onTitleCh
   };
   return (
     <textarea ref={inputRef} className="title-input" rows={1} value={draft} placeholder={translate("editor.titlePlaceholder")} readOnly={readOnly} autoFocus={autoFocus}
+      onFocus={() => { typedSinceFocus.current = false; }}
       onChange={(event) => {
+        typedSinceFocus.current = true;
         const nextTitle = withoutLineBreaks(event.target.value);
         setDraft(nextTitle);
         if (!(event.nativeEvent as InputEvent).isComposing) {

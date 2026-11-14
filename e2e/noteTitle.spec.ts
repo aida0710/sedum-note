@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, insertFromSlashMenu, PHONE_VIEWPORT, placeCursorInBlock, startLocalVault, textOfBlockAtCursor } from "./devices";
+import { createNoteOnDesktop, insertFromSlashMenu, PASSPHRASE, PHONE_VIEWPORT, placeCursorInBlock, startLocalVault, textOfBlockAtCursor } from "./devices";
 
 const LONG_TITLE = "来年度の研究計画と予算の見直しについて、関係する全部の部署の担当者と相談して決めたことのまとめ（第 3 版・最終確認用）";
 
@@ -127,4 +127,46 @@ test("変換中の ↓ と Enter は、題から本文へ移らない", async ({
     }, key);
     await expect(titleInput(page)).toBeFocused();
   }
+});
+
+// 同じメモを、同じブラウザの 2 つ目のタブで開く（タブどうしの変更は、同期と同じく相手の画面に届く）。
+async function openSameNoteInSecondTab(page: Page, sidebarText: string): Promise<Page> {
+  const secondTab = await page.context().newPage();
+  await secondTab.goto("/");
+  await secondTab.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
+  await secondTab.getByRole("button", { name: "解除" }).click();
+  await secondTab.locator(".tree-note", { hasText: sidebarText }).first().click();
+  return secondTab;
+}
+
+// 別のウィンドウで開いたとき、まだ題が届いていないと、新しい空のメモとして題の欄にフォーカスが入る。
+// そのあとに届いた題を、まだ打っていない題の欄が出さないと、題が空のまま残る（noteWindows.spec.ts がときどき落ちた形）。
+test("空の題の欄にフォーカスがあっても、まだ打っていなければ、ほかのウィンドウで付けた題に替わる", async ({ page, context }) => {
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await expect(titleInput(page)).toBeFocused();
+  await page.getByRole("button", { name: "その他の操作" }).last().click();
+  const opened = context.waitForEvent("page");
+  await page.getByRole("menuitem", { name: "別のウィンドウで開く" }).click();
+  const noteWindow = await opened;
+  await noteWindow.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
+  await noteWindow.getByRole("button", { name: "解除" }).click();
+  await expect(titleInput(noteWindow)).toBeFocused();
+  await titleInput(page).fill("買い物");
+  await expect(titleInput(noteWindow)).toHaveValue("買い物");
+});
+
+test("題の欄で打ちかけの文字は、ほかのタブで題が変わっても上書きされない", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "元の題");
+  const secondTab = await openSameNoteInSecondTab(page, "元の題");
+  await titleInput(secondTab).click();
+  await secondTab.keyboard.press("End");
+  await secondTab.keyboard.type("に足す");
+  await expect(titleInput(secondTab)).toHaveValue("元の題に足す");
+  // 2 つ目のタブで打った題が 1 つ目のタブに届いてから、1 つ目のタブで題を変える。2 つ目のタブの打ちかけの文字は、そのまま残る。
+  await expect(titleInput(page)).toHaveValue("元の題に足す");
+  await titleInput(page).fill("別の題");
+  await expect(savedTitleInSidebar(secondTab, "別の題")).toBeVisible();
+  await expect(titleInput(secondTab)).toHaveValue("元の題に足す");
 });
