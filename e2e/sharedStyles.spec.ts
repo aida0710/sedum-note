@@ -55,14 +55,16 @@ test("お気に入りの星は黄色の印で、押したままの切り替え�
     probe.remove();
     return color;
   }, name);
-  const star = page.getByRole("button", { name: "お気に入り", exact: true });
+  // 左の列の「お気に入り」の一覧と見分けるため、メモの上のバーの中で探す。
+  const noteBar = page.locator(".pane:not(.split-pane)");
+  const star = noteBar.getByRole("button", { name: "お気に入り", exact: true });
   await star.click();
   await page.mouse.move(0, 0);
-  const bookmarked = page.getByRole("button", { name: "お気に入りから外す" });
+  const bookmarked = noteBar.getByRole("button", { name: "お気に入りから外す" });
   await expect(bookmarked).toHaveCSS("color", await rootColor("--bookmark"));
   await expect(bookmarked).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
 
-  const outline = page.getByRole("button", { name: "目次" });
+  const outline = noteBar.getByRole("button", { name: "目次" });
   await outline.click();
   await expect(outline).toHaveAttribute("aria-pressed", "true");
   await page.mouse.move(0, 0);
