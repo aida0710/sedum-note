@@ -261,6 +261,10 @@ test("プロパティの選択肢は 1 つずつのチップで、名前を変�
   await database.getByRole("button", { name: "プロパティを追加" }).click();
   const dialog = page.getByRole("dialog", { name: "プロパティ" });
   await dialog.getByRole("button", { name: "プロパティを追加" }).click();
+  // 決めていない行があるうちにもう一度押しても、行は増えず（仮の名前のまま記録に書かず）、その行の名前の欄へ戻る。
+  await dialog.getByRole("button", { name: "プロパティを追加" }).click();
+  await expect(dialog.getByRole("textbox", { name: "名前" })).toHaveCount(1);
+  await expect(dialog.getByRole("textbox", { name: "名前" })).toBeFocused();
   // 決める前に行を消すと、何も残らない。
   await dialog.getByRole("button", { name: "プロパティ「新しいプロパティ」を消す" }).click();
   await expect(dialog.getByText("プロパティはまだありません")).toBeVisible();

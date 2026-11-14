@@ -4,7 +4,7 @@
 // 削除は、メモに入れた値も見えなくなるので、確かめてから行う。
 
 import { Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { newRandomId } from "../../core/crypto/randomId";
 import { PROPERTY_TYPES, type PropertyDefinition, type PropertyType } from "../../core/notes/noteProperties";
 import type { LiveNotebook } from "../../core/notes/noteRecords";
@@ -97,10 +97,17 @@ export function NotebookPropertiesDialog({ notebook, repository, autoFocusAddBut
       saveDrafts(target);
     }
   };
-  // 先に足していた行があれば、それを決めてから、新しい行を足す。
+  // 足した行の名前の欄。出したときに名前を選び、まだ決めていない行があるうちに「プロパティを追加」を押したら、その欄へ戻る。
+  const newPropertyNameInput = useRef<HTMLInputElement | null>(null);
+  const attachNewPropertyNameInput = useCallback((input: HTMLInputElement | null) => {
+    newPropertyNameInput.current = input;
+    focusAndSelectName(input);
+  }, []);
+  // 決めていない行は、Enter か「保存」を押すまで記録に書かないので、もう 1 行は足さずに、その行へ戻る。
   const add = () => {
     if (newProperty) {
-      void createNewProperty(newProperty);
+      newPropertyNameInput.current?.focus();
+      return;
     }
     setAddedProperty({ id: newRandomId(), name: translate("property.newName"), type: "text", options: [], newOptionText: "" });
   };
@@ -172,7 +179,7 @@ export function NotebookPropertiesDialog({ notebook, repository, autoFocusAddBut
           // 足した行。決めるまで記録に書かないので、行を消すボタンは確かめずに行を捨てる。
           <div key={newProperty.id} className="property-definition">
             <div className="property-definition-row">
-              <input ref={focusAndSelectName} value={newProperty.name} aria-label={translate("property.name")}
+              <input ref={attachNewPropertyNameInput} value={newProperty.name} aria-label={translate("property.name")}
                 onChange={(event) => changeNewProperty({ name: event.target.value })} onKeyDown={saveDraftsOnEnter(newProperty.id)} />
               <select value={newProperty.type} aria-label={translate("property.type")} onChange={(event) => changeNewProperty({ type: event.target.value as PropertyType })}>
                 {PROPERTY_TYPES.map((type) => <option key={type} value={type}>{translate(`property.type.${type}`)}</option>)}
