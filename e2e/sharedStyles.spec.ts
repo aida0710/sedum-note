@@ -100,7 +100,8 @@ test("区切りの無い長い名前でも、データベース表示の見出�
     // 要素の箱がはみ出す分と、箱の中の文字が箱の外へはみ出す分。
     return Math.max(0, element.getBoundingClientRect().right - container.right, element.scrollWidth - element.clientWidth);
   });
-  await expect(page.locator(".document-meta .chip", { hasText: "#tagtag" })).toBeVisible();
+  // 札はタグの名前ごとに作り直されるので、打ち終えた全文のタグの札が出てから測る（途中のタグの札を測ると、測る間に消える）。
+  await expect(page.locator(".document-meta .chip-label", { hasText: "#tagtag" })).toHaveText(`#${"tag".repeat(60)}`);
   expect(await overflowOf(".document-meta .chip:not(:has(.dot, .notebook-icon))")).toBe(0);
 
   await page.locator(".nav", { hasText: longName }).first().click({ button: "right" });
