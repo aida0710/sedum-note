@@ -2,6 +2,7 @@
 
 import { isWebDavConfig, type RemoteConfig, type S3RemoteConfig, type WebDavRemoteConfig } from "../../core/remote/remoteConfig";
 import { type MessageKey, translate } from "../i18n/translate";
+import { RadioGroup } from "./RadioGroup";
 
 export const EMPTY_S3_CONFIG: S3RemoteConfig = {
   kind: "s3", endpoint: "", bucket: "", region: "auto", prefix: "", accessKeyId: "", secretAccessKey: "",
@@ -25,7 +26,7 @@ export function RemoteConfigFields({ value, onChange }: RemoteConfigFieldsProps)
     <>
       <div className="field">
         <span className="field-label" id="remote-kind-label">{translate("remote.kind")}</span>
-        <div className="segmented" role="radiogroup" aria-labelledby="remote-kind-label">
+        <RadioGroup className="segmented" labelledBy="remote-kind-label">
           {REMOTE_KINDS.map(({ kind, label, empty }) => (
             // 種類を変えたら、欄は空から始める（別の種類の値は使えない）。
             <button key={kind} type="button" role="radio" aria-checked={selectedKind === kind} className={selectedKind === kind ? "on" : ""}
@@ -33,7 +34,7 @@ export function RemoteConfigFields({ value, onChange }: RemoteConfigFieldsProps)
               {translate(label)}
             </button>
           ))}
-        </div>
+        </RadioGroup>
         <span className="hint">{translate(isWebDavConfig(value) ? "remote.kindHint.webdav" : "remote.kindHint.s3")}</span>
       </div>
       {isWebDavConfig(value) ? <WebDavFields value={value} onChange={onChange} /> : <S3Fields value={value} onChange={onChange} />}

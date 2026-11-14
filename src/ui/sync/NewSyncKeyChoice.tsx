@@ -3,6 +3,7 @@
 
 import { MIN_SYNC_KEY_LENGTH } from "../../core/vault/vaultDocument";
 import { translate } from "../i18n/translate";
+import { RadioGroup } from "../shared/RadioGroup";
 
 // 新しい暗号化キーの決め方。
 export type NewSyncKeySource = "generate" | "enter";
@@ -23,14 +24,14 @@ export function NewSyncKeyChoice({ inputId, value, onChange }: NewSyncKeyChoiceP
   return (
     <div className="field">
       <span className="field-label" id={`${inputId}-source`}>{translate("syncKey.source")}</span>
-      <div className="segmented" role="radiogroup" aria-labelledby={`${inputId}-source`}>
+      <RadioGroup className="segmented" labelledBy={`${inputId}-source`}>
         <button type="button" role="radio" aria-checked={value.source === "generate"} className={value.source === "generate" ? "on" : ""} onClick={choose("generate")}>
           {translate("syncKey.source.generate")}
         </button>
         <button type="button" role="radio" aria-checked={value.source === "enter"} className={value.source === "enter" ? "on" : ""} onClick={choose("enter")}>
           {translate("syncKey.source.enter")}
         </button>
-      </div>
+      </RadioGroup>
       {value.source === "generate" ? <span className="hint">{translate("syncKey.source.generateHint")}</span> : (
         <>
           <label htmlFor={inputId}>{translate("syncTarget.syncKey")}</label>

@@ -29,6 +29,8 @@
   --checkbox-size: 16px;          /* チェックボックスとラジオボタン */
   --switch-width: 34px;           /* 設定のオンとオフのスイッチ（つまみは高さから上下 2px ずつ引いた丸） */
   --switch-height: 20px;
+  /* 選んだ見本（色、テーマ）の輪。 */
+  --ring-selected: 0 0 0 2px var(--accent);
   /* チェックボックス・ラジオボタン・つまみは、どのテーマでもテーマの色で描く（決めないと、ブラウザの既定の青になる）。 */
   accent-color: var(--accent);
   /* 画面の部品の文字の大きさは、次の 6 つにする（本文は表示の設定の --editor-font-size）。スマホでは .phone が一部を大きくする。 */
@@ -132,7 +134,7 @@ svg.lucide { stroke-width: 1.75; }
 .database-view { padding: 24px 32px 60px; }
 .database-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
 .database-header h1 { font-size: var(--font-size-title); margin: 0; flex: 1; min-width: 0; }
-.database-header .choice { display: inline-flex; align-items: center; white-space: nowrap; }
+.database-header .segmented button { display: inline-flex; align-items: center; gap: 4px; }
 /* 横に送る枠は、はみ出たものを切る。表の端に来る欄とボタン（下の「新しいメモ」）のフォーカスの枠（太さ 2px、離れ 1px）が
    切れないよう、その分の余白を内側に取り、外側の負の余白で表の位置を戻す。 */
 .database-table-scroll { overflow-x: auto; padding: 3px; margin: -3px; }
@@ -794,7 +796,10 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .choice-grid { display: flex; flex-wrap: wrap; gap: 6px; }
 .choice { min-width: var(--control-height); height: var(--control-height); padding: 0 8px; border-radius: var(--radius-control); border: 1px solid var(--line); display: grid; place-items: center; color: var(--text); }
 .choice.swatch { width: var(--control-height); padding: 0; border-color: transparent; }
-.choice.on { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent); }
+/* 選んだ見本（色・テーマ）は、輪とチェックの印で示す（輪だけだと、フォーカスの枠と見分けられない）。
+   文字やアイコンで選ぶものは、輪を付けずに地と色で示す。 */
+.choice.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.choice.swatch.on { box-shadow: var(--ring-selected); }
 .color-choices { padding: 6px; max-width: 300px; }
 .table-menu-choices { padding: 4px 6px; }
 .color-choices .choice.swatch { width: 26px; height: 26px; min-width: 26px; color: var(--muted); border-color: var(--line); }
@@ -816,9 +821,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 /* 正規表現の誤りは、入力欄の下の行に出す（操作の列に出すと、入力欄の幅が変わる）。 */
 .find-error { grid-column: 2 / -1; color: var(--danger); font-size: var(--font-size-small); }
 .search-scope { text-align: left; color: var(--accent); font-size: var(--font-size-small); padding: 4px 8px; line-height: 1.5; }
-.search-scope-switch { display: flex; gap: 2px; margin: 2px 8px 4px; padding: 2px; border-radius: var(--radius-row); background: var(--tag); }
-.search-scope-switch button { flex: 1 1 0; min-width: 0; padding: 3px 8px; border-radius: var(--radius-inline); font-size: var(--font-size-small); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.search-scope-switch button[aria-checked="true"] { background: var(--panel); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px var(--shadow); }
+.search-scope-switch { margin: 2px 8px 4px; }
 .shortcut-list { display: grid; gap: 6px; }
 .shortcut-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; }
 .shortcut-list dd { margin: 0; display: flex; align-items: center; gap: 4px; }
@@ -944,10 +947,13 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .entry-brand { display: flex; align-items: center; gap: 10px; min-height: 28px; font-weight: 700; font-size: var(--font-size-heading); flex: none; }
 .entry-card h1 { font-size: var(--font-size-title); display: flex; align-items: center; gap: 10px; }
 .entry-card p.description { color: var(--muted); line-height: 1.6; }
+/* 文字で 1 つを選ぶ部品。狭い所（左の列の検索の範囲、ボードの表示の切り替え）は compact にする。 */
 .segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--tag); border-radius: var(--radius-control); padding: 3px; gap: 3px; }
-.segmented button { padding: 7px; border-radius: var(--radius-row); color: var(--muted); }
-.segmented button:not(.on):hover { color: var(--text); }
-.segmented button.on { background: var(--panel); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px var(--shadow-faint); }
+.segmented button { padding: 7px; border-radius: var(--radius-row); color: var(--muted); min-width: 0; }
+.segmented button:not(.on, [aria-checked="true"], [aria-selected="true"]):hover { color: var(--text); }
+.segmented button:is(.on, [aria-checked="true"], [aria-selected="true"]) { background: var(--panel); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px var(--shadow-faint); }
+.segmented.compact { padding: 2px; gap: 2px; border-radius: var(--radius-row); }
+.segmented.compact button { padding: 3px 8px; border-radius: var(--radius-inline); font-size: var(--font-size-small); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .field { display: flex; flex-direction: column; gap: 4px; }
 .field label:not(.checkbox-line), .field .field-label { font-weight: 600; font-size: var(--font-size-small); }
 /* 最初の画面とロックの画面では、太字は題と主ボタンだけにして、欄のラベルと切り替えの選んだ側は一段細くする（上の .field の規則より後ろに置く）。 */
@@ -1084,8 +1090,10 @@ input[type="checkbox"].switch:disabled { cursor: default; opacity: .55; }
 details summary { cursor: pointer; color: var(--accent); }
 
 .theme-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
-.theme-choice { border: 1px solid var(--line); border-radius: var(--radius-panel); padding: 6px; display: flex; flex-direction: column; gap: 6px; text-align: left; background: var(--panel); }
-.theme-choice.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.theme-choice { position: relative; border: 1px solid var(--line); border-radius: var(--radius-panel); padding: 6px; display: flex; flex-direction: column; gap: 6px; text-align: left; background: var(--panel); }
+.theme-choice.on { border-color: var(--accent); box-shadow: var(--ring-selected); }
+/* 選んだテーマの印。見本の右上に、アクセントの丸にチェックを出す。 */
+.theme-choice-check { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); }
 .theme-choice-name { padding: 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* テーマの見本。中の色は、見本にするテーマの変数を style で上書きして描く。 */
 .theme-sample { display: grid; grid-template-columns: 30% 1fr; height: 62px; border-radius: var(--radius-row); overflow: hidden; border: 1px solid var(--line); background: var(--panel); color: var(--text); }

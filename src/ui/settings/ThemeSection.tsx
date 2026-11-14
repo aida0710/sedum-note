@@ -1,11 +1,13 @@
 // 設定: テーマを選ぶ・作る・直す・消す。
 
-import { Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { newRandomId } from "../../core/crypto/randomId";
 import { translate } from "../i18n/translate";
 import { SYSTEM_THEME_ID, updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { useDialogs } from "../shared/DialogProvider";
+import { ICON_SIZE } from "../shared/iconSizes";
+import { RadioGroup } from "../shared/RadioGroup";
 import { BUILT_IN_THEMES, DARK_THEME, LIGHT_THEME } from "../theme/builtInThemes";
 import type { CustomTheme } from "../theme/customTheme";
 import { useThemeInUse } from "../theme/themeInUse";
@@ -37,7 +39,7 @@ export function ThemeSection() {
   return (
     <section className="settings-section">
       <h2>{translate("settings.theme")}</h2>
-      <div className="theme-choices" role="radiogroup" aria-label={translate("settings.theme")}>
+      <RadioGroup className="theme-choices" label={translate("settings.theme")}>
         <ThemeChoice id={SYSTEM_THEME_ID} name={translate("theme.name.system")} selectedId={themeId}
           sample={<div className="theme-sample split" aria-hidden="true"><SystemHalf dark={false} /><SystemHalf dark /></div>} />
         {BUILT_IN_THEMES.map((theme) => (
@@ -46,7 +48,7 @@ export function ThemeSection() {
         {customThemes.map((theme) => (
           <ThemeChoice key={theme.id} id={theme.id} name={theme.name} selectedId={themeId} sample={<ThemeSample colors={theme.colors} />} />
         ))}
-      </div>
+      </RadioGroup>
       {editedTheme ? (
         <>
           <p>{translate("theme.customHint")}</p>
@@ -74,6 +76,7 @@ function ThemeChoice({ id, name, selectedId, sample }: { id: string; name: strin
       onClick={() => updateDevicePreferences({ themeId: id })}>
       {sample}
       <span className="theme-choice-name">{name}</span>
+      {selected && <span className="theme-choice-check"><Check size={ICON_SIZE.chip} /></span>}
     </button>
   );
 }

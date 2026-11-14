@@ -26,6 +26,7 @@ import { REMINDERS_TAB } from "./useWorkspaceNavigation";
 import { dueItemsOf } from "../../core/notes/dueItems";
 import { useDialogs } from "../shared/DialogProvider";
 import { useToast } from "../shared/ToastProvider";
+import { SearchScopeSwitch } from "../shared/SearchScopeSwitch";
 import { TrashActionsMenu } from "./TrashActionsMenu";
 import { AppIcon } from "../shared/AppIcon";
 import { SidebarCount } from "./SidebarCount";
@@ -145,12 +146,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
         {searching ? (
           <>
             {scopedView && (
-              <div className="search-scope-switch" role="radiogroup" aria-label={translate("sidebar.searchScope")}>
-                <button type="button" role="radio" aria-checked={!searchEverywhere} title={scopeName} onClick={() => setSearchEverywhere(false)}>
-                  {translate("sidebar.searchScopeIn", { name: scopeName })}
-                </button>
-                <button type="button" role="radio" aria-checked={searchEverywhere} onClick={() => setSearchEverywhere(true)}>{translate("sidebar.searchScopeAll")}</button>
-              </div>
+              <SearchScopeSwitch scopeName={scopeName} searchesEverywhere={searchEverywhere} onChange={setSearchEverywhere} />
             )}
             <button className="search-scope" onClick={() => void saveSearch()}><Bookmark size={13} />{translate("sidebar.saveSearch")}</button>
             <SearchResults summaries={selectNotes(summaries, { view: searchView, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNameOf: notebookNameLookup(snapshot.notebooks) })}

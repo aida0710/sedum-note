@@ -14,6 +14,7 @@ import { type MessageKey, translate } from "../i18n/translate";
 import { showDragPreview } from "../shared/dragPreview";
 import { formatDateTime } from "../shared/formatTime";
 import { PropertyInput } from "../shared/PropertyInput";
+import { RadioGroup } from "../shared/RadioGroup";
 import { createNoteInView } from "./createNoteInView";
 import { DatabaseNewNoteButton } from "./DatabaseNewNoteButton";
 import { NotebookPropertiesDialog } from "./NotebookPropertiesDialog";
@@ -49,17 +50,16 @@ export function NotebookDatabaseView({ notebook, notes, repository, onOpenNote }
       <div className="database-view">
         <div className="database-header">
           <h1>{notebook.content.name}</h1>
-          <div className="choice-grid" role="radiogroup" aria-label={translate("database.layout")}>
+          <RadioGroup className="segmented compact" label={translate("database.layout")}>
             {DATABASE_LAYOUTS.map((layout) => {
               const Icon = LAYOUT_ICONS[layout];
               return (
-                <button key={layout} type="button" role="radio" aria-checked={view.layout === layout} className={`choice${view.layout === layout ? " on" : ""}`}
-                  onClick={() => changeView({ layout })}>
-                  <Icon size={ICON_SIZE} />&nbsp;{translate(LAYOUT_LABELS[layout])}
+                <button key={layout} type="button" role="radio" aria-checked={view.layout === layout} onClick={() => changeView({ layout })}>
+                  <Icon size={ICON_SIZE} />{translate(LAYOUT_LABELS[layout])}
                 </button>
               );
             })}
-          </div>
+          </RadioGroup>
         </div>
         {/* メモが無くても表とボードを出す。最初のメモを、ここの「新しいメモ」から足せるように。 */}
         {view.layout === "table" && <DatabaseTable {...content} onSort={changeView} onEditProperties={() => setEditingProperties(true)} />}

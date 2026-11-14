@@ -1,7 +1,8 @@
 // 本文の色を選ぶ、色の見本の並び。先頭に「色なし」を置く。
 
-import { Ban } from "lucide-react";
+import { Ban, Check } from "lucide-react";
 import { translate } from "../i18n/translate";
+import { ICON_SIZE } from "../shared/iconSizes";
 import { EDITOR_COLOR_NAMES, type EditorColorName, editorTextColorValue, tintedBackground } from "./editorColors";
 
 type ColorChoicesProps = {
@@ -24,9 +25,14 @@ export function ColorChoices({ appearance, selected, onChoose }: ColorChoicesPro
       </button>
       {EDITOR_COLOR_NAMES.map((colorName) => (
         <button key={colorName} type="button" className={`choice swatch${selected === colorName ? " on" : ""}`}
-          style={{ background: appearance === "background" ? tintedBackground(colorName) : editorTextColorValue(colorName) }}
+          style={appearance === "background"
+            ? { background: tintedBackground(colorName), color: "var(--text)" }
+            // 文字色は本文の地の上で読める濃さなので、その上のチェックは地の色にすると読める。
+            : { background: editorTextColorValue(colorName), color: "var(--panel)" }}
           aria-label={translate(`notebook.color.${colorName}`)} aria-pressed={selected === colorName}
-          onMouseDown={keepEditorSelection} onClick={() => onChoose(colorName)} />
+          onMouseDown={keepEditorSelection} onClick={() => onChoose(colorName)}>
+          {selected === colorName && <Check size={ICON_SIZE.row} />}
+        </button>
       ))}
     </div>
   );

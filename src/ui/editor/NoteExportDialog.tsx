@@ -5,6 +5,7 @@ import { useState } from "react";
 import { type MessageKey, translate } from "../i18n/translate";
 import type { NoteFileFormat } from "../markdown/noteFileExport";
 import { ModalDialog } from "../shared/ModalDialog";
+import { RadioGroup } from "../shared/RadioGroup";
 
 const FORMAT_CHOICES: Array<{ format: NoteFileFormat; label: MessageKey; hint: MessageKey }> = [
   { format: "markdown", label: "noteExport.format.markdown", hint: "noteExport.formatHint.markdown" },
@@ -26,14 +27,14 @@ export function NoteExportDialog({ onExport, onClose }: NoteExportDialogProps) {
       <form className="dialog-form" onSubmit={(event) => { event.preventDefault(); onExport(format); }}>
         <div className="field">
           <span className="field-label" id="note-export-format">{translate("noteExport.format")}</span>
-          <div className="segmented" role="radiogroup" aria-labelledby="note-export-format">
+          <RadioGroup className="segmented" labelledBy="note-export-format">
             {FORMAT_CHOICES.map((choice) => (
               <button key={choice.format} type="button" role="radio" aria-checked={choice.format === format}
                 className={choice.format === format ? "on" : ""} onClick={() => setFormat(choice.format)}>
                 {translate(choice.label)}
               </button>
             ))}
-          </div>
+          </RadioGroup>
           <span className="hint">{translate(chosen.hint)}</span>
         </div>
         <p>{translate("markdown.exportConfirm")}</p>

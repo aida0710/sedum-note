@@ -24,3 +24,23 @@ test("設定の欄の中の小見出しは、欄の見出しより大きくな�
   const sizeOf = (heading: Locator) => heading.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
   expect(await sizeOf(section.locator("h3").first())).toBeLessThan(await sizeOf(section.locator("h2")));
 });
+
+test("1 つを選ぶ並びは、選んでいる 1 つにだけ Tab が止まり、矢印で選べる。選んだ見本にはチェックの印が付く", async ({ page }) => {
+  await startLocalVault(page);
+  await openSettingsPage(page, "外観");
+  const themes = page.getByRole("radiogroup", { name: "テーマ" });
+  const checked = themes.getByRole("radio", { checked: true });
+  await expect(themes.locator('[role="radio"][tabindex="0"]')).toHaveCount(1);
+  await expect(checked.locator(".theme-choice-check")).toBeVisible();
+
+  const before = await checked.textContent();
+  await checked.focus();
+  await page.keyboard.press("ArrowRight");
+  const next = themes.getByRole("radio", { checked: true });
+  await expect(next).not.toHaveText(before ?? "");
+  await expect(next).toBeFocused();
+  await expect(themes.locator(".theme-choice-check")).toHaveCount(1);
+  // 並びの中の残りには止まらず、並びの外へ出る。
+  await page.keyboard.press("Tab");
+  await expect(themes.locator(":focus")).toHaveCount(0);
+});
