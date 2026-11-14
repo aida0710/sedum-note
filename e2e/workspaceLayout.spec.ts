@@ -78,6 +78,9 @@ test("完全に削除したメモのタブは、読み込み直したあとに�
   await page.getByRole("dialog").getByRole("button", { name: "完全に削除" }).click();
   await expect(page.getByRole("button", { name: "「消すメモ」の操作" })).toHaveCount(0);
 
+  // ロックすると、削除とタブの並びの保存が済む（読み込み直すだけだと、遅い台では保存の前に読み込み直すことがある）。
+  await page.keyboard.press("Control+l");
+  await expect(page.getByRole("heading", { name: "ロックを解除" })).toBeVisible();
   await page.reload();
   await unlockApp(page);
   await expect(page.getByRole("tab")).toHaveText([/残すメモ/]);

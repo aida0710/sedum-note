@@ -336,6 +336,8 @@ test("コマンドパレットを開いてすぐ打った文字は入力欄に�
 });
 
 test("コマンドパレットで ↓ を押し続けても、選んだ項目が一覧の見える範囲に残る。End と Home で端へ移る", async ({ page }) => {
+  // 操作の項目（60 ほど）の数だけ ↓ を押して確かめるので、遅い台では既定の 60 秒を超える。
+  test.slow();
   // 操作の一覧が、パレットの高さに収まらない窓の高さにする。
   await page.setViewportSize({ width: 1280, height: 420 });
   await startLocalVault(page);

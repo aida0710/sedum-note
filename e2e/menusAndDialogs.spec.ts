@@ -217,16 +217,31 @@ test.describe("スマホの幅", () => {
   });
 });
 
+// 手元に保存した記録の暗号文（保存のたびに変わる）。保存が済んだかを見るのに使う。
+const sealedRecords = (page: Page) => page.evaluate(() => new Promise<string>((resolve, reject) => {
+  const request = indexedDB.open("sedum-note");
+  request.onerror = () => reject(request.error);
+  request.onsuccess = () => {
+    const all = request.result.transaction("records", "readonly").objectStore("records").getAll();
+    all.onsuccess = () => resolve(JSON.stringify((all.result as Array<{ id: string; sealed: ArrayBuffer | Uint8Array }>)
+      .map((entry) => `${entry.id}:${btoa(String.fromCharCode(...new Uint8Array(entry.sealed instanceof ArrayBuffer ? entry.sealed : entry.sealed.buffer)))}`)));
+  };
+}));
+
 test("履歴の一覧は ↑↓・Home・End で版を移れ、移った版の中身が右に出る。Tab で止まるのは選んでいる版だけ", async ({ page }) => {
   await page.clock.install({ time: new Date("2026-11-11T09:00:00+09:00") });
   await startLocalVault(page);
   await createNoteOnDesktop(page, "議事録");
   // 間隔（10 分）を空けて書き直すたびに、書き直す前の状態が履歴に残る。
+  // 書いた中身の保存（手元の記録の書き換え）が済むのを待ってから時計を進める。済む前に進めると、遅い台では保存した時刻が
+  // 10 分あとになり、次の書き直しが間隔を空けていないと見なされて履歴に残らない。
   for (const text of ["一回目の文", "二回目の文", "三回目の文"]) {
+    const recordsBefore = await sealedRecords(page);
     await page.locator(".ProseMirror").click();
     await page.keyboard.press("Control+A");
     await page.keyboard.type(text);
     await page.clock.runFor(1_000);
+    await expect.poll(() => sealedRecords(page)).not.toBe(recordsBefore);
     await page.clock.runFor(11 * 60_000);
   }
   await noteMenuButton(page).click();

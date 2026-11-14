@@ -55,9 +55,13 @@ test("表のすぐ下の段落の先頭で Backspace を押しても表は消え
   await expect(page.locator(".ProseMirror td").last()).toHaveText("5");
   expect(await bodyBlocks(page)).toEqual(["table:品目数りんご5", "paragraph:表の下", "paragraph:", "paragraph:末尾"]);
 
-  // 表のすぐ下を空の段落にしてから、その先頭で Backspace。
-  await page.locator(".ProseMirror p", { hasText: "表の下" }).evaluate((paragraph) => getSelection()?.selectAllChildren(paragraph));
-  await page.keyboard.press("Delete");
+  // 表のすぐ下を空の段落にしてから、その先頭で Backspace。カーソルはエディタの操作で置く（DOM の選択を変えた直後にキーを送ると、
+  // 遅い台ではエディタが選択を読み直す前にキーが届く）。
+  await placeCursorInBlock(page, "表の下", "end");
+  for (let index = 0; index < "表の下".length; index++) {
+    await page.keyboard.press("Backspace");
+  }
+  await expect(page.locator(".ProseMirror td").last()).toHaveText("5");
   await page.keyboard.press("Backspace");
   await page.keyboard.type("個");
   await expect(page.locator(".ProseMirror td").last()).toHaveText("5個");
