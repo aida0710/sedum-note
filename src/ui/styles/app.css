@@ -78,6 +78,8 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 ::placeholder { color: var(--muted); opacity: .8; }
 /* 補足の文。置き場所の規則は、並べ方だけを足す。 */
 .hint { color: var(--muted); font-size: var(--font-size-small); line-height: 1.5; }
+/* 画面の説明の文の最後の行に、「す。」のような 1〜2 文字だけが落ちないようにする。本文は、打つたびに折り返しが動かないよう外す。 */
+p:not(.ProseMirror p), .hint, .form-error, .form-notice { text-wrap: pretty; }
 /* スクロールバーは、細く、地の色になじむ色にする（隠す所と「/」のメニューは、それぞれの規則が勝つ）。 */
 * { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent; }
 /* アイコン（lucide）の線の太さ。24 の枠の中で、既定の 2 より細い 1.75 にそろえる（画面の文字の線の太さに近づける）。 */
