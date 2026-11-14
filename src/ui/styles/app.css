@@ -899,6 +899,13 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .sync-setup-import, .sync-setup-export-entry { display: flex; flex-direction: column; gap: 10px; }
 .sync-setup-import .hint, .sync-setup-export-entry .hint { line-height: 1.6; }
 .sync-setup-import-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+/* 設定のページの、並べて置く操作のボタン（Markdown の取り込みと書き出し、同期の設定の取り込み、MCP のトークン）。
+   設定の行の「右に操作」の形にそろえて右に寄せ、縦に積んで幅を一番広いボタンにそろえる（横に並べると、幅で 3＋1 や 2＋2 に折れる）。
+   スマホでは画面の幅いっぱいに積む。 */
+.settings-actions, .settings .sync-setup-import-buttons { display: grid; grid-template-columns: max-content; justify-content: end; gap: 8px; }
+.settings-actions > button, .settings .sync-setup-import-buttons > button { justify-content: center; }
+.settings-actions > :not(button) { justify-self: end; }
+.phone .settings-actions, .phone .settings .sync-setup-import-buttons { grid-template-columns: minmax(0, 1fr); justify-content: stretch; }
 .sync-setup-import-buttons button { display: inline-flex; align-items: center; gap: 6px; }
 .dialog.sync-setup-export { width: min(480px, 100%); }
 /* QR は、暗いテーマでも読めるよう、白地のままにする。 */
@@ -960,8 +967,9 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
   .setting-row-layout, .setting-checkbox-row .setting-row-layout { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(var(--control-height), auto) auto; grid-template-areas: "label control" "hint ."; column-gap: 24px; align-items: center; }
   .setting-row-hint { margin-top: 0; }
   .setting-row-control { margin-top: 0; justify-self: end; max-width: min(320px, 45cqi); }
-  /* 選択欄は、選んでいるものの長さに合わせる（幅いっぱいだと、「中」のような短い選択肢で間延びする）。最小は、短い選択肢が並ぶ欄の左の端がそろう幅。 */
-  .setting-row select { width: auto; min-width: 160px; max-width: 100%; text-overflow: ellipsis; }
+  /* 選択欄の幅は 1 つにそろえる（選択肢の長さで幅が変わると、行ごとに左の端がずれる。幅いっぱいだと「中」のような短い選択肢で間延びする）。
+     長い選択肢は「…」で切れ、開けば全文が読める。 */
+  .setting-row select { width: 200px; max-width: 100%; text-overflow: ellipsis; }
   /* ゴミ箱に残す日数（最大 3650）の 4 桁と、上下の矢印が入る幅。 */
   .setting-row input[type="number"] { width: 96px; }
 }

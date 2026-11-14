@@ -27,7 +27,7 @@ export function WipeDeviceDataButton({ session }: { session: VaultSession }) {
   return (
     <>
       {wipe.errorMessage && <div className="form-error" role="alert">{wipe.errorMessage}</div>}
-      <div><button type="button" className="danger-button" disabled={wipe.busy} onClick={() => void wipe.run(undefined)}>{translate("wipe.title")}</button></div>
+      <div className="form-actions"><button type="button" className="danger-button" disabled={wipe.busy} onClick={() => void wipe.run(undefined)}>{translate("wipe.title")}</button></div>
     </>
   );
 }

@@ -81,3 +81,29 @@ test("スマホでは、選択欄を今までどおり名前の下に出し、�
   const typewriterMode = await nameAndControlBoxes(page, "打っている行を中央に保つ（タイプライターモード）");
   expect(typewriterMode.controlBox.x + typewriterMode.controlBox.width).toBeLessThanOrEqual(typewriterMode.nameBox.x);
 });
+
+test("設定のボタンは右にそろい、並べて置くボタンは縦に積んで幅がそろう。選択欄の幅は 1 つ。スマホでは開いているページの名前が上に出る", async ({ browser }) => {
+  const page = await (await browser.newContext({ viewport: { width: 1100, height: 820 } })).newPage();
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "設定", exact: true }).click();
+  const selectWidths = await page.locator(".setting-row select").evaluateAll((selects) => selects.map((select) => select.getBoundingClientRect().width));
+  expect(new Set(selectWidths).size).toBe(1);
+
+  await page.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: "データ", exact: true }).click();
+  const markdownButtons = await page.locator(".settings-actions > button").evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().toJSON() as DOMRect));
+  expect(markdownButtons).toHaveLength(4);
+  expect(new Set(markdownButtons.map((box) => Math.round(box.width))).size).toBe(1);
+  expect(new Set(markdownButtons.map((box) => Math.round(box.right))).size).toBe(1);
+  expect(markdownButtons[1]!.top).toBeGreaterThan(markdownButtons[0]!.bottom);
+
+  await page.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: "セキュリティ", exact: true }).click();
+  const rightEdges = await page.locator(".settings").getByRole("button", { name: /パスフレーズを変更|今すぐロック|このデバイスのデータを消す/ })
+    .evaluateAll((buttons) => buttons.map((button) => Math.round(button.getBoundingClientRect().right)));
+  expect(new Set(rightEdges).size).toBe(1);
+
+  const phone = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
+  await startLocalVault(phone);
+  await phone.locator(".tabbar").getByRole("button", { name: "設定" }).click();
+  await phone.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: /データ/ }).click();
+  await expect(phone.locator(".phone-top h2")).toHaveText("データ");
+});

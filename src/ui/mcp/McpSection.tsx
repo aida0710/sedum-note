@@ -39,7 +39,7 @@ export function McpSection({ gateway }: { gateway: McpGatewayControl }) {
             <pre>{`${MCP_ENDPOINT_URL}\n${authorizationHeader}`}</pre>
             <span className="hint">{translate("mcp.connectionHint")}</span>
           </div>
-          <div className="form-actions">
+          <div className="settings-actions">
             <button type="button" className="secondary-button" onClick={() => setTokenShown(!tokenShown)}>
               {translate(tokenShown ? "mcp.hideToken" : "mcp.showToken")}
             </button>

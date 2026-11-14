@@ -42,7 +42,7 @@ export function MarkdownSection({ repository }: { repository: NoteRepository }) 
             void importFiles.run(files);
           }
         }} />
-      <div className="form-actions">
+      <div className="settings-actions">
         {importedCount !== null && <span className="form-success">{translate("settings.markdownImported", { count: importedCount })}</span>}
         {exportNotes.saved && <span className="form-success">{translate("settings.markdownExported", { count: exportNotes.saved.noteCount })}</span>}
         <button type="button" className="secondary-button" disabled={importFiles.busy} onClick={() => fileInput.current?.click()}>

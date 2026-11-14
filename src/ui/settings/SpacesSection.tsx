@@ -54,7 +54,7 @@ export function SpacesSection() {
           </li>
         ))}
       </ul>
-      <div><button type="button" className="secondary-button" onClick={() => void add()}>{translate("space.add")}</button></div>
+      <div className="form-actions"><button type="button" className="secondary-button" onClick={() => void add()}>{translate("space.add")}</button></div>
     </section>
   );
 }

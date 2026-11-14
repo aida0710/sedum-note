@@ -8,7 +8,7 @@ import { translate } from "../i18n/translate";
 import type { VaultSession } from "../session/useVaultSession";
 import { SettingsNavigation, SettingsPageList } from "./SettingsNavigation";
 import { SettingsPageContent } from "./SettingsPageContent";
-import { FIRST_SETTINGS_PAGE, type SettingsPage, settingsPagesFor } from "./settingsPages";
+import { FIRST_SETTINGS_PAGE, SETTINGS_PAGE_META, type SettingsPage, settingsPagesFor } from "./settingsPages";
 import { type SettingRevealRequest, useRevealSetting } from "./revealSetting";
 
 type SettingsPanelProps = {
@@ -75,6 +75,8 @@ function PhoneSettings({ session, vault, pages, page, onSelectPage, onBackToPage
       <div className="phone-top">
         <button type="button" className="phone-back" onClick={onBackToPageList}><ChevronLeft size={20} />{translate("settings.title")}</button>
       </div>
+      {/* 開いているページの名前を、戻るボタンの下に出す（ノートブックから開いたメモの一覧と同じ形）。 */}
+      <div className="phone-top phone-top-below-back"><h2>{translate(SETTINGS_PAGE_META[shownPage].label)}</h2></div>
       <div className="document-scroll">
         <div className="settings">
           {unreadableWarning}
