@@ -715,7 +715,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "inactivityLock.hoursOption": "{count} hr",
   "inactivityLock.custom": "Custom time",
   "inactivityLock.customAmount": "Time until lock",
-  "inactivityLock.customAmountHint": "The current setting is {current}. A new time takes effect when you press Enter or Save.",
+  "inactivityLock.customAmountHint": "The current setting is \"{current}\". A new time takes effect when you press Enter or Save.",
   "inactivityLock.unit": "Unit",
   "inactivityLock.unitMinutes": "minutes",
   "inactivityLock.unitHours": "hours",

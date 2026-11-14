@@ -713,7 +713,7 @@ export const japaneseMessages = {
   "inactivityLock.hoursOption": "{count}時間",
   "inactivityLock.custom": "時間を指定",
   "inactivityLock.customAmount": "ロックするまでの時間",
-  "inactivityLock.customAmountHint": "現在の設定は{current}です。変更した時間は、Enterか「保存」で確定します。",
+  "inactivityLock.customAmountHint": "現在の設定は「{current}」です。変更した時間は、Enterか「保存」で確定します。",
   "inactivityLock.unit": "単位",
   "inactivityLock.unitMinutes": "分",
   "inactivityLock.unitHours": "時間",

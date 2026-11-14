@@ -1,16 +1,11 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, openSettingsPage, PASSPHRASE, startLocalVault } from "./devices";
+import { createNoteOnDesktop, openSettingsPage, startLocalVault, unlockApp } from "./devices";
 
 // 試験の中の「今」。偽の時計で進める。
 const NOW = new Date("2026-11-14T09:00:00+09:00");
 const MINUTE = 60_000;
 
 const lockScreen = (page: Page) => page.getByRole("heading", { name: "ロックを解除" });
-
-async function unlock(page: Page): Promise<void> {
-  await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
-  await page.getByRole("button", { name: "解除" }).click();
-}
 
 async function chooseInactivityLock(page: Page, label: string): Promise<void> {
   await openSettingsPage(page, "セキュリティ");
@@ -29,7 +24,7 @@ test("操作が無いまま、選んだ時間が過ぎるとロックする。�
   await page.clock.fastForward(MINUTE);
   await expect(lockScreen(page)).toBeVisible();
 
-  await unlock(page);
+  await unlockApp(page);
   await page.locator(".tree-note", { hasText: "買い物" }).first().click();
   await expect(page.locator(".ProseMirror")).toHaveText("牛乳");
 });
@@ -65,7 +60,7 @@ test("「時間を指定」では、分か時間の単位で入れ、Enter で�
   const unit = page.getByLabel("単位");
   const save = page.getByRole("button", { name: "保存" });
   // 選んだだけでは決めない（今の設定のまま）。
-  await expect(page.getByText("現在の設定はしないです。")).toBeVisible();
+  await expect(page.getByText("現在の設定は「しない」です。")).toBeVisible();
 
   await amount.fill("0");
   await expect(page.getByRole("alert")).toHaveText("1分〜7日（168時間）の時間を入力してください。");
@@ -80,7 +75,7 @@ test("「時間を指定」では、分か時間の単位で入れ、Enter で�
   await amount.fill("90");
   await expect(page.getByRole("alert")).toHaveCount(0);
   await amount.press("Enter");
-  await expect(page.getByText("現在の設定は90分です。")).toBeVisible();
+  await expect(page.getByText("現在の設定は「90分」です。")).toBeVisible();
   await expect(save).toBeDisabled();
 
   await page.clock.fastForward(89 * MINUTE);
@@ -89,7 +84,7 @@ test("「時間を指定」では、分か時間の単位で入れ、Enter で�
   await expect(lockScreen(page)).toBeVisible();
 
   // 選択肢に無い時間は、開き直しても「時間を指定」の欄に出る。
-  await unlock(page);
+  await unlockApp(page);
   await openSettingsPage(page, "セキュリティ");
   await expect(page.getByLabel("操作が無いときに自動でロック")).toHaveValue("custom");
   await expect(amount).toHaveValue("90");
