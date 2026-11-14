@@ -829,7 +829,12 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .generated-passphrase code { font-family: var(--font-mono); font-size: 15px; letter-spacing: .04em; user-select: all; overflow-wrap: anywhere; }
 .generated-passphrase .hint { flex-basis: 100%; line-height: 1.6; }
 /* 左右の端から置いて中身の幅にする（left: 50% で置くと、幅が画面の半分までになり、スマホで文が折れる）。 */
-.toast { position: fixed; left: 16px; right: 16px; margin-inline: auto; width: fit-content; bottom: calc(28px + env(safe-area-inset-bottom, 0px)); z-index: 40; background: var(--text); color: var(--panel); border-radius: var(--radius-panel); padding: 9px 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 8px 24px var(--shadow); max-width: calc(100% - 32px); }
+/* 知らせは、本文の欄の左右の中央に出す（窓の中央だと、PC では左の列の分だけ本文からずれる）。--toast-area-* は、左右で欄の外にある部分の幅。 */
+.toast { --toast-area-left: 0px; --toast-area-right: 0px; position: fixed; left: calc(var(--toast-area-left) + 16px); right: calc(var(--toast-area-right) + 16px); margin-inline: auto; width: fit-content; bottom: calc(28px + env(safe-area-inset-bottom, 0px)); z-index: 40; background: var(--text); color: var(--panel); border-radius: var(--radius-panel); padding: 9px 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 8px 24px var(--shadow); max-width: calc(100% - 32px); }
+:root:has(.workspace:not(.focus-mode, .note-window)) .toast { --toast-area-left: var(--sidebar-width); }
+:root:has(.workspace.with-ai-chat) .toast { --toast-area-right: var(--ai-chat-width); }
+/* ズームした表示は、窓いっぱいに本文を出す。 */
+:root:has(.note-editor.zoomed-view) .toast { --toast-area-left: 0px; --toast-area-right: 0px; }
 .toast button { color: inherit; font-weight: 700; text-decoration: underline; flex: none; }
 .toast-message { min-width: 0; overflow-wrap: anywhere; }
 /* スマホの画面では、下のメニュー（とエディタの下のバー）の上に出す。 */

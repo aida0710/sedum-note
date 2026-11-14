@@ -138,6 +138,16 @@ test("知らせは、ポインターを乗せている間は消えない", async
   await expect(toast).toBeVisible();
 });
 
+test("PC では、知らせは左の列を除いた本文の欄の中央に出る", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "会議");
+  await noteMenuButton(page).click();
+  await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+  const toast = (await page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" }).boundingBox())!;
+  const pane = (await page.locator(".main").boundingBox())!;
+  expect(Math.abs((toast.x + toast.width / 2) - (pane.x + pane.width / 2))).toBeLessThanOrEqual(1);
+});
+
 test.describe("スマホの幅", () => {
   test.use({ viewport: PHONE_VIEWPORT, hasTouch: true });
 
