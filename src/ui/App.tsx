@@ -1,6 +1,6 @@
 // 画面の入口。vault の状態で、初回の設定・ロック解除・メモの画面を出し分ける。
 
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { languageInUse } from "./i18n/languageInUse";
 import { translate } from "./i18n/translate";
 import { useDevicePreferences } from "./preferences/devicePreferences";
@@ -120,6 +120,9 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   useInactivityLock(session.lock);
   const aiSettings = useAiSettingsOfVault(vault);
   const plugins = usePluginsOfVault(vault);
+  // 添付を読む関数は、vault が変わらない限り同じものを渡す。メモを保存するたびにこの画面は描き直されるので、そのたびに
+  // 作り直すと、本文の写真・PDF・音声が毎回復号し直され、読み込み直される。
+  const readAttachment = useMemo(() => vault.repository.readAttachment.bind(vault.repository), [vault.repository]);
   const props = { session, vault, snapshot, navigation, isNoteWindow };
   const workspace = (
     <>
@@ -128,7 +131,7 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
     </>
   );
   return (
-    <AttachmentReaderContext.Provider value={vault.repository.readAttachment.bind(vault.repository)}>
+    <AttachmentReaderContext.Provider value={readAttachment}>
       <UnsyncedRecordsContext.Provider value={vault.syncEngine ? snapshot.unsyncedIds : NO_UNSYNCED_RECORDS}>
         <UpdateCheckContext.Provider value={updateCheck}>
           <AiSettingsContext.Provider value={aiSettings}>

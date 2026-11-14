@@ -138,3 +138,26 @@ test("暗いテーマから印刷しても、コードの色と本文の文字�
     expect(contrastWithWhitePaper(color), selector).toBeGreaterThanOrEqual(4.5);
   }
 });
+
+test("写真を貼ったあと、本文を打っても写真の幅を変えても、写真を読み込み直さない", async ({ page }) => {
+  await openNewNote(page);
+  await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "IMG_0003.jpg", mimeType: "image/jpeg", buffer: await largePhoto(page, 1600, 1200) });
+  const image = page.locator(".attachment-image img");
+  await expect.poll(() => attachedImageWidth(page)).toBe(1600);
+  const firstUrl = await image.getAttribute("src");
+
+  await page.locator(".ProseMirror").press("End");
+  await page.keyboard.type("写真の下に書く");
+  // 打った内容が保存され、メモの一覧が新しくなるまで待つ。
+  await expect(page.getByRole("button", { name: /写真の下に書く|写真のメモ/ }).first()).toBeVisible();
+  const handle = page.getByRole("button", { name: "画像のサイズを変更" });
+  const handleBox = (await handle.boundingBox())!;
+  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handleBox.x - 100, handleBox.y, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.style.width)).not.toBe("");
+  // 保存（150ms の待ちのあと）が済み、画面が描き直されるまでの時間を置いてから比べる。
+  await page.waitForTimeout(600);
+  expect(await image.getAttribute("src")).toBe(firstUrl);
+});

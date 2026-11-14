@@ -29,16 +29,27 @@ export function startImageResize(event: ReactPointerEvent<HTMLElement>, { image,
   const startX = event.clientX;
   const startWidth = image.getBoundingClientRect().width;
   let width = startWidth;
+  // 画面の幅は、描くたびに 1 回だけ変える。pointermove は描く回数より多く届くことがあり（WebKit など）、届くたびに
+  // 変えると、そのたびに本文の並びを計算し直して重くなる。
+  let pendingFrame: number | null = null;
+  const applyWidth = () => {
+    pendingFrame = null;
+    image.style.width = `${width}px`;
+  };
   // 写真は列の中央に置くので、右の端を指に合わせるには、動かした分の 2 倍だけ幅を変える。
   const resize = (moveEvent: PointerEvent) => {
     width = Math.min(Math.max(startWidth + (moveEvent.clientX - startX) * 2, MIN_IMAGE_WIDTH), columnWidth);
-    image.style.width = `${width}px`;
+    pendingFrame ??= requestAnimationFrame(applyWidth);
   };
   // 指はすぐに小さな持ち手の外へ出るので、動きと離したことは画面全体で受ける。
   const finish = () => {
     window.removeEventListener("pointermove", resize);
     window.removeEventListener("pointerup", finish);
     window.removeEventListener("pointercancel", finish);
+    if (pendingFrame !== null) {
+      cancelAnimationFrame(pendingFrame);
+      applyWidth();
+    }
     draggableBlock?.setAttribute("draggable", "true");
     onCommit(width >= columnWidth - 1 ? null : Math.round(width));
   };

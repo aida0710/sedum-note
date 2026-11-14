@@ -21,7 +21,7 @@ function AttachmentImageView({ node, editor, selected, updateAttributes }: React
   return (
     <NodeViewWrapper className={`attachment-image${attributes.width ? " sized" : ""}${selected ? " selected" : ""}`} data-drag-handle>
       {image.state === "ready" && (
-        <img ref={imageElement} src={image.url} alt={attributes.fileName} draggable={false} style={attributes.width ? { width: attributes.width } : undefined} />
+        <img ref={imageElement} src={image.url} alt={attributes.fileName} draggable={false} decoding="async" style={attributes.width ? { width: attributes.width } : undefined} />
       )}
       {image.state === "ready" && editor.isEditable && (
         <button type="button" className="image-resize-handle" aria-label={translate("editor.resizeImage")} title={translate("editor.resizeImage")}
