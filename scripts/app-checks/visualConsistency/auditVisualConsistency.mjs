@@ -21,10 +21,11 @@ import { fillSampleWorkspace } from "../sampleWorkspace.mjs";
 import { measureScreen } from "./measureScreen.mjs";
 import { measureContainerFit } from "./measureContainerFit.mjs";
 import { measureLeftoverJapanese } from "./measureLeftoverJapanese.mjs";
+import { unlock, waitForLeavingCopies } from "./appOperations.mjs";
 import { countAuditFindings, writeAuditReport } from "./writeAuditReport.mjs";
 import { DESKTOP_SCREENS, ENGLISH_SCREENS, PHONE_SCREENS, UNVISITED_STATES } from "./auditScreens.mjs";
 import { SYNC_SCREENS } from "./syncScreens.mjs";
-import { WORST_CASE_DESKTOP_SCREENS, WORST_CASE_PHONE_SCREENS } from "./worstCaseScreens.mjs";
+import { WORST_CASE_DESKTOP_SCREENS, WORST_CASE_PHONE_SCREENS, prepareWorstCaseWorkspace } from "./worstCaseScreens.mjs";
 
 const outputDirectory = process.argv[2];
 if (!outputDirectory) {
@@ -99,9 +100,25 @@ async function withinScreenDeadline(work, label) {
   }
 }
 
+// 失敗の報告には、Playwright の長い説明の 1 行目（何の操作が何秒で止まったか）だけを載せる。
+const firstLineOf = (error) => String(error.message ?? error).split("\n")[0];
+
+// 開けなかった画面が残したもの（開いたままのダイアログ、設定の打ちかけ、フォーカスモードなど）で、続く画面まで開けなくならないよう、
+// ページを読み込み直して、そのときの保存された状態（開いているタブなど）の画面へ戻す。ロックの画面ならロックを解除する。
+async function returnToSavedState(page) {
+  await page.reload();
+  await page.locator(".workspace, .phone, .entry").first().waitFor();
+  // 最初の画面（.segmented で「新規設定」と「バックアップから復元」を選ぶ）はそのまま。ロックの画面だけ解除する。
+  const isUnlockScreen = await page.locator(".entry").isVisible() && await page.locator(".entry .segmented").count() === 0;
+  if (isUnlockScreen) {
+    await unlock(page, PASSPHRASE);
+  }
+}
+
 // 画面の 1 つを開いて測る。途中で失敗しても、ほかの画面は続ける。終わったら開いたメニューやダイアログを閉じる。
 async function visitScreen(page, screen) {
   const capture = (name) => captureScreen(page, name, { language: screen.language });
+  const failuresBefore = failures.length;
   try {
     await withinScreenDeadline(async () => {
       await screen.open(page, { captureScreen: capture });
@@ -110,7 +127,7 @@ async function visitScreen(page, screen) {
       }
     }, "開いて撮る");
   } catch (error) {
-    failures.push({ screen: screen.name, message: String(error.message ?? error).split("\n")[0] });
+    failures.push({ screen: screen.name, message: firstLineOf(error) });
     // どこで止まったかを見られるよう、開けなかったときの画面を残す（測らない）。
     await page.screenshot({ path: `${outputDirectory}/failed-${screen.name}.png` }).catch(() => {});
   } finally {
@@ -124,12 +141,24 @@ async function visitScreen(page, screen) {
         }
       }, "閉じる");
     } catch (error) {
-      failures.push({ screen: `${screen.name}（閉じる）`, message: String(error.message ?? error).split("\n")[0] });
+      failures.push({ screen: `${screen.name}（閉じる）`, message: firstLineOf(error) });
     }
-    // Escape で閉じないダイアログが残っていたら、背景を押して閉じる（次の画面の操作を塞がないように）。
-    if (await page.locator(".dialog-backdrop").count()) {
-      await page.mouse.click(4, 4).catch(() => {});
+    if (failures.length > failuresBefore) {
+      await returnToSavedState(page).catch((error) => {
+        failures.push({ screen: `${screen.name}（読み込み直し）`, message: firstLineOf(error) });
+      });
+    } else {
+      await clearLeftoverDialog(page);
     }
+  }
+}
+
+// 閉じたダイアログの消える動きの写しが消えるのを待ち（写しがある間は、次の画面のショートカットが効かない）、
+// Escape で閉じないダイアログが残っていたら、背景を押して閉じる（次の画面の操作を塞がないように）。
+async function clearLeftoverDialog(page) {
+  await waitForLeavingCopies(page);
+  if (await page.locator(".dialog-backdrop").count()) {
+    await page.mouse.click(4, 4).catch(() => {});
   }
 }
 
@@ -144,9 +173,14 @@ async function newAuditPage(viewport) {
 }
 
 const screenInput = { baseUrl: BASE_URL, passphrase: PASSPHRASE, themeName: THEME_NAME, fillSampleWorkspace, phoneViewport: PHONE_VIEWPORT };
-// 1 回の流し方は、新しいページ（空のブラウザの保存先）ごとの画面の一覧の並び。
+// 1 回の流し方は、新しいページ（空のブラウザの保存先）ごとの画面の一覧の並び。prepare は、画面を回る前に 1 度だけ行う準備
+// （画面ごとの時間の上限は当てない）。
 const runs = DATA === "worst"
-  ? [{ viewport: DESKTOP_VIEWPORT, screens: [...WORST_CASE_DESKTOP_SCREENS(screenInput), ...WORST_CASE_PHONE_SCREENS(screenInput)] }]
+  ? [{
+    viewport: DESKTOP_VIEWPORT,
+    prepare: (page) => prepareWorstCaseWorkspace(page, screenInput),
+    screens: [...WORST_CASE_DESKTOP_SCREENS(), ...WORST_CASE_PHONE_SCREENS(screenInput)],
+  }]
   : [
     { name: "desktop", viewport: DESKTOP_VIEWPORT, screens: [...DESKTOP_SCREENS(screenInput), ...ENGLISH_SCREENS(screenInput)] },
     { name: "sync", viewport: DESKTOP_VIEWPORT, screens: SYNC_SCREENS(screenInput) },
@@ -154,6 +188,10 @@ const runs = DATA === "worst"
   ].filter((run) => RUNS.has(run.name));
 for (const run of runs) {
   const page = await newAuditPage(run.viewport);
+  if (run.prepare) {
+    // 準備が失敗しても、どの画面が開けないかを報告に残すため、画面は回る。
+    await run.prepare(page).catch((error) => failures.push({ screen: "（準備）", message: firstLineOf(error) }));
+  }
   for (const screen of run.screens) {
     await visitScreen(page, screen);
   }

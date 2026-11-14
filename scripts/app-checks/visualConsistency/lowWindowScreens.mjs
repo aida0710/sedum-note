@@ -1,6 +1,7 @@
 // 低い窓で、メニューと候補が窓の中に収まるか（項目の多いメモの「…」、いちばん下の行のメニュー、本文の下の端の「/」）。
 // 窓の高さだけを LOW_WINDOW_HEIGHT にして開き、閉じたら元の大きさに戻す。はみ出しは measureContainerFit.mjs が数える。
 
+import { translate } from "../appMessages.mjs";
 import { closeSlashMenu, openBlockMenu, openEditorMoreMenu, openSidebarNoteMenu, openSlashMenu } from "./appOperations.mjs";
 
 // ノートパソコンでブラウザの窓を半分にしたときの高さの目安（2026-11-13 の点検で、メモの「…」の 18 項目が収まらなかった高さ）。
@@ -48,7 +49,7 @@ export function LOW_WINDOW_SCREENS({ openNote }) {
     },
     { name: "sidebar-note-menu", open: (page) => openSidebarNoteMenu(page, "沖縄旅行の持ち物") },
     { name: "slash-menu-at-end", open: async (page) => { await openNote(page); await openSlashMenu(page); }, close: closeSlashMenu },
-    { name: "tab-list", open: async (page) => { await page.locator(".tabs-bar").getByRole("button", { name: "開いているタブの一覧" }).click(); await page.getByRole("menu").waitFor(); } },
+    { name: "tab-list", open: async (page) => { await page.locator(".tabs-bar").getByRole("button", { name: translate("tabs.list") }).click(); await page.getByRole("menu").waitFor(); } },
     {
       name: "block-menu-near-bottom",
       open: async (page) => {

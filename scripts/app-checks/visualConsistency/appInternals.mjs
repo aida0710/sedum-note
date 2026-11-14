@@ -25,24 +25,17 @@ export async function navigate(page, method, ...args) {
 
 // アプリが読み込んだのと同じ yjs のモジュールで、メモの本文の末尾に段落を足す関数を window.__visualAuditSeed に置く。
 // repository.createNote は題などの項目だけを作るので、一覧の要約に出る本文はこれで入れる。
+// 段落を足すのは試験の道具（src/core/notes/bodyFixtures.ts）。開発サーバーは、src のモジュールの "yjs" を、アプリと同じ
+// 読み込み先（node_modules/.vite/deps の同じ版）に書き換えて返すので、別の yjs を読み込んで本文の型が食い違うことがない。
 export async function exposeParagraphWriter(page) {
   await exposeApp(page);
   await page.evaluate(async () => {
-    const yjsUrl = performance.getEntriesByType("resource").map((entry) => entry.name).find((name) => /\/deps\/yjs\.js/.test(name));
-    if (!yjsUrl) throw new Error("アプリが読み込んだ yjs のモジュールが見つかりません");
-    const Y = await import(yjsUrl);
+    const { appendParagraph } = await import(`${location.origin}/src/core/notes/bodyFixtures.ts`);
     window.__visualAuditSeed = {
       addParagraphs(noteId, texts) {
         const note = window.__visualAudit.repository.note(noteId);
         note.body.doc.transact(() => {
-          const paragraphs = texts.map((text) => {
-            const paragraph = new Y.XmlElement("paragraph");
-            const content = new Y.XmlText();
-            content.insert(0, text);
-            paragraph.insert(0, [content]);
-            return paragraph;
-          });
-          note.body.insert(note.body.length, paragraphs);
+          for (const text of texts) appendParagraph(note.body, text);
         });
       },
     };

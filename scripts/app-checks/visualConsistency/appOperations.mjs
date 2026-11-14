@@ -1,5 +1,8 @@
 // 見た目を測る画面まで、アプリを動かす操作。auditScreens.mjs とほかの画面の一覧が共有する。
-// 文言で探す操作は、日本語の画面を前提にする（英語の画面は auditScreens.mjs の ENGLISH_SCREENS が文言を使わずに開く）。
+// 文言で探す操作は、日本語の画面を前提にし、文言はアプリのキーで引く（appMessages.mjs）。英語の画面は、auditScreens.mjs の
+// ENGLISH_SCREENS が文言を使わずに開く。
+
+import { translate, translateToEnglish } from "../appMessages.mjs";
 
 export const SETTINGS_SCROLL_STEPS = 12;
 
@@ -27,12 +30,15 @@ export async function captureWhileScrolling(page, captureScreen, { name, scrollC
   await container.evaluate((element) => { element.scrollTop = 0; });
 }
 
-// 左下の歯車から設定を開き、ページを選ぶ（ページの名前は左の一覧の文言）。
-export async function openSettingsOnDesktop(page, pageName) {
-  await page.locator(".sidebar-footer").getByRole("button", { name: /^(設定|Settings)$/ }).click();
+// 左下の歯車の名前。英語の画面（ENGLISH_SCREENS）からも開くので、両方の言語の名前に当てる。
+const SETTINGS_BUTTON_NAMES = [translate("settings.title"), translateToEnglish("settings.title")];
+
+// 左下の歯車から設定を開き、ページを選ぶ。settingsPage は設定のページの ID（settings.page.<ID> の文言の、general・ai など）。
+export async function openSettingsOnDesktop(page, settingsPage) {
+  await page.locator(".sidebar-footer").getByRole("button", { name: new RegExp(`^(${SETTINGS_BUTTON_NAMES.join("|")})$`) }).click();
   await page.locator(".settings").waitFor();
-  if (pageName) {
-    await page.locator(".settings-navigation").getByRole("button", { name: pageName, exact: true }).click();
+  if (settingsPage) {
+    await page.locator(".settings-navigation").getByRole("button", { name: translate(`settings.page.${settingsPage}`), exact: true }).click();
   }
 }
 
@@ -45,8 +51,9 @@ export async function captureEverySettingsPage(page, captureScreen, name) {
   }
 }
 
+// themeName は画面に出るテーマの名前（THEME=ダーク のように、流す人が渡す）。
 export async function chooseTheme(page, themeName) {
-  await openSettingsOnDesktop(page, "外観");
+  await openSettingsOnDesktop(page, "appearance");
   await page.getByRole("radio", { name: themeName, exact: true }).click();
 }
 
@@ -100,7 +107,7 @@ export async function insertBySlash(page, filter) {
 
 export async function openEditorMoreMenu(page) {
   // PC ではツールバーの右端、スマホでは画面の上の列にある。
-  await page.locator(".editor-bar, .phone-top").getByRole("button", { name: "その他の操作" }).first().click();
+  await page.locator(".editor-bar, .phone-top").getByRole("button", { name: translate("editor.more") }).first().click();
   await page.getByRole("menu").waitFor();
 }
 
@@ -108,7 +115,7 @@ export async function openNotebookMenu(page, notebookName) {
   const row = page.locator(".nav-row", { has: page.locator(".nav-label", { hasText: notebookName }) }).first();
   await row.scrollIntoViewIfNeeded();
   await row.hover();
-  await row.getByRole("button", { name: "その他の操作" }).click();
+  await row.getByRole("button", { name: translate("editor.more") }).click();
   await page.getByRole("menu").waitFor();
 }
 
@@ -119,6 +126,12 @@ export async function openSidebarNoteMenu(page, title) {
   await row.hover();
   await row.locator(".row-actions button").click();
   await page.getByRole("menu").waitFor();
+}
+
+// 閉じたダイアログと知らせは、消える動きの間だけ、見た目の写し（.leaving、src/ui/shared/exitAnimation.ts）を残す。写しの中の
+// ダイアログがある間はアプリのショートカットが効かないので、閉じたあとにショートカットを押すときは、写しが消えるのを待つ。
+export async function waitForLeavingCopies(page) {
+  await page.waitForFunction(() => document.querySelector(".leaving") === null);
 }
 
 export async function unlock(page, passphrase) {

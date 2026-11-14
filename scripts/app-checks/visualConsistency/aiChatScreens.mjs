@@ -1,6 +1,7 @@
 // AI を有効にしたあとの画面（モデルの一覧を取ったあとの設定、会話、「@」の候補、承認のカードと差分、残した会話）。
 // Claude の API は外へ出さず、page.route で決まった答えを返す（モデルの一覧、要約の答え、本文の差し替えのツールの呼び出し）。
 
+import { messagePattern, translate } from "../appMessages.mjs";
 import { openSettingsOnDesktop } from "./appOperations.mjs";
 
 const CLAUDE_API = "https://api.anthropic.com/v1";
@@ -45,8 +46,8 @@ async function routeFakeClaude(page) {
   });
 }
 
-const chatRegion = (page) => page.getByRole("region", { name: "AIチャット" });
-const chatInput = (page) => chatRegion(page).getByRole("textbox", { name: "AIへのメッセージ" });
+const chatRegion = (page) => page.getByRole("region", { name: translate("ai.chat") });
+const chatInput = (page) => chatRegion(page).getByRole("textbox", { name: translate("ai.chatInput") });
 
 // openNote は、会話の相手にするメモを開く関数（auditScreens.mjs の見た目の確認のメモ）。
 export function AI_CHAT_SCREENS({ openNote }) {
@@ -55,13 +56,13 @@ export function AI_CHAT_SCREENS({ openNote }) {
       name: "settings-ai-models-loaded",
       open: async (page) => {
         await routeFakeClaude(page);
-        await openSettingsOnDesktop(page, "AI");
-        await page.getByRole("checkbox", { name: "AIチャットを使う" }).check();
-        // 前の画面で選んだつなぎ先（OpenAI 互換）から、Claude に戻す。
-        await page.getByLabel("接続先").selectOption({ index: 0 });
-        await page.getByLabel("APIキー").fill("visual-audit-not-a-key");
-        await page.getByRole("button", { name: "保存して接続を確認" }).click();
-        await page.getByRole("status").filter({ hasText: "接続できました" }).waitFor();
+        await openSettingsOnDesktop(page, "ai");
+        await page.getByRole("switch", { name: translate("ai.enable") }).check();
+        // 前の画面で選んだ接続先（OpenAI 互換）から、Claude に戻す。
+        await page.getByLabel(translate("ai.provider")).selectOption({ index: 0 });
+        await page.getByLabel(translate("ai.apiKey")).fill("visual-audit-not-a-key");
+        await page.getByRole("button", { name: translate("ai.verifyAndSave") }).click();
+        await page.getByRole("status").filter({ hasText: messagePattern("ai.verified") }).waitFor();
       },
     },
     {
@@ -69,7 +70,7 @@ export function AI_CHAT_SCREENS({ openNote }) {
       open: async (page) => {
         await openNote(page);
         await page.keyboard.press("Control+Alt+A");
-        await chatRegion(page).getByRole("button", { name: "要約する" }).click();
+        await chatRegion(page).getByRole("button", { name: translate("ai.task.summarize") }).click();
         await page.locator(".ai-message.assistant").first().waitFor();
         await page.waitForTimeout(ANSWER_SETTLE_MILLISECONDS);
       },
@@ -88,7 +89,7 @@ export function AI_CHAT_SCREENS({ openNote }) {
       open: async (page) => {
         await chatInput(page).fill("誤字を直して、最後に 1 行足して");
         await page.keyboard.press("Enter");
-        await chatRegion(page).getByRole("group", { name: "承認を待っている操作" }).waitFor();
+        await chatRegion(page).getByRole("group", { name: translate("ai.approval.label") }).waitFor();
         await page.waitForTimeout(ANSWER_SETTLE_MILLISECONDS);
       },
       close: async () => {},
@@ -96,10 +97,10 @@ export function AI_CHAT_SCREENS({ openNote }) {
     {
       name: "ai-chat-saved-chats",
       open: async (page) => {
-        const stop = chatRegion(page).getByRole("button", { name: /停止/ });
+        const stop = chatRegion(page).getByRole("button", { name: translate("ai.stop") });
         if (await stop.count()) await stop.first().click();
-        await chatRegion(page).getByRole("button", { name: "新しいチャット" }).click();
-        await chatRegion(page).getByRole("button", { name: "チャット履歴" }).click();
+        await chatRegion(page).getByRole("button", { name: translate("ai.newChat") }).click();
+        await chatRegion(page).getByRole("button", { name: translate("ai.history") }).click();
       },
       close: async (page) => { await page.keyboard.press("Control+Alt+A"); },
     },

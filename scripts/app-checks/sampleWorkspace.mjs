@@ -2,6 +2,7 @@
 //
 // 前提: `npx vite --host 127.0.0.1 --port 5173`（別のポートなら、そのアドレスを baseUrl に渡す）。同期は使わない。
 
+import { translate } from "./appMessages.mjs";
 import { PASSPHRASE } from "./checkDevices.mjs";
 
 // 試作に出てくるノートブックとメモ。本文の「#」はタグになる。
@@ -16,22 +17,22 @@ const NOTES = [
 
 export async function fillSampleWorkspace(page, baseUrl = "http://127.0.0.1:5173/") {
   await page.goto(baseUrl);
-  await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
-  await page.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
-  await page.getByRole("button", { name: "作成" }).click();
+  await page.getByLabel(translate("setup.passphrase"), { exact: true }).fill(PASSPHRASE);
+  await page.getByLabel(translate("setup.passphraseConfirm")).fill(PASSPHRASE);
+  await page.getByRole("button", { name: translate("setup.submitNew") }).click();
   for (const name of NOTEBOOKS) {
-    await page.getByRole("button", { name: "ノートブックを追加" }).click();
-    await page.getByPlaceholder("ノートブックの名前").fill(name);
-    await page.getByPlaceholder("ノートブックの名前").press("Enter");
+    await page.getByRole("button", { name: translate("sidebar.newNotebook") }).click();
+    await page.getByPlaceholder(translate("sidebar.newNotebookPlaceholder")).fill(name);
+    await page.getByPlaceholder(translate("sidebar.newNotebookPlaceholder")).press("Enter");
   }
   for (const note of NOTES) {
     await page.getByRole("button", { name: new RegExp(`^${note.notebook}`) }).first().click();
     const tabsBefore = await page.getByRole("tab").count();
-    await page.getByRole("button", { name: "新しいメモ" }).click();
+    await page.getByRole("button", { name: translate("sidebar.newNote") }).click();
     // 新しいメモのタブが開いてから打つ。早すぎると、前のメモのタイトル欄に入る。
     await page.waitForFunction((count) => document.querySelectorAll('[role="tab"]').length > count, tabsBefore);
-    await page.getByPlaceholder("タイトル").fill(note.title);
-    await page.getByPlaceholder("タイトル").press("Enter");
+    await page.getByPlaceholder(translate("editor.titlePlaceholder")).fill(note.title);
+    await page.getByPlaceholder(translate("editor.titlePlaceholder")).press("Enter");
     await page.keyboard.type(note.body);
     await page.waitForTimeout(700);
   }

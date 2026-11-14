@@ -2,6 +2,7 @@
 // PC の一覧のあと、同じページを窓の大きさだけスマホにして、スマホの一覧を回る（データを入れ直さない）。
 // 1 つの画面は auditScreens.mjs と同じ形 { name, open(page, { captureScreen }), close?(page), capturesItself? }。
 
+import { translate } from "../appMessages.mjs";
 import { exposeApp, navigate } from "./appInternals.mjs";
 import { openEditorMoreMenu, placeCursorAtEnd, unlock } from "./appOperations.mjs";
 import { WORST_CASE_TEXT, fillWorstCaseWorkspace } from "./worstCaseWorkspace.mjs";
@@ -32,19 +33,24 @@ async function reloadAndUnlock(page, baseUrl, passphrase) {
   await unlock(page, passphrase);
 }
 
-export function WORST_CASE_DESKTOP_SCREENS({ baseUrl, passphrase }) {
+// 新しい vault を作って最悪のデータを入れ、読み込み直してロックを解除する。数百件を書くので、画面ごとの時間の上限の外
+// （流し方の準備。auditVisualConsistency.mjs の prepare）で行う。
+export async function prepareWorstCaseWorkspace(page, { baseUrl, passphrase }) {
+  await page.goto(baseUrl);
+  await page.getByLabel(translate("setup.passphrase"), { exact: true }).fill(passphrase);
+  await page.getByLabel(translate("setup.passphraseConfirm")).fill(passphrase);
+  await page.getByRole("button", { name: translate("setup.submitNew") }).click();
+  await page.locator(".workspace").waitFor();
+  seeded.ids = await fillWorstCaseWorkspace(page);
+  await reloadAndUnlock(page, baseUrl, passphrase);
+}
+
+export function WORST_CASE_DESKTOP_SCREENS() {
   return [
     {
       name: "worst-sidebar",
       capturesItself: true,
       open: async (page, { captureScreen }) => {
-        await page.goto(baseUrl);
-        await page.getByLabel("パスフレーズ", { exact: true }).fill(passphrase);
-        await page.getByLabel("パスフレーズ（確認）").fill(passphrase);
-        await page.getByRole("button", { name: "作成" }).click();
-        await page.locator(".workspace").waitFor();
-        seeded.ids = await fillWorstCaseWorkspace(page);
-        await reloadAndUnlock(page, baseUrl, passphrase);
         await captureScreen("worst-sidebar-top");
         await scrollTo(page, ".sidebar-scroll", "end");
         await captureScreen("worst-sidebar-bottom");
@@ -104,13 +110,13 @@ export function WORST_CASE_DESKTOP_SCREENS({ baseUrl, passphrase }) {
       open: async (page, { captureScreen }) => {
         await openNote(page, seeded.ids.notes.headings);
         if (!(await page.locator(".outline").count())) {
-          await page.locator(".editor-bar").getByRole("button", { name: "目次" }).click();
+          await page.locator(".editor-bar").getByRole("button", { name: translate("editor.outline") }).click();
         }
         await captureScreen("worst-outline-80-top");
         await scrollTo(page, ".outline", "end");
         await captureScreen("worst-outline-80-end");
       },
-      close: async (page) => { await page.locator(".editor-bar").getByRole("button", { name: "目次" }).click(); },
+      close: async (page) => { await page.locator(".editor-bar").getByRole("button", { name: translate("editor.outline") }).click(); },
     },
     {
       name: "worst-database-12-properties",
@@ -119,7 +125,7 @@ export function WORST_CASE_DESKTOP_SCREENS({ baseUrl, passphrase }) {
         await navigate(page, "openTab", `database:${seeded.ids.propertyNotebook}`);
         await page.locator(".database-view").waitFor();
         await captureScreen("worst-database-table");
-        await page.getByRole("radio", { name: "ボード" }).click();
+        await page.getByRole("radio", { name: translate("database.layout.board") }).click();
         await captureScreen("worst-database-board");
       },
     },
@@ -127,15 +133,15 @@ export function WORST_CASE_DESKTOP_SCREENS({ baseUrl, passphrase }) {
       name: "worst-search-300",
       capturesItself: true,
       open: async (page, { captureScreen }) => {
-        await page.locator(".sidebar").getByRole("button", { name: "検索", exact: true }).click();
-        await page.getByPlaceholder("メモを検索").fill("検索テスト");
+        await page.locator(".sidebar").getByRole("button", { name: translate("sidebar.search"), exact: true }).click();
+        await page.getByPlaceholder(translate("sidebar.searchPlaceholder")).fill("検索テスト");
         await captureScreen("worst-search-300");
-        await page.getByPlaceholder("メモを検索").fill("該当なしの言葉qqq");
+        await page.getByPlaceholder(translate("sidebar.searchPlaceholder")).fill("該当なしの言葉qqq");
         await captureScreen("worst-search-0");
       },
       close: async (page) => {
-        await page.getByPlaceholder("メモを検索").fill("");
-        await page.locator(".sidebar").getByRole("button", { name: "検索", exact: true }).click();
+        await page.getByPlaceholder(translate("sidebar.searchPlaceholder")).fill("");
+        await page.locator(".sidebar").getByRole("button", { name: translate("sidebar.search"), exact: true }).click();
       },
     },
     {
@@ -153,15 +159,15 @@ export function WORST_CASE_DESKTOP_SCREENS({ baseUrl, passphrase }) {
     },
     {
       name: "worst-trash-200",
-      open: async (page) => { await page.locator(".sidebar .nav", { hasText: "ゴミ箱" }).first().click(); },
-      close: async (page) => { await page.locator(".sidebar .nav", { hasText: "ゴミ箱" }).first().click(); },
+      open: async (page) => { await page.locator(".sidebar .nav", { hasText: translate("sidebar.trash") }).first().click(); },
+      close: async (page) => { await page.locator(".sidebar .nav", { hasText: translate("sidebar.trash") }).first().click(); },
     },
     {
       name: "worst-choose-notebooks-80",
       open: async (page) => {
         await openNote(page, seeded.ids.notes.properties);
         await openEditorMoreMenu(page);
-        await page.getByRole("menuitem", { name: "ノートブックを選択" }).click();
+        await page.getByRole("menuitem", { name: translate("editor.chooseNotebooks") }).click();
         await page.getByRole("dialog").waitFor();
       },
     },
@@ -186,7 +192,7 @@ export function WORST_CASE_DESKTOP_SCREENS({ baseUrl, passphrase }) {
         await page.keyboard.press("Control+Alt+A");
         const chat = page.locator(".ai-chat");
         await chat.waitFor();
-        await chat.getByRole("button", { name: "チャット履歴" }).click();
+        await chat.getByRole("button", { name: translate("ai.history") }).click();
         await captureScreen("worst-ai-saved-chats");
         await chat.getByText(WORST_CASE_TEXT.longChatTitle.slice(0, 10)).first().click();
         await captureScreen("worst-ai-long-conversation");
@@ -199,18 +205,20 @@ export function WORST_CASE_DESKTOP_SCREENS({ baseUrl, passphrase }) {
         await exposeApp(page);
         const titles = await page.evaluate((count) => window.__visualAudit.repository.notes()
           .filter((note) => note.content.trashedAt === null && note.content.title.startsWith("メモ 4")).slice(0, count).map((note) => note.content.title), TOAST_COUNT);
-        await page.locator(".sidebar .nav", { hasText: "すべてのメモ" }).first().click();
+        await page.locator(".sidebar .nav", { hasText: translate("sidebar.allNotes") }).first().click();
         for (const title of titles) {
           const row = page.locator(".nav-row", { has: page.locator(".tree-note", { hasText: title }) }).first();
           await row.scrollIntoViewIfNeeded();
           await row.hover();
           await row.locator(".row-actions button").click();
-          await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
+          await page.getByRole("menuitem", { name: translate("editor.moveToTrash") }).click();
         }
       },
+      // 閉じた知らせは、消える動きの間だけ操作を受けない写し（.leaving）を残すので、写しのボタンは押さない。
       close: async (page) => {
-        while (await page.locator(".toast button").count()) {
-          await page.locator(".toast button").first().click();
+        const toastButtons = page.locator(".toast:not(.leaving) button");
+        while (await toastButtons.count()) {
+          await toastButtons.first().click();
         }
       },
     },
@@ -226,7 +234,7 @@ export function WORST_CASE_PHONE_SCREENS({ baseUrl, passphrase, phoneViewport })
       await page.keyboard.press("Escape");
     }
     if (await page.getByRole("dialog").count()) {
-      await page.getByRole("dialog").getByRole("button", { name: /閉じる/ }).first().click();
+      await page.getByRole("dialog").getByRole("button", { name: translate("common.close") }).first().click();
     }
     await page.getByRole("dialog").waitFor({ state: "detached" });
     while (await page.locator(".phone-back").count()) {
@@ -268,7 +276,7 @@ export function WORST_CASE_PHONE_SCREENS({ baseUrl, passphrase, phoneViewport })
     },
     {
       name: "worst-phone-trash-200",
-      open: async (page) => { await selectPhoneTab(page, 1); await page.locator(".library-row", { hasText: "ゴミ箱" }).click(); },
+      open: async (page) => { await selectPhoneTab(page, 1); await page.locator(".library-row", { hasText: translate("sidebar.trash") }).click(); },
       close: backToList,
     },
     ...["longTitleJa", "longTitleAscii", "emojiTitle", "manyTags", "wideTable", "longLines", "properties"].map((key) => ({
@@ -281,7 +289,7 @@ export function WORST_CASE_PHONE_SCREENS({ baseUrl, passphrase, phoneViewport })
       open: async (page) => {
         await openPhoneNote(page, "properties");
         await openEditorMoreMenu(page);
-        await page.getByRole("menuitem", { name: "ノートブックを選択" }).click();
+        await page.getByRole("menuitem", { name: translate("editor.chooseNotebooks") }).click();
         await page.getByRole("dialog").waitFor();
       },
       close: backToList,
@@ -291,10 +299,10 @@ export function WORST_CASE_PHONE_SCREENS({ baseUrl, passphrase, phoneViewport })
       open: async (page) => {
         await openPhoneNote(page, "properties");
         await openEditorMoreMenu(page);
-        await page.getByRole("menuitem", { name: "AIチャット" }).click();
+        await page.getByRole("menuitem", { name: translate("ai.assistant") }).click();
         const chat = page.locator(".ai-chat");
         await chat.waitFor();
-        await chat.getByRole("button", { name: "チャット履歴" }).click();
+        await chat.getByRole("button", { name: translate("ai.history") }).click();
         await chat.getByText(WORST_CASE_TEXT.longChatTitle.slice(0, 10)).first().click();
       },
       close: backToList,

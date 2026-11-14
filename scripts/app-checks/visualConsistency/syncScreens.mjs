@@ -2,6 +2,7 @@
 // 試験用の S3（integration/s3-up.sh、127.0.0.1:18333）の新しい prefix を同期先にする。利用者の本物の同期先には向けない。
 // ほかの一覧と違う vault を使うので、runner はこの一覧に新しいページを渡す。
 
+import { translate } from "../appMessages.mjs";
 import { REMOTE_FIELDS, newCheckRemoteConfig } from "../checkDevices.mjs";
 import { captureWhileScrolling, openSettingsOnDesktop } from "./appOperations.mjs";
 
@@ -14,22 +15,22 @@ export function SYNC_SCREENS({ baseUrl, passphrase }) {
       open: async (page) => {
         const remote = await newCheckRemoteConfig();
         await page.goto(baseUrl);
-        await page.getByLabel("パスフレーズ", { exact: true }).fill(passphrase);
-        await page.getByLabel("パスフレーズ（確認）").fill(passphrase);
-        await page.getByLabel("ほかのデバイスと同期する").check();
+        await page.getByLabel(translate("setup.passphrase"), { exact: true }).fill(passphrase);
+        await page.getByLabel(translate("setup.passphraseConfirm")).fill(passphrase);
+        await page.getByLabel(translate("setup.useSync")).check();
         for (const [label, , field] of REMOTE_FIELDS) {
           await page.getByLabel(label).fill(remote[field]);
         }
-        await page.getByRole("button", { name: "接続を確認" }).click();
-        await page.getByRole("status").filter({ hasText: "空の同期先" }).waitFor();
+        await page.getByRole("button", { name: translate("syncTarget.check") }).click();
+        await page.getByRole("status").filter({ hasText: translate("syncTarget.empty") }).waitFor();
       },
       close: async () => {},
     },
     {
       name: "dialog-generated-sync-key",
       open: async (page) => {
-        await page.getByRole("radio", { name: "自動で生成する" }).click();
-        await page.getByRole("button", { name: "作成" }).click();
+        await page.getByRole("radio", { name: translate("syncKey.source.generate") }).click();
+        await page.getByRole("button", { name: translate("setup.submitNew") }).click();
         await page.getByRole("dialog").waitFor();
       },
       // 控えたことを確かめるチェックを入れてから閉じる。
@@ -38,14 +39,14 @@ export function SYNC_SCREENS({ baseUrl, passphrase }) {
         const confirm = dialog.getByRole("checkbox");
         if (await confirm.count()) await confirm.first().check();
         await dialog.getByRole("button").last().click();
-        await page.getByRole("button", { name: "新しいメモ" }).waitFor();
+        await page.getByRole("button", { name: translate("sidebar.newNote") }).waitFor();
       },
     },
     {
       name: "settings-sync-connected",
       capturesItself: true,
       open: async (page, { captureScreen }) => {
-        await openSettingsOnDesktop(page, "同期");
+        await openSettingsOnDesktop(page, "sync");
         await captureWhileScrolling(page, captureScreen, { name: "settings-sync-connected", scrollContainer: ".settings-layout .document-scroll", maxSteps: SYNC_SETTINGS_SCROLL_STEPS });
       },
       close: async () => {},
@@ -53,7 +54,7 @@ export function SYNC_SCREENS({ baseUrl, passphrase }) {
     {
       name: "dialog-sync-setup-export",
       open: async (page) => {
-        await page.getByRole("button", { name: "同期設定をエクスポート" }).click();
+        await page.getByRole("button", { name: translate("syncSetup.export") }).click();
         await page.getByRole("dialog").waitFor();
       },
     },
@@ -61,9 +62,9 @@ export function SYNC_SCREENS({ baseUrl, passphrase }) {
       // 暗号化キーを作り直す欄（自分で入力するキーを選び、パスフレーズを入れたところ）。作り直しはしない。
       name: "settings-sync-key-replace",
       open: async (page) => {
-        await page.getByRole("radio", { name: "自分で入力する" }).click();
-        await page.getByLabel("このデバイスのパスフレーズ").fill(passphrase);
-        await page.getByLabel("このデバイスのパスフレーズ").scrollIntoViewIfNeeded();
+        await page.getByRole("radio", { name: translate("syncKey.source.enter") }).click();
+        await page.getByLabel(translate("settings.syncPassphrase")).fill(passphrase);
+        await page.getByLabel(translate("settings.syncPassphrase")).scrollIntoViewIfNeeded();
       },
     },
   ];

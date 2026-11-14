@@ -53,15 +53,11 @@ export const ROLE_VALUE_EXCEPTIONS = [
   },
   {
     role: "tab", measure: "radius", element: /div\.segmented > button/,
-    reason: "最初の画面の「始める・バックアップから戻す」の切り替え（セグメント）。タブの帯ではなく、枠の中の選択肢（--radius-row）",
+    reason: "最初の画面の「新規設定・バックアップから復元」の切り替え（セグメント）。タブの帯ではなく、枠の中の選択肢（--radius-row）",
   },
   {
     role: "tab", measure: "height", element: /div\.segmented > button/,
-    reason: "最初の画面の「始める・バックアップから戻す」の切り替え（セグメント）。タブの帯とは別の部品",
-  },
-  {
-    role: "button-icon", measure: "radius", element: /button\.note-item/,
-    reason: "スマホの一覧のメモの行。幅いっぱいの行で、区切り線で分ける（角丸は付けない）",
+    reason: "最初の画面の「新規設定・バックアップから復元」の切り替え（セグメント）。タブの帯とは別の部品",
   },
   {
     role: "button-icon", measure: "radius", element: /button\.fab/,
@@ -72,12 +68,8 @@ export const ROLE_VALUE_EXCEPTIONS = [
     reason: "タブの ×。:root の --radius-inline の役割（文の中の印とタブの ×）のとおり",
   },
   {
-    role: "checkbox", measure: "radius", element: /input\.switch/,
-    reason: "設定のオンとオフのトグルスイッチ（利用者が選んだ C-05 の案）。丸い形で、高さ 20px",
-  },
-  {
-    role: "checkbox", measure: "height", element: /input\.switch/,
-    reason: "設定のオンとオフのトグルスイッチ（利用者が選んだ C-05 の案）。34×20px",
+    role: "button-icon", measure: "radius", element: /button\.property-option-remove/,
+    reason: "プロパティの選択肢のチップの ×（20px）。タブの × と同じ、ほかの部品の中に置く小さい × なので --radius-inline",
   },
   {
     role: "menu-item", measure: "height", element: /div\.(slash-menu|table-menu)|slash-menu-group/,
@@ -90,10 +82,6 @@ export const ROLE_VALUE_EXCEPTIONS = [
   {
     role: "tab", measure: "height", element: /div\.tab\.on/,
     reason: "開いているタブは、下の線に 1px 重ねて本文の面とつなげる（margin-bottom: -1px）",
-  },
-  {
-    role: "button-icon", measure: "radius", element: /math-rendered/,
-    reason: "表示した数式（role=button でキーボードから編集に入れる）。ボタンの部品ではなく、本文の中の飾り（--radius-inline）",
   },
 ];
 

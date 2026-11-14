@@ -145,10 +145,11 @@ export function measureScreen() {
   }
 
   // 2b. 横に並んだ操作の部品（ボタン・入力欄・選択欄）の高さ。同じ行で高さが違うと、上下の端がそろわない。
+  // チップ（.chip）の中の名前と「×」は、枠をチップが持ち、中の部品の上下の端は見えないので比べない。
   const rowControls = "button, input:not([type=checkbox]):not([type=radio]):not([type=color]):not([type=range]), select, [role=button]";
   for (const row of [...document.querySelectorAll("body *")].filter((element) => {
     const style = getComputedStyle(element);
-    return (style.display === "flex" || style.display === "inline-flex") && !style.flexDirection.startsWith("column") && isShown(element);
+    return (style.display === "flex" || style.display === "inline-flex") && !style.flexDirection.startsWith("column") && isShown(element) && !element.matches(".chip");
   })) {
     const children = [...row.children].filter((child) => child.matches(rowControls) && isShown(child) && !child.matches(".icon-button, .tool, .tab-close, .chip"));
     if (children.length < 2) continue;
@@ -172,7 +173,8 @@ export function measureScreen() {
     if (!container || container === document.body) continue;
     if (container.getBoundingClientRect().height > SINGLE_LINE_CONTROL_MAX_HEIGHT * 2) continue;
     // 名前と説明の 2 行を出す「/」の候補は、アイコンを 2 行のまとまりの真ん中に置く（利用者が選んだ試作の形）。
-    if (container.matches(".menu-item:has(.slash-menu-description)")) continue;
+    // 題と日時の 2 行を出す AI のチャット履歴の行も、右の削除のボタンを 2 行のまとまりの真ん中に置く。
+    if (container.matches(".menu-item:has(.slash-menu-description), .ai-saved-chat")) continue;
     // 入れ物の中に開いたメニュー（ツールバーから開いた表のメニューなど）の文字は、同じ行の文字ではない。
     const overlays = [...container.querySelectorAll(".menu, [role=menu], [role=dialog]")].filter((overlay) => !overlay.contains(svg));
     const insideOverlay = (element) => overlays.some((overlay) => overlay.contains(element));
@@ -222,6 +224,8 @@ export function measureScreen() {
     if (role === "menu" || role === "listbox") return "menu";
     if (role === "menuitem" || role === "menuitemradio" || role === "menuitemcheckbox" || role === "option") return "menu-item";
     if (role === "tab") return "tab";
+    // 設定のオンとオフのトグルスイッチ（input type=checkbox role=switch）は、チェックボックスとは別の部品として比べる。
+    if (role === "switch") return "switch";
     if (tag === "input" && (element.type === "checkbox" || element.type === "radio")) return element.type;
     if (tag === "input" && (element.type === "range" || element.type === "color" || element.type === "file")) return null;
     if (tag === "input" || tag === "textarea") return "text-field";
@@ -229,7 +233,9 @@ export function measureScreen() {
     if (tag === "button" || role === "button") {
       if (element.classList.contains("primary-button")) return "button-primary";
       if (element.classList.contains("secondary-button")) return "button-secondary";
-      return textLineRects(element).length === 0 ? "button-icon" : "button-text";
+      // 文字の有無は textContent で見る。窓の端で文字だけが外に出ている行や、content-visibility で描画を省いた行（スマホの一覧）を、
+      // アイコンだけのボタンに数えないため。
+      return element.textContent.trim() === "" ? "button-icon" : "button-text";
     }
     const style = getComputedStyle(element);
     const hasBorder = ["Top", "Right", "Bottom", "Left"].some((side) => parseFloat(style[`border${side}Width`]) > 0 && style[`border${side}Style`] !== "none");
