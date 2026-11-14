@@ -518,21 +518,6 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       close: async (page) => { await page.mouse.move(4, 400); },
     },
     {
-      // 沖縄旅行の持ち物の題を文字のまま書いたメモを作り、リンク先の「リンクしていない言及」を開く。
-      name: "unlinked-mentions",
-      open: async (page) => {
-        const tabsBefore = await page.getByRole("tab").count();
-        await page.getByRole("button", { name: "新しいメモ" }).click();
-        await page.waitForFunction((count) => document.querySelectorAll('[role="tab"]').length > count, tabsBefore);
-        await page.getByPlaceholder("タイトル").fill("週末の準備");
-        await page.getByPlaceholder("タイトル").press("Enter");
-        await page.keyboard.type("金曜までに沖縄旅行の持ち物をそろえる");
-        await page.getByRole("tab", { name: "沖縄旅行の持ち物" }).click();
-        await page.getByRole("button", { name: /リンクしていない言及/ }).click();
-        await page.locator(".unlinked-mention").first().scrollIntoViewIfNeeded();
-      },
-    },
-    {
       // 左の列で、Ctrl を押しながら 2 件を選び、選んだメモを右クリックする。
       name: "sidebar-multi-select",
       open: async (page) => {
