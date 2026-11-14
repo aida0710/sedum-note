@@ -52,7 +52,7 @@ try {
   await app.type(await app.find("#setup-passphrase-confirm"), PASSPHRASE);
   await app.click(await app.findByXPath("//button[normalize-space()='作成']"));
   await app.click(await app.waitForXPath("//button[normalize-space()='新しいメモ']", 30_000));
-  await app.type(await app.waitForXPath("//input[@placeholder='タイトル']", 10_000), "買い物");
+  await app.type(await app.waitForXPath("//textarea[@placeholder='タイトル']", 10_000), "買い物");
   await app.type(await app.find(".ProseMirror"), "牛乳");
   await waitUntil("the body of the first window", bodyText, (text) => text === "牛乳");
   const [mainWindow] = await windowHandles();
