@@ -75,7 +75,8 @@ export function SyncStatusLine({ status, onOpenSyncSettings }: { status: SyncSta
   const { autoSync: automatic } = useDevicePreferences();
   const { text, dotClass, failureReason } = describeSyncStatus({ status, now, unsyncedCount, automatic });
   return (
-    <button className="sync-line" title={failureReason === null ? undefined : translate("sync.failureReason", { status: text, reason: failureReason })}
+    // 失敗の理由と、狭い列で切れる件数の文は、title で全文を読めるようにする。
+    <button className="sync-line" title={failureReason === null ? (status?.state === "syncing" ? text : undefined) : translate("sync.failureReason", { status: text, reason: failureReason })}
       onClick={() => onOpenSyncSettings()}>
       {failureReason === null ? <span className={`status-dot ${dotClass}`} /> : <TriangleAlert size={FAILURE_MARK_SIZE} className="sync-failure-mark" />}
       <span className="sync-line-text">{text}</span>

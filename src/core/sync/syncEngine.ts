@@ -29,7 +29,7 @@ export class VaultReplacedError extends Error {
 }
 
 // 同期先から一度に取ってくる記録の数。束ごとに vault.json を読み直すので、読み直しの回数と、取り込む前に手元に持つ
-// 暗号文の量の釣り合いで決めた。送るときも、同じ数ごとに画面へ知らせる。
+// 暗号文の量の釣り合いで決めた。進み具合も、この数ごとに知らせる（1 件ごとに知らせると、そのたびに画面全体を描き直す）。
 const SYNC_BATCH_SIZE = 50;
 
 type FetchedRecord = { id: string; body: Uint8Array; etag: string };
@@ -149,9 +149,8 @@ export class SyncEngine {
     const localEntries = new Map((await localStore.listRecordStates()).map((entry) => [entry.id, entry]));
     const changedIds = [...remoteEtags].filter(([id, etag]) => localEntries.get(id)?.remoteEtag !== etag).map(([id]) => id);
     for (let start = 0; start < changedIds.length; start += SYNC_BATCH_SIZE) {
-      const fetched = await this.#fetchRecords(changedIds.slice(start, start + SYNC_BATCH_SIZE), (fetchedCount) => {
-        reportProgress?.({ direction: "receiving", done: start + fetchedCount, total: changedIds.length });
-      });
+      reportProgress?.({ direction: "receiving", done: start, total: changedIds.length });
+      const fetched = await this.#fetchRecords(changedIds.slice(start, start + SYNC_BATCH_SIZE));
       await this.#ensureRemoteDataFormatSupported();
       // 束の中の記録は、取り込み終えてから画面へ 1 回知らせる（1 件ごとに知らせると、件数の 2 乗の時間がかかる）。
       await repository.holdChangeNotifications(async () => {
@@ -162,6 +161,9 @@ export class SyncEngine {
         }
       });
     }
+    if (changedIds.length > 0) {
+      reportProgress?.({ direction: "receiving", done: changedIds.length, total: changedIds.length });
+    }
     for (const entry of localEntries.values()) {
       if (entry.remoteEtag !== null && !remoteEtags.has(entry.id)) {
         await repository.markMissingRemotely(entry.id);
@@ -170,17 +172,14 @@ export class SyncEngine {
   }
 
   // 同期先の記録を取ってくる（手元へはまだ入れない）。取ってくる間に消えていた記録は飛ばす。
-  // onProgress には、ids のうち取りにいき終えた数を渡す。
-  async #fetchRecords(ids: string[], onProgress?: (fetchedCount: number) => void): Promise<FetchedRecord[]> {
+  async #fetchRecords(ids: string[]): Promise<FetchedRecord[]> {
     const fetched: FetchedRecord[] = [];
-    for (const [index, id] of ids.entries()) {
-      onProgress?.(index);
+    for (const id of ids) {
       const remote = await this.#dependencies.objectStore.get(recordObjectKey(id));
       if (remote !== null) {
         fetched.push({ id, body: remote.body, etag: remote.etag });
       }
     }
-    onProgress?.(ids.length);
     return fetched;
   }
 
@@ -221,14 +220,12 @@ export class SyncEngine {
   async #pushWaitingRecords({ remoteEtags, report, reportProgress }: SyncPassInput): Promise<void> {
     const { repository } = this.#dependencies;
     const waiting = await repository.entriesWaitingForPush();
-    for (let start = 0; start < waiting.length; start += SYNC_BATCH_SIZE) {
-      // 送り終えた印は 1 件ごとに画面へ知らせるので、束ごとにまとめる（1 件ごとだと、件数の 2 乗の時間がかかる）。
-      await repository.holdChangeNotifications(async () => {
-        for (const [index, entry] of waiting.slice(start, start + SYNC_BATCH_SIZE).entries()) {
-          reportProgress?.({ direction: "sending", done: start + index, total: waiting.length });
-          await this.#pushOrMergeAndRetry(entry, { existsRemotely: remoteEtags.has(entry.id), report });
-        }
-      });
+    // 送る間は、画面への知らせを止めない。止めると、通信を待つ間に打った題や作ったメモまで、画面に出るのが遅れる。
+    for (const [index, entry] of waiting.entries()) {
+      if (index % SYNC_BATCH_SIZE === 0) {
+        reportProgress?.({ direction: "sending", done: index, total: waiting.length });
+      }
+      await this.#pushOrMergeAndRetry(entry, { existsRemotely: remoteEtags.has(entry.id), report });
     }
     if (waiting.length > 0) {
       reportProgress?.({ direction: "sending", done: waiting.length, total: waiting.length });

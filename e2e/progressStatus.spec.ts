@@ -32,7 +32,7 @@ test("ほかのデバイスのメモを受け取る間、左下の同期の状�
   const phone = await (await browser.newContext({ viewport: DESKTOP_VIEWPORT })).newPage();
   const releaseRecords = holdObjectGets(phone, "records");
   await startSyncedVault(phone, { remoteConfig, join: true });
-  await expect(phone.locator(".sync-line")).toHaveText("同期しています（受信 0/3件）");
+  await expect(phone.locator(".sync-line")).toHaveText("0/3件を受信中");
   releaseRecords();
   await expect(phone.locator(".sync-line")).toContainText("同期済み");
   await expect(phone.locator("button.tree-note")).toHaveCount(3);
