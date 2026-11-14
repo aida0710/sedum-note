@@ -69,6 +69,22 @@ test("PC の広い画面では、選択欄とチェックを名前の右に並�
   }
 });
 
+test("設定のオンとオフはスイッチで、押すとその場で設定が変わり、つまみが右へ動く", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "設定", exact: true }).click();
+  const typewriterMode = page.getByRole("switch", { name: "打っている行を中央に保つ（タイプライターモード）" });
+  await expect(typewriterMode).not.toBeChecked();
+  await expect(typewriterMode).toHaveCSS("width", "34px");
+  const knobLeft = () => typewriterMode.evaluate((input) => getComputedStyle(input, "::before").left);
+  expect(await knobLeft()).toBe("2px");
+
+  await typewriterMode.click();
+  await expect(typewriterMode).toBeChecked();
+  expect(await knobLeft()).toBe("16px");
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("sedum-note:devicePreferences") ?? "{}").typewriterMode);
+  expect(stored).toBe(true);
+});
+
 test("スマホでは、選択欄を今までどおり名前の下に出し、チェックの印は名前の左に置く。スマホに無い「本文の配置」の既定は出さない", async ({ browser }) => {
   const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
   await startLocalVault(page);

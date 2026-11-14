@@ -29,11 +29,12 @@ type SettingCheckboxRowProps = Omit<SettingRowProps, "children"> & {
   onChange: (checked: boolean) => void;
 };
 
-// 設定のオンとオフ。操作の前の確かめのチェック（「〜を確かめました」）は、設定ではないので、これを使わない。
+// 設定のオンとオフ。押した時点で効くので、スイッチの形にする（読み上げも「スイッチ」）。
+// 操作の前の確かめのチェック（「〜を確かめました」）は、設定ではないので、これを使わない。
 export function SettingCheckboxRow({ checked, disabled, onChange, ...row }: SettingCheckboxRowProps) {
   return (
     <SettingRowLayout {...row} className="setting-row setting-checkbox-row">
-      {(control) => <input type="checkbox" {...control} checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} />}
+      {(control) => <input type="checkbox" role="switch" className="switch" {...control} checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} />}
     </SettingRowLayout>
   );
 }

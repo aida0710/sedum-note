@@ -5,6 +5,8 @@ import { applySystemBarColors } from "../platform/systemBars";
 import type { EditorTypography } from "../preferences/editorTypography";
 import { readableTextColorOn } from "./colorContrast";
 import { raisedSurfaceColor } from "./raisedSurfaceColor";
+
+const SWITCH_KNOB_COLOR = "#ffffff";
 import { THEME_COLOR_NAMES, type Theme, type ThemeColorName, type ThemeColors } from "./themeColors";
 
 // accentSoft → --accent-soft
@@ -18,6 +20,8 @@ export function themeCssVariables(colors: ThemeColors): Record<string, string> {
     "--on-accent": readableTextColorOn(colors.accent),
     "--on-danger": readableTextColorOn(colors.danger),
     "--raised": raisedSurfaceColor(colors),
+    // スイッチ（設定のオンとオフ）のつまみ。どのテーマでも白にして、オンの色の上でもオフの灰色の上でも、つまみと分かるようにする。
+    "--switch-knob": SWITCH_KNOB_COLOR,
   };
   for (const name of THEME_COLOR_NAMES) {
     variables[cssVariableName(name)] = colors[name];

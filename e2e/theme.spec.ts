@@ -87,5 +87,5 @@ test("カスタム CSS は、ロックを解除している間だけ当たり、
   await page.getByRole("button", { name: "解除" }).click();
   await openSettingsPage(page, "外観");
   await expect.poll(headingSpacing).not.toBe("7px");
-  await expect(page.getByRole("checkbox", { name: "カスタム CSS を当てる" })).not.toBeChecked();
+  await expect(page.getByRole("switch", { name: "カスタム CSS を当てる" })).not.toBeChecked();
 });

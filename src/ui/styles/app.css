@@ -6,6 +6,8 @@
   --shadow: rgba(0, 0, 0, .14);
   --shadow-strong: rgba(0, 0, 0, .2);
   --shadow-faint: rgba(0, 0, 0, .08);
+  /* スイッチのつまみの影。白いつまみが、明るいオフの地の上でも浮いて見える濃さ。 */
+  --shadow-knob: rgba(0, 0, 0, .3);
   --overlay: rgba(0, 0, 0, .32);
   /* 押している間の地。マウスを乗せたときの地（--selected）より一段濃い。 */
   --pressed: color-mix(in srgb, var(--selected) 82%, var(--text));
@@ -24,6 +26,8 @@
   --control-height: 32px;         /* フォームのボタン、入力欄、選択欄（設定、ダイアログ、検索のバー） */
   --control-height-compact: 28px; /* 本文の中の入力欄（プロパティの値、クエリの条件、脚注、表のセル）と、アイコンのボタン */
   --checkbox-size: 16px;          /* チェックボックスとラジオボタン */
+  --switch-width: 34px;           /* 設定のオンとオフのスイッチ（つまみは高さから上下 2px ずつ引いた丸） */
+  --switch-height: 20px;
   /* チェックボックス・ラジオボタン・つまみは、どのテーマでもテーマの色で描く（決めないと、ブラウザの既定の青になる）。 */
   accent-color: var(--accent);
   /* 画面の部品の文字の大きさは、次の 6 つにする（本文は表示の設定の --editor-font-size）。スマホでは .phone が一部を大きくする。 */
@@ -923,6 +927,14 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 /* ラベルが 2 行に折れても、チェックは 1 行目の高さに置く。 */
 .checkbox-line { display: flex; gap: 8px; align-items: flex-start; line-height: 1.5; }
 .checkbox-line input { margin-top: calc((1.5em - var(--checkbox-size)) / 2); }
+/* 設定のオンとオフ（SettingCheckboxRow とプラグインの「有効」）。押した時点で効く設定なので、チェックボックスではなくスイッチの形にする。
+   チェックリストや、操作の前に確かめるためのチェックは、チェックボックスのまま。 */
+input[type="checkbox"].switch { appearance: none; width: var(--switch-width); height: var(--switch-height); margin: 0; border-radius: 999px; background: color-mix(in srgb, var(--text) 24%, var(--panel)); position: relative; cursor: pointer; flex: none; }
+input[type="checkbox"].switch::before { content: ""; position: absolute; top: 2px; left: 2px; width: calc(var(--switch-height) - 4px); height: calc(var(--switch-height) - 4px); border-radius: 50%; background: var(--switch-knob); box-shadow: 0 1px 2px var(--shadow-knob); }
+input[type="checkbox"].switch:checked { background: var(--accent); }
+input[type="checkbox"].switch:checked::before { left: calc(var(--switch-width) - var(--switch-height) + 2px); }
+input[type="checkbox"].switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type="checkbox"].switch:disabled { cursor: default; opacity: .55; }
 .form-error { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); border-radius: var(--radius-control); padding: 8px 10px; line-height: 1.5; }
 .form-success { color: var(--ok); }
 .form-notice { background: var(--accent-soft); border-radius: var(--radius-control); padding: 8px 10px; line-height: 1.5; }

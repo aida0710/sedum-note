@@ -24,7 +24,7 @@ function lastToolResults(body: ChatRequestBody): Array<Record<string, unknown>> 
 
 async function enableAi(page: Page): Promise<void> {
   await openSettingsPage(page, "AI");
-  await page.getByRole("checkbox", { name: "アプリ内の AI を使う" }).check();
+  await page.getByRole("switch", { name: "アプリ内の AI を使う" }).check();
 }
 
 // 「保存して確かめる」でモデルの一覧を取ってきてから、メモに戻ってチャットを開く。
@@ -142,7 +142,7 @@ test("AI チャットは、設定で有効にするまで使えない。案内�
   await expect(chat(page).getByRole("textbox")).toHaveCount(0);
 
   await chat(page).getByRole("button", { name: "AI の設定を開く" }).click();
-  await page.getByRole("checkbox", { name: "アプリ内の AI を使う" }).check();
+  await page.getByRole("switch", { name: "アプリ内の AI を使う" }).check();
   await expect(chat(page).getByRole("textbox")).toBeVisible();
 });
 
@@ -158,10 +158,10 @@ test("スマホでも、AI チャットの案内のボタンでメモを閉じ�
   expect(dialogHeight).toBeLessThan(PHONE_VIEWPORT.height / 2);
   await chat(page).getByRole("button", { name: "AI の設定を開く" }).click();
 
-  await expect(page.getByRole("checkbox", { name: "アプリ内の AI を使う" })).toBeVisible();
+  await expect(page.getByRole("switch", { name: "アプリ内の AI を使う" })).toBeVisible();
   await expect(page.getByPlaceholder("タイトル")).toHaveCount(0);
   await page.goBack();
-  await expect(page.getByRole("checkbox", { name: "アプリ内の AI を使う" })).toHaveCount(0);
+  await expect(page.getByRole("switch", { name: "アプリ内の AI を使う" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "AI", exact: true })).toBeVisible();
 });
 
@@ -326,7 +326,7 @@ test("OpenAI 互換のエンドポイントをつなぎ先にして答えても�
   await input.fill("三度目");
   await page.keyboard.press("Enter");
   await chat(page).getByRole("button", { name: "AI の設定を開く" }).click();
-  await expect(page.getByRole("checkbox", { name: "アプリ内の AI を使う" })).toBeVisible();
+  await expect(page.getByRole("switch", { name: "アプリ内の AI を使う" })).toBeVisible();
 });
 
 test("AI チャットを開くと入力欄にフォーカスが入り、Esc で閉じる。書きかけの発言は、閉じて開き直しても残る", async ({ page }) => {

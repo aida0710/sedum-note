@@ -114,7 +114,7 @@ export function PluginsSection() {
               {upToDateId === plugin.manifest.id && <p className="form-success" role="status">{translate("plugin.upToDate")}</p>}
             </div>
             <label className="checkbox-line">
-              <input type="checkbox" checked={plugin.enabled} onChange={(event) => void setPluginEnabled(plugin.manifest.id, event.target.checked)} />
+              <input type="checkbox" role="switch" className="switch" checked={plugin.enabled} onChange={(event) => void setPluginEnabled(plugin.manifest.id, event.target.checked)} />
               {translate("plugin.enabled")}
             </label>
             <button type="button" className="secondary-button" disabled={checkForUpdate.busy} onClick={() => void checkForUpdate.run(plugin)}>{translate("plugin.checkForUpdate")}</button>
