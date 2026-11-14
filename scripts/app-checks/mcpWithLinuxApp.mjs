@@ -60,7 +60,7 @@ try {
   // MCP の欄は、設定の AI のページにある。
   await app.click(await app.waitForXPath("//button[@aria-label='設定']", 60_000));
   await app.click(await app.waitForXPath("//nav[@aria-label='設定のページ']//button[normalize-space(.)='AI']", 30_000));
-  await app.click(await app.waitForXPath("//label[contains(., 'MCP の窓口を開く')]/input", 30_000));
+  await app.click(await app.waitForXPath("//label[contains(., 'MCPサーバーを起動する')]/input", 30_000));
   await clickButton("トークンを表示");
   await pause(1_000);
   let token = /Bearer ([0-9a-f]{64})/.exec(await execute(`return document.querySelector(".settings").innerText`))?.[1];
@@ -98,11 +98,11 @@ try {
   expect((await callTool("restore_note_from_trash", { noteId: created.noteId })).inTrash === false, "and restored");
 
   // 有効のまま設定を変えても、窓口が開き直る。
-  await app.click(await app.waitForXPath("//label[contains(., '完全な削除も許す')]/input", 10_000));
+  await app.click(await app.waitForXPath("//label[contains(., '完全な削除も許可する')]/input", 10_000));
   await pause(1_500);
   const toolsAfterAllowing = (await post("tools/list", {}, { token })).message.result.tools.map((tool) => tool.name);
   expect(toolsAfterAllowing.includes("delete_note_permanently"), "after allowing permanent deletion, the endpoint reopens with that tool");
-  await clickButton("トークンを作り直す");
+  await clickButton("トークンを再生成");
   await pause(1_500);
   const renewedToken = /Bearer ([0-9a-f]{64})/.exec(await execute(`return document.querySelector(".settings").innerText`))?.[1];
   expect(renewedToken !== token && (await post("server/discover", {}, { token })).status === 401, "after renewing the token, the old token is refused");

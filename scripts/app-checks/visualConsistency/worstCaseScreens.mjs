@@ -186,7 +186,7 @@ export function WORST_CASE_DESKTOP_SCREENS({ baseUrl, passphrase }) {
         await page.keyboard.press("Control+Alt+A");
         const chat = page.locator(".ai-chat");
         await chat.waitFor();
-        await chat.getByRole("button", { name: "残した会話" }).click();
+        await chat.getByRole("button", { name: "チャット履歴" }).click();
         await captureScreen("worst-ai-saved-chats");
         await chat.getByText(WORST_CASE_TEXT.longChatTitle.slice(0, 10)).first().click();
         await captureScreen("worst-ai-long-conversation");
@@ -291,10 +291,10 @@ export function WORST_CASE_PHONE_SCREENS({ baseUrl, passphrase, phoneViewport })
       open: async (page) => {
         await openPhoneNote(page, "properties");
         await openEditorMoreMenu(page);
-        await page.getByRole("menuitem", { name: "AI チャット" }).click();
+        await page.getByRole("menuitem", { name: "AIチャット" }).click();
         const chat = page.locator(".ai-chat");
         await chat.waitFor();
-        await chat.getByRole("button", { name: "残した会話" }).click();
+        await chat.getByRole("button", { name: "チャット履歴" }).click();
         await chat.getByText(WORST_CASE_TEXT.longChatTitle.slice(0, 10)).first().click();
       },
       close: backToList,

@@ -257,7 +257,7 @@ test("メニューでは、項目の名前の頭の文字を打つとその項�
   await expect(noteMenuButton(page)).toHaveAttribute("aria-expanded", "true");
   // 「a」を打つと、「AI チャット」へ移る（大文字と小文字は区別しない）。
   await page.keyboard.press("a");
-  await expect(menu.getByRole("menuitem", { name: "AI チャット" })).toBeFocused();
+  await expect(menu.getByRole("menuitem", { name: "AIチャット" })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(noteMenuButton(page)).toHaveAttribute("aria-expanded", "false");
 });

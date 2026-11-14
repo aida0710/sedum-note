@@ -24,13 +24,13 @@ function lastToolResults(body: ChatRequestBody): Array<Record<string, unknown>> 
 
 async function enableAi(page: Page): Promise<void> {
   await openSettingsPage(page, "AI");
-  await page.getByRole("switch", { name: "アプリ内の AI を使う" }).check();
+  await page.getByRole("switch", { name: "AIチャットを使う" }).check();
 }
 
 // 「保存して確かめる」でモデルの一覧を取ってきてから、メモに戻ってチャットを開く。
 async function saveAiSettingsAndOpenChat(page: Page, noteTitle: string): Promise<void> {
   await page.getByRole("button", { name: "保存して接続を確認" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "つなぎ先につながりました" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "接続できました" })).toBeVisible();
   await page.getByRole("tab", { name: noteTitle }).click();
   await page.keyboard.press("Control+Alt+a");
 }
@@ -68,7 +68,7 @@ async function mockClaudeModels(page: Page, authorizedKey = "test-key"): Promise
   });
 }
 
-const chat = (page: Page) => page.getByRole("region", { name: "AI チャット" });
+const chat = (page: Page) => page.getByRole("region", { name: "AIチャット" });
 
 // ツールの呼び出しを含む答え。thinking なら、先に thinking ブロック（中身は空で、署名だけがある）を返す。
 type ToolAnswer = { text: string; toolCalls: Array<{ id: string; name: string; input: object }>; thinking?: boolean };
@@ -137,12 +137,12 @@ test("AI チャットは、設定で有効にするまで使えない。案内�
   await startLocalVault(page);
   await createNoteOnDesktop(page, "買い物");
   await page.getByRole("button", { name: "その他の操作" }).last().click();
-  await page.getByRole("menuitem", { name: "AI チャット" }).click();
-  await expect(chat(page)).toContainText("アプリ内の AI は、まだ有効になっていません");
+  await page.getByRole("menuitem", { name: "AIチャット" }).click();
+  await expect(chat(page)).toContainText("AIチャットはまだオンになっていません");
   await expect(chat(page).getByRole("textbox")).toHaveCount(0);
 
-  await chat(page).getByRole("button", { name: "AI の設定を開く" }).click();
-  await page.getByRole("switch", { name: "アプリ内の AI を使う" }).check();
+  await chat(page).getByRole("button", { name: "AIの設定を開く" }).click();
+  await page.getByRole("switch", { name: "AIチャットを使う" }).check();
   await expect(chat(page).getByRole("textbox")).toBeVisible();
 });
 
@@ -152,16 +152,16 @@ test("スマホでも、AI チャットの案内のボタンでメモを閉じ�
   await page.getByRole("button", { name: "新しいメモ" }).click();
   await page.getByPlaceholder("タイトル").fill("買い物");
   await page.getByRole("button", { name: "その他の操作" }).click();
-  await page.getByRole("menuitem", { name: "AI チャット" }).click();
+  await page.getByRole("menuitem", { name: "AIチャット" }).click();
   // 有効でないうちは案内とボタンだけなので、枠は中身の高さ（画面の高さいっぱいにしない）。
-  const dialogHeight = (await page.getByRole("dialog", { name: "AI チャット" }).boundingBox())!.height;
+  const dialogHeight = (await page.getByRole("dialog", { name: "AIチャット" }).boundingBox())!.height;
   expect(dialogHeight).toBeLessThan(PHONE_VIEWPORT.height / 2);
-  await chat(page).getByRole("button", { name: "AI の設定を開く" }).click();
+  await chat(page).getByRole("button", { name: "AIの設定を開く" }).click();
 
-  await expect(page.getByRole("switch", { name: "アプリ内の AI を使う" })).toBeVisible();
+  await expect(page.getByRole("switch", { name: "AIチャットを使う" })).toBeVisible();
   await expect(page.getByPlaceholder("タイトル")).toHaveCount(0);
   await page.goBack();
-  await expect(page.getByRole("switch", { name: "アプリ内の AI を使う" })).toHaveCount(0);
+  await expect(page.getByRole("switch", { name: "AIチャットを使う" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "AI", exact: true })).toBeVisible();
 });
 
@@ -171,7 +171,7 @@ test("Claude の API をつなぎ先にして会話を続けられ、答えを�
   await createNoteOnDesktop(page, "買い物");
   await page.keyboard.type("牛乳と卵を買って帰る。");
   await enableAi(page);
-  await page.getByLabel("API キー").fill("test-key");
+  await page.getByLabel("APIキー").fill("test-key");
   await saveAiSettingsAndOpenChat(page, "買い物");
 
   await chat(page).getByRole("button", { name: "要約する" }).click();
@@ -184,7 +184,7 @@ test("Claude の API をつなぎ先にして会話を続けられ、答えを�
   expect(sentText(requests[0]!.body.messages[0]!.content)).toContain("牛乳と卵を買って帰る。");
 
   // 続けて聞くと、前のやり取りも一緒に送る。
-  await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("卵は何個？");
+  await chat(page).getByRole("textbox", { name: "AIへのメッセージ" }).fill("卵は何個？");
   await page.keyboard.press("Enter");
   await expect(answers).toHaveText(["- 牛乳を買う\n- 卵を買う", "卵は 6 個入りです。"]);
   expect(requests[1]!.body.messages.map((message) => message.role)).toEqual(["user", "assistant", "user"]);
@@ -209,15 +209,15 @@ test("「@」のあとを日本語で変換している間と、変換を確定�
   await createNoteOnDesktop(page, "りょこうの計画");
   await page.keyboard.type("出発は 8 月 3 日。");
   await enableAi(page);
-  await page.getByLabel("API キー").fill("test-key");
+  await page.getByLabel("APIキー").fill("test-key");
   await saveAiSettingsAndOpenChat(page, "りょこうの計画");
 
-  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
+  const input = chat(page).getByRole("textbox", { name: "AIへのメッセージ" });
   await input.click();
   await page.keyboard.type("@");
   const devTools = await page.context().newCDPSession(page);
   await devTools.send("Input.imeSetComposition", { text: "りょこう", selectionStart: 4, selectionEnd: 4 });
-  const candidates = chat(page).getByRole("listbox", { name: "指定するメモ" });
+  const candidates = chat(page).getByRole("listbox", { name: "メモの候補" });
   await expect(candidates.getByRole("option")).toHaveText(["りょこうの計画"]);
   // 変換を確定する Enter（Chromium は変換中として届ける）。
   await input.evaluate((element) => {
@@ -230,7 +230,7 @@ test("「@」のあとを日本語で変換している間と、変換を確定�
   // 確定したあとの Enter で選ぶ。
   await page.keyboard.press("Enter");
   await expect(input).toHaveValue("");
-  await expect(chat(page).getByLabel("AI に渡す文脈").getByText("りょこうの計画", { exact: true })).toBeVisible();
+  await expect(chat(page).getByLabel("AIに渡すコンテキスト").getByText("りょこうの計画", { exact: true })).toBeVisible();
 });
 
 test("選択した文字と、「@」で指定したメモを、文脈として渡せる。開いているメモは外せる", async ({ page }) => {
@@ -241,7 +241,7 @@ test("選択した文字と、「@」で指定したメモを、文脈として�
   await createNoteOnDesktop(page, "持ち物");
   await page.keyboard.type("パスポートと充電器");
   await enableAi(page);
-  await page.getByLabel("API キー").fill("test-key");
+  await page.getByLabel("APIキー").fill("test-key");
   await saveAiSettingsAndOpenChat(page, "持ち物");
 
   // 開いているメモ（持ち物）の「充電器」を選択する。
@@ -250,13 +250,13 @@ test("選択した文字と、「@」で指定したメモを、文脈として�
   for (let character = 0; character < 3; character += 1) {
     await page.keyboard.press("Shift+ArrowLeft");
   }
-  const context = chat(page).getByLabel("AI に渡す文脈");
-  await expect(context.getByText("選択範囲（3 文字）")).toBeVisible();
+  const context = chat(page).getByLabel("AIに渡すコンテキスト");
+  await expect(context.getByText("選択範囲（3文字）")).toBeVisible();
   await context.getByLabel(/開いているメモ: 持ち物/).uncheck();
 
-  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
+  const input = chat(page).getByRole("textbox", { name: "AIへのメッセージ" });
   await input.fill("@旅行");
-  await expect(chat(page).getByRole("listbox", { name: "指定するメモ" }).getByRole("option")).toHaveText(["旅行の計画"]);
+  await expect(chat(page).getByRole("listbox", { name: "メモの候補" }).getByRole("option")).toHaveText(["旅行の計画"]);
   await page.keyboard.press("Enter");
   await expect(input).toHaveValue("");
   await expect(context.getByText("旅行の計画", { exact: true })).toBeVisible();
@@ -270,7 +270,7 @@ test("選択した文字と、「@」で指定したメモを、文脈として�
   expect(sent).not.toContain("パスポート");
   expect(sent.endsWith("これは要る？")).toBe(true);
   // 送った発言には、何を渡したかが残る。
-  await expect(chat(page).locator(".ai-message.user .chip")).toHaveText(["旅行の計画", "選択範囲（3 文字）"]);
+  await expect(chat(page).locator(".ai-message.user .chip")).toHaveText(["旅行の計画", "選択範囲（3文字）"]);
 });
 
 test("OpenAI 互換のエンドポイントをつなぎ先にして答えてもらえる。キーが断られたら、その旨を出し、設定を開くボタンと再送信のボタンを添える", async ({ page }) => {
@@ -292,11 +292,11 @@ test("OpenAI 互換のエンドポイントをつなぎ先にして答えても�
   await createNoteOnDesktop(page, "旅行の計画");
   await page.keyboard.type("出発は 8 月 3 日。");
   await enableAi(page);
-  await page.getByLabel("つなぎ先").selectOption("openAiCompatible");
+  await page.getByLabel("接続先").selectOption("openAiCompatible");
   await saveAiSettingsAndOpenChat(page, "旅行の計画");
-  await expect(chat(page).getByRole("combobox", { name: "この会話で使うモデル" })).toHaveValue("local-model");
+  await expect(chat(page).getByRole("combobox", { name: "このチャットで使うモデル" })).toHaveValue("local-model");
 
-  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
+  const input = chat(page).getByRole("textbox", { name: "AIへのメッセージ" });
   await input.fill("出発はいつ？");
   await page.keyboard.press("Enter");
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["8 月 3 日です。"]);
@@ -325,8 +325,8 @@ test("OpenAI 互換のエンドポイントをつなぎ先にして答えても�
   authorized = false;
   await input.fill("三度目");
   await page.keyboard.press("Enter");
-  await chat(page).getByRole("button", { name: "AI の設定を開く" }).click();
-  await expect(page.getByRole("switch", { name: "アプリ内の AI を使う" })).toBeVisible();
+  await chat(page).getByRole("button", { name: "AIの設定を開く" }).click();
+  await expect(page.getByRole("switch", { name: "AIチャットを使う" })).toBeVisible();
 });
 
 test("AI チャットを開くと入力欄にフォーカスが入り、Esc で閉じる。書きかけの発言は、閉じて開き直しても残る", async ({ page }) => {
@@ -334,9 +334,9 @@ test("AI チャットを開くと入力欄にフォーカスが入り、Esc で�
   await startLocalVault(page);
   await createNoteOnDesktop(page, "旅行の計画");
   await enableAi(page);
-  await page.getByLabel("API キー").fill("test-key");
+  await page.getByLabel("APIキー").fill("test-key");
   await saveAiSettingsAndOpenChat(page, "旅行の計画");
-  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
+  const input = chat(page).getByRole("textbox", { name: "AIへのメッセージ" });
   await expect(input).toBeFocused();
   await page.keyboard.type("書きかけの質問");
 
@@ -349,7 +349,7 @@ test("AI チャットを開くと入力欄にフォーカスが入り、Esc で�
   // フォーカスモードの間に、チャットの欄のボタンの上で Esc を押しても、閉じるのはチャットの欄だけ（フォーカスモードは終わらない）。
   await page.keyboard.press("Control+Alt+f");
   await expect(page.locator(".sidebar")).toBeHidden();
-  await chat(page).getByRole("button", { name: "残した会話" }).focus();
+  await chat(page).getByRole("button", { name: "チャット履歴" }).focus();
   await page.keyboard.press("Escape");
   await expect(chat(page)).toHaveCount(0);
   await expect(page.locator(".sidebar")).toBeHidden();
@@ -358,9 +358,9 @@ test("AI チャットを開くと入力欄にフォーカスが入り、Esc で�
 
   // 「@」の候補が出ている間の Esc は、候補だけを閉じる。
   await input.fill("@旅行");
-  await expect(chat(page).getByRole("listbox", { name: "指定するメモ" })).toBeVisible();
+  await expect(chat(page).getByRole("listbox", { name: "メモの候補" })).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(chat(page).getByRole("listbox", { name: "指定するメモ" })).toHaveCount(0);
+  await expect(chat(page).getByRole("listbox", { name: "メモの候補" })).toHaveCount(0);
   await expect(chat(page)).toBeVisible();
 });
 
@@ -368,15 +368,15 @@ test("API キーを保存すると、モデルの一覧を取ってきてキー�
   await mockClaudeModels(page);
   await startLocalVault(page);
   await enableAi(page);
-  await page.getByLabel("API キー").fill("wrong-key");
+  await page.getByLabel("APIキー").fill("wrong-key");
   await page.getByRole("button", { name: "保存して接続を確認" }).click();
   await expect(page.getByRole("alert")).toHaveText("APIキーが認証されませんでした。「設定」の「AI」ページでAPIキーを確認してください。");
   await expect(page.getByRole("combobox", { name: "モデル" })).toHaveCount(0);
 
-  await page.getByLabel("API キー").fill("test-key");
+  await page.getByLabel("APIキー").fill("test-key");
   await page.getByRole("button", { name: "保存して接続を確認" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "つなぎ先につながりました" }))
-    .toHaveText("つなぎ先につながりました。モデルを 2 個取得しました。使うモデルは「Claude Opus 5.5」です。");
+  await expect(page.getByRole("status").filter({ hasText: "接続できました" }))
+    .toHaveText("接続できました。モデルを2個取得しました。使うモデルは「Claude Opus 5.5」です。");
   const modelSelect = page.getByRole("combobox", { name: "モデル" });
   await expect(modelSelect).toHaveValue("claude-opus-5-5");
   await expect(modelSelect.getByRole("option")).toHaveText(["Claude Sonnet 5.5", "Claude Opus 5.5"]);
@@ -387,16 +387,16 @@ test("チャットの上でモデルを変えると、その会話の次の発�
   await startLocalVault(page);
   await createNoteOnDesktop(page, "メモ");
   await enableAi(page);
-  await page.getByLabel("API キー").fill("test-key");
+  await page.getByLabel("APIキー").fill("test-key");
   await saveAiSettingsAndOpenChat(page, "メモ");
 
-  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
+  const input = chat(page).getByRole("textbox", { name: "AIへのメッセージ" });
   await input.fill("こんにちは");
   await page.keyboard.press("Enter");
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["一つ目の答え"]);
   expect(requests[0]!.body).toMatchObject({ model: "claude-opus-5-5", max_tokens: 64000 });
 
-  const chatModel = chat(page).getByRole("combobox", { name: "この会話で使うモデル" });
+  const chatModel = chat(page).getByRole("combobox", { name: "このチャットで使うモデル" });
   // 狭い所で名前が切れても読めるよう、選んでいるモデルの名前を title でも出す。
   await expect(chatModel).toHaveAttribute("title", "Claude Opus 5.5");
   await chatModel.selectOption("claude-sonnet-5-5");
@@ -406,7 +406,7 @@ test("チャットの上でモデルを変えると、その会話の次の発�
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["一つ目の答え", "二つ目の答え"]);
   expect(requests[1]!.body).toMatchObject({ model: "claude-sonnet-5-5", max_tokens: 32000 });
 
-  await chat(page).getByRole("button", { name: "新しい会話" }).click();
+  await chat(page).getByRole("button", { name: "新しいチャット" }).click();
   await expect(chatModel).toHaveValue("claude-opus-5-5");
   await openSettingsPage(page, "AI");
   await expect(page.getByRole("combobox", { name: "モデル", exact: true })).toHaveValue("claude-opus-5-5");
@@ -423,35 +423,35 @@ test("答えを受け取っている間は、送るボタンが止めるボタ�
   await startLocalVault(page);
   await createNoteOnDesktop(page, "メモ");
   await enableAi(page);
-  await page.getByLabel("API キー").fill("test-key");
+  await page.getByLabel("APIキー").fill("test-key");
   await saveAiSettingsAndOpenChat(page, "メモ");
 
-  await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("長い答えをください");
-  await chat(page).getByRole("button", { name: "送る" }).click();
-  const stop = chat(page).getByRole("button", { name: "止める" });
+  await chat(page).getByRole("textbox", { name: "AIへのメッセージ" }).fill("長い答えをください");
+  await chat(page).getByRole("button", { name: "送信" }).click();
+  const stop = chat(page).getByRole("button", { name: "停止" });
   await expect(stop).toBeVisible();
-  await expect(chat(page).getByRole("button", { name: "送る" })).toHaveCount(0);
+  await expect(chat(page).getByRole("button", { name: "送信" })).toHaveCount(0);
   await stop.click();
-  await expect(chat(page).getByRole("button", { name: "送る" })).toBeVisible();
-  await expect(chat(page).getByRole("button", { name: "止める" })).toHaveCount(0);
+  await expect(chat(page).getByRole("button", { name: "送信" })).toBeVisible();
+  await expect(chat(page).getByRole("button", { name: "停止" })).toHaveCount(0);
   // 1 文字も届かなかった答えは残さず、止めたことは失敗として出さない。
   await expect(chat(page).locator(".ai-message.assistant")).toHaveCount(0);
   await expect(chat(page).getByRole("alert")).toHaveCount(0);
 });
 
-test("会話は残り、ロックして開き直しても「残した会話」から開いて続きを話せる。確かめてから消すこともできる", async ({ page }) => {
+test("会話は残り、ロックして開き直しても「チャット履歴」から開いて続きを話せる。確かめてから消すこともできる", async ({ page }) => {
   const requests = await mockClaudeApi(page, ["8 月 3 日です。", "朝 9 時の便です。"]);
   await startLocalVault(page);
   await createNoteOnDesktop(page, "旅行の計画");
   await page.keyboard.type("出発は 8 月 3 日の朝 9 時。");
   await enableAi(page);
-  await page.getByLabel("API キー").fill("test-key");
+  await page.getByLabel("APIキー").fill("test-key");
   await saveAiSettingsAndOpenChat(page, "旅行の計画");
-  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
+  const input = chat(page).getByRole("textbox", { name: "AIへのメッセージ" });
   await input.fill("出発はいつ？");
   await page.keyboard.press("Enter");
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["8 月 3 日です。"]);
-  await chat(page).getByRole("button", { name: "新しい会話" }).click();
+  await chat(page).getByRole("button", { name: "新しいチャット" }).click();
   await expect(chat(page).locator(".ai-message")).toHaveCount(0);
 
   await page.keyboard.press("Control+l");
@@ -460,8 +460,8 @@ test("会話は残り、ロックして開き直しても「残した会話」�
   // ロックを解除すると、タブは開いていない。左の列からメモを開く。
   await page.locator(".tree-note", { hasText: "旅行の計画" }).click();
   await page.keyboard.press("Control+Alt+a");
-  await chat(page).getByRole("button", { name: "残した会話" }).click();
-  const savedChats = chat(page).getByRole("list", { name: "残した会話" }).getByRole("listitem");
+  await chat(page).getByRole("button", { name: "チャット履歴" }).click();
+  const savedChats = chat(page).getByRole("list", { name: "チャット履歴" }).getByRole("listitem");
   await expect(savedChats).toHaveCount(1);
   await savedChats.first().getByRole("button", { name: /^出発はいつ？/ }).click();
   await expect(chat(page).locator(".ai-message .ai-message-text")).toHaveText(["出発はいつ？", "8 月 3 日です。"]);
@@ -473,18 +473,18 @@ test("会話は残り、ロックして開き直しても「残した会話」�
   expect(requests[1]!.body.messages.map((message) => message.role)).toEqual(["user", "assistant", "user"]);
   // 添えたメモの本文は、残した会話には入れず、送るときに読む。
   expect(sentText(requests[1]!.body.messages[0]!.content)).toContain("出発は 8 月 3 日の朝 9 時。");
-  await chat(page).getByRole("button", { name: "残した会話" }).click();
+  await chat(page).getByRole("button", { name: "チャット履歴" }).click();
   await expect(savedChats).toHaveCount(1);
-  await expect(chat(page).getByText("会話は新しい順に50件まで保存します。")).toBeVisible();
+  await expect(chat(page).getByText("チャットは新しい順に50件まで保存します。")).toBeVisible();
   // 消すと戻せないので、確かめる。やめると残る。
   await savedChats.first().getByRole("button", { name: "「出発はいつ？」を削除" }).click();
-  const confirmation = page.getByRole("dialog").filter({ hasText: "会話「出発はいつ？」を削除しますか？" });
+  const confirmation = page.getByRole("dialog").filter({ hasText: "チャット「出発はいつ？」を削除しますか？" });
   await confirmation.getByRole("button", { name: "キャンセル" }).click();
   await expect(savedChats).toHaveCount(1);
   await savedChats.first().getByRole("button", { name: "「出発はいつ？」を削除" }).click();
   await confirmation.getByRole("button", { name: "削除" }).click();
   await expect(savedChats).toHaveCount(0);
-  await expect(chat(page).getByText("まだ残した会話がありません。")).toBeVisible();
+  await expect(chat(page).getByText("チャット履歴はまだありません。")).toBeVisible();
 });
 
 // 果物のメモ（3 つの段落）を作り、最初の段落に文字色（Markdown に無い書式）を付けて、AI チャットを開く。
@@ -503,7 +503,7 @@ async function openChatOnFruitNote(page: Page): Promise<void> {
   await page.getByRole("button", { name: "赤" }).click();
   await expect(page.locator('.ProseMirror [data-text-color="red"]')).toHaveText("りんご");
   await enableAi(page);
-  await page.getByLabel("API キー").fill("test-key");
+  await page.getByLabel("APIキー").fill("test-key");
   await saveAiSettingsAndOpenChat(page, "果物");
 }
 
@@ -517,14 +517,14 @@ const approvalCard = (page: Page) => chat(page).getByRole("group", { name: "承�
 test("開いているメモの直しを頼むと、差分を承認してから直したブロックだけが入れ替わる。文字色は残り、エディタの取り消しで戻せる", async ({ page }) => {
   const requests = await mockClaudeApi(page, [fruitEdit("toolu_fruit"), "直しました。"]);
   await openChatOnFruitNote(page);
-  await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("誤字を直して、ぶどうも足して");
+  await chat(page).getByRole("textbox", { name: "AIへのメッセージ" }).fill("誤字を直して、ぶどうも足して");
   await page.keyboard.press("Enter");
 
   const card = approvalCard(page);
-  await expect(card).toContainText("「果物」の本文を直す");
+  await expect(card).toContainText("「果物」の本文を編集");
   await expect(card.getByLabel("削除する行")).toHaveText(["ばなな"]);
-  await expect(card.getByLabel("足す行")).toHaveText(["バナナ", "ぶどう"]);
-  await expect(card.locator(".ai-diff-collapsed")).toHaveText(["変更のない 1 行", "変更のない 1 行"]);
+  await expect(card.getByLabel("追加する行")).toHaveText(["バナナ", "ぶどう"]);
+  await expect(card.locator(".ai-diff-collapsed")).toHaveText(["変更のない1行", "変更のない1行"]);
   await expect(chat(page).locator(".ai-tool-activity")).toContainText("承認を待っています");
   // 承認するまでは、メモは変わらない。
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかん"]);
@@ -560,7 +560,7 @@ test("承認を待つ間にメモを書き換えると、その変更は行わ�
     "やめておきます。",
   ]);
   await openChatOnFruitNote(page);
-  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
+  const input = chat(page).getByRole("textbox", { name: "AIへのメッセージ" });
   await input.fill("直して");
   await page.keyboard.press("Enter");
   await expect(approvalCard(page)).toBeVisible();
@@ -573,7 +573,7 @@ test("承認を待つ間にメモを書き換えると、その変更は行わ�
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text").last()).toHaveText("書き換えられたので、直しませんでした。");
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかんとレモン"]);
 
-  const editsWithoutAsking = chat(page).getByRole("checkbox", { name: "この会話では、メモを作る・直すときに承認を待たない" });
+  const editsWithoutAsking = chat(page).getByRole("checkbox", { name: "このチャットでは、メモの作成・編集に承認を求めない" });
   await editsWithoutAsking.check();
   await input.fill("もう一度直して");
   await page.keyboard.press("Enter");
@@ -586,10 +586,10 @@ test("承認を待つ間にメモを書き換えると、その変更は行わ�
   await expect(page.locator(".tree-note", { hasText: "果物" })).toBeVisible();
 
   // 承認を待たない切り替えは、その会話だけ。設定は毎回聞くのままで、新しい会話では外れる。
-  await chat(page).getByRole("button", { name: "新しい会話" }).click();
+  await chat(page).getByRole("button", { name: "新しいチャット" }).click();
   await expect(editsWithoutAsking).not.toBeChecked();
   await openSettingsPage(page, "AI");
-  await expect(page.getByLabel("メモやノートブックを作る・直す")).toHaveValue("ask");
+  await expect(page.getByLabel("メモとノートブックの作成・編集")).toHaveValue("ask");
 });
 
 test("設定で許可していない操作を AI が呼ぶと、断った行に設定を開くボタンを添える", async ({ page }) => {
@@ -600,15 +600,15 @@ test("設定で許可していない操作を AI が呼ぶと、断った行に�
   await startLocalVault(page);
   await createNoteOnDesktop(page, "買い物");
   await enableAi(page);
-  await page.getByLabel("API キー").fill("test-key");
-  await page.getByLabel("メモを探す・読む").selectOption("deny");
+  await page.getByLabel("APIキー").fill("test-key");
+  await page.getByLabel("メモの検索・読み取り").selectOption("deny");
   await saveAiSettingsAndOpenChat(page, "買い物");
-  await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("沖縄のメモを探して");
+  await chat(page).getByRole("textbox", { name: "AIへのメッセージ" }).fill("沖縄のメモを探して");
   await page.keyboard.press("Enter");
 
   await expect(chat(page).locator(".ai-tool-activity")).toContainText("設定で許可していないため、実行しませんでした");
-  await chat(page).locator(".ai-message").getByRole("button", { name: "AI の設定を開く" }).click();
-  await expect(page.getByLabel("メモを探す・読む")).toBeVisible();
+  await chat(page).locator(".ai-message").getByRole("button", { name: "AIの設定を開く" }).click();
+  await expect(page.getByLabel("メモの検索・読み取り")).toBeVisible();
 });
 
 test("開いていないメモも、検索して読み、差分を承認して直せる。ツールの行を押すと、そのメモを開く", async ({ page }) => {
@@ -627,16 +627,16 @@ test("開いていないメモも、検索して読み、差分を承認して�
   await page.keyboard.type("沖縄は 8 月 3 日に出発");
   await createNoteOnDesktop(page, "買い物");
   await enableAi(page);
-  await page.getByLabel("API キー").fill("test-key");
+  await page.getByLabel("APIキー").fill("test-key");
   await saveAiSettingsAndOpenChat(page, "買い物");
   await chat(page).getByLabel(/開いているメモ: 買い物/).uncheck();
-  await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("沖縄のメモに、日焼け止めを持つと足して");
+  await chat(page).getByRole("textbox", { name: "AIへのメッセージ" }).fill("沖縄のメモに、日焼け止めを持つと足して");
   await page.keyboard.press("Enter");
 
-  await expect(approvalCard(page).getByLabel("足す行")).toHaveText(["日焼け止めを持つ"]);
+  await expect(approvalCard(page).getByLabel("追加する行")).toHaveText(["日焼け止めを持つ"]);
   const activities = chat(page).locator(".ai-tool-activity");
   await expect(activities.nth(0)).toContainText("「沖縄」で検索");
-  await expect(activities.nth(0)).toContainText("1 件");
+  await expect(activities.nth(0)).toContainText("1件");
   await expect(activities.nth(1)).toContainText("「沖縄旅行」を読む");
   await approvalCard(page).getByRole("button", { name: "許可", exact: true }).click();
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text").last()).toHaveText("直しました。");
@@ -653,11 +653,11 @@ test("承認を待っている間に止めると、何も変えずに止まり�
     "わかりました。",
   ]);
   await openChatOnFruitNote(page);
-  const input = chat(page).getByRole("textbox", { name: "AI への発言" });
+  const input = chat(page).getByRole("textbox", { name: "AIへのメッセージ" });
   await input.fill("直して");
   await page.keyboard.press("Enter");
   await expect(approvalCard(page)).toBeVisible();
-  await chat(page).getByRole("button", { name: "止める" }).click();
+  await chat(page).getByRole("button", { name: "停止" }).click();
   await expect(approvalCard(page)).toHaveCount(0);
   await expect(chat(page).locator(".ai-tool-activity")).toContainText("停止したため、実行しませんでした");
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかん"]);
@@ -723,12 +723,12 @@ test("AI が本文をそのまま返したブロックは、Markdown に出し�
   const kindsBefore = await blockKinds.evaluateAll((blocks) => blocks.map((block) => block.className || block.tagName));
 
   await enableAi(page);
-  await page.getByLabel("API キー").fill("test-key");
+  await page.getByLabel("APIキー").fill("test-key");
   await saveAiSettingsAndOpenChat(page, "いろいろなブロック");
-  await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("最後にぶどうを足して");
+  await chat(page).getByRole("textbox", { name: "AIへのメッセージ" }).fill("最後にぶどうを足して");
   await page.keyboard.press("Enter");
   const card = approvalCard(page);
-  await expect(card.getByLabel("足す行")).toHaveText(["ぶどう"]);
+  await expect(card.getByLabel("追加する行")).toHaveText(["ぶどう"]);
   await expect(card.getByLabel("削除する行")).toHaveCount(0);
 
   await card.getByRole("button", { name: "許可", exact: true }).click();
@@ -760,13 +760,13 @@ test("OpenAI 互換のサーバーが道具（function calling）を断ったら
   await createNoteOnDesktop(page, "旅行の計画");
   await page.keyboard.type("出発は 8 月 3 日。");
   await enableAi(page);
-  await page.getByLabel("つなぎ先").selectOption("openAiCompatible");
+  await page.getByLabel("接続先").selectOption("openAiCompatible");
   await saveAiSettingsAndOpenChat(page, "旅行の計画");
-  await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("このメモを直して");
+  await chat(page).getByRole("textbox", { name: "AIへのメッセージ" }).fill("このメモを直して");
   await page.keyboard.press("Enter");
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["直しの案は出せませんが、こう書けます。"]);
   expect(requests.map((body) => body.tools !== undefined)).toEqual([true, false]);
-  await expect(chat(page).locator(".ai-message.assistant")).toContainText("このつなぎ先はツールに対応していないため、添えたメモだけで答えました。");
+  await expect(chat(page).locator(".ai-message.assistant")).toContainText("この接続先はツールに対応していないため、添付したメモだけをもとに回答しました。");
   await expect(chat(page).getByRole("alert")).toHaveCount(0);
 });
 
@@ -793,15 +793,15 @@ test("OpenAI 互換で、1 つの答えに 2 つの呼び出しがあれば 1 �
   await startLocalVault(page);
   await createNoteOnDesktop(page, "メモ");
   await enableAi(page);
-  await page.getByLabel("つなぎ先").selectOption("openAiCompatible");
+  await page.getByLabel("接続先").selectOption("openAiCompatible");
   await saveAiSettingsAndOpenChat(page, "メモ");
-  await chat(page).getByRole("textbox", { name: "AI への発言" }).fill("買うものとやることのメモを作って");
+  await chat(page).getByRole("textbox", { name: "AIへのメッセージ" }).fill("買うものとやることのメモを作って");
   await page.keyboard.press("Enter");
 
   const card = approvalCard(page);
   await expect(card.getByRole("checkbox")).toHaveCount(2);
-  await card.getByRole("checkbox", { name: "メモ「やること」を作る" }).uncheck();
-  await card.getByRole("button", { name: "選んだものを許可" }).click();
+  await card.getByRole("checkbox", { name: "メモ「やること」を作成" }).uncheck();
+  await card.getByRole("button", { name: "選択した操作を許可" }).click();
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["1 つ作りました。"]);
   await expect(page.locator(".tree-note", { hasText: "買うもの" })).toBeVisible();
   await expect(page.locator(".tree-note", { hasText: "やること" })).toHaveCount(0);
@@ -811,15 +811,15 @@ test("OpenAI 互換で、1 つの答えに 2 つの呼び出しがあれば 1 �
   expect(String(sent[4]!.content)).toContain("did not approve");
 });
 
-test("本文で文字を選び、上のボタンの「AI に頼む」から訳してもらうと、答えで選んだ所を入れ替えられる", async ({ page }) => {
+test("本文で文字を選び、上のボタンの「AIに依頼」から訳してもらうと、答えで選んだ所を入れ替えられる", async ({ page }) => {
   const requests = await mockClaudeApi(page, ["Hello, world"]);
   await startLocalVault(page);
   await createNoteOnDesktop(page, "あいさつ");
   await page.keyboard.type("最初に、こんにちは世界、と書く。");
   await enableAi(page);
-  await page.getByLabel("API キー").fill("test-key");
+  await page.getByLabel("APIキー").fill("test-key");
   await page.getByRole("button", { name: "保存して接続を確認" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "つなぎ先につながりました" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "接続できました" })).toBeVisible();
   await page.getByRole("tab", { name: "あいさつ" }).click();
 
   // 「こんにちは世界」を選ぶ。
@@ -830,8 +830,8 @@ test("本文で文字を選び、上のボタンの「AI に頼む」から訳�
     editor.commands.setTextSelection({ from: start, to: start + "こんにちは世界".length });
   });
   const selectionToolbar = page.locator(".selection-toolbar");
-  await selectionToolbar.getByRole("button", { name: "AI に頼む" }).click();
-  await page.getByRole("menuitem", { name: "選んだ所を英語に訳す" }).click();
+  await selectionToolbar.getByRole("button", { name: "AIに依頼" }).click();
+  await page.getByRole("menuitem", { name: "選択範囲を英語に翻訳する" }).click();
 
   const answers = chat(page).locator(".ai-message.assistant .ai-message-text");
   await expect(answers).toHaveText(["Hello, world"]);
@@ -841,10 +841,10 @@ test("本文で文字を選び、上のボタンの「AI に頼む」から訳�
   expect(sent).toContain("Translate the selected text into natural English");
   expect(sent).not.toContain("最初に");
 
-  await chat(page).getByRole("button", { name: "選んだ所と入れ替える" }).click();
+  await chat(page).getByRole("button", { name: "選択範囲を置き換え" }).click();
   await expect(page.locator(".ProseMirror p").first()).toHaveText("最初に、Hello, world、と書く。");
   // 選んでいた所の文字が変わったあとは、入れ替えずに知らせる。
-  await chat(page).getByRole("button", { name: "選んだ所と入れ替える" }).click();
-  await expect(chat(page).getByRole("alert")).toContainText("選んでいた所の文字が変わったので、入れ替えませんでした");
+  await chat(page).getByRole("button", { name: "選択範囲を置き換え" }).click();
+  await expect(chat(page).getByRole("alert")).toContainText("選択範囲のテキストが変更されたため、置き換えませんでした");
   await expect(page.locator(".ProseMirror p").first()).toHaveText("最初に、Hello, world、と書く。");
 });

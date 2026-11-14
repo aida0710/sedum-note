@@ -57,10 +57,10 @@ console.log("ok: a block link and a block embed are inserted from the slash menu
 
 // 3. AI チャットのダイアログ（AI は有効にしていないので、案内が出る）。
 await app.getByRole("button", { name: "その他の操作" }).last().click();
-await app.getByRole("menuitem", { name: "AI チャット" }).click();
-await app.getByRole("region", { name: "AI チャット" }).waitFor();
+await app.getByRole("menuitem", { name: "AIチャット" }).click();
+await app.getByRole("region", { name: "AIチャット" }).waitFor();
 captureScreen("ai-chat-dialog");
-await app.getByRole("button", { name: "AI チャットを閉じる" }).click();
+await app.getByRole("button", { name: "AIチャットを閉じる" }).click();
 console.log("ok: the AI chat dialog opens");
 
 // 4. 録音。初めて使うときに、マイクの許可を聞かれる。

@@ -42,7 +42,7 @@ test("PC のメモの「…」は、まとまりごとに区切り線で分か�
     ["テンプレートにする", "複製", "ほかのメモを結合"],
     ["メモの中を検索 [Ctrl + F]", "この項目にズーム [Ctrl + .]", "すべて折りたたむ [Ctrl + Alt + []", "すべて開く [Ctrl + Alt + ]]"],
     ["右に並べて開く", "別のウィンドウで開く"],
-    ["AI チャット [Ctrl + Alt + A]", "履歴"],
+    ["AIチャット [Ctrl + Alt + A]", "履歴"],
     ["エクスポート", "印刷・PDF で保存"],
     ["ゴミ箱に移動"],
   ]);
@@ -70,7 +70,7 @@ test("ゴミ箱の中のメモでは、項目の無くなったまとまりご�
     ["テンプレートにする", "複製"],
     ["メモの中を検索 [Ctrl + F]"],
     ["右に並べて開く", "別のウィンドウで開く"],
-    ["AI チャット [Ctrl + Alt + A]", "履歴"],
+    ["AIチャット [Ctrl + Alt + A]", "履歴"],
     ["エクスポート", "印刷・PDF で保存"],
     ["ゴミ箱に移動"],
   ]);
@@ -84,7 +84,7 @@ test("右に並べたメモの「…」では、Ctrl+F のキーを出さない�
   const splitPane = page.getByRole("region", { name: "右に並べたメモ" });
   const menu = await openNoteMenu(page, splitPane);
   await expect(menu.getByRole("menuitem", { name: "メモの中を検索" })).not.toContainText("Ctrl");
-  await expect(menu.getByRole("menuitem", { name: "AI チャット" })).toContainText("Ctrl + Alt + A");
+  await expect(menu.getByRole("menuitem", { name: "AIチャット" })).toContainText("Ctrl + Alt + A");
 });
 
 test("スマホ（390px）のメモの「…」は画面の中に収まり、キーボードのショートカットのキーは出さない", async ({ browser }) => {
@@ -100,7 +100,7 @@ test("スマホ（390px）のメモの「…」は画面の中に収まり、キ
     ["ピン留め", "メモの期限を設定"],
     ["テンプレートにする", "複製", "ほかのメモを結合"],
     ["メモの中を検索", "この項目にズーム", "すべて折りたたむ", "すべて開く"],
-    ["AI チャット", "履歴"],
+    ["AIチャット", "履歴"],
     ["エクスポート", "印刷・PDF で保存"],
     ["ゴミ箱に移動"],
   ]);

@@ -45,8 +45,8 @@ async function routeFakeClaude(page) {
   });
 }
 
-const chatRegion = (page) => page.getByRole("region", { name: "AI チャット" });
-const chatInput = (page) => chatRegion(page).getByRole("textbox", { name: "AI への発言" });
+const chatRegion = (page) => page.getByRole("region", { name: "AIチャット" });
+const chatInput = (page) => chatRegion(page).getByRole("textbox", { name: "AIへのメッセージ" });
 
 // openNote は、会話の相手にするメモを開く関数（auditScreens.mjs の見た目の確認のメモ）。
 export function AI_CHAT_SCREENS({ openNote }) {
@@ -56,12 +56,12 @@ export function AI_CHAT_SCREENS({ openNote }) {
       open: async (page) => {
         await routeFakeClaude(page);
         await openSettingsOnDesktop(page, "AI");
-        await page.getByRole("checkbox", { name: "アプリ内の AI を使う" }).check();
+        await page.getByRole("checkbox", { name: "AIチャットを使う" }).check();
         // 前の画面で選んだつなぎ先（OpenAI 互換）から、Claude に戻す。
-        await page.getByLabel("つなぎ先").selectOption({ index: 0 });
-        await page.getByLabel("API キー").fill("visual-audit-not-a-key");
+        await page.getByLabel("接続先").selectOption({ index: 0 });
+        await page.getByLabel("APIキー").fill("visual-audit-not-a-key");
         await page.getByRole("button", { name: "保存して接続を確認" }).click();
-        await page.getByRole("status").filter({ hasText: "つなぎ先につながりました" }).waitFor();
+        await page.getByRole("status").filter({ hasText: "接続できました" }).waitFor();
       },
     },
     {
@@ -96,10 +96,10 @@ export function AI_CHAT_SCREENS({ openNote }) {
     {
       name: "ai-chat-saved-chats",
       open: async (page) => {
-        const stop = chatRegion(page).getByRole("button", { name: /止める/ });
+        const stop = chatRegion(page).getByRole("button", { name: /停止/ });
         if (await stop.count()) await stop.first().click();
-        await chatRegion(page).getByRole("button", { name: "新しい会話" }).click();
-        await chatRegion(page).getByRole("button", { name: "残した会話" }).click();
+        await chatRegion(page).getByRole("button", { name: "新しいチャット" }).click();
+        await chatRegion(page).getByRole("button", { name: "チャット履歴" }).click();
       },
       close: async (page) => { await page.keyboard.press("Control+Alt+A"); },
     },

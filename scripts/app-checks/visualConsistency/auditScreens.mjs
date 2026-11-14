@@ -552,10 +552,10 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       name: "settings-ai-enabled",
       open: async (page) => {
         await openSettingsOnDesktop(page, "AI");
-        await page.getByRole("checkbox", { name: "アプリ内の AI を使う" }).check();
-        await page.getByLabel("つなぎ先").selectOption({ index: 1 });
+        await page.getByRole("checkbox", { name: "AIチャットを使う" }).check();
+        await page.getByLabel("接続先").selectOption({ index: 1 });
       },
-      close: async (page) => { await page.getByRole("checkbox", { name: "アプリ内の AI を使う" }).uncheck(); },
+      close: async (page) => { await page.getByRole("checkbox", { name: "AIチャットを使う" }).uncheck(); },
     },
     ...AI_CHAT_SCREENS({ openNote: openRichNote }),
     {
@@ -778,7 +778,7 @@ export function PHONE_SCREENS({ baseUrl, passphrase }) {
       name: "phone-ai-chat",
       open: async (page) => {
         await openEditorMoreMenu(page);
-        await page.getByRole("menuitem", { name: "AI チャット" }).click();
+        await page.getByRole("menuitem", { name: "AIチャット" }).click();
         await page.locator(".ai-chat").waitFor();
       },
     },
