@@ -971,8 +971,9 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
   .setting-row-hint { margin-top: 0; }
   .setting-row-control { margin-top: 0; justify-self: end; max-width: min(320px, 45cqi); }
   /* 選択欄の幅は 1 つにそろえる（選択肢の長さで幅が変わると、行ごとに左の端がずれる。幅いっぱいだと「中」のような短い選択肢で間延びする）。
-     長い選択肢は「…」で切れ、開けば全文が読める。 */
-  .setting-row select { width: 200px; max-width: 100%; text-overflow: ellipsis; }
+     240px は、英語の画面のいちばん長い選択肢（テンプレートの日付と時刻の形式、約 180px）に、欄の余白と矢印を足して入る幅。
+     それより長い選択肢（AI のモデルの名前など）は「…」で切れ、開けば全文が読める。 */
+  .setting-row select { width: 240px; max-width: 100%; text-overflow: ellipsis; }
   /* ゴミ箱に残す日数（最大 3650）の 4 桁と、上下の矢印が入る幅。 */
   .setting-row input[type="number"] { width: 96px; }
 }
