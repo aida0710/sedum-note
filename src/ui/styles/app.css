@@ -312,7 +312,6 @@ svg.lucide { stroke-width: 1.75; }
 .ai-context { display: flex; flex-wrap: wrap; gap: 4px; }
 .ai-context .chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; }
 .ai-context .chip.toggle { cursor: pointer; }
-.ai-context .chip input { width: 12px; height: 12px; }
 .ai-context .chip button { display: grid; place-items: center; color: var(--muted); }
 .ai-chat-composer { flex: none; border-top: 1px solid var(--line); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
 .ai-composer-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }

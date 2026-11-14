@@ -1,4 +1,4 @@
-import { expect, type Page, type Route, test } from "@playwright/test";
+import { expect, type Locator, type Page, type Route, test } from "@playwright/test";
 import { createNoteOnDesktop, openSettingsPage, PASSPHRASE, PHONE_VIEWPORT, startLocalVault } from "./devices";
 
 // 試験では AI の提供元へつながない。届いた要求を覚えて、ストリーミングの形の決まった答えを返す。
@@ -233,7 +233,7 @@ test("「@」のあとを日本語で変換している間と、変換を確定�
   await expect(chat(page).getByLabel("AIに渡すコンテキスト").getByText("りょこうの計画", { exact: true })).toBeVisible();
 });
 
-test("選択した文字と、「@」で指定したメモを、文脈として渡せる。開いているメモは外せる", async ({ page }) => {
+test("選択した文字と、「@」で指定したメモを、文脈として渡せる。開いているメモは外せ、札のチェックボックスはほかのチェックボックスと同じ大きさで出る", async ({ page }) => {
   const requests = await mockClaudeApi(page, ["はい。"]);
   await startLocalVault(page);
   await createNoteOnDesktop(page, "旅行の計画");
@@ -252,6 +252,9 @@ test("選択した文字と、「@」で指定したメモを、文脈として�
   }
   const context = chat(page).getByLabel("AIに渡すコンテキスト");
   await expect(context.getByText("選択範囲（3文字）")).toBeVisible();
+  const heightOf = (checkbox: Locator) => checkbox.evaluate((element) => element.getBoundingClientRect().height);
+  const autoApplyCheckbox = chat(page).getByRole("checkbox", { name: "このチャットでは、メモの作成・編集に承認を求めない" });
+  expect(await heightOf(context.getByLabel(/開いているメモ: 持ち物/))).toBe(await heightOf(autoApplyCheckbox));
   await context.getByLabel(/開いているメモ: 持ち物/).uncheck();
 
   const input = chat(page).getByRole("textbox", { name: "AIへのメッセージ" });
