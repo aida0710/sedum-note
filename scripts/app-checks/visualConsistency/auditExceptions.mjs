@@ -68,6 +68,30 @@ export const ROLE_VALUE_EXCEPTIONS = [
     reason: "スマホの「新しいメモ」の丸いボタン（Material の FAB と同じ形）",
   },
   {
+    role: "button-icon", measure: "radius", element: /button\.tab-close/,
+    reason: "タブの ×。:root の --radius-inline の役割（文の中の印とタブの ×）のとおり",
+  },
+  {
+    role: "checkbox", measure: "radius", element: /input\.switch/,
+    reason: "設定のオンとオフのトグルスイッチ（利用者が選んだ C-05 の案）。丸い形で、高さ 20px",
+  },
+  {
+    role: "checkbox", measure: "height", element: /input\.switch/,
+    reason: "設定のオンとオフのトグルスイッチ（利用者が選んだ C-05 の案）。34×20px",
+  },
+  {
+    role: "menu-item", measure: "height", element: /div\.(slash-menu|table-menu)|slash-menu-group/,
+    reason: "「/」の候補と表のメニューは、項目が多いので行を詰める（上下 5px）。説明のある「/」の候補は名前と説明の 2 行（利用者が選んだ C-06 の案）",
+  },
+  {
+    role: "menu-item", measure: "height", value: "34",
+    reason: "スマホの組み方では部品の文字が 14px（利用者が選んだ C-39 の案 B）なので、メニューの項目も 1px 高い。PC でキーの表示のある項目が 34px になる崩れは、.menu-item > kbd の line-height で直した",
+  },
+  {
+    role: "tab", measure: "height", element: /div\.tab\.on/,
+    reason: "開いているタブは、下の線に 1px 重ねて本文の面とつなげる（margin-bottom: -1px）",
+  },
+  {
     role: "button-icon", measure: "radius", element: /math-rendered/,
     reason: "表示した数式（role=button でキーボードから編集に入れる）。ボタンの部品ではなく、本文の中の飾り（--radius-inline）",
   },

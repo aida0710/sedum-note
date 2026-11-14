@@ -124,8 +124,8 @@ export function measureScreen() {
     // 枠の無い文字だけのリンクは、行の中の文字なので比べない。
     if (control.matches("a") && getComputedStyle(control).display === "inline") continue;
     if (control.closest(".katex, .ProseMirror")) continue;
-    // 題と本文の一部の 2 行を出す、検索の結果の行（2 行が正しい形）。
-    if (control.matches(".tree-note.with-snippet")) continue;
+    // 2 行が正しい形の部品: 題と本文の一部を出す検索の結果の行、名前と説明を出す「/」の候補、題とメモの名前を出す期限の一覧の行。
+    if (control.matches(".tree-note.with-snippet, .menu-item:has(.slash-menu-description), .reminder-text")) continue;
     const textRects = textLineRects(control);
     if (textRects.length === 0) continue;
     const lines = groupIntoLines(textRects);
@@ -171,6 +171,8 @@ export function measureScreen() {
     }
     if (!container || container === document.body) continue;
     if (container.getBoundingClientRect().height > SINGLE_LINE_CONTROL_MAX_HEIGHT * 2) continue;
+    // 名前と説明の 2 行を出す「/」の候補は、アイコンを 2 行のまとまりの真ん中に置く（利用者が選んだ試作の形）。
+    if (container.matches(".menu-item:has(.slash-menu-description)")) continue;
     // 入れ物の中に開いたメニュー（ツールバーから開いた表のメニューなど）の文字は、同じ行の文字ではない。
     const overlays = [...container.querySelectorAll(".menu, [role=menu], [role=dialog]")].filter((overlay) => !overlay.contains(svg));
     const insideOverlay = (element) => overlays.some((overlay) => overlay.contains(element));

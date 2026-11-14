@@ -167,6 +167,8 @@ svg.lucide { stroke-width: 1.75; }
 .database-table th { background: var(--tag); font-weight: 600; }
 .database-table th button { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: var(--text); }
 .database-table input:not([type="checkbox"]), .database-table select { height: var(--control-height-compact); border: 1px solid transparent; border-radius: var(--radius-control); padding: 0 6px; background: none; color: var(--text); min-width: 90px; }
+/* 値の欄はセルの幅いっぱいにする（列の幅は見出しやほかの行で決まり、欄だけ短いと右が空く）。 */
+.database-table td > :is(input:not([type="checkbox"]), select) { width: 100%; }
 .database-table input:not([type="checkbox"]):hover, .database-table select:hover, .database-table input:focus, .database-table select:focus { border-color: var(--line); }
 .database-title { color: var(--accent); max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
 .database-updated { color: var(--muted); }
@@ -620,6 +622,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .reminder-row { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-bottom: 1px solid var(--line); }
 .reminder-row .reminder-note-mark { color: var(--muted); flex: none; }
 .reminder-row input[type="checkbox"] { flex: none; }
+/* 行は「題」と「メモの名前」の 2 行。チェックと印は、題の行の高さにそろえる（To Do のアプリと同じ）。 */
+.reminder-row > :is(input[type="checkbox"], .reminder-note-mark) { align-self: flex-start; margin-top: calc((1lh - var(--checkbox-size)) / 2); }
 .reminder-text { flex: 1; min-width: 0; text-align: left; display: flex; flex-direction: column; gap: 2px; }
 .reminder-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .reminder-row time { flex: none; color: var(--muted); font-size: var(--font-size-small); }
@@ -940,7 +944,8 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .menu-heading { padding: 6px 10px 2px; }
 .menu-check { margin-left: auto; color: var(--accent); }
 /* 項目の右に出すショートカットのキー（メモの「…」とコマンドパレット）。 */
-.menu-item > kbd { margin-left: auto; color: var(--muted); font-size: var(--font-size-caption); }
+/* line-height: 1 は、枠つきの小さい字が行の高さを 1px 押し上げ、キーのある項目だけ高くなるのを防ぐため。 */
+.menu-item > kbd { margin-left: auto; color: var(--muted); font-size: var(--font-size-caption); line-height: 1; }
 /* メニューの意味のまとまり（editor/NoteActionsMenu.tsx）。条件で項目が 1 つも出なかったまとまりは :empty になるので消し、
    中身のあるまとまりの間にだけ、.menu-separator と同じ区切り線を引く（先頭・末尾や、線が 2 本続くことが無いように）。 */
 .menu-group:empty { display: none; }
