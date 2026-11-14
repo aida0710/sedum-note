@@ -194,3 +194,21 @@ test("設定に保存していない入力を残したまま、ほかのペー�
   await expect(confirmation).toHaveCount(0);
   await expect(pages.getByRole("button", { name: "一般", exact: true })).toHaveAttribute("aria-current", "page");
 });
+
+test("AI の接続先に打ちかけがあっても、AI をオフにしたら打ちかけを捨て、ほかのページへは聞かずに移る", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "設定", exact: true }).click();
+  const pages = page.getByRole("navigation", { name: "設定のページ" });
+  await pages.getByRole("button", { name: "AI", exact: true }).click();
+  const enable = page.getByLabel("AIチャットを使う");
+  await enable.check();
+  await page.locator("#ai-claude-key").fill("打ちかけのキー");
+  await enable.uncheck();
+  await pages.getByRole("button", { name: "一般", exact: true }).click();
+  await expect(page.getByRole("dialog").filter({ hasText: "保存せずに移動しますか？" })).toHaveCount(0);
+  await expect(pages.getByRole("button", { name: "一般", exact: true })).toHaveAttribute("aria-current", "page");
+  // オンに戻すと、保存してある接続先（空）から始まる。
+  await pages.getByRole("button", { name: "AI", exact: true }).click();
+  await page.getByLabel("AIチャットを使う").check();
+  await expect(page.locator("#ai-claude-key")).toHaveValue("");
+});

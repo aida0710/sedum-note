@@ -19,7 +19,8 @@ export function AiSection() {
   const [draft, setDraft] = useState<ConnectionDraft | null>(settings && connectionOf(settings));
   const [verified, setVerified] = useState<VerifiedConnection | null>(null);
   // 接続先と API キーは「保存して確かめる」で保存する。保存したものと違えば打ちかけ。
-  useUnsavedSettingsDraft("aiConnection", settings !== null && draft !== null && JSON.stringify(draft) !== JSON.stringify(connectionOf(settings)));
+  // AI がオフの間は接続先の欄を出さないので、打ちかけとして数えない。
+  useUnsavedSettingsDraft("aiConnection", settings !== null && settings.enabled && draft !== null && JSON.stringify(draft) !== JSON.stringify(connectionOf(settings)));
   // 保存した設定の読み込みが済んだら、入力欄に入れる。最初の 1 度だけにする（「使う」を保存し終えたときに入れ直すと、
   // その間に打った API キーが消える）。
   const loaded = settings !== null;
@@ -54,7 +55,13 @@ export function AiSection() {
       <p>{translate("ai.description")}</p>
       <p>{translate("ai.privacyWarning")}</p>
       <SettingCheckboxRow controlId="ai-enabled" label={translate("ai.enable")} checked={settings.enabled}
-        onChange={(enabled) => void save.run((current) => ({ ...current, enabled }))} />
+        onChange={(enabled) => {
+          // オフにしたら、見えなくなる接続先の欄の打ちかけを捨てる（オンに戻したときに、保存してある接続先から始める）。
+          if (!enabled) {
+            setDraft(connectionOf(settings));
+          }
+          void save.run((current) => ({ ...current, enabled }));
+        }} />
       {save.errorMessage && <div className="form-error" role="alert">{save.errorMessage}</div>}
       {settings.enabled && (
         <>
