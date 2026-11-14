@@ -118,6 +118,8 @@ export class NoteRepository {
   readonly #waitingForPushIds = new Set<string>();
   #unreadableIds: string[] = [];
   #persistTimer: ReturnType<typeof setTimeout> | null = null;
+  // 始めたが、まだ書き終えていない書き込み（#trackWrite）。
+  readonly #writesInProgress = new Set<Promise<void>>();
   #closed = false;
   readonly #versionHistory: NoteVersionHistory;
 
@@ -418,6 +420,8 @@ export class NoteRepository {
   }
 
   // まだ手元に保存していない変更を、待たずに保存する。画面を離れるときと、同期の前に呼ぶ。
+  // 始めている書き込み（完全な削除など）も、書き終えるまで待つ。ロックはこれを待ってから鍵を捨てるので、待たないと、
+  // ロックのあとに読み込み直したときに、削除したメモが戻る。
   async flush(): Promise<void> {
     this.#cancelPersistTimer();
     const ids = [...this.#unsavedIds];
@@ -427,6 +431,15 @@ export class NoteRepository {
     if (ids.length > 0) {
       this.#notify("local");
     }
+    await Promise.allSettled(this.#writesInProgress);
+  }
+
+  // 書き終えるまで flush が待つ書き込みとして数える。失敗は呼び出した側が受け取るので、ここでは数えるだけにする。
+  #trackWrite(write: Promise<void>): Promise<void> {
+    this.#writesInProgress.add(write);
+    const forget = () => this.#writesInProgress.delete(write);
+    write.then(forget, forget);
+    return write;
   }
 
   // ── 同期（SyncEngine）から使うもの ──────────────────────────
@@ -655,7 +668,12 @@ export class NoteRepository {
     this.#writeFields(doc, { ...fields, ...membership });
   }
 
-  async #removeRecord(id: string, attachmentIds: string[]): Promise<void> {
+  // 削除の印を書く。画面からはすぐ消し（#hold）、暗号化して書き終えるまでは、flush が待つ書き込みとして数える。
+  #removeRecord(id: string, attachmentIds: string[]): Promise<void> {
+    return this.#trackWrite(this.#writeRemovedRecord(id, attachmentIds));
+  }
+
+  async #writeRemovedRecord(id: string, attachmentIds: string[]): Promise<void> {
     const holder = this.#holders.get(id);
     if (holder?.state === "live") {
       holder.doc.destroy();
