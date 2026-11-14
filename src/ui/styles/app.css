@@ -600,7 +600,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ProseMirror h3 { font-size: 1.12em; margin: 1.2em 0 .3em; }
 .ProseMirror li, .ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { position: relative; }
 /* 印の高さを 1 行ぶん（文字の行の高さ）にして、その中央に置く。こうすると、行の文字と縦の中心がそろう。lh を知らないブラウザでは、本文の行の高さに近い 1.7em にする。 */
-.ProseMirror .fold-toggle { position: absolute; left: -34px; top: 0; width: 16px; height: 1.7em; height: 1lh; display: grid; place-items: center; color: var(--muted); opacity: 0; }
+.ProseMirror .fold-toggle { position: absolute; left: -34px; top: 0; width: 16px; height: 1.7em; height: 1lh; display: grid; place-items: center; border-radius: var(--radius-row); color: var(--muted); opacity: 0; }
 /* 印は右向きの山形で、開いているときは下向きに回す。たたんだ所の印は、いつも出しておく。 */
 .ProseMirror .fold-toggle:not(.collapsed) > svg { transform: rotate(90deg); }
 .ProseMirror .fold-toggle.collapsed { opacity: 1; }
@@ -747,7 +747,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
    （置換の入力欄の左右の端が、検索の入力欄とそろうように）。閉じる × は 1 行目の右端。 */
 .find-bar { display: grid; grid-template-columns: var(--control-height-compact) minmax(0, 1fr) auto; align-items: center; gap: 4px 6px; padding: 6px 14px; border-bottom: 1px solid var(--line); flex: none; }
 .find-row { display: contents; }
-.find-controls { display: flex; align-items: center; gap: 4px; }
+/* 置換の行のボタンも、検索の行の「×」と同じ右の端にそろえる。 */
+.find-controls { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
 .find-row .text-button { height: var(--control-height); padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius-control); color: var(--text); flex: none; }
 .find-row .text-button:disabled { color: var(--muted); }
 .find-row .icon-button.on { background: var(--selected); color: var(--accent); }
@@ -1160,6 +1161,8 @@ details summary { cursor: pointer; color: var(--accent); }
   .workspace, .phone, .main, .document-area { display: block; height: auto; overflow: visible; }
   .document-scroll { overflow: visible; }
   .document { max-width: none; padding: 0; }
+  /* 段組みの左右の負の余白は、本文の余白に重ねて前後の段落と文字の左端をそろえるため。紙には本文の余白が無いので、はみ出す。 */
+  .ProseMirror .columns { margin-left: 0; margin-right: 0; }
   .section-zoom, .selection-toolbar, .web-link-popover, .block-insert-button, .image-resize-handle, .sidebar, .tabs-bar, .editor-bar, .find-bar, .outline, .backlinks, .block-drag-handle, .ai-chat, .phone-top, .tabbar, .fab, .menu, .dialog-backdrop, .trash-banner, .form-error,
   .document-meta .unsynced, .update-chip { display: none !important; }
   .search-match, .search-match.active { background: none; color: inherit; }

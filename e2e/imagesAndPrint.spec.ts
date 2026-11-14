@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, openSettingsPage, startLocalVault } from "./devices";
+import { createNoteOnDesktop, insertFromSlashMenu, openSettingsPage, startLocalVault } from "./devices";
 
 // 写真の代わりの、細かいむらのある大きな画像を作る。
 async function largePhoto(page: Page, width: number, height: number): Promise<Buffer> {
@@ -86,4 +86,12 @@ test("印刷では、開いているメモの本文だけを、明るい色で�
   await expect(page.locator(".ProseMirror")).toBeVisible();
   // 暗いテーマのままでも、紙には黒い文字で出る。
   await expect(page.locator(".ProseMirror")).toHaveCSS("color", "rgb(31, 35, 40)");
+});
+
+test("印刷では、段組みも紙の幅からはみ出さない", async ({ page }) => {
+  await openNewNote(page);
+  await insertFromSlashMenu(page, "dangumi", "2 段組み");
+  await page.emulateMedia({ media: "print" });
+  await expect(page.locator(".ProseMirror .columns")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
 });
