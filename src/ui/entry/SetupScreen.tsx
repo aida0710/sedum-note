@@ -1,7 +1,6 @@
 // 初めて開いたときの画面。このデバイスのパスフレーズを決めて始めるか、バックアップから戻す。
 // 同期を使うときは、同期先を確かめた結果で、新しく作るか、既存のメモに参加するかが決まる。
 
-import { LockKeyhole } from "lucide-react";
 import { useRef, useState } from "react";
 import { MIN_PASSPHRASE_LENGTH } from "../../core/crypto/passphraseKey";
 import type { SyncTargetChoice } from "../../core/vault/vaultSession";
@@ -10,6 +9,7 @@ import { spaceDisplayName } from "../session/spaceDisplayName";
 import { removeSpaceFromRegistry, useSpaceRegistry } from "../session/spaceRegistry";
 import { destroySpaceData } from "../session/spaceVaults";
 import type { VaultSession } from "../session/useVaultSession";
+import { EntryBrand } from "./EntryBrand";
 import { BACKUP_FILE_EXTENSION } from "../platform/saveFile";
 import { PassphraseGenerator } from "../shared/PassphraseGenerator";
 import { useAsyncAction } from "../shared/useAsyncAction";
@@ -91,7 +91,8 @@ export function SetupScreen({ session, spaceId }: { session: VaultSession; space
   return (
     <div className="entry">
       <form className="entry-card" onKeyDown={preventSubmitByImeKey} onSubmit={submit}>
-        <h1><LockKeyhole size={20} />{addedSpace ? translate("space.setupTitle", { name: spaceDisplayName(addedSpace) }) : translate("setup.title")}</h1>
+        <EntryBrand />
+        <h1>{addedSpace ? translate("space.setupTitle", { name: spaceDisplayName(addedSpace) }) : translate("setup.title")}</h1>
         <p className="description">{translate(addedSpace ? "space.setupDescription" : "setup.description")}</p>
         <div className="segmented" role="tablist">
           <button type="button" role="tab" aria-selected={mode === "start"} className={mode === "start" ? "on" : ""} onClick={() => chooseMode("start")}>{translate("setup.mode.start")}</button>

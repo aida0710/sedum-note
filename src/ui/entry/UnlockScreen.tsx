@@ -1,4 +1,3 @@
-import { LockKeyhole } from "lucide-react";
 import { useState } from "react";
 import { translate } from "../i18n/translate";
 import { spaceDisplayName } from "../session/spaceDisplayName";
@@ -8,6 +7,7 @@ import { WipeDeviceDataButton } from "../session/WipeDeviceDataButton";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
+import { EntryBrand } from "./EntryBrand";
 
 export function UnlockScreen({ session, spaceId }: { session: VaultSession; spaceId: string }) {
   const { spaces } = useSpaceRegistry();
@@ -17,7 +17,8 @@ export function UnlockScreen({ session, spaceId }: { session: VaultSession; spac
   return (
     <div className="entry">
       <form className="entry-card" onKeyDown={preventSubmitByImeKey} onSubmit={(event) => { event.preventDefault(); void action.run(passphrase); }}>
-        <h1><LockKeyhole size={20} />{translate("unlock.title")}</h1>
+        <EntryBrand />
+        <h1>{translate("unlock.title")}</h1>
         <p className="description">{translate("unlock.description")}</p>
         {spaces.length > 1 && (
           <div className="field">
@@ -32,10 +33,6 @@ export function UnlockScreen({ session, spaceId }: { session: VaultSession; spac
           <input id="unlock-passphrase" type="password" value={passphrase} onChange={(event) => setPassphrase(event.target.value)} autoComplete="current-password" autoFocus required />
         </div>
         {action.errorMessage && <div className="form-error" role="alert">{action.errorMessage}</div>}
-        <div className="form-actions">
-          {action.busy && <span className="hint">{translate("unlock.working")}</span>}
-          <button className="primary-button" type="submit" disabled={action.busy}>{translate("unlock.submit")}</button>
-        </div>
         {customCssEnabled && customCss.trim() !== "" && (
           <label className="checkbox-line">
             <input type="checkbox" checked={false} onChange={() => updateDevicePreferences({ customCssEnabled: false })} />
@@ -47,6 +44,11 @@ export function UnlockScreen({ session, spaceId }: { session: VaultSession; spac
           <p className="description">{translate("wipe.forgotPassphraseDescription")}</p>
           <WipeDeviceDataButton session={session} />
         </details>
+        {/* ボタンの行は、カードの下の端に固定する（.entry-card > .form-actions）ので、いちばん後ろに置く。 */}
+        <div className="form-actions">
+          {action.busy && <span className="hint">{translate("unlock.working")}</span>}
+          <button className="primary-button" type="submit" disabled={action.busy}>{translate("unlock.submit")}</button>
+        </div>
       </form>
     </div>
   );
