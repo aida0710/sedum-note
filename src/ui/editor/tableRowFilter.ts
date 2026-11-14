@@ -6,6 +6,7 @@ import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { selectedRect } from "@tiptap/pm/tables";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import { foldForSearch } from "../../core/notes/searchTextFolding";
 
 // フィルターをかけている表（文書の中の位置）と、その条件。
 export type TableRowFilter = { tablePosition: number; column: number; text: string };
@@ -29,7 +30,7 @@ declare module "@tiptap/core" {
 function rowMatches(row: ProseMirrorNode, filter: TableRowFilter): boolean {
   const cell = row.child(Math.min(filter.column, row.childCount - 1));
   // ヘッダーの行は、いつも出す。
-  return cell.type.name === HEADER_CELL || cell.textContent.toLocaleLowerCase().includes(filter.text.toLocaleLowerCase());
+  return cell.type.name === HEADER_CELL || foldForSearch(cell.textContent).includes(foldForSearch(filter.text));
 }
 
 function filterDecorations(doc: ProseMirrorNode, filter: TableRowFilter | null): DecorationSet {

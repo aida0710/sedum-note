@@ -7,6 +7,7 @@ import type { LiveNote } from "../../core/notes/noteRecords";
 import { translate } from "../i18n/translate";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { ICON_SIZE } from "../shared/iconSizes";
+import { foldForSearch } from "../../core/notes/searchTextFolding";
 
 type NoteMentionInputProps = {
   value: string;
@@ -32,7 +33,7 @@ export function NoteMentionInput({ value, onChange, notes, onMention, onSubmit, 
   const candidates = mentionQuery === null
     ? []
     : notes
-      .filter((note) => note.content.title.toLocaleLowerCase().includes(mentionQuery.toLocaleLowerCase()))
+      .filter((note) => foldForSearch(note.content.title).includes(foldForSearch(mentionQuery)))
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
       .slice(0, MAX_MENTION_CANDIDATES);
   const selected = Math.min(selectedIndex, Math.max(candidates.length - 1, 0));

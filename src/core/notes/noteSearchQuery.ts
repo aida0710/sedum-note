@@ -15,8 +15,9 @@ export type NoteSearchQuery = {
   notebookNames: string[];
 };
 
-const TAG_PREFIXES = ["#", "tag:"];
-const NOTEBOOK_PREFIXES = ["notebook:", "ノートブック:"];
+// 打った言葉と同じくそろえておく（全角の「＃」「：」や、カタカナの「ノートブック:」もそのまま読めるように）。
+const TAG_PREFIXES = ["#", "tag:"].map((prefix) => foldForSearch(prefix));
+const NOTEBOOK_PREFIXES = ["notebook:", "ノートブック:"].map((prefix) => foldForSearch(prefix));
 
 // 空白で区切る。引用符で囲んだ所は空白を含めて 1 つにする（引用符は外す）。
 function tokensOf(text: string): string[] {

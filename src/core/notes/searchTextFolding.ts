@@ -1,12 +1,22 @@
 // 探すときに、見た目が同じ文字の書き方の違いをそろえる。
-// 全角と半角（「ＡＢＣ」と「ABC」、「１２３」と「123」、「ﾒﾓ」と「メモ」）、大文字と小文字を、同じ文字として比べる。
-// ひらがなとカタカナは別の文字のままにする。
+// 全角と半角（「ＡＢＣ」と「ABC」、「１２３」と「123」、「ﾒﾓ」と「メモ」）、大文字と小文字、ひらがなとカタカナ（「めも」と「メモ」）を、
+// 同じ文字として比べる。
 
 // keepsCase は、大文字と小文字を区別して探すとき（メモの中の検索の切り替え）に true にする。全角と半角だけをそろえる。
 export type FoldOptions = { keepsCase?: boolean };
 
+// カタカナの「ァ」〜「ヶ」と、くり返しの「ヽ」「ヾ」。ひらがなの同じ字との差は、どれも 0x60。
+// 「ヷ」〜「ヺ」は 1 文字のひらがなが無いので、そのままにする。
+const KATAKANA_WITH_HIRAGANA = /[\u30A1-\u30F6\u30FD\u30FE]/g;
+const KATAKANA_TO_HIRAGANA_OFFSET = 0x60;
+
+// 1 文字を 1 文字にするので、文字の位置は変わらない。
+function katakanaToHiragana(text: string): string {
+  return text.replace(KATAKANA_WITH_HIRAGANA, (katakana) => String.fromCharCode(katakana.charCodeAt(0) - KATAKANA_TO_HIRAGANA_OFFSET));
+}
+
 function foldCharacters(text: string, { keepsCase = false }: FoldOptions): string {
-  const widthFolded = text.normalize("NFKC");
+  const widthFolded = katakanaToHiragana(text.normalize("NFKC"));
   return keepsCase ? widthFolded : widthFolded.toLocaleLowerCase();
 }
 

@@ -4,13 +4,17 @@ import { findFoldedWord, foldForSearch, foldWithPositions } from "./searchTextFo
 describe("foldForSearch", () => {
   it("全角と半角、大文字と小文字を同じ文字にそろえる", () => {
     expect(foldForSearch("ＡＢＣ１２３")).toBe("abc123");
-    expect(foldForSearch("ﾒﾓ")).toBe("メモ");
-    expect(foldForSearch("ｶﾞｲﾄﾞ")).toBe("ガイド");
+    expect(foldForSearch("ﾒﾓ")).toBe("めも");
+    expect(foldForSearch("ｶﾞｲﾄﾞ")).toBe("がいど");
     expect(foldForSearch("Sedum")).toBe("sedum");
   });
 
-  it("ひらがなとカタカナは、別の文字のままにする", () => {
-    expect(foldForSearch("めも")).not.toBe(foldForSearch("メモ"));
+  it("ひらがなとカタカナを同じ文字にそろえる。半角カナもそろう", () => {
+    expect(foldForSearch("めも")).toBe(foldForSearch("メモ"));
+    expect(foldForSearch("ﾒﾓ")).toBe(foldForSearch("めも"));
+    expect(foldForSearch("ヴァイオリン")).toBe("ゔぁいおりん");
+    // 長音の「ー」と、1 文字のひらがなが無い「ヷ」は、そのまま。
+    expect(foldForSearch("ノートヷ")).toBe("のーとヷ");
   });
 });
 
@@ -39,7 +43,7 @@ describe("findFoldedWord", () => {
   });
 
   it("当たらない・言葉が空なら null", () => {
-    expect(findFoldedWord("メモ", foldForSearch("めも"))).toBeNull();
+    expect(findFoldedWord("メモ", foldForSearch("ノート"))).toBeNull();
     expect(findFoldedWord("メモ", "")).toBeNull();
   });
 });
