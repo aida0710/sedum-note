@@ -56,6 +56,7 @@ import { readDevicePreferences } from "../preferences/devicePreferences";
 import type { SlashMenuController } from "./slashMenuController";
 import type { BlockMenuController } from "./blockMenuController";
 import { PlainTextPaste } from "./plainTextPaste";
+import { EmptyListItemBackspace } from "./emptyListItemBackspace";
 import { PasteUndoStep } from "./pasteUndoStep";
 
 // よく使われる言語（highlight.js の common の組）だけを入れる。言語の指定が無いコードは中身から推す。
@@ -130,6 +131,7 @@ export function createEditorExtensions({ body, slashMenuController, blockMenuCon
     KeepTabInEditor,
     SelectedBlockTyping,
     BlockStartBackspace,
+    EmptyListItemBackspace,
     TableBoundaryKeys,
     TitleBodyNavigation.configure({ moveToTitle }),
     TaskItemKeys,

@@ -4,8 +4,10 @@
 //   1. 書式に変えた直後なら、打った文字に戻す（markdownShortcutUndo.ts）
 //   2. 見出し・コードなら、段落に戻す（このファイル）
 //   3. 表のすぐ下なら、表の最後のセルへ移る（tableBoundaryKeys.ts）
-//   4. 本文の最初の段落なら、題へ移る（titleBodyNavigation.ts）
-//   5. 既定の動き（前のブロックとつなぐ、箇条書き・引用を外す）
+//   4. ズームしている項目の直下の子なら、何もしない（zoom.ts）
+//   5. 子の項目を持つ空の項目なら、子を前の項目へ移して消す（emptyListItemBackspace.ts）
+//   6. 本文の最初の段落なら、題へ移る（titleBodyNavigation.ts）
+//   7. 既定の動き（前のブロックとつなぐ、箇条書き・引用を外す）
 
 import { type Editor, Extension } from "@tiptap/core";
 import type { ResolvedPos } from "@tiptap/pm/model";

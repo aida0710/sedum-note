@@ -34,3 +34,22 @@ test("スマホでも、長いメモの末尾で打つ行の下に余白が残�
   const second = await caretAndBodyFrame(page);
   expect(second.caret.top).toBe(first.caret.top);
 });
+
+test("本文をホイールで送った直後に押すと、押した所の段落にカーソルが入る", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "送ってから押す");
+  await insertBodyHtml(page, LONG_BODY_HTML);
+  const scroll = page.locator(".document-scroll");
+  await scroll.evaluate((element) => { element.scrollTop = 0; });
+  const scrollBox = (await scroll.boundingBox())!;
+  const point = { x: scrollBox.x + scrollBox.width / 2, y: scrollBox.y + scrollBox.height / 2 };
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.wheel(0, 900);
+  await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  // 送り終わるのを待たずに押す。
+  await page.mouse.click(point.x, point.y);
+  await page.keyboard.type("！");
+  const paragraphAtPoint = () => page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest("p")?.textContent ?? "", point);
+  await expect.poll(paragraphAtPoint).toMatch(/^段落 \d+！$/);
+  await expect(page.locator(".ProseMirror p", { hasText: "！" })).toHaveCount(1);
+});

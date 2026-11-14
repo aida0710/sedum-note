@@ -271,3 +271,108 @@ test("文字を選んだときのボタンから開いた色のメニューは�
   await expect(page.getByRole("menu")).toHaveCount(0);
   await expect(selectionToolbar).toBeVisible();
 });
+
+// 箇条書きの項目を、深さの分の字下げつきで上から並べる（「  二」は 1 段深い項目）。
+const listOutline = (page: Page) => page.evaluate(() => {
+  const lines: string[] = [];
+  const visit = (list: Element, depth: number) => {
+    for (const item of list.querySelectorAll(":scope > li")) {
+      lines.push(`${"  ".repeat(depth)}${item.querySelector(":scope > p, :scope > div > p")?.textContent ?? ""}`);
+      for (const child of item.querySelectorAll(":scope > ul, :scope > ol, :scope > div > ul")) visit(child, depth + 1);
+    }
+  };
+  for (const list of document.querySelectorAll(".ProseMirror > ul, .ProseMirror > ol")) visit(list, 0);
+  return lines;
+});
+
+// fromText で始まる文字のブロックの先頭から、toText で始まる文字のブロックの末尾までを選ぶ。
+async function selectBlocks(page: Page, fromText: string, toText: string): Promise<void> {
+  await page.evaluate(({ from, to }) => {
+    type TextblockNode = { isTextblock: boolean; textContent: string; content: { size: number } };
+    const body = document.querySelector(".ProseMirror") as HTMLElement & {
+      editor: { state: { doc: { descendants: (visit: (node: TextblockNode, position: number) => boolean) => void } }; commands: { setTextSelection: (range: { from: number; to: number }) => boolean }; view: { focus: () => void } };
+    };
+    let start: number | null = null;
+    let end: number | null = null;
+    body.editor.state.doc.descendants((node, position) => {
+      if (node.isTextblock && start === null && node.textContent.startsWith(from)) start = position + 1;
+      if (node.isTextblock && node.textContent.startsWith(to)) end = position + 1 + node.content.size;
+      return true;
+    });
+    body.editor.commands.setTextSelection({ from: start!, to: end! });
+    body.editor.view.focus();
+  }, { from: fromText, to: toText });
+}
+
+test("何項目かにまたがって選んで Tab を押すと、選んだ項目が全部 1 段深くなり、Shift+Tab で全部戻る", async ({ page }) => {
+  await openNoteWith(page, "<ul><li><p>一</p></li><li><p>二</p></li><li><p>三</p></li><li><p>四</p></li></ul>");
+  await selectBlocks(page, "二", "三");
+  await page.keyboard.press("Tab");
+  await expect.poll(() => listOutline(page)).toEqual(["一", "  二", "  三", "四"]);
+  await page.keyboard.press("Shift+Tab");
+  await expect.poll(() => listOutline(page)).toEqual(["一", "二", "三", "四"]);
+});
+
+// 空の項目の先頭の Backspace は、まず 1 段浅くし（ほかのアプリと同じ）、もう 1 回で前の項目の末尾へつなげて消す。
+test("空の子の項目を Backspace で消しても、前後の項目の深さは変わらない", async ({ page }) => {
+  await openNoteWith(page, "<ul><li><p>一</p><ul><li><p>二</p></li><li><p></p></li><li><p>三</p></li></ul></li><li><p>四</p></li></ul>");
+  await page.evaluate(() => {
+    type TextblockNode = { isTextblock: boolean; content: { size: number } };
+    const body = document.querySelector(".ProseMirror") as HTMLElement & {
+      editor: { state: { doc: { descendants: (visit: (node: TextblockNode, position: number) => boolean) => void } }; commands: { setTextSelection: (position: number) => boolean }; view: { focus: () => void } };
+    };
+    let emptyItem: number | null = null;
+    body.editor.state.doc.descendants((node, position) => {
+      if (emptyItem === null && node.isTextblock && node.content.size === 0) emptyItem = position + 1;
+      return emptyItem === null;
+    });
+    body.editor.commands.setTextSelection(emptyItem!);
+    body.editor.view.focus();
+  });
+  await page.keyboard.press("Backspace");
+  await expect.poll(() => listOutline(page)).toEqual(["一", "  二", "", "  三", "四"]);
+  await page.keyboard.press("Backspace");
+  await expect.poll(() => listOutline(page)).toEqual(["一", "  二", "  三", "四"]);
+  await page.keyboard.type("の続き");
+  await expect.poll(() => listOutline(page)).toEqual(["一", "  二の続き", "  三", "四"]);
+});
+
+test("見出しの末尾の Enter でできた行は段落で、Tab を押しても見出しにも箇条書きにもならない", async ({ page }) => {
+  await openNoteWith(page, "<h2>見出し</h2>");
+  await placeCursorInBlock(page, "見出し", "end");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Tab");
+  await page.keyboard.type("見出しの下の行");
+  // 3 つ目は、見出しで終わる本文に付いていた空の段落（TrailingNode）。
+  expect(await bodyBlocks(page)).toEqual(["heading:見出し", "paragraph:見出しの下の行", "paragraph:"]);
+});
+
+test("文字を選んだときのボタンで書式を付けても、選択とボタンの並びは残り、続けて別の書式も付けられる", async ({ page }) => {
+  await openNoteWith(page, "<p>書式を付ける文</p>");
+  await selectBlocks(page, "書式を付ける文", "書式を付ける文");
+  const toolbar = page.locator(".selection-toolbar");
+  await expect(toolbar).toBeVisible();
+  await toolbar.getByRole("button", { name: "太字" }).click();
+  await expect(page.locator(".ProseMirror strong")).toHaveText("書式を付ける文");
+  await expect(toolbar).toBeVisible();
+  await toolbar.getByRole("button", { name: "斜体" }).click();
+  await expect(page.locator(".ProseMirror strong em, .ProseMirror em strong")).toHaveText("書式を付ける文");
+  const selectedText = await page.evaluate(() => window.getSelection()?.toString());
+  expect(selectedText).toBe("書式を付ける文");
+});
+
+for (const lastBlock of [
+  { name: "表", html: "<p>上の段落</p><table><tbody><tr><td><p>セル</p></td></tr></tbody></table>" },
+  { name: "コード", html: "<p>上の段落</p><pre><code>const value = 1;</code></pre>" },
+]) {
+  test(`最後が${lastBlock.name}のメモでも、本文の下の余白を押すと、その後ろの行にカーソルが入って書ける`, async ({ page }) => {
+    await openNoteWith(page, lastBlock.html);
+    await page.getByPlaceholder("タイトル").click();
+    const scrollBox = (await page.locator(".document-scroll").boundingBox())!;
+    const bodyBox = (await page.locator(".ProseMirror").boundingBox())!;
+    await page.mouse.click(bodyBox.x + 100, scrollBox.y + scrollBox.height - 20);
+    await expect(page.locator(".ProseMirror")).toBeFocused();
+    await page.keyboard.type("後ろに書いた文");
+    expect((await bodyBlocks(page)).at(-1)).toBe("paragraph:後ろに書いた文");
+  });
+}

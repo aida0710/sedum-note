@@ -293,3 +293,30 @@ test("ズームに入るとき・戻るときは、本文を短く動かして�
   await zoomIntoItem(page, "宿");
   expect(await runningAnimations()).toBe(0);
 });
+
+test.describe("動きを減らさない設定", () => {
+  test.use({ contextOptions: { reducedMotion: "no-preference" } });
+
+  test("ズームに入るときと戻るときに、本文の要素は作り直されず、高さが 0 になる瞬間も無い", async ({ page }) => {
+    await writeNestedList(page);
+    // 描画のたびに、本文の要素が同じものか、高さが残っているかを記録する（ズームの切り替えの動きの間も含む）。
+    await page.evaluate(() => {
+      const body = document.querySelector(".ProseMirror");
+      const frames: Array<{ sameBody: boolean; height: number }> = [];
+      (window as unknown as { zoomFrames: typeof frames }).zoomFrames = frames;
+      const record = () => {
+        const current = document.querySelector(".ProseMirror");
+        frames.push({ sameBody: current === body, height: current?.getBoundingClientRect().height ?? 0 });
+        requestAnimationFrame(record);
+      };
+      requestAnimationFrame(record);
+    });
+    await zoomIntoItem(page, "旅行");
+    await page.keyboard.press("Escape");
+    await expect(visibleLines(page).first()).toHaveText("はじめに");
+    const frames = await page.evaluate(() => (window as unknown as { zoomFrames: Array<{ sameBody: boolean; height: number }> }).zoomFrames);
+    expect(frames.length).toBeGreaterThan(0);
+    expect(frames.every((frame) => frame.sameBody)).toBe(true);
+    expect(Math.min(...frames.map((frame) => frame.height))).toBeGreaterThan(0);
+  });
+});
