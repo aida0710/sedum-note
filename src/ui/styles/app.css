@@ -1304,6 +1304,9 @@ details summary { cursor: pointer; color: var(--accent); }
 @media (max-width: 760px) {
   .field-grid { grid-template-columns: minmax(0, 1fr); }
   .entry { --entry-card-padding: 20px; }
+  /* スマホのロックの画面は、カードを縦の真ん中に置く（上の端の固定だと、指の届きにくい画面の上に寄る）。
+     ロックの画面は中身の量がほとんど変わらないので、最初の画面のような上の端の固定は要らない。 */
+  .entry.unlock-entry { align-items: center; padding-top: max(24px, env(safe-area-inset-top)); }
 }
 
 /* ── 印刷（PDF での保存も同じ） ─────────────────────────

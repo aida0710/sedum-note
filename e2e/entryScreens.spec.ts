@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { PASSPHRASE, startLocalVault } from "./devices";
+import { PASSPHRASE, PHONE_VIEWPORT, startLocalVault } from "./devices";
 
 test("最初の画面は、題の上にアプリのアイコンと名前を出し、鍵のアイコンは出さない", async ({ page }) => {
   await page.goto("/");
@@ -48,4 +48,14 @@ test("ロックの画面では、パスフレーズを打って Enter で解除�
   await page.getByLabel("パスフレーズ", { exact: true }).press("Enter");
   await expect(page.getByRole("button", { name: "新しいメモ" })).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("スマホのロックの画面では、カードを画面の縦の真ん中に置く", async ({ page }) => {
+  await page.setViewportSize(PHONE_VIEWPORT);
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "新しいメモ" }).first().waitFor();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "ロックを解除" })).toBeVisible();
+  const card = (await page.locator(".entry-card").boundingBox())!;
+  expect(Math.abs(card.y + card.height / 2 - PHONE_VIEWPORT.height / 2)).toBeLessThanOrEqual(1);
 });

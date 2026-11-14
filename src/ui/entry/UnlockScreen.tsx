@@ -15,7 +15,7 @@ export function UnlockScreen({ session, spaceId }: { session: VaultSession; spac
   const action = useAsyncAction(session.unlock);
   const { customCss, customCssEnabled } = useDevicePreferences();
   return (
-    <div className="entry">
+    <div className="entry unlock-entry">
       <form className="entry-card" onKeyDown={preventSubmitByImeKey} onSubmit={(event) => { event.preventDefault(); void action.run(passphrase); }}>
         <EntryBrand />
         <h1>{translate("unlock.title")}</h1>
