@@ -343,11 +343,15 @@ test("テンプレートの @date・@time・@title は、新しいメモを作�
 
   // 「/」で入れるときは、@title は入れる先のメモの題になる。
   await newNote(page, "週次の振り返り");
-  // CI で 1 度、続けて打った「/日報」で候補が出なかった（手元では再現しない）。本文にカーソルを置いたのを確かめてから打つ。
+  // CI でときどき、続けて打った「/日報」で候補が 1 つも出ずに落ちる（手元では再現しない。原因は確かめられていない）。
+  // 「/」でメニューが開いたのを確かめてから絞り込む。次に落ちたとき、メニューが開かなかったのか、当たりが無かったのかを分ける。
   await placeCursorAtBodyEnd(page);
   await expect(page.locator(".ProseMirror")).toBeFocused();
-  await page.keyboard.type("/日報");
-  await expect(page.getByRole("listbox", { name: "ブロックの種類" }).getByRole("option")).toHaveText(["テンプレート: @date の日報"]);
+  await page.keyboard.type("/");
+  const slashMenu = page.getByRole("listbox", { name: "ブロックの種類" });
+  await expect(slashMenu.getByRole("option", { name: "テンプレート: @date の日報" })).toBeAttached();
+  await page.keyboard.type("日報");
+  await expect(slashMenu.getByRole("option")).toHaveText(["テンプレート: @date の日報"]);
   await page.keyboard.press("Enter");
   await expect(page.locator(".ProseMirror h2")).toHaveText("週次の振り返り");
   await expect(page.locator(".ProseMirror p", { hasText: "作成" })).toHaveText("作成 09:05、連絡先 foo@date.example");

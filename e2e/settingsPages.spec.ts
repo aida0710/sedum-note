@@ -129,6 +129,18 @@ test("開けない記録があると、設定に件数と次の手と記録の I
   await page.getByRole("button", { name: "新しいメモ" }).click();
   await page.getByPlaceholder("タイトル").fill("壊れるメモ");
   await page.getByPlaceholder("タイトル").press("Enter");
+  // 記録が手元に保存されるのを待ち、ロックの画面に戻してから壊す。開いたままだと、あとから走る保存が、壊した記録を正しい中身で上書きする。
+  const savedRecordCount = () => page.evaluate(() => new Promise<number>((resolve, reject) => {
+    const request = indexedDB.open("sedum-note");
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const count = request.result.transaction("records", "readonly").objectStore("records").count();
+      count.onsuccess = () => resolve(count.result);
+    };
+  }));
+  await expect.poll(savedRecordCount).toBeGreaterThan(0);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "解除" })).toBeVisible();
   // 手元の記録の暗号文を、同じ長さの 0 に置き換えて、復号できなくする。
   const brokenId = await page.evaluate(() => new Promise<string>((resolve, reject) => {
     const request = indexedDB.open("sedum-note");
