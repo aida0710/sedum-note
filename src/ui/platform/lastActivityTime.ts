@@ -13,3 +13,8 @@ export function readLastActivityTime(): number | null {
 export function writeLastActivityTime(time: number): void {
   localStorage.setItem(STORAGE_KEY, String(time));
 }
+
+// 「このデバイスのデータを消す」で使う。
+export function clearLastActivityTime(): void {
+  localStorage.removeItem(STORAGE_KEY);
+}

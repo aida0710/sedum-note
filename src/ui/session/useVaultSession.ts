@@ -24,6 +24,7 @@ import {
 } from "../../core/vault/vaultSession";
 import { resetDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { holdSyncDuty, onWindowSignal, sendWindowSignal } from "../platform/crossWindowStorage";
+import { clearLastActivityTime } from "../platform/lastActivityTime";
 import { createAppEnvironment } from "./appEnvironment";
 import { clearDueReminderRecords } from "./dueReminderRecords";
 import { keyHandoffOfThisApp } from "./keyHandoffOfThisApp";
@@ -296,6 +297,7 @@ export function useVaultSession(spaceId: string): VaultSession {
       await destroyOtherSpaces(spaceId);
       sendWindowSignal("wiped");
       resetDevicePreferences();
+      clearLastActivityTime();
       await clearDueReminderRecords();
       // メモリに残った鍵と開いた文書ごと捨てて、最初の画面から始め直す。
       window.location.reload();
