@@ -18,11 +18,11 @@ describe("このデバイスの表示の設定", () => {
     vi.unstubAllGlobals();
   });
 
-  it("前の版でデイリーノートの題の形式として選んだ形式を、テンプレートの日付と時刻の形式として引き継ぐ", async () => {
-    expect((await preferencesLoadedFrom({ dailyNoteTitleFormat: "long" })).templateDateFormat).toBe("long");
+  it("選んだテンプレートの日付と時刻の形式を読む", async () => {
+    expect((await preferencesLoadedFrom({ templateDateFormat: "long" })).templateDateFormat).toBe("long");
   });
 
-  it("テンプレートの日付と時刻の形式を選び直したら、前の版の値より、選び直した値を使う", async () => {
-    expect((await preferencesLoadedFrom({ dailyNoteTitleFormat: "long", templateDateFormat: "iso" })).templateDateFormat).toBe("iso");
+  it("知らないテンプレートの日付と時刻の形式は、既定の形式に戻す", async () => {
+    expect((await preferencesLoadedFrom({ templateDateFormat: "unknown" })).templateDateFormat).toBe("iso");
   });
 });

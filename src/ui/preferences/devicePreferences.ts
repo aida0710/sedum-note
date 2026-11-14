@@ -133,9 +133,6 @@ function loadStoredPreferences(): DevicePreferences {
   }
 }
 
-// v0.7.0 までの項目。テンプレートの日付と時刻の形式は、デイリーノートの題の形式として持っていた。
-type LegacyDevicePreferences = { dailyNoteTitleFormat?: unknown };
-
 // 読めない項目だけを既定に戻す（手で書き換えた値や、別のバージョンの値で画面が壊れないように）。
 function validPreferences(stored: unknown): DevicePreferences {
   const candidate = (typeof stored === "object" && stored !== null ? stored : {}) as Partial<Record<keyof DevicePreferences, unknown>>;
@@ -152,8 +149,7 @@ function validPreferences(stored: unknown): DevicePreferences {
     showOutline: typeof candidate.showOutline === "boolean" ? candidate.showOutline : DEFAULT_DEVICE_PREFERENCES.showOutline,
     imageAttachment: IMAGE_ATTACHMENT_CHOICES.find((choice) => choice === candidate.imageAttachment) ?? DEFAULT_DEVICE_PREFERENCES.imageAttachment,
     autoSync: typeof candidate.autoSync === "boolean" ? candidate.autoSync : DEFAULT_DEVICE_PREFERENCES.autoSync,
-    templateDateFormat: TEMPLATE_DATE_FORMATS.find((format) => format === (candidate.templateDateFormat ?? (stored as LegacyDevicePreferences | null)?.dailyNoteTitleFormat))
-      ?? DEFAULT_DEVICE_PREFERENCES.templateDateFormat,
+    templateDateFormat: TEMPLATE_DATE_FORMATS.find((format) => format === candidate.templateDateFormat) ?? DEFAULT_DEVICE_PREFERENCES.templateDateFormat,
     typewriterMode: typeof candidate.typewriterMode === "boolean" ? candidate.typewriterMode : DEFAULT_DEVICE_PREFERENCES.typewriterMode,
     customCss: typeof candidate.customCss === "string" ? candidate.customCss : DEFAULT_DEVICE_PREFERENCES.customCss,
     customCssEnabled: typeof candidate.customCssEnabled === "boolean" ? candidate.customCssEnabled : DEFAULT_DEVICE_PREFERENCES.customCssEnabled,
