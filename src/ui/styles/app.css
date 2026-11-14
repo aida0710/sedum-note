@@ -49,6 +49,11 @@
   /* 指で動かした行や一覧が、離したあとに落ち着く動き。 */
   --duration-settle: 220ms;
   --ease-settle: cubic-bezier(0.165, 0.84, 0.44, 1);
+  /* ダイアログと知らせの出入り。出るときは目で追える短さ、消えるときは閉じたあとに残って見えない短さにする。 */
+  --duration-enter: 150ms;
+  --duration-exit: 100ms;
+  --ease-enter: var(--ease-settle);
+  --ease-exit: ease-in;
   /* チェックボックス・ラジオボタン・つまみは、どのテーマでもテーマの色で描く（決めないと、ブラウザの既定の青になる）。 */
   accent-color: var(--accent);
   /* 画面の部品の文字の大きさは、次の 6 つにする（本文は表示の設定の --editor-font-size）。スマホでは .phone が一部を大きくする。 */
@@ -956,6 +961,19 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 /* 暗い地では、影だけではダイアログの端が見えないので、線で縁を取る。 */
 :root[data-scheme="dark"] .dialog { border-color: var(--line); }
 .dialog-backdrop { position: fixed; inset: 0; z-index: var(--layer-dialog); background: var(--overlay); display: grid; place-items: center; padding: 16px; }
+/* ダイアログと知らせの出入りの動き。出るときは透明から、少し小さい所（0.98）から。消えるときは透明へ（消える写しは shared/exitAnimation.ts が作り、
+   操作は受けない）。頻度の高いコマンドパレットは動かさない（メニュー・「/」・タブの切り替えにも付けない）。動きを減らす設定では、どれも動かさない。 */
+@media (prefers-reduced-motion: no-preference) {
+  .dialog-backdrop { animation: appear-fade var(--duration-enter) var(--ease-enter); }
+  .dialog, .toast { animation: appear-rise var(--duration-enter) var(--ease-enter); }
+  .dialog-backdrop.leaving, .toast.leaving { animation: disappear-fade var(--duration-exit) var(--ease-exit) forwards; }
+  .dialog-backdrop.leaving .dialog { animation: none; }
+  .dialog-backdrop:has(> .command-palette), .dialog.command-palette { animation: none; }
+}
+.dialog-backdrop.leaving, .toast.leaving { pointer-events: none; }
+@keyframes appear-fade { from { opacity: 0; } }
+@keyframes appear-rise { from { opacity: 0; transform: scale(.98); } }
+@keyframes disappear-fade { to { opacity: 0; } }
 /* 中身が画面の高さを超えるダイアログは、枠の中で送る（下のボタンが画面の外に出て、押せなくならないように）。 */
 /* ダイアログの幅は --dialog-width で決める（各ダイアログは、この変数だけを書く。width を書くと、規則の順で負けることがある）。 */
 .dialog { background: var(--raised); border: 1px solid transparent; border-radius: var(--radius-dialog); padding: 20px; width: min(var(--dialog-width, 420px), 100%); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--elevation-dialog); }

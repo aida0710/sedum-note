@@ -1,6 +1,8 @@
 // 画面の下に短く出す知らせ。操作を取り消すボタンを付けられる（ゴミ箱に入れた直後の「元に戻す」など）。
+// 出るときと消えるときに短い動きを付ける（app.css と shared/exitAnimation.ts）。
 
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useExitAnimation } from "./exitAnimation";
 
 // 知らせを出しておく時間。読んで、取り消すボタンを押すのに足りる長さ。
 const TOAST_DURATION_MILLISECONDS = 6_000;
@@ -43,16 +45,27 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={replaceShown}>
       {children}
-      {shown && (
-        <div className="toast" role="status"
-          onPointerEnter={() => setIsHeld(true)} onPointerLeave={() => setIsHeld(false)}
-          onFocus={() => setIsHeld(true)} onBlur={() => setIsHeld(false)}>
-          <span className="toast-message">{shown.toast.message}</span>
-          {shown.toast.action && (
-            <button type="button" onClick={() => { shown.toast.action?.run(); replaceShown(null); }}>{shown.toast.action.label}</button>
-          )}
-        </div>
-      )}
+      {shown && <ToastView toast={shown.toast} onHoldChange={setIsHeld} onRunAction={() => { shown.toast.action?.run(); replaceShown(null); }} />}
     </ToastContext.Provider>
+  );
+}
+
+type ToastViewProps = {
+  toast: Toast;
+  // ポインターを乗せた・ボタンにフォーカスが来た（true）、離れた（false）。
+  onHoldChange: (isHeld: boolean) => void;
+  onRunAction: () => void;
+};
+
+function ToastView({ toast, onHoldChange, onRunAction }: ToastViewProps) {
+  const toastRef = useRef<HTMLDivElement>(null);
+  useExitAnimation(toastRef);
+  return (
+    <div ref={toastRef} className="toast" role="status"
+      onPointerEnter={() => onHoldChange(true)} onPointerLeave={() => onHoldChange(false)}
+      onFocus={() => onHoldChange(true)} onBlur={() => onHoldChange(false)}>
+      <span className="toast-message">{toast.message}</span>
+      {toast.action && <button type="button" onClick={onRunAction}>{toast.action.label}</button>}
+    </div>
   );
 }

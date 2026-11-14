@@ -2,8 +2,10 @@
 // 開いている間、Tab はダイアログの中だけを回る（外へ出ると、Escape が届かず閉じられなくなる）。
 // スマホの組み方では、端末の「戻る」でも閉じる（下の画面を閉じない）。
 // 見出し（title）と説明（description）を渡すと、どのダイアログでも同じ形で上に出す。
+// 出るときと消えるときに短い動きを付ける（app.css と shared/exitAnimation.ts）。
 
 import { type ReactNode, useEffect, useRef } from "react";
+import { useExitAnimation } from "./exitAnimation";
 import { returnFocusTo } from "./focusReturn";
 import { isImeKeyEvent } from "./imeKeyEvent";
 import { menuAnchorOf } from "./PopupMenu";
@@ -43,6 +45,8 @@ type ModalDialogProps = {
 
 export function ModalDialog({ label, title, description, className = "", onClose, children }: ModalDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  useExitAnimation(backdropRef);
   // 開く前にフォーカスがあった要素（開いたボタンなど）。閉じたらそこへ戻す。
   // メニューの項目から開いたときは、項目がメニューごと消えるので、メニューを開いたボタンへ戻す。
   const openerRef = useRef<Element | null>(menuAnchorOf(document.activeElement) ?? document.activeElement);
@@ -67,7 +71,7 @@ export function ModalDialog({ label, title, description, className = "", onClose
     };
   }, []);
   return (
-    <div className="dialog-backdrop" onPointerDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div ref={backdropRef} className="dialog-backdrop" onPointerDown={(event) => event.target === event.currentTarget && onClose()}>
       <div ref={dialogRef} className={`dialog ${className}`.trim()} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1}
         onKeyDown={(event) => {
           if (isImeKeyEvent(event.nativeEvent)) {
