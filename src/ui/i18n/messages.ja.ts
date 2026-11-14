@@ -885,6 +885,7 @@ export const japaneseMessages = {
   "palette.switchSpace": "スペースを切り替える: {name}",
   "graph.title": "グラフ表示",
   "graph.summary": "メモ {notes} 件、リンク {links} 本",
+  "graph.placing": "点を配置しています…",
   "shortcut.newNote": "新しいメモ",
   "shortcut.focusMode": "フォーカスモード",
   "shortcut.sidebarMoveRow": "前後の行へ移る",

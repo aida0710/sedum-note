@@ -886,6 +886,7 @@ export const englishMessages: Record<MessageKey, string> = {
   "palette.switchSpace": "Switch to space: {name}",
   "graph.title": "Graph view",
   "graph.summary": "{notes} notes, {links} links",
+  "graph.placing": "Placing the points…",
   "shortcut.newNote": "New note",
   "shortcut.focusMode": "Focus mode",
   "shortcut.sidebarMoveRow": "Move to the previous or next row",

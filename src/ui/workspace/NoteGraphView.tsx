@@ -1,9 +1,10 @@
 // グラフ表示。メモを点、メモ同士のリンクを線にした図。点を押すと、そのメモを開く。
 
 import { type RefObject, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { buildNoteGraph, type GraphPoint, layoutNoteGraph } from "../../core/notes/noteGraph";
+import { buildNoteGraph, type GraphPoint } from "../../core/notes/noteGraph";
 import type { NoteSummary } from "../../core/notes/noteQueries";
 import { translate } from "../i18n/translate";
+import { useNoteGraphLayout } from "./useNoteGraphLayout";
 
 type NoteGraphViewProps = { summaries: NoteSummary[]; onOpenNote: (noteId: string) => void };
 
@@ -70,24 +71,24 @@ function useElementSize<T extends Element>(): [RefObject<T | null>, Size] {
 export function NoteGraphView({ summaries, onOpenNote }: NoteGraphViewProps) {
   // 置き方の計算は重いので、つながり（メモの ID、題、リンク）が変わったときだけやり直す。
   const graphKey = JSON.stringify(summaries.map((summary) => [summary.note.id, summary.note.content.title, summary.note.content.trashedAt, summary.note.content.isTemplate, summary.linkedNoteIds]));
-  const { graph, points } = useMemo(() => {
-    const built = buildNoteGraph(summaries);
-    return { graph: built, points: layoutNoteGraph(built) };
-    // summaries は本文を打つたびに作り直されるので、依存には、つながりを文字にしたもの（graphKey）を使う。
-  }, [graphKey]);
+  // summaries は本文を打つたびに作り直されるので、依存には、つながりを文字にしたもの（graphKey）を使う。
+  const graph = useMemo(() => buildNoteGraph(summaries), [graphKey]);
+  // 置き方は別のスレッドで計算する。計算している間（メモが多いと数秒）は、点の代わりに「配置しています」を出す。
+  const points = useNoteGraphLayout(graph);
   const showAllTitles = graph.nodes.length <= MAX_NODES_WITH_ALL_TITLES;
   const [svgRef, size] = useElementSize<SVGSVGElement>();
-  const placed = useMemo(() => fitIntoSize(points, size), [points, size]);
+  const placed = useMemo(() => (points === null ? null : fitIntoSize(points, size)), [points, size]);
   return (
     <div className="note-graph">
       <div className="note-graph-summary">{translate("graph.summary", { notes: graph.nodes.length, links: graph.edges.length })}</div>
       {graph.nodes.length === 0 && <div className="tree-empty">{translate("sidebar.noNotes")}</div>}
+      {graph.nodes.length > 0 && placed === null && <div className="tree-empty" role="status">{translate("graph.placing")}</div>}
       <svg ref={svgRef} viewBox={`0 0 ${size.width} ${size.height}`} role="img" aria-label={translate("graph.title")}>
-        {graph.edges.map((edge) => {
+        {placed && graph.edges.map((edge) => {
           const [from, to] = [placed.get(edge.fromNoteId)!, placed.get(edge.toNoteId)!];
           return <line key={`${edge.fromNoteId}:${edge.toNoteId}`} className="note-graph-edge" x1={from.x} y1={from.y} x2={to.x} y2={to.y} />;
         })}
-        {graph.nodes.map((node) => {
+        {placed && graph.nodes.map((node) => {
           const point = placed.get(node.noteId)!;
           const radius = Math.min(NODE_RADIUS.maximum, NODE_RADIUS.minimum + node.linkCount * NODE_RADIUS.perLink);
           const title = node.title || translate("sidebar.untitled");
