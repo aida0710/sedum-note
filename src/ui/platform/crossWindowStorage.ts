@@ -5,10 +5,11 @@
 
 import { SerialQueue, type WriteQueue } from "../../core/local/serialQueue";
 import type { RecordChangeChannel } from "../../core/notes/recordChangeChannel";
+import { hasWebLocks, holdWebLock } from "./webLocks";
 
 export function createCrossWindowWriteQueue(vaultId: string): WriteQueue {
   // Web Locks の無い環境（古い WebView）では、このウィンドウの中だけで順に流す。
-  if (!("locks" in navigator)) {
+  if (!hasWebLocks()) {
     return new SerialQueue();
   }
   const lockName = `sedum-note:write:${vaultId}`;
@@ -44,6 +45,7 @@ export function createRecordChangeChannel(vaultId: string): RecordChangeChannel 
 // このアプリを開いているウィンドウ全部に伝える合図。lock は「ロックした」、wiped は「このデバイスのデータを消した」。
 // dataFormatAdopted は「手元のデータを、この版のデータの形にした」（core/format/dataFormat.ts）。
 // データを消すのは、ロックしたままのウィンドウからもできるので、vault ごとには分けない。
+// Web 版では同じ出どころのほかのページにも届くので、キーなどの秘密は載せない（キーの受け渡しは session/unlockedKeyHandoff.ts）。
 export type WindowSignal = "lock" | "wiped" | { kind: "dataFormatAdopted"; version: number };
 
 function isWindowSignal(value: unknown): value is WindowSignal {
@@ -77,24 +79,9 @@ export function onWindowSignal(listener: (signal: WindowSignal) => void): () => 
 // 同じ vault を開いているウィンドウのうち、1 つだけが同期を受け持つ。受け持ちになったら start を呼び、
 // 返した関数を呼ぶと受け持ちを降りる（ほかのウィンドウが引き継ぐ）。受け持ちになる前に降りたら、start は呼ばない。
 export function holdSyncDuty(vaultId: string, start: () => void): () => void {
-  if (!("locks" in navigator)) {
+  if (!hasWebLocks()) {
     start();
     return () => undefined;
   }
-  let released = false;
-  let release: () => void = () => undefined;
-  navigator.locks.request(`sedum-note:sync:${vaultId}`, () => new Promise<void>((resolve) => {
-    if (released) {
-      resolve();
-      return;
-    }
-    release = resolve;
-    start();
-  // 受け持ちの順番待ちは、ブラウザがこのサイトのデータを消すとき（ウィンドウを閉じる途中など）に、失敗で打ち切られる。
-  // そのときは、このウィンドウの保存も一緒に無くなっているので、続きの処理は無い。
-  })).catch(() => undefined);
-  return () => {
-    released = true;
-    release();
-  };
+  return holdWebLock(`sedum-note:sync:${vaultId}`, { mode: "exclusive", onAcquired: start });
 }
