@@ -30,13 +30,15 @@ test("操作が無いまま、選んだ時間が過ぎるとロックする。�
 });
 
 test("ほかのウィンドウで操作している間はロックせず、どのウィンドウでも操作が止まってから選んだ時間が過ぎると、全部のウィンドウがロックされる", async ({ page, context }) => {
-  await page.clock.install({ time: NOW });
   await startLocalVault(page);
   await createNoteOnDesktop(page, "日記");
   const opened = context.waitForEvent("page");
   await page.locator(".tree-note", { hasText: "日記" }).first().click({ modifiers: ["ControlOrMeta"] });
   const noteWindow = await opened;
   await expect(noteWindow.getByPlaceholder("タイトル")).toHaveValue("日記");
+  // 偽の時計は、別のウィンドウを開いて題が届いてから入れる。偽の時計はページのタイマーを 1 つ呼ぶたびに実時間のタイマーを待つので、
+  // 重い CI では元のウィンドウの題の保存の予約が遅れ、別のウィンドウに題が届く前に待ちが切れた（CI で 2 回）。時刻は今のまま進める。
+  await page.clock.install();
   await chooseInactivityLock(page, "15分");
 
   // 10 分後に、別のウィンドウでマウスを動かす。最初のウィンドウでは、そのあと何もしない。
