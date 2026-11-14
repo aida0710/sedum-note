@@ -46,11 +46,23 @@ test("本文をホイールで送った直後に押すと、押した所の段�
   await page.mouse.move(point.x, point.y);
   await page.mouse.wheel(0, 900);
   await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
-  // 送り終わるのを待たずに押す。カーソルは、押した所にある段落に入る。
-  const paragraphAtPoint = () => page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest("p")?.textContent ?? "", point);
+  // 送り終わるのを待たずに押す。カーソルは、押した瞬間にその所にあった段落に入る
+  // （WebKit は押したあとも惰性で送り続けるので、押したあとに同じ所を調べると別の段落になる。押した瞬間に記録する）。
+  await page.evaluate(() => {
+    document.addEventListener("mousedown", (event) => {
+      document.body.dataset.pressedParagraph = (event.target as Element).closest("p")?.textContent ?? "";
+    }, { capture: true, once: true });
+  });
   await page.mouse.click(point.x, point.y);
-  await expect.poll(() => textOfBlockAtCursor(page)).toBe(await paragraphAtPoint());
+  // 惰性で送っている間は、押した所が段落と段落の間に当たることもある。そのときは段落を決めずに、押したのが無視されないことだけを見る。
+  const pressedParagraph = await page.evaluate(() => document.body.dataset.pressedParagraph ?? "");
+  if (pressedParagraph !== "") {
+    await expect.poll(() => textOfBlockAtCursor(page)).toBe(pressedParagraph);
+  }
   await page.keyboard.type("！");
-  await expect.poll(paragraphAtPoint).toMatch(/^段落 \d+！$/);
-  await expect(page.locator(".ProseMirror p", { hasText: "！" })).toHaveCount(1);
+  const typedParagraph = page.locator(".ProseMirror p", { hasText: "！" });
+  await expect(typedParagraph).toHaveCount(1);
+  if (pressedParagraph !== "") {
+    expect((await typedParagraph.textContent())?.replace("！", "")).toBe(pressedParagraph);
+  }
 });
