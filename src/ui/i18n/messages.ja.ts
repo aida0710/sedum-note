@@ -500,7 +500,7 @@ export const japaneseMessages = {
   "editor.unsynced": "未送信",
   "editor.imageLoading": "画像を読み込んでいます…",
   "editor.attachmentNotDelivered": "まだこのデバイスに届いていません。添付したデバイスが同期すると表示されます。",
-  "editor.attachmentLoadFailed": "読み込めませんでした。接続を確かめてから、もう一度読み込んでください。",
+  "editor.attachmentLoadFailed": "読み込めませんでした。接続を確認してから、もう一度読み込んでください。",
   "editor.reloadAttachment": "再読み込み",
   "editor.audioLoading": "音声を読み込んでいます…",
   "editor.empty": "左のメモを選ぶか、新しいメモを作ってください",

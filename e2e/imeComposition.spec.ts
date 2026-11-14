@@ -118,6 +118,21 @@ for (const composing of COMPOSING_BLOCKS) {
   });
 }
 
+// 日本語入力のままの「＃」「＞」は、変換を確定して入り、続けて打った全角の空白で書式に変わる（実際の日本語入力と同じ順）。
+for (const shortcut of [{ mark: "＃", block: "h1" }, { mark: "＃＃", block: "h2" }, { mark: "＞", block: "blockquote" }]) {
+  test(`変換して確定した「${shortcut.mark}」のあとの全角の空白で、書式に変わる`, async ({ page, browserName }) => {
+    test.skip(browserName !== "chromium", "変換は Chromium の DevTools で作る");
+    await startLocalVault(page);
+    await createNoteOnDesktop(page, "変換の書式");
+    const devTools = await page.context().newCDPSession(page);
+    await devTools.send("Input.imeSetComposition", { text: shortcut.mark, selectionStart: shortcut.mark.length, selectionEnd: shortcut.mark.length });
+    await pressImeConfirmEnter(page);
+    await devTools.send("Input.insertText", { text: shortcut.mark });
+    await page.keyboard.type("　書式の文");
+    await expect(page.locator(`.ProseMirror ${shortcut.block}`)).toHaveText("書式の文");
+  });
+}
+
 test("たたんだ見出しの行で変換して確定すると、見出しはたたんだまま、隠れた中身も変わらない", async ({ page, browserName }) => {
   test.skip(browserName !== "chromium", "変換は Chromium の DevTools で作る");
   await startLocalVault(page);

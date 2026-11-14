@@ -82,26 +82,47 @@ async function readRenderedFonts(page, fontSamples) {
   return rendered;
 }
 
+// 1 つの画面の開き方（と閉じ方）が終わるまでの上限。操作の 1 つずつは ACTION_TIMEOUT_MILLISECONDS で止まるが、
+// 道具の誤り（閉じないダイアログを閉じ続けるなど）で待ち続けると、残りの画面が撮れなくなる。いちばん長い画面
+// （設定の全ページをスクロールしながら撮る）でも 1 分ほどなので、その倍にする。
+const SCREEN_DEADLINE_MILLISECONDS = 120_000;
+
+async function withinScreenDeadline(work, label) {
+  let timer = null;
+  const deadline = new Promise((_resolve, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label}が ${SCREEN_DEADLINE_MILLISECONDS / 1000} 秒で終わらなかった`)), SCREEN_DEADLINE_MILLISECONDS);
+  });
+  try {
+    return await Promise.race([work(), deadline]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // 画面の 1 つを開いて測る。途中で失敗しても、ほかの画面は続ける。終わったら開いたメニューやダイアログを閉じる。
 async function visitScreen(page, screen) {
   const capture = (name) => captureScreen(page, name, { language: screen.language });
   try {
-    await screen.open(page, { captureScreen: capture });
-    if (!screen.capturesItself) {
-      await capture(screen.name);
-    }
+    await withinScreenDeadline(async () => {
+      await screen.open(page, { captureScreen: capture });
+      if (!screen.capturesItself) {
+        await capture(screen.name);
+      }
+    }, "開いて撮る");
   } catch (error) {
     failures.push({ screen: screen.name, message: String(error.message ?? error).split("\n")[0] });
     // どこで止まったかを見られるよう、開けなかったときの画面を残す（測らない）。
     await page.screenshot({ path: `${outputDirectory}/failed-${screen.name}.png` }).catch(() => {});
   } finally {
     try {
-      if (screen.close) {
-        await screen.close(page);
-      } else {
-        await page.keyboard.press("Escape");
-        await page.keyboard.press("Escape");
-      }
+      await withinScreenDeadline(async () => {
+        if (screen.close) {
+          await screen.close(page);
+        } else {
+          await page.keyboard.press("Escape");
+          await page.keyboard.press("Escape");
+        }
+      }, "閉じる");
     } catch (error) {
       failures.push({ screen: `${screen.name}（閉じる）`, message: String(error.message ?? error).split("\n")[0] });
     }

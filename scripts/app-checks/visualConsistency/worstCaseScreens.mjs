@@ -220,11 +220,15 @@ export function WORST_CASE_DESKTOP_SCREENS({ baseUrl, passphrase }) {
 
 export function WORST_CASE_PHONE_SCREENS({ baseUrl, passphrase, phoneViewport }) {
   const selectPhoneTab = (page, index) => page.locator(".tabbar button").nth(index).click();
-  // 開いているダイアログ（AI チャットなど）を閉じてから、一覧まで戻る。
+  // 開いているダイアログ（AI チャットなど）を閉じてから、一覧まで戻る。Esc で閉じないダイアログは、中の「閉じる」を押す。
   const backToList = async (page) => {
-    while (await page.getByRole("dialog").count()) {
+    if (await page.getByRole("dialog").count()) {
       await page.keyboard.press("Escape");
     }
+    if (await page.getByRole("dialog").count()) {
+      await page.getByRole("dialog").getByRole("button", { name: /閉じる/ }).first().click();
+    }
+    await page.getByRole("dialog").waitFor({ state: "detached" });
     while (await page.locator(".phone-back").count()) {
       await page.locator(".phone-back").first().click();
     }

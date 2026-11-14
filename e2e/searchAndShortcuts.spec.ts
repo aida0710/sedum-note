@@ -539,3 +539,15 @@ test("タブを 1 つも開いていない本文の欄には、メモを作る�
   await page.locator('.sidebar [data-view-key="trash"]').click();
   await expect(emptyPane).toHaveText("ゴミ箱は空です");
 });
+
+// 開いたダイアログの入力欄には、すぐにフォーカスが入る（開発時の StrictMode で外れていたことがあり、製品のビルドでも同じ試験を流す）。
+test("本文で Ctrl+K を押した直後に打った文字は、本文ではなくコマンドパレットの欄に入る", async ({ page }) => {
+  await startLocalVault(page);
+  await newNote(page, "直後に打つ", "本文");
+  await page.keyboard.press("Control+k");
+  await page.keyboard.type("直後");
+  const palette = page.getByRole("dialog", { name: "コマンドパレット" });
+  await expect(palette.getByRole("combobox")).toHaveValue("直後");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".ProseMirror")).toHaveText("本文");
+});
