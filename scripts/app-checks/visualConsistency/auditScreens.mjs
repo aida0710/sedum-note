@@ -2,6 +2,14 @@
 // 1 つの画面は { name, open(page, { captureScreen }), close?(page), capturesItself? }。
 // open が自分で撮る（スクロールして何枚か撮る）ときは capturesItself を true にする。
 
+import { AI_CHAT_SCREENS } from "./aiChatScreens.mjs";
+import { exposeApp } from "./appInternals.mjs";
+import {
+  captureEverySettingsPage, captureWhileScrolling, chooseTheme, closeSlashMenu, insertBySlash, openBlockMenu, openEditorMoreMenu,
+  openNotebookMenu, openSettingsOnDesktop, openSidebarNoteMenu, openSlashMenu, pasteMarkdown, placeCursorAtEnd, selectFirstParagraph, SETTINGS_SCROLL_STEPS, unlock,
+} from "./appOperations.mjs";
+import { LOW_WINDOW_SCREENS } from "./lowWindowScreens.mjs";
+
 // 見た目を確かめるメモの本文。書式とブロックの種類をひととおり入れる（Markdown を貼ると書式になる）。
 const RICH_NOTE_TITLE = "見た目の確認";
 const RICH_NOTE_MARKDOWN = [
@@ -61,135 +69,27 @@ const SAMPLE_PDF = {
   buffer: Buffer.from("%PDF-1.4\n1 0 obj <</Type/Catalog/Pages 2 0 R>> endobj\n2 0 obj <</Type/Pages/Kids[3 0 R]/Count 1>> endobj\n3 0 obj <</Type/Page/Parent 2 0 R/MediaBox[0 0 200 100]>> endobj\ntrailer <</Root 1 0 R>>\n%%EOF\n"),
 };
 
-const SETTINGS_SCROLL_STEPS = 12;
 const NOTE_SCROLL_STEPS = 6;
-
-async function pasteMarkdown(page, markdown) {
-  await page.locator(".ProseMirror").evaluate((editor, text) => {
-    const clipboard = new DataTransfer();
-    clipboard.setData("text/plain", text);
-    editor.dispatchEvent(new ClipboardEvent("paste", { clipboardData: clipboard, bubbles: true, cancelable: true }));
-  }, markdown);
-}
-
-// 縦に長い画面を、見えている高さずつスクロールしながら撮る。
-async function captureWhileScrolling(page, captureScreen, { name, scrollContainer, maxSteps }) {
-  const container = page.locator(scrollContainer).first();
-  await container.evaluate((element) => { element.scrollTop = 0; });
-  for (let step = 0; step < maxSteps; step += 1) {
-    await captureScreen(`${name}-${step + 1}`);
-    const moved = await container.evaluate((element) => {
-      const before = element.scrollTop;
-      element.scrollTop = before + element.clientHeight * 0.85;
-      return element.scrollTop !== before;
-    });
-    if (!moved) break;
-  }
-  await container.evaluate((element) => { element.scrollTop = 0; });
-}
-
-// 左下の歯車から設定を開き、ページを選ぶ（ページの名前は左の一覧の文言）。
-async function openSettingsOnDesktop(page, pageName) {
-  await page.locator(".sidebar-footer").getByRole("button", { name: /^(設定|Settings)$/ }).click();
-  await page.locator(".settings").waitFor();
-  if (pageName) {
-    await page.locator(".settings-navigation").getByRole("button", { name: pageName, exact: true }).click();
-  }
-}
-
-// 設定のページを順に開き、ページごとにスクロールしながら撮る。
-async function captureEverySettingsPage(page, captureScreen, name) {
-  const pageButtons = page.locator(".settings-navigation .nav");
-  for (let index = 0; index < await pageButtons.count(); index += 1) {
-    await pageButtons.nth(index).click();
-    await captureWhileScrolling(page, captureScreen, { name: `${name}-${index + 1}`, scrollContainer: ".settings-layout .document-scroll", maxSteps: SETTINGS_SCROLL_STEPS });
-  }
-}
-
-async function chooseTheme(page, themeName) {
-  await openSettingsOnDesktop(page, "外観");
-  await page.getByRole("radio", { name: themeName, exact: true }).click();
-}
+// ドラッグを始めるために、押したまま動かす距離（ブラウザがドラッグとみなす数 px より大きく）。
+const DRAG_START_DISTANCE = 12;
 
 async function openRichNote(page) {
   await page.getByRole("button", { name: RICH_NOTE_TITLE }).first().click();
-  await page.locator(".ProseMirror").waitFor();
+  await page.locator(".ProseMirror").first().waitFor();
 }
 
-// エディタの最後の段落の末尾にカーソルを置く。ブラウザの Ctrl+End は、本文の後ろのほうに添付や埋め込み（文字を打てない要素）が
-// 並ぶと、行き先がぶれる（図のコードの先頭に入ることがあった）。Tiptap がエディタの要素に付けるエディタ（.editor）で末尾へ移す。
-// Tiptap の focus は、フォーカスを次の描画まで待つ。続けて打つ文字が本文に入るよう、その場でもフォーカスを移す。
-async function placeCursorAtEnd(page) {
-  await page.locator(".ProseMirror").evaluate((element) => {
-    element.editor.commands.focus("end");
-    element.editor.view.focus();
-  });
-}
-
-// 本文の最初の段落の文字を全部選ぶ。PC では、選んだ所の上に書式のボタン（.selection-toolbar）が出る。
-async function selectFirstParagraph(page) {
-  await page.locator(".ProseMirror").evaluate((element) => {
-    const { editor } = element;
-    let range = null;
-    editor.state.doc.descendants((node, position) => {
-      if (range === null && node.type.name === "paragraph" && node.textContent.length > 0) {
-        range = { from: position + 1, to: position + 1 + node.content.size };
-      }
-      return range === null;
-    });
-    editor.commands.setTextSelection(range);
-    editor.view.focus();
-  });
-  await page.locator(".selection-toolbar").waitFor({ state: "visible" });
-}
-
-async function openSlashMenu(page, filter = "") {
-  await placeCursorAtEnd(page);
-  await page.keyboard.press("Enter");
-  await page.keyboard.type(`/${filter}`);
-  await page.locator(".slash-menu").waitFor();
-}
-
-async function closeSlashMenu(page) {
-  await page.keyboard.press("Escape");
-  // 「/」と絞り込みの文字、足した空の段落を消す。
-  const typed = await page.evaluate(() => window.getSelection()?.anchorNode?.textContent ?? "");
-  for (let index = 0; index <= typed.length; index += 1) {
-    await page.keyboard.press("Backspace");
+async function zoomOutCompletely(page) {
+  while (await page.locator(".zoom-back").count() > 0) {
+    await page.locator(".zoom-back").click();
   }
 }
 
-async function insertBySlash(page, filter) {
-  await openSlashMenu(page, filter);
-  await page.keyboard.press("Enter");
-  await page.waitForTimeout(300);
-}
-
-async function openEditorMoreMenu(page) {
-  // PC ではツールバーの右端、スマホでは画面の上の列にある。
-  await page.locator(".editor-bar, .phone-top").getByRole("button", { name: "その他の操作" }).first().click();
-  await page.getByRole("menu").waitFor();
-}
-
-async function openNotebookMenu(page, notebookName) {
-  const row = page.locator(".nav-row", { has: page.locator(".nav-label", { hasText: notebookName }) }).first();
-  await row.hover();
-  await row.getByRole("button", { name: "その他の操作" }).click();
-  await page.getByRole("menu").waitFor();
-}
-
-// 左の列のメモの行の「…」を押す（「…」は行にマウスを乗せたときだけ出る）。
-async function openSidebarNoteMenu(page, title) {
-  const row = page.locator(".nav-row", { has: page.locator(".tree-note", { hasText: title }) }).first();
-  await row.hover();
-  await row.locator(".row-actions button").click();
-  await page.getByRole("menu").waitFor();
-}
-
-async function unlock(page, passphrase) {
-  await page.locator("input[type=password]").first().fill(passphrase);
-  await page.locator("input[type=password]").first().press("Enter");
-  await page.locator(".workspace, .phone").first().waitFor();
+// 本文の最初の段落を選び、PC で選んだ所の上に出る書式のボタンを待つ。
+// Esc で消したボタンは、選択が変わるまで出ないので、前の画面の選択をいったん畳んでから選ぶ。
+async function selectFirstParagraphWithToolbar(page) {
+  await placeCursorAtEnd(page);
+  await selectFirstParagraph(page);
+  await page.locator(".selection-toolbar").waitFor({ state: "visible" });
 }
 
 export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWorkspace }) {
@@ -261,11 +161,119 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
         await heading.getByRole("button", { name: "このセクションにズーム" }).click();
         await page.locator(".zoom-back").waitFor();
       },
-      close: async (page) => {
-        while (await page.locator(".zoom-back").count() > 0) {
-          await page.locator(".zoom-back").click();
-        }
+      close: zoomOutCompletely,
+    },
+    {
+      // 箇条書きの項目にズームする（Ctrl+.）。
+      name: "zoom-list-item",
+      open: async (page) => {
+        await page.locator(".ProseMirror li > p", { hasText: "箇条書き 1" }).first().click();
+        await page.keyboard.press("Control+.");
+        await page.locator(".zoom-back").waitFor();
       },
+      close: zoomOutCompletely,
+    },
+    {
+      // 段落にポインターを乗せると、左に「＋」と持ち手が出る。
+      name: "block-gutter-hover",
+      open: async (page) => {
+        const paragraph = page.locator(".ProseMirror > p").first();
+        await paragraph.scrollIntoViewIfNeeded();
+        await paragraph.hover();
+        await page.locator(".block-insert-button").waitFor();
+      },
+      close: async (page) => { await page.mouse.move(4, 400); },
+    },
+    { name: "block-menu", open: (page) => openBlockMenu(page, page.locator(".ProseMirror > p").first()) },
+    {
+      // 写真にポインターを乗せると、右下に大きさを変える持ち手が出る。
+      name: "image-resize-handle",
+      open: async (page) => {
+        const image = page.locator(".attachment-image").first();
+        await image.scrollIntoViewIfNeeded();
+        await image.hover();
+        await page.locator(".image-resize-handle").waitFor();
+      },
+      close: async (page) => { await page.mouse.move(4, 400); },
+    },
+    {
+      name: "due-date-dialog",
+      open: async (page) => { await openEditorMoreMenu(page); await page.getByRole("menuitem", { name: "メモの期限を設定" }).click(); await page.getByRole("dialog").waitFor(); },
+    },
+    {
+      // 期限を付けたメモ（fillSampleWorkspace の沖縄旅行の持ち物に、ここで付ける）が並ぶ期限の一覧。
+      name: "reminders",
+      open: async (page) => {
+        await page.getByRole("button", { name: "沖縄旅行の持ち物" }).first().click();
+        await openEditorMoreMenu(page);
+        await page.getByRole("menuitem", { name: "メモの期限を設定" }).click();
+        await page.getByRole("dialog").getByRole("button", { name: "保存" }).click();
+        await page.keyboard.press("Control+Alt+E");
+        await page.locator(".reminders-view").waitFor();
+      },
+    },
+    {
+      name: "split-view",
+      open: async (page) => {
+        await page.getByRole("button", { name: "沖縄旅行の持ち物" }).first().click();
+        await openEditorMoreMenu(page);
+        await page.getByRole("menuitem", { name: "右に並べて開く" }).click();
+        await openRichNote(page);
+        await page.locator(".split-pane").waitFor();
+      },
+      close: async (page) => { await page.getByRole("button", { name: "右に並べたメモを閉じる" }).click(); },
+    },
+    {
+      // 履歴に版が 2 つある状態。版は、本文を差し替える前に残す処理（repository.captureVersionBeforeReplace）で作る。
+      name: "note-history-versions",
+      open: async (page) => {
+        await openRichNote(page);
+        await exposeApp(page);
+        await page.evaluate(async (title) => {
+          const { repository } = window.__visualAudit;
+          const note = repository.notes().find((candidate) => candidate.content.title === title);
+          await repository.captureVersionBeforeReplace(note.id);
+        }, RICH_NOTE_TITLE);
+        await placeCursorAtEnd(page);
+        await page.keyboard.type("履歴の版を分けるために足した文。");
+        await page.evaluate(async (title) => {
+          const { repository } = window.__visualAudit;
+          const note = repository.notes().find((candidate) => candidate.content.title === title);
+          await repository.captureVersionBeforeReplace(note.id);
+        }, RICH_NOTE_TITLE);
+        await openEditorMoreMenu(page);
+        await page.getByRole("menuitem", { name: "履歴" }).click();
+        await page.getByRole("dialog").getByRole("option").first().click();
+      },
+    },
+    {
+      name: "drawing",
+      open: async (page) => {
+        await openRichNote(page);
+        await insertBySlash(page, "てがき");
+        await page.locator(".drawing .drawing-canvas").first().waitFor();
+      },
+    },
+    {
+      // 書類のスキャン（四隅を合わせるダイアログ）。写真は 1 画素の見本を選ぶ。
+      name: "document-scan",
+      open: async (page) => {
+        await openRichNote(page);
+        const fileChooser = page.waitForEvent("filechooser");
+        await openSlashMenu(page, "すきゃん");
+        await page.keyboard.press("Enter");
+        await (await fileChooser).setFiles(SAMPLE_IMAGE);
+        await page.getByRole("dialog", { name: "書類のスキャン" }).waitFor();
+      },
+    },
+    {
+      // 印刷の見た目（印刷の画面は開かず、印刷の CSS で撮る）。
+      name: "print",
+      open: async (page) => {
+        await openRichNote(page);
+        await page.emulateMedia({ media: "print" });
+      },
+      close: async (page) => { await page.emulateMedia({ media: "screen" }); },
     },
     {
       name: "tab-context-menu",
@@ -284,15 +292,15 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
     {
       // 文字を選ぶと、その上に書式のボタンが出る（PC）。
       name: "selection-toolbar",
-      open: (page) => selectFirstParagraph(page),
+      open: (page) => selectFirstParagraphWithToolbar(page),
     },
     {
       name: "highlight-menu",
-      open: async (page) => { await selectFirstParagraph(page); await page.locator(".selection-toolbar").getByRole("button", { name: "ハイライト" }).click(); },
+      open: async (page) => { await selectFirstParagraphWithToolbar(page); await page.locator(".selection-toolbar").getByRole("button", { name: "ハイライト" }).click(); },
     },
     {
       name: "text-color-menu",
-      open: async (page) => { await selectFirstParagraph(page); await page.locator(".selection-toolbar").getByRole("button", { name: "文字色" }).click(); },
+      open: async (page) => { await selectFirstParagraphWithToolbar(page); await page.locator(".selection-toolbar").getByRole("button", { name: "文字色" }).click(); },
     },
     {
       name: "table-menu",
@@ -370,9 +378,12 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
         const target = page.locator(".tree-note", { hasText: "沖縄旅行の持ち物" }).first();
         await source.hover();
         await page.mouse.down();
+        // 少し動かしてドラッグを始めてから、落とし先へ運ぶ。
+        const start = await source.boundingBox();
+        await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2 + DRAG_START_DISTANCE, { steps: 2 });
         const box = await target.boundingBox();
         await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 8 });
-        await page.locator(".view-group.drop-target").waitFor();
+        await page.locator(".drop-target").first().waitFor();
       },
       close: async (page) => {
         // 落とさずに、左の列の外で離す（メモは動かさない）。
@@ -561,6 +572,7 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       },
       close: async (page) => { await page.getByRole("checkbox", { name: "アプリ内の AI を使う" }).uncheck(); },
     },
+    ...AI_CHAT_SCREENS({ openNote: openRichNote }),
     {
       name: "custom-theme-editor",
       open: async (page) => { await openSettingsOnDesktop(page, "外観"); await page.getByRole("button", { name: "テーマを作る" }).click(); },
@@ -581,6 +593,7 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       open: async (page) => { await openRichNote(page); await page.keyboard.press("Control+Alt+F"); },
       close: async (page) => { await page.locator(".focus-mode-exit").click(); },
     },
+    ...LOW_WINDOW_SCREENS({ openNote: openRichNote }),
     {
       name: "dark-theme",
       capturesItself: true,
@@ -606,10 +619,31 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       close: async (page) => { await page.keyboard.press("Escape"); await chooseTheme(page, themeName ?? "ライト"); },
     },
     {
+      // スペースを足すと、そのスペースの最初の設定の画面になる。同じパスフレーズで作る。
+      name: "space-setup",
+      open: async (page) => {
+        await openSettingsOnDesktop(page, "一般");
+        await page.getByRole("button", { name: "スペースを追加" }).click();
+        await page.getByRole("dialog", { name: "スペースの名前" }).getByRole("textbox").fill("仕事のスペース");
+        await page.getByRole("dialog", { name: "スペースの名前" }).getByRole("button", { name: "追加" }).click();
+        await page.getByLabel("パスフレーズ", { exact: true }).waitFor();
+      },
+      close: async (page) => {
+        await page.getByLabel("パスフレーズ", { exact: true }).fill(passphrase);
+        await page.getByRole("button", { name: "作成" }).click();
+        await page.getByRole("button", { name: "新しいメモ" }).waitFor();
+      },
+    },
+    {
+      name: "space-switcher-menu",
+      open: async (page) => { await page.getByRole("button", { name: /スペースを切り替える/ }).click(); await page.getByRole("menu").waitFor(); },
+      // 見本のメモがある最初のスペースへ戻る（あとの英語の画面が使う）。
+      close: async (page) => { await page.getByRole("menuitemradio", { name: "最初のスペース" }).click(); await page.locator(".tree-note").first().waitFor(); },
+    },
+    {
       name: "unlock",
       open: async (page) => {
-        await openSettingsOnDesktop(page, "セキュリティ");
-        await page.locator(".settings").getByRole("button", { name: "ロック", exact: true }).click();
+        await page.keyboard.press("Control+L");
         await page.locator("input[type=password]").first().waitFor();
       },
       close: (page) => unlock(page, passphrase),
@@ -618,6 +652,7 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
 }
 
 // 英語の画面。道具の操作は日本語の文言に頼るので、ここでは文言を使わずに開ける画面だけを測る。
+// language: "en" の画面では、残った日本語も探す（measureLeftoverJapanese.mjs）。
 export function ENGLISH_SCREENS({ passphrase }) {
   const switchLanguage = async (page, language) => {
     await page.evaluate((chosen) => {
@@ -640,6 +675,26 @@ export function ENGLISH_SCREENS({ passphrase }) {
       },
     },
     { name: "en-slash-menu", open: (page) => openSlashMenu(page), close: closeSlashMenu },
+    { name: "en-selection-toolbar", open: async (page) => { await selectFirstParagraphWithToolbar(page); } },
+    { name: "en-block-menu", open: (page) => openBlockMenu(page, page.locator(".ProseMirror > p").first()) },
+    { name: "en-find-bar", open: async (page) => { await page.locator(".ProseMirror").first().click(); await page.keyboard.press("Control+R"); await page.locator(".find-bar").waitFor(); } },
+    { name: "en-tab-context-menu", open: async (page) => { await page.getByRole("tab").first().click({ button: "right" }); await page.getByRole("menu").waitFor(); } },
+    {
+      name: "en-sidebar-note-menu",
+      open: async (page) => {
+        const row = page.locator(".nav-row", { has: page.locator(".tree-note") }).first();
+        await row.hover();
+        await row.locator(".row-actions button").click();
+        await page.getByRole("menu").waitFor();
+      },
+    },
+    { name: "en-command-palette", open: async (page) => { await page.keyboard.press("Control+K"); await page.getByRole("dialog").waitFor(); await page.keyboard.type(">"); } },
+    { name: "en-reminders", open: async (page) => { await page.keyboard.press("Control+Alt+E"); await page.locator(".reminders-view").waitFor(); } },
+    {
+      name: "en-ai-chat",
+      open: async (page) => { await page.locator(".tree-note").first().click(); await page.keyboard.press("Control+Alt+A"); await page.locator(".ai-chat").waitFor(); },
+      close: async (page) => { await page.keyboard.press("Control+Alt+A"); },
+    },
     {
       name: "en-settings",
       capturesItself: true,
@@ -649,8 +704,18 @@ export function ENGLISH_SCREENS({ passphrase }) {
       },
       close: (page) => switchLanguage(page, "ja").then(() => unlock(page, passphrase)),
     },
-  ];
+  ].map((screen) => ({ ...screen, language: "en" }));
 }
+
+// 道具では開けない状態と、その理由。報告の「撮っていない状態」に並べる（見落としではないことを残す）。
+export const UNVISITED_STATES = [
+  { name: "プラグインを入れたあと", reason: "GitHub から取ってくるので、道具からは入れない。設定の「プラグイン」のページ（入れる前）は settings で撮る" },
+  { name: "ドラッグ中の札", reason: "setDragImage の札は、画面の撮影に写らない。元の行と落とし先の光り方は dragging-note で撮る" },
+  { name: "カメラの画面（QR の読み取り、書類のスキャンの撮影）", reason: "カメラが要る。書類のスキャンは、写真を選んだあとの四隅のダイアログを document-scan で撮る" },
+  { name: "印刷のダイアログ", reason: "OS の画面。印刷の CSS の見た目は print で撮る" },
+  { name: "設定の「更新」で新しい版があるとき", reason: "更新の配信元が要る。今の版のときのページは settings で撮る" },
+  { name: "スマホの AI チャットの会話・プロパティの多いメモ", reason: "見本のデータでは作らない。DATA=worst で撮る（worst-phone-ai-long-conversation、worst-phone-note-properties）" },
+];
 
 // スマホの一覧の最初のメモを押さえて、横へ distance だけ動かしたまま止める（撮ったあと releaseSwipe で戻して離す）。
 let swipeStart = null;
@@ -705,6 +770,33 @@ export function PHONE_SCREENS({ baseUrl, passphrase }) {
       },
     },
     { name: "phone-slash-menu", open: (page) => openSlashMenu(page), close: closeSlashMenu },
+    {
+      // 表のセルにいる間、下のツールバーに表のメニューのボタンが出る。
+      name: "phone-table-menu",
+      open: async (page) => {
+        await page.locator(".ProseMirror td").first().click();
+        await page.locator(".editor-bar").getByRole("button", { name: "表" }).first().click();
+        await page.getByRole("menu").waitFor();
+      },
+    },
+    {
+      name: "phone-text-color-menu",
+      open: async (page) => {
+        await selectFirstParagraph(page);
+        await page.locator(".editor-bar").getByRole("button", { name: "文字色" }).first().click();
+        await page.getByRole("menu").waitFor();
+      },
+    },
+    { name: "phone-columns", open: async (page) => { await insertBySlash(page, "dangumi"); await page.locator(".ProseMirror .columns").last().scrollIntoViewIfNeeded(); } },
+    {
+      // AI を有効にしていない間の案内（行き先のボタンつき）。
+      name: "phone-ai-chat",
+      open: async (page) => {
+        await openEditorMoreMenu(page);
+        await page.getByRole("menuitem", { name: "AI チャット" }).click();
+        await page.locator(".ai-chat").waitFor();
+      },
+    },
     {
       name: "phone-find-and-replace",
       open: async (page) => {
