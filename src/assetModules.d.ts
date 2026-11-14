@@ -14,3 +14,9 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+// 末尾に ?raw を付けて import すると、そのファイルの中身が文字列で返る（Vite の機能）。
+declare module "*?raw" {
+  const text: string;
+  export default text;
+}

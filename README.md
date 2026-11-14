@@ -194,3 +194,7 @@ npx tauri android dev  # Android（Android SDK・NDK と JDK 21 が必要）
 ## License
 
 [Apache License 2.0](LICENSE)
+
+アイコンと、設定の「このアプリについて」の絵（`public/app-artwork.webp`、作者: aida0710）も、同じ Apache License 2.0 で公開しています。
+
+アプリに入れている、ほかの人が作ったソフトウェアのライセンスは、アプリの設定の「このアプリについて」の「ライセンス」で見られます。一覧は `npm run licenses` で作ります（依存を足したり版を上げたりしたら流し直します。流し忘れは単体試験が見つけます）。

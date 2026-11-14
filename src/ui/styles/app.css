@@ -1108,6 +1108,19 @@ input[type="checkbox"].switch:disabled { cursor: default; opacity: .55; }
 /* このアプリについて: 元の絵は、欄の幅いっぱい（大きくても 520px）に、切り抜かずに出す。 */
 .about-artwork { display: block; width: 100%; max-width: 520px; height: auto; border-radius: var(--radius-dialog); }
 .about-section .about-name { color: var(--text); font-size: var(--font-size-title); font-weight: 700; }
+.about-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.about-back { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); margin-bottom: 12px; }
+.data-handling > div { display: flex; flex-direction: column; gap: 6px; }
+.data-handling p { line-height: 1.7; }
+.license-search { width: 100%; max-width: 360px; height: var(--control-height); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 10px; background: var(--panel); color: var(--text); }
+.license-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; }
+.license-list li { border-bottom: 1px solid var(--line); }
+.license-text summary { cursor: pointer; padding: 6px 0; overflow-wrap: anywhere; }
+.license-package-name { font-weight: 600; }
+.license-package-license { margin-left: 8px; color: var(--muted); font-size: var(--font-size-small); }
+.license-package-detail { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 10px; }
+.license-package-detail .text-button { color: var(--accent); padding: 2px 0; }
+.license-text pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--font-size-small); line-height: 1.5; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-control); max-height: 360px; overflow-y: auto; width: 100%; box-sizing: border-box; }
 .update-check { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 
 /* 設定 */

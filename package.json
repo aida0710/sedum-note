@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "licenses": "node scripts/licenses/collectThirdPartyLicenses.mjs",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",

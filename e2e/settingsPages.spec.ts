@@ -222,3 +222,27 @@ test("「このアプリについて」には、アイコンの元の絵を切�
   await expect(page.getByText(/^このアプリのバージョンは /)).toBeVisible();
   await expect(page.getByRole("button", { name: "GitHub でソースコードを見る" })).toBeVisible();
 });
+
+test("「このアプリについて」から、アプリと使っているソフトウェアのライセンス、データの扱いを開け、戻れる", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "設定", exact: true }).click();
+  await page.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: "このアプリについて", exact: true }).click();
+
+  await page.getByRole("button", { name: "ライセンス", exact: true }).click();
+  await page.getByText("Apache License 2.0 の全文").click();
+  await expect(page.getByText(/TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION/)).toBeVisible();
+  const search = page.getByRole("searchbox", { name: "名前かライセンスで絞り込む" });
+  await search.fill("yjs");
+  const yjs = page.locator(".license-list li").filter({ hasText: /^yjs\b/ });
+  await expect(yjs).toHaveCount(1);
+  await yjs.locator("summary").click();
+  await expect(yjs.locator("pre").first()).toContainText("MIT");
+  await expect(yjs.getByRole("button", { name: "ソースコードの置き場所を開く" })).toBeVisible();
+
+  await page.getByRole("button", { name: "「このアプリについて」に戻る" }).click();
+  await page.getByRole("button", { name: "データの扱い", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "AI の機能" })).toBeVisible();
+  await page.getByRole("button", { name: "「このアプリについて」に戻る" }).click();
+  await page.getByRole("button", { name: "バックアップを開く" }).click();
+  await expect(page.getByRole("heading", { name: "バックアップ" })).toBeVisible();
+});

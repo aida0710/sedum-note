@@ -30,6 +30,9 @@ const DIRECTIONS: Partial<Record<MessageKey, Direction>> = {
   "ai.error.authentication": { kind: "button", shownIn: ["src/ui/ai/AiChat.tsx"] },
   "ai.error.modelNotFound": { kind: "button", shownIn: ["src/ui/ai/AiChat.tsx"] },
   "ai.tool.status.denied": { kind: "button", shownIn: ["src/ui/ai/AiToolActivityLine.tsx"] },
+  "about.noWarranty": { kind: "button", shownIn: ["src/ui/about/AboutSection.tsx"] },
+  "dataHandling.storage": { kind: "no-button", reason: "暗号化しないものの説明で、設定へ行くように言う文ではない" },
+  "dataHandling.ai": { kind: "no-button", reason: "AI の機能がいつ使われるかの説明で、設定へ行くように言う文ではない" },
 };
 
 // 設定を開く呼び出し（navigation.openSettings か、それを渡された onOpen…Settings）。
