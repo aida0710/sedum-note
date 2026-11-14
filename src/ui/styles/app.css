@@ -635,7 +635,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 /* 題は折り返す textarea。高さは中身に合わせて NoteTitleInput.tsx が入れる。 */
 .title-input { display: block; font-size: 30px; line-height: 1.4; letter-spacing: .02em; font-weight: 700; border: 0; outline: 0; width: 100%; background: none; margin-bottom: 20px; padding: 0; resize: none; overflow: hidden; overflow-wrap: anywhere; }
 .title-input::placeholder { color: var(--muted); opacity: .6; }
-.trash-banner { background: var(--tag); border-radius: var(--radius-control); padding: 8px 12px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; color: var(--muted); }
+/* 文とボタンが 1 行に入らないとき（スマホ）は、ボタンを次の行へ送る（詰めると文が細く何行にも折れる）。 */
+.trash-banner { background: var(--tag); border-radius: var(--radius-control); padding: 8px 12px; margin-bottom: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--muted); }
 .trash-banner .actions { margin-left: auto; display: flex; gap: 6px; }
 /* 案内の文が長いので、狭い画面ではボタンを下の行へ送る。 */
 .template-banner { flex-wrap: wrap; }
