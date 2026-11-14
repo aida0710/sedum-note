@@ -332,7 +332,7 @@ svg.lucide { stroke-width: 1.75; }
 .ai-edit-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
 .ai-auto-apply { font-size: var(--font-size-small); color: var(--muted); }
 /* 答えの中の、ツールの呼び出しの 1 行。対象のメモがあれば押して開ける。 */
-.ai-tool-activity { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 6px; width: 100%; padding: 3px 6px; margin-left: -6px; border-radius: var(--radius-row); color: var(--muted); font-size: var(--font-size-small); text-align: left; line-height: 1.5; }
+.ai-tool-activity { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 6px; width: 100%; padding: 4px 6px; margin-left: -6px; border-radius: var(--radius-row); color: var(--muted); font-size: var(--font-size-small); text-align: left; line-height: 1.5; }
 .ai-tool-activity svg { flex: none; align-self: center; }
 .ai-tool-description { min-width: 0; overflow-wrap: anywhere; color: var(--text); }
 button.ai-tool-activity:hover { background: var(--selected); }
@@ -466,7 +466,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .sidebar-scroll .dot.pending { background: var(--line); }
 .inline-input { width: 100%; height: var(--control-height-compact); border: 1px solid var(--accent); border-radius: var(--radius-control); padding: 0 8px; background: var(--panel); }
 
-.update-chip { margin-top: auto; display: flex; align-items: center; gap: 6px; padding: 7px 8px; border-radius: var(--radius-row); color: var(--accent); background: var(--accent-soft); font-size: var(--font-size-small); text-align: left; flex: none; }
+.update-chip { margin-top: auto; display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: var(--radius-row); color: var(--accent); background: var(--accent-soft); font-size: var(--font-size-small); text-align: left; flex: none; }
 .update-chip + .sidebar-footer { margin-top: 8px; }
 .phone .update-chip { margin: max(10px, env(safe-area-inset-top)) 16px 0; }
 /* 左の列のいちばん下の行。同期の状態（押すと同期のページ）と、設定を開く歯車。 */
@@ -542,7 +542,6 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .recording-stop:hover { background: color-mix(in srgb, var(--danger) 20%, transparent); }
 /* PC で文字を選んだときに、選んだ所の上に出す書式のボタン（editor/SelectionToolbar.tsx）。メニューと同じ面の形にする。 */
 .selection-toolbar { display: flex; align-items: center; gap: 2px; padding: 4px; background: var(--raised); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: var(--elevation-popover); z-index: var(--layer-pane-control); }
-.selection-toolbar .tool-separator { height: 20px; margin: 0 2px; }
 .icon-button { width: var(--control-height-compact); height: var(--control-height-compact); border-radius: var(--radius-row); display: grid; place-items: center; color: var(--muted); flex: none; }
 .icon-button:hover:not(:disabled) { background: var(--selected); color: var(--text); }
 .icon-button:active:not(:disabled) { background: var(--pressed); }
@@ -577,7 +576,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 /* 文字数と更新日時は右に寄せ、欄が狭くて折り返すときも 2 つ一緒に次の行の右へ移す。 */
 .document-meta-end { margin-left: auto; display: inline-flex; flex-wrap: wrap; justify-content: flex-end; column-gap: 12px; }
 /* タグやノートブックの名前は、区切りの無い長い名前でも、置き場所の幅の中で折り返す。 */
-.chip { background: var(--tag); border-radius: 999px; padding: 2px 9px; font-size: var(--font-size-small); color: var(--text); display: inline-flex; align-items: center; gap: 5px; max-width: 100%; overflow-wrap: anywhere; }
+.chip { background: var(--tag); border-radius: 999px; padding: 2px 8px; font-size: var(--font-size-small); color: var(--text); display: inline-flex; align-items: center; gap: 4px; max-width: 100%; overflow-wrap: anywhere; }
 /* プラグイン。設定の一覧と、入れる前の確認。 */
 .field-row { display: flex; gap: 8px; }
 .field-row input { flex: 1; }
@@ -605,7 +604,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .due-mark { color: var(--accent); white-space: nowrap; }
 /* 絵文字の字は幅を持たせず、代わりに時計のアイコン（lucide の alarm-clock）を、文字の色で描く。 */
 .due-mark-icon { font-size: 0; }
-.due-mark-icon::before { content: ""; display: inline-block; width: 14px; height: 14px; margin-right: 3px; vertical-align: -2px; background: currentColor;
+.due-mark-icon::before { content: ""; display: inline-block; width: 14px; height: 14px; margin-right: 4px; vertical-align: -2px; background: currentColor;
   -webkit-mask: var(--due-mark-icon) center / contain no-repeat; mask: var(--due-mark-icon) center / contain no-repeat;
   --due-mark-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='8'/%3E%3Cpath d='M12 9v4l2 2'/%3E%3Cpath d='M5 3 2 6'/%3E%3Cpath d='m22 6-3-3'/%3E%3Cpath d='M6.38 18.7 4 21'/%3E%3Cpath d='M17.64 18.67 20 21'/%3E%3C/svg%3E"); }
 .chip.due-chip { cursor: pointer; }
@@ -857,7 +856,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .shortcut-keys.recording { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
 .shortcut-keys kbd { background: none; border: 0; padding: 0; font: inherit; }
 .shortcut-message { flex-basis: 100%; margin: 0; }
-kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); border: 1px solid var(--line); border-radius: var(--radius-inline); padding: 1px 7px; white-space: nowrap; }
+kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); border: 1px solid var(--line); border-radius: var(--radius-inline); padding: 1px 6px; white-space: nowrap; }
 .passphrase-generator { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .generated-passphrase { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--tag); border-radius: var(--radius-control); padding: 10px 12px; width: 100%; }
 /* 書き写すための文字なので、本文より大きく、等幅で出す。 */
@@ -865,7 +864,7 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .generated-passphrase .hint { flex-basis: 100%; line-height: 1.6; }
 /* 左右の端から置いて中身の幅にする（left: 50% で置くと、幅が画面の半分までになり、スマホで文が折れる）。 */
 /* 知らせは、本文の欄の左右の中央に出す（窓の中央だと、PC では左の列の分だけ本文からずれる）。--toast-area-* は、左右で欄の外にある部分の幅。 */
-.toast { --toast-area-left: 0px; --toast-area-right: 0px; position: fixed; left: calc(var(--toast-area-left) + 16px); right: calc(var(--toast-area-right) + 16px); margin-inline: auto; width: fit-content; bottom: calc(28px + env(safe-area-inset-bottom, 0px)); z-index: var(--layer-toast); background: var(--text); color: var(--panel); border-radius: var(--radius-panel); padding: 9px 14px; display: flex; align-items: center; gap: 14px; box-shadow: var(--elevation-popover); max-width: calc(100% - 32px); }
+.toast { --toast-area-left: 0px; --toast-area-right: 0px; position: fixed; left: calc(var(--toast-area-left) + 16px); right: calc(var(--toast-area-right) + 16px); margin-inline: auto; width: fit-content; bottom: calc(28px + env(safe-area-inset-bottom, 0px)); z-index: var(--layer-toast); background: var(--text); color: var(--panel); border-radius: var(--radius-panel); padding: 10px 14px; display: flex; align-items: center; gap: 14px; box-shadow: var(--elevation-popover); max-width: calc(100% - 32px); }
 :root:has(.workspace:not(.focus-mode, .note-window)) .toast { --toast-area-left: var(--sidebar-width); }
 :root:has(.workspace.with-ai-chat) .toast { --toast-area-right: var(--ai-chat-width); }
 /* ズームした表示は、窓いっぱいに本文を出す。 */
@@ -975,12 +974,12 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .entry-card h1 { font-size: var(--font-size-title); display: flex; align-items: center; gap: 10px; }
 .entry-card p.description { color: var(--muted); line-height: 1.6; }
 /* 文字で 1 つを選ぶ部品。狭い所（左の列の検索の範囲、ボードの表示の切り替え）は compact にする。 */
-.segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--tag); border-radius: var(--radius-control); padding: 3px; gap: 3px; }
-.segmented button { padding: 7px; border-radius: var(--radius-row); color: var(--muted); min-width: 0; }
+.segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--tag); border-radius: var(--radius-control); padding: 4px; gap: 4px; }
+.segmented button { padding: 6px; border-radius: var(--radius-row); color: var(--muted); min-width: 0; }
 .segmented button:not(.on, [aria-checked="true"], [aria-selected="true"]):hover { color: var(--text); }
 .segmented button:is(.on, [aria-checked="true"], [aria-selected="true"]) { background: var(--panel); color: var(--text); font-weight: 600; box-shadow: var(--elevation-selected); }
 .segmented.compact { padding: 2px; gap: 2px; border-radius: var(--radius-row); }
-.segmented.compact button { padding: 3px 8px; border-radius: var(--radius-inline); font-size: var(--font-size-small); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.segmented.compact button { padding: 4px 8px; border-radius: var(--radius-inline); font-size: var(--font-size-small); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .field { display: flex; flex-direction: column; gap: 4px; }
 .field label:not(.checkbox-line), .field .field-label { font-weight: 600; font-size: var(--font-size-small); }
 /* 最初の画面とロックの画面では、太字は題と主ボタンだけにして、欄のラベルと切り替えの選んだ側は一段細くする（上の .field の規則より後ろに置く）。 */
