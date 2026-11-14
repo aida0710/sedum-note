@@ -3616,7 +3616,7 @@ dependencies = [
 
 [[package]]
 name = "sedum-note"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "log",
  "serde",
