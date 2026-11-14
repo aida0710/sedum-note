@@ -138,6 +138,26 @@ test("知らせは、ポインターを乗せている間は消えない", async
   await expect(toast).toBeVisible();
 });
 
+test("ダイアログの戻せない操作のボタン（期限を外す）は、決めるボタンから離して左端に置く", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "提出物");
+  for (const step of ["set", "reopen"]) {
+    await noteMenuButton(page).click();
+    await page.getByRole("menuitem", { name: "メモの期限を設定" }).click();
+    if (step === "set") {
+      const dialog = page.getByRole("dialog", { name: "メモの期限" });
+      await dialog.getByLabel("日時").fill("2030-01-01T09:00");
+      await dialog.getByRole("button", { name: "保存" }).click();
+    }
+  }
+  const dialog = page.getByRole("dialog", { name: "メモの期限" });
+  const dateField = (await dialog.getByLabel("日時").boundingBox())!;
+  const remove = (await dialog.getByRole("button", { name: "期限を外す" }).boundingBox())!;
+  const cancel = (await dialog.getByRole("button", { name: "キャンセル" }).boundingBox())!;
+  expect(remove.x).toBeCloseTo(dateField.x, 0);
+  expect(cancel.x - (remove.x + remove.width)).toBeGreaterThan(40);
+});
+
 test("PC では、知らせは左の列を除いた本文の欄の中央に出る", async ({ page }) => {
   await startLocalVault(page);
   await createNoteOnDesktop(page, "会議");
