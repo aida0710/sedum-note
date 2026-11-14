@@ -1,29 +1,11 @@
 // 全部のスペース（spaceRegistry.ts）にまたがる操作。パスフレーズはこのデバイスで共通なので、確かめるとき・変えるとき・
 // データを消すときは、全部のスペースの手元の保存を相手にする。
-// ロックを解除したスペースのマスターキーは、ロックするまでメモリに持つ（スペースを切り替えて戻ったときに、パスフレーズを聞かない）。
+// ロックを解除したスペースのマスターキーは unlockedSpaces.ts が持つ。
 
 import { changePassphrase, type DeviceDataSummary, readVaultState, summarizeDeviceData, verifyPassphrase } from "../../core/vault/vaultSession";
 import { createAppEnvironment } from "./appEnvironment";
 import { readSpaceRegistry, resetSpaceRegistry } from "./spaceRegistry";
-
-const unlockedMasterKeys = new Map<string, CryptoKey>();
-
-export function rememberUnlockedSpace(spaceId: string, masterKey: CryptoKey): void {
-  unlockedMasterKeys.set(spaceId, masterKey);
-}
-
-export function masterKeyOfUnlockedSpace(spaceId: string): CryptoKey | null {
-  return unlockedMasterKeys.get(spaceId) ?? null;
-}
-
-// ロックしたときに呼ぶ。全部のスペースが、パスフレーズを入れるまで開けなくなる。
-export function forgetUnlockedSpaces(): void {
-  unlockedMasterKeys.clear();
-}
-
-export function forgetUnlockedSpace(spaceId: string): void {
-  unlockedMasterKeys.delete(spaceId);
-}
+import { forgetUnlockedSpace, forgetUnlockedSpaces } from "./unlockedSpaces";
 
 // vault を作ってあるスペースの環境（設定の途中のスペースは除く）。
 async function environmentsWithVault(exceptSpaceId: string | null) {

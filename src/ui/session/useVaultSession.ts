@@ -1,6 +1,6 @@
 // vault の状態（未作成・ロック中・解除中）と、解除中の自動同期をまとめて持つ hook。
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { type BackupExport, exportBackup, restoreBackup } from "../../core/backup/vaultBackup";
 import { DATA_FORMAT_VERSION } from "../../core/format/dataFormat";
 import type { ReportProgress } from "../../core/progress/taskProgress";
@@ -14,7 +14,6 @@ import {
   type DeviceDataSummary,
   joinExistingVault,
   readVaultState,
-  reopenLocalVault,
   replaceSyncKey,
   type SyncTargetChoice,
   type UnlockedVault,
@@ -27,7 +26,10 @@ import { resetDevicePreferences, useDevicePreferences } from "../preferences/dev
 import { holdSyncDuty, onWindowSignal, sendWindowSignal } from "../platform/crossWindowStorage";
 import { createAppEnvironment } from "./appEnvironment";
 import { clearDueReminderRecords } from "./dueReminderRecords";
-import { changePassphraseOfAllSpaces, destroyOtherSpaces, summarizeAllSpaces, forgetUnlockedSpaces, masterKeyOfUnlockedSpace, rememberUnlockedSpace, verifyPassphraseOfOtherSpaces } from "./spaceVaults";
+import { keyHandoffOfThisApp } from "./keyHandoffOfThisApp";
+import { openWithUnlockedKey } from "./openWithUnlockedKey";
+import { changePassphraseOfAllSpaces, destroyOtherSpaces, summarizeAllSpaces, verifyPassphraseOfOtherSpaces } from "./spaceVaults";
+import { forgetUnlockedSpaces, rememberUnlockedSpace, subscribeUnlockedSpaces, unlockedKeyOf } from "./unlockedSpaces";
 
 export type VaultPhase =
   | { phase: "loading" }
@@ -84,6 +86,13 @@ export function useVaultSession(spaceId: string): VaultSession {
   syncsAutomaticallyRef.current = syncsAutomatically;
   const autoSyncRef = useRef<AutoSync | null>(null);
 
+  const enter = useCallback((unlocked: UnlockedVault) => {
+    rememberUnlockedSpace(spaceId, { vaultId: unlocked.vaultId, masterKey: unlocked.masterKey });
+    setState({ phase: "unlocked", vault: unlocked });
+    // ロックの画面のままの、ほかのウィンドウも開けるように知らせる（キーは、欲しいウィンドウが頼んだときに渡す）。
+    keyHandoffOfThisApp().announceUnlocked(spaceId);
+  }, [spaceId]);
+
   useEffect(() => {
     // 読んでいる間にこのスペースの画面を離れたら、開いた vault は使わずに手放す。
     let left = false;
@@ -92,25 +101,56 @@ export function useVaultSession(spaceId: string): VaultSession {
         setState({ phase: "absent" });
         return;
       }
-      // このスペースを、ロックする前にもう解除してあれば、パスフレーズを聞かずに開き直す。
-      const masterKey = masterKeyOfUnlockedSpace(spaceId);
-      if (masterKey === null) {
-        setState({ phase: "locked" });
-        return;
-      }
-      const reopened = await reopenLocalVault(environment, masterKey);
+      // このスペースを、ロックする前にこのウィンドウでもう解除してあるか、ほかのウィンドウで解除していれば、パスフレーズを聞かずに開く。
+      const remembered = unlockedKeyOf(spaceId);
+      const opened = await openWithUnlockedKey(environment, async () => remembered ?? keyHandoffOfThisApp().requestKey(spaceId));
       if (left) {
-        reopened.repository.release();
+        opened?.repository.release();
+      } else if (opened === null) {
+        setState({ phase: "locked" });
       } else {
-        setState({ phase: "unlocked", vault: reopened });
+        enter(opened);
       }
     })();
     return () => {
       left = true;
     };
-  }, [environment, spaceId]);
+  }, [environment, spaceId, enter]);
+
+  // ロックの画面の間に、ほかのウィンドウでこのスペースのロックを解除したら、そのウィンドウのキーで開く。
+  const locked = state.phase === "locked";
+  useEffect(() => {
+    if (!locked) {
+      return;
+    }
+    let left = false;
+    const stopListening = keyHandoffOfThisApp().onUnlockedElsewhere(spaceId, (requestKey) => void (async () => {
+      const opened = await openWithUnlockedKey(environment, requestKey);
+      // パスフレーズでの解除が先に済んでいたら、受け取ったキーで開いたものは使わない。
+      if (left || unlockedKeyOf(spaceId) !== null) {
+        opened?.repository.release();
+      } else if (opened !== null) {
+        enter(opened);
+      }
+    })());
+    return () => {
+      left = true;
+      stopListening();
+    };
+  }, [locked, environment, spaceId, enter]);
 
   const vault = state.phase === "unlocked" ? state.vault : null;
+
+  // どこかのウィンドウでロックしたら（このウィンドウのキーが捨てられたら）、このウィンドウでまだ保存していない入力を書いてから、ロックする。
+  const keyRemembered = useSyncExternalStore(subscribeUnlockedSpaces, () => unlockedKeyOf(spaceId) !== null);
+  useEffect(() => {
+    if (vault && !keyRemembered) {
+      void vault.repository.flush().then(() => {
+        setGeneratedSyncKey(null);
+        setState({ phase: "locked" });
+      });
+    }
+  }, [vault, keyRemembered]);
 
   // アプリを裏へ回す・閉じるときは、保存を待っている入力をすぐ手元に書く。
   useEffect(() => {
@@ -167,8 +207,8 @@ export function useVaultSession(spaceId: string): VaultSession {
     }
   }, [vault]);
 
-  // ほかのウィンドウでロックしたら、このウィンドウもロックする。ほかのウィンドウがデータを消したら、最初の画面から始め直す
-  // （ロックしたままのウィンドウも）。
+  // ほかのウィンドウがデータを消したら、最初の画面から始め直す（ロックしたままのウィンドウも）。ほかのウィンドウのロックは
+  // unlockedSpaces.ts の followLocksOfOtherWindows が受け取る。
   // 新しい版のアプリ（Web 版を開き直したタブなど）が手元のデータを新しい形にしたら、このウィンドウの入力を書いてから
   // 読み込み直し、新しい版のアプリで開き直す。古い版のままだと、古い形で書き続けてしまう。
   useEffect(() => onWindowSignal((signal) => {
@@ -176,26 +216,11 @@ export function useVaultSession(spaceId: string): VaultSession {
       window.location.reload();
       return;
     }
-    if (typeof signal === "object") {
-      if (signal.version > DATA_FORMAT_VERSION) {
-        void (vault?.repository.flush() ?? Promise.resolve()).finally(() => window.location.reload());
-      }
-      return;
-    }
-    forgetUnlockedSpaces();
-    if (vault) {
-      // このウィンドウでまだ保存していない入力を書いてから、ロックする。
-      void vault.repository.flush().then(() => {
-        setGeneratedSyncKey(null);
-        setState({ phase: "locked" });
-      });
+    if (typeof signal === "object" && signal.version > DATA_FORMAT_VERSION) {
+      void (vault?.repository.flush() ?? Promise.resolve()).finally(() => window.location.reload());
     }
   }), [vault]);
 
-  const enter = useCallback((unlocked: UnlockedVault) => {
-    rememberUnlockedSpace(spaceId, unlocked.masterKey);
-    setState({ phase: "unlocked", vault: unlocked });
-  }, [spaceId]);
   const enterWithSyncKey = useCallback((entry: VaultEntry) => {
     setGeneratedSyncKey(entry.generatedSyncKey);
     enter(entry.unlocked);
@@ -214,7 +239,15 @@ export function useVaultSession(spaceId: string): VaultSession {
         ? await joinExistingVault(environment, { passphrase, syncTarget })
         : await createNewVault(environment, { passphrase, syncTarget }));
     },
-    unlock: async (passphrase) => enter(await unlockLocalVault(environment, passphrase)),
+    unlock: async (passphrase) => {
+      const unlocked = await unlockLocalVault(environment, passphrase);
+      // 鍵を導出している間に、ほかのウィンドウのキーでもう開いていたら、開いている方をそのまま使う。
+      if (unlockedKeyOf(spaceId) !== null) {
+        unlocked.repository.release();
+        return;
+      }
+      enter(unlocked);
+    },
     lock: async () => {
       // ロックのあとに解除すると、メモを手元の保存から読み直す。まだ書いていない入力は、ここで書かないと失う。
       await vault?.repository.flush();

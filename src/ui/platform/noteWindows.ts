@@ -1,8 +1,10 @@
 // メモを 1 つだけ開く、別のウィンドウ。アプリ（Tauri）ではウィンドウを作り、Web 版ではブラウザの別のウィンドウを開く。
-// 別のウィンドウは、開くメモの ID を URL（?note=<ID>）で受け取る。ロックの解除は、ウィンドウごとに行う
-// （鍵は、ウィンドウの間で渡さない）。
+// 別のウィンドウは、開くメモの ID を URL（?note=<ID>）で受け取る。ロックは全部のウィンドウで共通で、開いた側がロックを解除して
+// いれば、別のウィンドウはパスフレーズを聞かずに、そのキーで開く（session/unlockedKeyHandoff.ts）。キーは URL にも保存にも置かず、
+// アプリではウィンドウの間の BroadcastChannel、Web 版では開いたウィンドウとの直接の postMessage で渡す。
 
 import { isRandomId, newRandomId } from "../../core/crypto/randomId";
+import { rememberOpenedWindow } from "./openerKeyTransport";
 import { isAndroidApp, isRunningInTauri } from "./runtime";
 
 const NOTE_PARAMETER = "note";
@@ -33,7 +35,11 @@ export function canOpenNoteWindows(): boolean {
 export async function openNoteInNewWindow({ noteId, spaceId, title }: { noteId: string; spaceId: string; title: string }): Promise<void> {
   const query = `?${NOTE_PARAMETER}=${noteId}&${SPACE_PARAMETER}=${encodeURIComponent(spaceId)}`;
   if (!isRunningInTauri()) {
-    window.open(`${window.location.pathname}${query}`, "_blank", `popup,width=${NOTE_WINDOW_SIZE.width},height=${NOTE_WINDOW_SIZE.height}`);
+    // 開いたウィンドウだけが、このウィンドウにキーを頼める（openerKeyTransport.ts）。ブラウザが開くのを止めたら null。
+    const opened = window.open(`${window.location.pathname}${query}`, "_blank", `popup,width=${NOTE_WINDOW_SIZE.width},height=${NOTE_WINDOW_SIZE.height}`);
+    if (opened !== null) {
+      rememberOpenedWindow(opened);
+    }
     return;
   }
   const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
