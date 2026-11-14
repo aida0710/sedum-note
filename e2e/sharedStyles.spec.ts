@@ -44,3 +44,27 @@ test("1 つを選ぶ並びは、選んでいる 1 つにだけ Tab が止まり�
   await page.keyboard.press("Tab");
   await expect(themes.locator(":focus")).toHaveCount(0);
 });
+
+test("お気に入りの星は黄色の印で、押したままの切り替え（目次）は地の色で示し、2 つは別の見た目になる", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "会議");
+  const rootColor = (name: string) => page.evaluate((variable) => {
+    const probe = document.body.appendChild(document.createElement("span"));
+    probe.style.color = `var(${variable})`;
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  }, name);
+  const star = page.getByRole("button", { name: "お気に入り", exact: true });
+  await star.click();
+  await page.mouse.move(0, 0);
+  const bookmarked = page.getByRole("button", { name: "お気に入りから外す" });
+  await expect(bookmarked).toHaveCSS("color", await rootColor("--bookmark"));
+  await expect(bookmarked).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+
+  const outline = page.getByRole("button", { name: "目次" });
+  await outline.click();
+  await expect(outline).toHaveAttribute("aria-pressed", "true");
+  await page.mouse.move(0, 0);
+  await expect(outline).toHaveCSS("background-color", await rootColor("--selected"));
+});

@@ -281,11 +281,11 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
 
   const trailing = (
     <>
-      <button type="button" className={`icon-button${outlineShown ? " active" : ""}`} aria-label={translate("editor.outline")} aria-pressed={outlineShown}
+      <button type="button" className="icon-button" aria-label={translate("editor.outline")} aria-pressed={outlineShown}
         onClick={(event) => (isMobile ? setOutlineAnchor(outlineAnchor ? null : event.currentTarget) : updateDevicePreferences({ showOutline: !showOutline }))}>
         <ListTree size={16} />
       </button>
-      <button type="button" className={`icon-button${note.content.bookmarked ? " on" : ""}`}
+      <button type="button" className={`icon-button${note.content.bookmarked ? " bookmarked" : ""}`}
         aria-label={translate(note.content.bookmarked ? "editor.unbookmark" : "editor.bookmark")}
         onClick={() => void repository.updateNote(noteId, { bookmarked: !note.content.bookmarked })}>
         <Star size={16} fill={note.content.bookmarked ? "currentColor" : "none"} />

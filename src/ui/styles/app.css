@@ -190,7 +190,6 @@ svg.lucide { stroke-width: 1.75; }
 .mermaid-diagram.failed { color: var(--danger); text-align: left; white-space: pre-wrap; }
 .attachment-file.with-preview { flex-wrap: wrap; }
 /* 押したままの状態を表すボタン（添付のプレビュー、手書きの道具）。 */
-.attachment-file .icon-button.on, .drawing-tools .icon-button.on { background: var(--selected); color: var(--text); }
 .pdf-preview { flex: 0 0 100%; margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; }
 .pdf-preview-bar { display: flex; align-items: center; justify-content: center; gap: 4px; color: var(--muted); font-size: var(--font-size-small); }
 .pdf-page-number { min-width: 64px; text-align: center; }
@@ -522,7 +521,10 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .icon-button { width: var(--control-height-compact); height: var(--control-height-compact); border-radius: var(--radius-row); display: grid; place-items: center; color: var(--muted); flex: none; }
 .icon-button:hover:not(:disabled) { background: var(--selected); color: var(--text); }
 .icon-button:active:not(:disabled) { background: var(--pressed); }
-.icon-button.on { color: var(--bookmark); }
+/* お気に入りの星。押したままの切り替え（下の aria-pressed）とは別の見た目にする。 */
+.icon-button.bookmarked, .icon-button.bookmarked:hover:not(:disabled) { color: var(--bookmark); }
+/* 押したままの切り替え（目次、履歴、検索の切り替え、手書きの道具、PDF の見本）は、aria-pressed の状態で描く。 */
+.icon-button[aria-pressed="true"], .icon-button[aria-pressed="true"]:hover:not(:disabled) { background: var(--selected); color: var(--accent); }
 
 /* 本文と、その横の目次。 */
 .document-area { display: flex; flex: 1; min-height: 0; }
@@ -534,7 +536,6 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .menu .outline { width: auto; min-width: 200px; max-width: 280px; max-height: 50vh; border-left: 0; padding: 0; }
 .outline-item { text-align: left; padding: 5px 8px; border-radius: var(--radius-row); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; }
 .outline-item:hover { background: var(--selected); color: var(--text); }
-.icon-button.active { background: var(--selected); color: var(--accent); }
 /* 左右の余白は、見出しの左に並ぶ「＋」・持ち手・ズームのボタン・折りたたみの印（左へ 80px まで）が、左寄せのときも切れない幅にする。
    文字の列の幅は 648px（816 − 84 × 2）。下は、末尾の行を窓の中ほどまで送れるよう、窓の高さの 3 割を空ける。 */
 .document { padding: 48px 84px max(80px, 30vh); max-width: 816px; width: 100%; margin: 0 auto; }
@@ -814,7 +815,6 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .find-controls { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
 .find-row .text-button { height: var(--control-height); padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius-control); color: var(--text); flex: none; }
 .find-row .text-button:disabled { color: var(--muted); }
-.find-row .icon-button.on { background: var(--selected); color: var(--accent); }
 .find-bar input { width: 100%; min-width: 0; height: var(--control-height); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 10px; background: var(--panel); color: var(--text); }
 .find-bar input.invalid { border-color: var(--danger); }
 .find-count { color: var(--muted); font-size: var(--font-size-small); min-width: 48px; text-align: center; white-space: nowrap; }

@@ -286,7 +286,7 @@ function ChatHeader({ modelSelect, canStartNewChat, onStartNewChat, showsHistory
         </button>
       )}
       {showsHistory !== null && (
-        <button type="button" className={`icon-button${showsHistory ? " active" : ""}`} aria-label={translate("ai.history")} aria-pressed={showsHistory} title={translate("ai.history")} onClick={onToggleHistory}>
+        <button type="button" className="icon-button" aria-label={translate("ai.history")} aria-pressed={showsHistory} title={translate("ai.history")} onClick={onToggleHistory}>
           <History size={16} />
         </button>
       )}

@@ -89,7 +89,7 @@ export function FindBar({ editor, request, onClose }: FindBarProps) {
           }} />
         <span className="find-controls">
           {SEARCH_OPTION_TOGGLES.map(({ option, label, Icon }) => (
-            <button key={option} type="button" className={`icon-button${search.options[option] ? " on" : ""}`} aria-label={translate(label)} title={translate(label)}
+            <button key={option} type="button" className="icon-button" aria-label={translate(label)} title={translate(label)}
               aria-pressed={search.options[option]} onClick={() => searchFor(search.query, { ...search.options, [option]: !search.options[option] })}>
               <Icon size={ICON_SIZE} />
             </button>

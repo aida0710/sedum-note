@@ -58,13 +58,13 @@ function AttachmentFileView({ node }: ReactNodeViewProps) {
         <Download size={16} />
       </button>
       {isPdf && (
-        <button type="button" className={`icon-button${previewShown ? " on" : ""}`} aria-pressed={previewShown} aria-label={translate("editor.pdfPreview", { name: attributes.fileName })}
+        <button type="button" className="icon-button" aria-pressed={previewShown} aria-label={translate("editor.pdfPreview", { name: attributes.fileName })}
           onClick={() => setPreviewShown(!previewShown)}>
           <Eye size={16} />
         </button>
       )}
       {isAudio && (
-        <button type="button" className={`icon-button${playerShown ? " on" : ""}`} aria-pressed={playerShown} aria-label={translate("editor.playAudio", { name: attributes.fileName })}
+        <button type="button" className="icon-button" aria-pressed={playerShown} aria-label={translate("editor.playAudio", { name: attributes.fileName })}
           onClick={() => setPlayerShown(!playerShown)}>
           <Play size={16} />
         </button>

@@ -159,7 +159,7 @@ function DrawingView({ node, editor, getPos }: ReactNodeViewProps) {
       {editable && (
         <div className="drawing-tools" role="toolbar" aria-label={translate("editor.drawing.tools")}>
           {TOOLS.map(({ tool: choice, icon: Icon, label }) => (
-            <button key={choice} type="button" className={`icon-button${tool === choice ? " on" : ""}`} aria-pressed={tool === choice} aria-label={translate(label)} title={translate(label)}
+            <button key={choice} type="button" className="icon-button" aria-pressed={tool === choice} aria-label={translate(label)} title={translate(label)}
               onClick={() => setTool(choice)}>
               <Icon size={TOOL_ICON_SIZE} />
             </button>
