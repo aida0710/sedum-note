@@ -73,10 +73,10 @@ test("バックアップを書き出し、別のデバイスの最初の画面�
   await (await fileChooser).setFiles(backupPath);
   await expect(target.locator(".file-choice-name")).toHaveText(basename(backupPath));
   await target.getByLabel("パスフレーズ", { exact: true }).fill("a wrong passphrase");
-  await target.getByRole("button", { name: "戻す" }).click();
+  await target.getByRole("button", { name: "復元" }).click();
   await expect(target.getByRole("alert")).toContainText("パスフレーズが違います");
   await target.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
-  await target.getByRole("button", { name: "戻す" }).click();
+  await target.getByRole("button", { name: "復元" }).click();
 
   await target.getByRole("button", { name: "バックアップするメモ" }).click();
   await expect(target.locator(".ProseMirror")).toContainText("戻ってくる本文");

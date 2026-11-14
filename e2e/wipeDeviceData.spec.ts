@@ -33,10 +33,10 @@ test("設定からこのデバイスのデータを消すと、入力の直後�
   await page.getByPlaceholder("タイトル").fill("消す直前に打った");
   await page.getByRole("tab", { name: "設定" }).click();
   await selectSettingsPage(page, "セキュリティ");
-  await page.getByRole("button", { name: "このデバイスのデータを消す" }).click();
+  await page.getByRole("button", { name: "このデバイスのデータを削除" }).click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog).toContainText("1 件のメモとノートブックは、バックアップが無ければ元に戻せません");
-  await dialog.getByRole("button", { name: "すべて消す" }).click();
+  await expect(dialog).toContainText("1件のメモとノートブックは、バックアップがなければ元に戻せません");
+  await dialog.getByRole("button", { name: "すべて削除" }).click();
 
   await expect(page.getByRole("heading", { name: "メモを始める" })).toBeVisible();
   await page.waitForTimeout(500);
@@ -50,12 +50,12 @@ test("パスフレーズを忘れても、ロック解除の画面からデー�
   await page.waitForTimeout(500);
   await page.reload();
   await page.getByText("パスフレーズを忘れたとき").click();
-  await page.getByRole("button", { name: "このデバイスのデータを消す" }).click();
+  await page.getByRole("button", { name: "このデバイスのデータを削除" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "キャンセル" }).click();
   await expect(page.getByRole("heading", { name: "ロックを解除" })).toBeVisible();
 
-  await page.getByRole("button", { name: "このデバイスのデータを消す" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "すべて消す" }).click();
+  await page.getByRole("button", { name: "このデバイスのデータを削除" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "すべて削除" }).click();
   await expect(page.getByRole("heading", { name: "メモを始める" })).toBeVisible();
   expect(await storedRecordCount(page)).toBe(0);
 });

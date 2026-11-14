@@ -44,7 +44,7 @@ test("PC のメモの「…」は、まとまりごとに区切り線で分か�
     ["右に並べて開く", "別のウィンドウで開く"],
     ["AI チャット [Ctrl + Alt + A]", "履歴"],
     ["エクスポート", "印刷・PDF で保存"],
-    ["ゴミ箱に入れる"],
+    ["ゴミ箱に移動"],
   ]);
   // 線は、まとまりの間にだけ引く（先頭のまとまりの上には引かない）。
   expect(groups.map((group) => group.separatorWidth)).toEqual(["0px", "1px", "1px", "1px", "1px", "1px", "1px"]);
@@ -61,7 +61,7 @@ test("PC のメモの「…」は、まとまりごとに区切り線で分か�
 test("ゴミ箱の中のメモでは、項目の無くなったまとまりごと消え、区切り線が続かない", async ({ page }) => {
   await startLocalVault(page);
   await createNoteOnDesktop(page, "古いメモ");
-  await (await openNoteMenu(page)).getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+  await (await openNoteMenu(page)).getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
   // ゴミ箱に入れても、開いているタブはそのまま（ゴミ箱の中のメモとして出る）。
   await expect(page.locator(".trash-banner")).toBeVisible();
   const groups = await visibleMenuGroups(await openNoteMenu(page));
@@ -72,7 +72,7 @@ test("ゴミ箱の中のメモでは、項目の無くなったまとまりご�
     ["右に並べて開く", "別のウィンドウで開く"],
     ["AI チャット [Ctrl + Alt + A]", "履歴"],
     ["エクスポート", "印刷・PDF で保存"],
-    ["ゴミ箱に入れる"],
+    ["ゴミ箱に移動"],
   ]);
   expect(groups.map((group) => group.separatorWidth)).toEqual(["0px", "1px", "1px", "1px", "1px", "1px", "1px"]);
 });
@@ -102,7 +102,7 @@ test("スマホ（390px）のメモの「…」は画面の中に収まり、キ
     ["メモの中を検索", "この項目にズーム", "すべて折りたたむ", "すべて開く"],
     ["AI チャット", "履歴"],
     ["エクスポート", "印刷・PDF で保存"],
-    ["ゴミ箱に入れる"],
+    ["ゴミ箱に移動"],
   ]);
   await expect(menu.locator("kbd")).toHaveCount(0);
   await expectInsideViewport(menu, PHONE_VIEWPORT);

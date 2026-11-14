@@ -477,11 +477,11 @@ test("会話は残り、ロックして開き直しても「残した会話」�
   await expect(savedChats).toHaveCount(1);
   await expect(chat(page).getByText("会話は新しい順に50件まで保存します。")).toBeVisible();
   // 消すと戻せないので、確かめる。やめると残る。
-  await savedChats.first().getByRole("button", { name: "「出発はいつ？」を消す" }).click();
+  await savedChats.first().getByRole("button", { name: "「出発はいつ？」を削除" }).click();
   const confirmation = page.getByRole("dialog").filter({ hasText: "会話「出発はいつ？」を削除しますか？" });
   await confirmation.getByRole("button", { name: "キャンセル" }).click();
   await expect(savedChats).toHaveCount(1);
-  await savedChats.first().getByRole("button", { name: "「出発はいつ？」を消す" }).click();
+  await savedChats.first().getByRole("button", { name: "「出発はいつ？」を削除" }).click();
   await confirmation.getByRole("button", { name: "削除" }).click();
   await expect(savedChats).toHaveCount(0);
   await expect(chat(page).getByText("まだ残した会話がありません。")).toBeVisible();
@@ -522,7 +522,7 @@ test("開いているメモの直しを頼むと、差分を承認してから�
 
   const card = approvalCard(page);
   await expect(card).toContainText("「果物」の本文を直す");
-  await expect(card.getByLabel("消す行")).toHaveText(["ばなな"]);
+  await expect(card.getByLabel("削除する行")).toHaveText(["ばなな"]);
   await expect(card.getByLabel("足す行")).toHaveText(["バナナ", "ぶどう"]);
   await expect(card.locator(".ai-diff-collapsed")).toHaveText(["変更のない 1 行", "変更のない 1 行"]);
   await expect(chat(page).locator(".ai-tool-activity")).toContainText("承認を待っています");
@@ -580,7 +580,7 @@ test("承認を待つ間にメモを書き換えると、その変更は行わ�
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "バナナ", "みかん", "ぶどう"]);
 
   // ゴミ箱に入れるのは、作る・直すとは別の許可（既定は毎回聞く）。
-  await expect(approvalCard(page)).toContainText("「果物」をゴミ箱に入れる");
+  await expect(approvalCard(page)).toContainText("「果物」をゴミ箱に移動");
   await approvalCard(page).getByRole("button", { name: "拒否", exact: true }).click();
   await expect(chat(page).locator(".ai-tool-activity").last()).toContainText("拒否したため、実行しませんでした");
   await expect(page.locator(".tree-note", { hasText: "果物" })).toBeVisible();
@@ -729,7 +729,7 @@ test("AI が本文をそのまま返したブロックは、Markdown に出し�
   await page.keyboard.press("Enter");
   const card = approvalCard(page);
   await expect(card.getByLabel("足す行")).toHaveText(["ぶどう"]);
-  await expect(card.getByLabel("消す行")).toHaveCount(0);
+  await expect(card.getByLabel("削除する行")).toHaveCount(0);
 
   await card.getByRole("button", { name: "許可", exact: true }).click();
   await expect(chat(page).locator(".ai-message.assistant .ai-message-text")).toHaveText(["足しました。"]);

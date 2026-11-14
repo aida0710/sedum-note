@@ -471,7 +471,7 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       name: "trash-toast",
       open: async (page) => {
         await openSidebarNoteMenu(page, "読みたい本");
-        await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+        await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
         await page.getByRole("button", { name: "元に戻す" }).waitFor();
       },
       close: async (page) => { await page.getByRole("button", { name: "元に戻す" }).click(); },
@@ -481,7 +481,7 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       name: "trash-banner",
       open: async (page) => {
         await openSidebarNoteMenu(page, "引っ越しのやること");
-        await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+        await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
         // ゴミ箱の行は、押すたびに開け閉めする。前の画面で開いていれば、押すと閉じるので、メモが出るまで押す。
         const trashRow = page.locator(".sidebar .nav", { hasText: "ゴミ箱" }).first();
         const trashedNote = page.locator(".tree-note", { hasText: "引っ越しのやること" }).first();
@@ -492,7 +492,7 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
         await trashedNote.click();
         await page.locator(".trash-banner").waitFor();
       },
-      close: async (page) => { await page.getByRole("button", { name: "ゴミ箱から戻す" }).click(); },
+      close: async (page) => { await page.getByRole("button", { name: "復元" }).click(); },
     },
     {
       name: "backlinks",

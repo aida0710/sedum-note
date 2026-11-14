@@ -88,7 +88,7 @@ test("ショートカットで、新しいメモ・タブの切り替え・タ�
 
   // データの消去は、セキュリティのページにある。
   await selectSettingsPage(page, "セキュリティ");
-  await page.getByRole("button", { name: "このデバイスのデータを消す" }).click();
+  await page.getByRole("button", { name: "このデバイスのデータを削除" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Control+Alt+n");
   await expect(page.getByRole("tab")).toHaveCount(2);
@@ -394,9 +394,9 @@ test("コマンドパレットから、開いているメモをゴミ箱に入�
 
   await page.keyboard.press("Control+k");
   await palette.getByRole("combobox").fill(">ゴミ箱");
-  await expect(palette.getByRole("option")).toHaveText(["開いているメモ: ゴミ箱に入れる"]);
+  await expect(palette.getByRole("option")).toHaveText(["開いているメモ: ゴミ箱に移動"]);
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "ゴミ箱に移動しました" })).toBeVisible();
   await expect(page.locator(".sidebar .tree-note", { hasText: "買い物リスト" })).toHaveCount(0);
 });
 
@@ -480,7 +480,7 @@ test("検索を名前を付けて保存でき、左の列から同じ検索を�
 
   await page.getByPlaceholder("メモを検索").fill("");
   await savedSearch.hover();
-  await page.getByRole("button", { name: "保存した検索「旅の準備」を消す" }).click();
+  await page.getByRole("button", { name: "保存した検索「旅の準備」を削除" }).click();
   await expect(savedSearch).toHaveCount(0);
   const toast = page.getByRole("status").filter({ hasText: "保存した検索「旅の準備」を削除しました" });
   await toast.getByRole("button", { name: "元に戻す" }).click();
@@ -491,7 +491,7 @@ test("検索を名前を付けて保存でき、左の列から同じ検索を�
   await page.getByPlaceholder("メモを検索").fill("");
   await savedSearch.focus();
   await page.keyboard.press("Tab");
-  await expect(page.getByRole("button", { name: "保存した検索「旅の準備」を消す" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "保存した検索「旅の準備」を削除" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(savedSearch).toHaveCount(0);
 });

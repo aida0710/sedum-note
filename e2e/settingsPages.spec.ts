@@ -113,7 +113,7 @@ test("設定のボタンは右にそろい、並べて置くボタンは縦に�
   expect(markdownButtons[1]!.top).toBeGreaterThan(markdownButtons[0]!.bottom);
 
   await page.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: "セキュリティ", exact: true }).click();
-  const rightEdges = await page.locator(".settings").getByRole("button", { name: /パスフレーズを変更|今すぐロック|このデバイスのデータを消す/ })
+  const rightEdges = await page.locator(".settings").getByRole("button", { name: /パスフレーズを変更|今すぐロック|このデバイスのデータを削除/ })
     .evaluateAll((buttons) => buttons.map((button) => Math.round(button.getBoundingClientRect().right)));
   expect(new Set(rightEdges).size).toBe(1);
 
@@ -162,7 +162,7 @@ test("開けない記録があると、設定に件数と次の手と記録の I
   await page.getByRole("button", { name: "設定", exact: true }).click();
   const notice = page.locator(".unreadable-records");
   await expect(notice).toContainText("開けない記録が 1 件あります");
-  await expect(notice).toContainText("同期していないので、この記録をほかの場所から取り戻すことはできません。");
+  await expect(notice).toContainText("同期していないため、このデータをほかの場所から復元することはできません。");
   await notice.getByText("開けない記録の ID").click();
   await expect(notice.locator("code")).toHaveText(brokenId);
 });

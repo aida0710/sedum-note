@@ -14,11 +14,11 @@ test("メニューは開くとフォーカスを受け、↑↓・Home・End で
   await page.keyboard.press("ArrowDown");
   await expect(menu.getByRole("menuitem", { name: "ピン留め" })).toBeFocused();
   await page.keyboard.press("End");
-  await expect(menu.getByRole("menuitem", { name: "ゴミ箱に入れる" })).toBeFocused();
+  await expect(menu.getByRole("menuitem", { name: "ゴミ箱に移動" })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(menu.getByRole("menuitem", { name: "ピン留め" })).toBeFocused();
   await page.keyboard.press("ArrowUp");
-  await expect(menu.getByRole("menuitem", { name: "ゴミ箱に入れる" })).toBeFocused();
+  await expect(menu.getByRole("menuitem", { name: "ゴミ箱に移動" })).toBeFocused();
   await page.keyboard.press("Home");
   await expect(menu.getByRole("menuitem", { name: "ピン留め" })).toBeFocused();
 
@@ -48,7 +48,7 @@ test("低いウィンドウでも、メニューは画面に収まり、中を�
   expect(box.y + box.height).toBeLessThanOrEqual(480);
   // 中身は枠より長い（送れる）。
   expect(await menu.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
-  await menu.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+  await menu.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
   await expect(page.locator(".trash-banner")).toBeVisible();
 });
 
@@ -89,7 +89,7 @@ test("戻せない操作の確認は「キャンセル」にフォーカスが�
   await startLocalVault(page);
   await createNoteOnDesktop(page, "古いメモ");
   await noteMenuButton(page).click();
-  await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+  await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
   const removeButton = page.locator(".trash-banner").getByRole("button", { name: "完全に削除" });
   await removeButton.focus();
 
@@ -116,10 +116,10 @@ test("続けてゴミ箱に入れると、知らせは 1 つにまとまり、�
   for (const title of ["一つ目", "二つ目", "三つ目"]) {
     await createNoteOnDesktop(page, title);
     await noteMenuButton(page).click();
-    await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+    await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
     await expect(page.locator(".trash-banner")).toBeVisible();
   }
-  const toast = page.getByRole("status").filter({ hasText: "3 件のメモをゴミ箱に入れました" });
+  const toast = page.getByRole("status").filter({ hasText: "3件のメモをゴミ箱に移動しました" });
   await toast.getByRole("button", { name: "元に戻す" }).click();
   await expect(page.locator(".trash-banner")).toBeHidden();
   const trashCount = page.locator(".sidebar .nav").filter({ hasText: "ゴミ箱" }).locator(".count");
@@ -130,8 +130,8 @@ test("知らせは、ポインターを乗せている間は消えない", async
   await startLocalVault(page);
   await createNoteOnDesktop(page, "会議");
   await noteMenuButton(page).click();
-  await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
-  const toast = page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" });
+  await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
+  const toast = page.getByRole("status").filter({ hasText: "ゴミ箱に移動しました" });
   await toast.hover();
   // 知らせを出しておく時間（6 秒）より長く待つ。
   await page.waitForTimeout(7_000);
@@ -162,8 +162,8 @@ test("PC では、知らせは左の列を除いた本文の欄の中央に出�
   await startLocalVault(page);
   await createNoteOnDesktop(page, "会議");
   await noteMenuButton(page).click();
-  await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
-  const toast = (await page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" }).boundingBox())!;
+  await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
+  const toast = (await page.getByRole("status").filter({ hasText: "ゴミ箱に移動しました" }).boundingBox())!;
   const pane = (await page.locator(".main").boundingBox())!;
   expect(Math.abs((toast.x + toast.width / 2) - (pane.x + pane.width / 2))).toBeLessThanOrEqual(1);
 });
@@ -206,8 +206,8 @@ test.describe("スマホの幅", () => {
     await page.locator(".fab").click();
     await page.getByPlaceholder("タイトル").fill("買い物");
     await page.getByRole("button", { name: "その他の操作" }).click();
-    await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
-    const toast = page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" });
+    await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
+    const toast = page.getByRole("status").filter({ hasText: "ゴミ箱に移動しました" });
     await expect(toast).toBeVisible();
     const lineCounts = await toast.evaluate((element) => [...element.children].map((child) => child.getClientRects().length));
     expect(lineCounts).toEqual([1, 1]);

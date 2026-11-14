@@ -132,7 +132,7 @@ test("メモをゴミ箱へドラッグすると知らせが出て、「元に�
 
   await noteRow(page, "買い物").locator(".tree-note").dragTo(viewRow(page, "ゴミ箱"));
   await expect(trashCount).toHaveText("1");
-  const toast = page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" });
+  const toast = page.getByRole("status").filter({ hasText: "ゴミ箱に移動しました" });
   await toast.getByRole("button", { name: "元に戻す" }).click();
   await expect(trashCount).toHaveCount(0);
   await expect(toast).toBeHidden();
@@ -158,9 +158,9 @@ test("左の列のメモの「…」から、名前を変えたり、ゴミ箱�
 
   // 右クリックでも同じメニューが出る。
   await noteRow(page, "週末の買い物").click({ button: "right" });
-  await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+  await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
   await expect(viewRow(page, "ゴミ箱").locator(".count")).toHaveText("1");
-  await expect(page.getByRole("status")).toContainText("ゴミ箱に入れました");
+  await expect(page.getByRole("status")).toContainText("ゴミ箱に移動しました");
 });
 
 test("タブはドラッグで並べ替えられる", async ({ page }) => {
@@ -197,10 +197,10 @@ test("スマホの幅では、ゴミ箱に入れた知らせが、下のメニ�
   await page.getByRole("button", { name: "新しいメモ" }).click();
   await page.getByPlaceholder("タイトル").fill("捨てるメモ");
   await page.getByRole("button", { name: "その他の操作" }).click();
-  await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+  await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
   await page.getByRole("button", { name: "戻る" }).click();
 
-  const toast = (await page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" }).boundingBox())!;
+  const toast = (await page.getByRole("status").filter({ hasText: "ゴミ箱に移動しました" }).boundingBox())!;
   const bottomNavigation = (await page.locator(".tabbar").boundingBox())!;
   const newNoteButton = (await page.getByRole("button", { name: "新しいメモ" }).boundingBox())!;
   expect(toast.y + toast.height).toBeLessThanOrEqual(bottomNavigation.y);
@@ -322,10 +322,10 @@ test("Ctrl と Shift で左の列のメモを複数選び、まとめてノー�
   await row(3).click();
   await row(1).click({ modifiers: ["ControlOrMeta"] });
   await row(1).click({ button: "right" });
-  await page.getByRole("menuitem", { name: "選んだ 2 件をゴミ箱に入れる" }).click();
+  await page.getByRole("menuitem", { name: "選択した2件をゴミ箱に移動" }).click();
   const trashCount = viewRow(page, "ゴミ箱").locator(".count");
   await expect(trashCount).toHaveText("2");
-  const toast = page.getByRole("status").filter({ hasText: "2 件のメモをゴミ箱に入れました" });
+  const toast = page.getByRole("status").filter({ hasText: "2件のメモをゴミ箱に移動しました" });
   await toast.getByRole("button", { name: "元に戻す" }).click();
   await expect(trashCount).toHaveCount(0);
 
@@ -396,7 +396,7 @@ test("左の列のメモの行で F2 を押すと名前を変えられ、決め�
   await expect(renamedRow).toBeFocused();
 
   await page.keyboard.press("Delete");
-  await expect(page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "ゴミ箱に移動しました" })).toBeVisible();
   await expect(noteRow(page, "二つ目の改名")).toHaveCount(0);
   // 名前を変えたメモは更新が新しいので先頭に並んでいた。その次の行は「三つ目」。
   await expect(noteRow(page, "三つ目").locator(".tree-note")).toBeFocused();

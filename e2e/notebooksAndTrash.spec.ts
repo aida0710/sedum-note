@@ -59,7 +59,7 @@ test("ゴミ箱の自動削除は、既定ではオフ。日数は Enter か「�
   await page.getByRole("button", { name: "新しいメモ" }).click();
   await page.getByPlaceholder("タイトル").fill("捨てるメモ");
   await page.getByRole("button", { name: "その他の操作" }).click();
-  await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+  await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
   const trashCount = page.locator(".nav-row", { hasText: "ゴミ箱" }).locator(".count");
   await expect(trashCount).toHaveText("1");
 
@@ -83,7 +83,7 @@ test("ゴミ箱の自動削除は、既定ではオフ。日数は Enter か「�
 
   // 「3」を Enter で決めようとすると、いま消える 1 件を出して確かめる。やめれば決まらず、メモも残る。
   await days.press("Enter");
-  const confirmRemoval = page.getByRole("dialog", { name: /3 日を過ぎたメモが 1 件あり/ });
+  const confirmRemoval = page.getByRole("dialog", { name: /3日を過ぎたメモが1件あり/ });
   await confirmRemoval.getByRole("button", { name: "キャンセル" }).click();
   await expect(page.getByText("今の設定は 30 日です")).toBeVisible();
   await expect(trashCount).toHaveText("1");
@@ -122,11 +122,11 @@ test("プロパティの名前は Enter か「保存」で決まる。決めず�
   await expect(dialog.getByRole("button", { name: "保存", exact: true })).toBeDisabled();
 
   // 消すときは聞かれる。やめれば残り、消すと決めれば消える。
-  await dialog.getByRole("button", { name: "プロパティ「著者」を消す" }).click();
-  const confirmRemoval = page.getByRole("dialog", { name: /プロパティ「著者」を消しますか/ });
+  await dialog.getByRole("button", { name: "プロパティ「著者」を削除" }).click();
+  const confirmRemoval = page.getByRole("dialog", { name: /プロパティ「著者」を削除しますか/ });
   await confirmRemoval.getByRole("button", { name: "キャンセル" }).click();
   await expect(name).toHaveValue("著者");
-  await dialog.getByRole("button", { name: "プロパティ「著者」を消す" }).click();
+  await dialog.getByRole("button", { name: "プロパティ「著者」を削除" }).click();
   await confirmRemoval.getByRole("button", { name: "削除" }).click();
   await expect(dialog.getByText("プロパティはまだありません")).toBeVisible();
 });
@@ -266,7 +266,7 @@ test("プロパティの選択肢は 1 つずつのチップで、名前を変�
   await expect(dialog.getByRole("textbox", { name: "名前" })).toHaveCount(1);
   await expect(dialog.getByRole("textbox", { name: "名前" })).toBeFocused();
   // 決める前に行を消すと、何も残らない。
-  await dialog.getByRole("button", { name: "プロパティ「新しいプロパティ」を消す" }).click();
+  await dialog.getByRole("button", { name: "プロパティ「新しいプロパティ」を削除" }).click();
   await expect(dialog.getByText("プロパティはまだありません")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "閉じる" })).toHaveClass(/primary-button/);
 
@@ -534,7 +534,7 @@ test("ゴミ箱の行のメニューから、件数を確かめてゴミ箱を�
   for (const title of ["捨てる一", "捨てる二"]) {
     await createNoteOnDesktop(page, title);
     await page.getByRole("button", { name: "その他の操作" }).click();
-    await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+    await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
   }
   await createNoteOnDesktop(page, "残すメモ");
   const trashRow = page.locator(".nav-row", { hasText: "ゴミ箱" });

@@ -71,7 +71,7 @@ test("スペースを足すのをやめられる。足したスペースは、�
   await openSettingsPage(page, "一般");
   const workSpace = page.locator(".space-list li", { hasText: "仕事" });
   await workSpace.getByRole("button", { name: "削除" }).click();
-  const confirmation = page.getByRole("dialog", { name: /スペース「仕事」を、このデバイスから消します/ });
+  const confirmation = page.getByRole("dialog", { name: /スペース「仕事」をこのデバイスから削除します/ });
   await confirmation.getByLabel("パスフレーズ").fill(PASSPHRASE);
   // 決めるボタンは、押すと起きること（削除）を言う。
   await confirmation.getByRole("button", { name: "削除" }).click();
@@ -152,11 +152,11 @@ test("このデバイスのデータを消すと、全部のスペースが消�
 
   await openSettingsPage(page, "一般");
   await selectSettingsPage(page, "セキュリティ");
-  await page.getByRole("button", { name: "このデバイスのデータを消す" }).click();
+  await page.getByRole("button", { name: "このデバイスのデータを削除" }).click();
   const dialog = page.getByRole("dialog");
   // 開いているスペースの 2 件だけでなく、もう 1 つのスペースの 1 件も数える。
-  await expect(dialog).toContainText("3 件のメモとノートブックは、バックアップが無ければ元に戻せません");
-  await dialog.getByRole("button", { name: "すべて消す" }).click();
+  await expect(dialog).toContainText("3件のメモとノートブックは、バックアップがなければ元に戻せません");
+  await dialog.getByRole("button", { name: "すべて削除" }).click();
 
   // 最初の画面に戻り、スペースは最初の 1 つだけになる。どちらの保存も残っていない。
   await expect(page.getByLabel("パスフレーズ（確認）")).toBeVisible();

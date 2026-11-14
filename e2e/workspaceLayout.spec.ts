@@ -70,7 +70,7 @@ test("完全に削除したメモのタブは、読み込み直したあとに�
   const noteRow = page.locator(".sidebar .tree-note", { hasText: "消すメモ" });
   await noteRow.hover();
   await page.getByRole("button", { name: "「消すメモ」の操作" }).click();
-  await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+  await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
   await page.locator('.sidebar [data-view-key="trash"]').click();
   await noteRow.hover();
   await page.getByRole("button", { name: "「消すメモ」の操作" }).click();

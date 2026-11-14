@@ -113,7 +113,7 @@ test("メモへのリンクは、リンク先の今のタイトルを出し、�
 
   await page.getByRole("tab", { name: "名前を変えた" }).click();
   await page.getByRole("button", { name: "その他の操作" }).last().click();
-  await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+  await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
   await page.getByRole("tab", { name: "リンク元" }).click();
   await expect(link).toHaveText("名前を変えた（ゴミ箱）");
 
@@ -233,7 +233,7 @@ test("履歴から、書き直す前の状態にそのメモを戻せる。戻�
 
   // 別のメモは作らず、開いているメモがそのまま戻る。
   await expect(history).toBeHidden();
-  await expect(page.getByRole("status").filter({ hasText: "このバージョンに戻しました" })).toHaveText("このバージョンに戻しました。戻す前の状態は履歴に残っています");
+  await expect(page.getByRole("status").filter({ hasText: "このバージョンを復元しました" })).toHaveText("このバージョンを復元しました。復元前の状態は履歴に残っています。");
   await expect(page.locator(".ProseMirror")).toHaveText("書き直す前の文");
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("議事録");
   await expect(page.getByRole("tab", { name: /議事録/ })).toHaveCount(1);

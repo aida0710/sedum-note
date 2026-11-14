@@ -38,7 +38,7 @@ test("スマホの一覧でメモを右へ払うとピン留めし、左へ払�
 
   await swipe(page, item("旅行"), -260);
   await expect(item("旅行")).toHaveCount(0);
-  const toast = page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" });
+  const toast = page.getByRole("status").filter({ hasText: "ゴミ箱に移動しました" });
   await toast.getByRole("button", { name: "元に戻す" }).click();
   await expect(item("旅行")).toBeVisible();
 

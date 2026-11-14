@@ -205,7 +205,7 @@ export function WORST_CASE_DESKTOP_SCREENS({ baseUrl, passphrase }) {
           await row.scrollIntoViewIfNeeded();
           await row.hover();
           await row.locator(".row-actions button").click();
-          await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+          await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
         }
       },
       close: async (page) => {

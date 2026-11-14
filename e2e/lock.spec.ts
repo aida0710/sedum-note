@@ -23,8 +23,8 @@ test("ロックの直前に出ていた「元に戻す」の知らせは、ロ�
   await startLocalVault(page);
   await createNoteOnDesktop(page, "捨てるメモ");
   await page.getByRole("button", { name: "その他の操作" }).last().click();
-  await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
-  const toast = page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" });
+  await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
+  const toast = page.getByRole("status").filter({ hasText: "ゴミ箱に移動しました" });
   await expect(toast).toBeVisible();
   await page.keyboard.press("Control+l");
   await expect(page.getByRole("heading", { name: "ロックを解除" })).toBeVisible();
