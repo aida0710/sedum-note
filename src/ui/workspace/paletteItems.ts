@@ -1,7 +1,7 @@
 // コマンドパレットで探せるもの（メモ・ノートブック・タグ・設定の項目・操作）と、打った言葉での絞り込み。
 
 import { excerptAt } from "../../core/notes/textExcerpt";
-import { findFoldedWord } from "../../core/notes/searchTextFolding";
+import { findFoldedWord, foldForSearch } from "../../core/notes/searchTextFolding";
 import { containsAllWords, searchWordsOf } from "../shared/searchWords";
 
 // create は、打った言葉を題にして新しいメモを作る項目（候補からではなく、パレットが最後に足す）。
@@ -42,6 +42,24 @@ function excerptAround(text: string, word: string): string {
   return match === null ? "" : excerptAt(text, match);
 }
 
+// 候補ごとの、全角と半角・大文字と小文字をそろえた名前と、名前に本文などを足したもの。打つたびに全部のメモの本文をそろえ直すと、
+// メモが多いとき（2,000 件）に打つたびに止まるので、候補ごとに 1 回だけ作って覚える（候補はパレットを開いている間は変わらない）。
+const foldedTextsOfCandidate = new WeakMap<PaletteCandidate, { label: string; labelAndExtraText: string }>();
+
+function foldedTextsOf(candidate: PaletteCandidate): { label: string; labelAndExtraText: string } {
+  let folded = foldedTextsOfCandidate.get(candidate);
+  if (!folded) {
+    folded = { label: foldForSearch(candidate.label), labelAndExtraText: foldForSearch(`${candidate.label}\n${candidate.extraText}`) };
+    foldedTextsOfCandidate.set(candidate, folded);
+  }
+  return folded;
+}
+
+// words は searchWordsOf で分けたもの（containsAllWords と同じ当たりの決まり）。
+function includesAllWords(foldedText: string, words: string[]): boolean {
+  return words.every((word) => foldedText.includes(word));
+}
+
 function byNewest(left: PaletteCandidate, right: PaletteCandidate): number {
   return (right.updatedAt ?? "").localeCompare(left.updatedAt ?? "");
 }
@@ -60,11 +78,13 @@ export function searchPalette(candidates: PaletteCandidate[], query: string): Pa
   return PALETTE_KIND_ORDER.flatMap((kind) => {
     const ofKind = candidates.filter((candidate) => candidate.kind === kind);
     // 名前に当たったものを先に、本文などにだけ当たったものを後に並べる。
-    const byLabel = ofKind.filter((candidate) => containsAllWords(candidate.label, words)).sort(byNewest);
+    const byLabel = ofKind.filter((candidate) => includesAllWords(foldedTextsOf(candidate).label, words)).sort(byNewest);
     const byExtraText = ofKind
-      .filter((candidate) => !containsAllWords(candidate.label, words) && containsAllWords(`${candidate.label}\n${candidate.extraText}`, words))
-      .sort(byNewest)
-      .map((candidate) => (candidate.kind === "note" ? { ...candidate, hint: excerptAround(candidate.extraText, words[0]!) } : candidate));
-    return [...byLabel, ...byExtraText].slice(0, MAX_ITEMS_PER_KIND[kind]);
+      .filter((candidate) => !includesAllWords(foldedTextsOf(candidate).label, words) && includesAllWords(foldedTextsOf(candidate).labelAndExtraText, words))
+      .sort(byNewest);
+    const listed = [...byLabel, ...byExtraText].slice(0, MAX_ITEMS_PER_KIND[kind]);
+    // 本文の抜き出しは重い（文字ごとに元の位置を覚えて探す）ので、並べる分にだけ作る（メモが 2,000 件あると、全部に作れば打つたびに 0.2 秒止まる）。
+    const matchedByLabel = new Set(byLabel);
+    return listed.map((candidate) => (candidate.kind === "note" && !matchedByLabel.has(candidate) ? { ...candidate, hint: excerptAround(candidate.extraText, words[0]!) } : candidate));
   });
 }
