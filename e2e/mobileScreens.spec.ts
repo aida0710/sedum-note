@@ -272,7 +272,8 @@ test("スマホの一覧を下へ送ってメモを開き、戻ると、同じ�
   await lastItem.click();
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("メモ 01");
   await backToList(page);
-  await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBe(scrollTop);
+  // 開く前と同じメモが、同じ高さに見えている（行は画面の外では見積もりの高さで並ぶので、scrollTop の数ではなく見え方で比べる）。
+  await expect.poll(async () => Math.round((await lastItem.boundingBox())?.y ?? -1)).toBe(Math.round(lastBox.y));
 });
 
 test("スマホのメモの中の検索では、検索の欄が 1 行目の幅いっぱいに広がる", async ({ browser }) => {

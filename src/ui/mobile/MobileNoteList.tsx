@@ -15,7 +15,7 @@ import { SearchScopeSwitch } from "../shared/SearchScopeSwitch";
 import { assignNotebookColors, NotebookMark, type NotebookColors } from "../shared/notebookAppearance";
 import { useTrashWithUndo } from "../workspace/useTrashWithUndo";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
-import { useRememberedListScroll } from "./rememberedListScroll";
+import { LIST_ROW_NOTE_ID_ATTRIBUTE, useRememberedListScroll } from "./rememberedListScroll";
 import { type PullState, usePullToSync } from "./usePullToSync";
 import { useSwipeActions } from "./useSwipeActions";
 
@@ -122,7 +122,7 @@ function NoteListItem({ summary, notebooks, notebookColors, repository, onOpen }
   const thumbnail = useAttachmentUrl(firstImage?.id ?? null, firstImage?.mimeType);
   const noteNotebooks = notebooks.filter((notebook) => note.content.notebookIds.includes(notebook.id));
   return (
-    <div ref={swipe.rowRef} className="note-item-row">
+    <div ref={swipe.rowRef} className="note-item-row" {...{ [LIST_ROW_NOTE_ID_ATTRIBUTE]: note.id }}>
       <span className="swipe-action swipe-action-right" aria-hidden="true">
         {pinned ? <PinOff size={16} /> : <Pin size={16} />}{translate(pinned ? "editor.unpin" : "editor.pin")}
       </span>
