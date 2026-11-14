@@ -1,9 +1,11 @@
 // ノートブックのプロパティ（このノートブックのメモに付けられる項目）を決めるダイアログ。
-// 種類の選択・追加・削除はその場で保存し、名前と選択肢（文字を打つ欄）は Enter か「保存」で保存する。
+// 種類の選択・選択肢を消す（「元に戻す」つき）・選択肢の名前の変更はその場で保存し、名前と足す選択肢（文字を打つ欄）は
+// Enter か「保存」で保存する。「プロパティを追加」で足した行も打ちかけで、Enter か「保存」で決めたときに初めて記録へ書く。
 // 削除は、メモに入れた値も見えなくなるので、確かめてから行う。
 
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { newRandomId } from "../../core/crypto/randomId";
 import { PROPERTY_TYPES, type PropertyDefinition, type PropertyType } from "../../core/notes/noteProperties";
 import type { LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
@@ -11,6 +13,8 @@ import { translate } from "../i18n/translate";
 import { useDialogs } from "../shared/DialogProvider";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { ModalDialog } from "../shared/ModalDialog";
+import { useToast } from "../shared/ToastProvider";
+import { PropertyOptionsEditor } from "./PropertyOptionsEditor";
 
 type NotebookPropertiesDialogProps = {
   notebook: LiveNotebook;
@@ -20,15 +24,21 @@ type NotebookPropertiesDialogProps = {
   onClose: () => void;
 };
 
-// 選択肢は、1 つの欄に「、」か「,」で区切って書く。
-const OPTION_SEPARATOR = /[、,]/;
-const OPTION_JOINER = "、";
+// 保存したプロパティの、打ったがまだ保存していない文字（名前と、足す選択肢）。プロパティの ID ごとに持つ。
+type TextDraft = { name?: string; newOptionText?: string };
 
-// 名前と選択肢の、打ったがまだ保存していない文字。プロパティの ID ごとに持つ。
-type TextDraft = { name?: string; optionsText?: string };
+// 「プロパティを追加」で足した、まだ記録に書いていないプロパティ。ID は足したときに決め、書くときにその ID で書く
+//（書いたあとの行が同じ ID の行として残り、打っていた欄のフォーカスが外れない）。
+type NewPropertyDraft = { id: string; name: string; type: PropertyType; options: string[]; newOptionText: string };
 
-function optionsFromText(optionsText: string): string[] {
-  return optionsText.split(OPTION_SEPARATOR).map((option) => option.trim()).filter((option) => option !== "");
+// 足す選択肢の欄に打った文字を、選択肢の並びの末尾に足す。空の文字と、もうある選択肢は足さない。
+function withNewOption(options: string[], newOptionText: string | undefined): string[] {
+  const option = newOptionText?.trim() ?? "";
+  return option === "" || options.includes(option) ? options : [...options, option];
+}
+
+function hasText(draft: TextDraft | undefined): boolean {
+  return draft !== undefined && (draft.name !== undefined || (draft.newOptionText ?? "").trim() !== "");
 }
 
 // 足したプロパティの名前の欄へフォーカスを移し、仮の名前を選んでおく。そのまま打つと名前が入れ替わるように。
@@ -40,41 +50,59 @@ function focusAndSelectName(input: HTMLInputElement | null) {
 export function NotebookPropertiesDialog({ notebook, repository, autoFocusAddButton = false, onClose }: NotebookPropertiesDialogProps) {
   const { properties } = notebook.content;
   const dialogs = useDialogs();
-  const [addedPropertyId, setAddedPropertyId] = useState<string | null>(null);
+  const showToast = useToast();
   const [drafts, setDrafts] = useState<Record<string, TextDraft>>({});
+  const [addedProperty, setAddedProperty] = useState<NewPropertyDraft | null>(null);
+  // 足した行は、書いたものが一覧に届くまで（届いたら、その行に入れ替わる）、まだ書いていない行として出す。
+  const isAddedPropertySaved = addedProperty !== null && properties.some((property) => property.id === addedProperty.id);
+  const newProperty = isAddedPropertySaved ? null : addedProperty;
+  // 届いたら、足した行は捨てる（残すと、あとでそのプロパティを消したときに、まだ書いていない行としてまた出る）。
+  useEffect(() => {
+    if (isAddedPropertySaved) {
+      setAddedProperty(null);
+    }
+  }, [isAddedPropertySaved]);
   // 消したプロパティ（ほかのデバイスで消された分も）の、打ちかけの文字は数えない。
-  const hasDrafts = properties.some((property) => drafts[property.id] !== undefined);
+  const hasDrafts = newProperty !== null || properties.some((property) => hasText(drafts[property.id]));
   const save = (definition: PropertyDefinition, changes: Partial<PropertyDefinition>) =>
-    void repository.saveNotebookProperty(notebook.id, { ...definition, ...changes });
-  const changeDraft = (propertyId: string, changes: TextDraft) => setDrafts({ ...drafts, [propertyId]: { ...drafts[propertyId], ...changes } });
-  // 打った名前と選択肢を保存する。propertyId を渡せば、そのプロパティの分だけ（その欄で Enter を押したとき）。
-  const saveDrafts = (propertyId?: string) => {
+    repository.saveNotebookProperty(notebook.id, { ...definition, ...changes });
+  const changeDraft = (propertyId: string, changes: TextDraft) => setDrafts((current) => ({ ...current, [propertyId]: { ...current[propertyId], ...changes } }));
+  const changeNewProperty = (changes: Partial<NewPropertyDraft>) => setAddedProperty((current) => current && { ...current, ...changes });
+  const createNewProperty = async (draft: NewPropertyDraft) => {
+    await repository.saveNotebookProperty(notebook.id, {
+      id: draft.id, name: draft.name.trim() || translate("property.newName"), type: draft.type, options: withNewOption(draft.options, draft.newOptionText),
+      order: Math.max(0, ...properties.map((property) => property.order)) + 1,
+    });
+  };
+  // 打った名前と選択肢を保存する。target を渡せば、そのプロパティの分だけ（その欄で Enter を押したとき）。
+  const saveDrafts = (target?: string) => {
+    if (newProperty && (target === undefined || target === newProperty.id)) {
+      void createNewProperty(newProperty);
+    }
     const remaining = { ...drafts };
     for (const property of properties) {
       const draft = drafts[property.id];
-      if (!draft || (propertyId !== undefined && property.id !== propertyId)) {
+      if (!draft || (target !== undefined && property.id !== target)) {
         continue;
       }
-      save(property, {
-        ...(draft.name === undefined ? {} : { name: draft.name }),
-        ...(draft.optionsText === undefined ? {} : { options: optionsFromText(draft.optionsText) }),
-      });
+      void save(property, { ...(draft.name === undefined ? {} : { name: draft.name }), options: withNewOption(property.options, draft.newOptionText) });
       delete remaining[property.id];
     }
     setDrafts(remaining);
   };
-  const saveDraftsOnEnter = (propertyId: string) => (event: React.KeyboardEvent) => {
+  const saveDraftsOnEnter = (target: string) => (event: React.KeyboardEvent) => {
     if (event.key === "Enter" && !isImeKeyEvent(event.nativeEvent)) {
       // 既定の動作を止めて、この Enter の続きを、保存のあとにフォーカスが移った先のボタンへ送らせない。
       event.preventDefault();
-      saveDrafts(propertyId);
+      saveDrafts(target);
     }
   };
-  const add = async () => {
-    const added = await repository.saveNotebookProperty(notebook.id, {
-      name: translate("property.newName"), type: "text", options: [], order: Math.max(0, ...properties.map((property) => property.order)) + 1,
-    });
-    setAddedPropertyId(added.id);
+  // 先に足していた行があれば、それを決めてから、新しい行を足す。
+  const add = () => {
+    if (newProperty) {
+      void createNewProperty(newProperty);
+    }
+    setAddedProperty({ id: newRandomId(), name: translate("property.newName"), type: "text", options: [], newOptionText: "" });
   };
   const remove = async (property: PropertyDefinition) => {
     const accepted = await dialogs.confirm({
@@ -82,6 +110,32 @@ export function NotebookPropertiesDialog({ notebook, repository, autoFocusAddBut
     });
     if (accepted) {
       await repository.removeNotebookProperty(notebook.id, property.id);
+    }
+  };
+  // 選択肢を消しても、その値を入れたメモの値は残る（ボードの列に出なくなるだけ）。すぐ戻せるよう、元の位置へ戻す「元に戻す」を出す。
+  const removeOption = async (property: PropertyDefinition, option: string) => {
+    const index = property.options.indexOf(option);
+    await save(property, { options: property.options.filter((candidate) => candidate !== option) });
+    showToast({
+      message: translate("property.optionRemoved", { option }),
+      action: {
+        label: translate("toast.undo"),
+        run: () => {
+          const current = repository.notebooks().find((candidate) => candidate.id === notebook.id)?.content.properties.find((candidate) => candidate.id === property.id);
+          if (current && !current.options.includes(option)) {
+            void save(current, { options: [...current.options.slice(0, index), option, ...current.options.slice(index)] });
+          }
+        },
+      },
+    });
+  };
+  // 選択肢の名前を変えたら、その値を入れたメモも新しい名前に書き換える（書き換えないと、ボードのどの列にも出なくなる）。
+  const renameOption = async (property: PropertyDefinition, option: string, newName: string) => {
+    await save(property, { options: property.options.map((candidate) => (candidate === option ? newName : candidate)) });
+    for (const note of repository.notes()) {
+      if (note.content.notebookIds.includes(notebook.id) && note.content.propertyValues[property.id] === option) {
+        await repository.setNotePropertyValue(note.id, property.id, newName);
+      }
     }
   };
   // 保存していない名前や選択肢があれば、捨ててよいかを聞いてから閉じる。
@@ -94,27 +148,51 @@ export function NotebookPropertiesDialog({ notebook, repository, autoFocusAddBut
     <ModalDialog label={translate("property.dialogTitle")} title={translate("property.dialogTitle")}
       description={translate("property.dialogDescription", { name: notebook.content.name })} className="notebook-properties" onClose={() => void close()}>
       <div className="property-definitions">
-        {properties.length === 0 && <div className="tree-empty">{translate("property.none")}</div>}
+        {properties.length === 0 && !newProperty && <div className="tree-empty">{translate("property.none")}</div>}
         {properties.map((property) => (
           <div key={property.id} className="property-definition">
-            <input ref={property.id === addedPropertyId ? focusAndSelectName : undefined} value={drafts[property.id]?.name ?? property.name} aria-label={translate("property.name")}
-              onChange={(event) => changeDraft(property.id, { name: event.target.value })} onKeyDown={saveDraftsOnEnter(property.id)} />
-            <select value={property.type} aria-label={translate("property.type")} onChange={(event) => save(property, { type: event.target.value as PropertyType })}>
-              {PROPERTY_TYPES.map((type) => <option key={type} value={type}>{translate(`property.type.${type}`)}</option>)}
-            </select>
+            <div className="property-definition-row">
+              <input value={drafts[property.id]?.name ?? property.name} aria-label={translate("property.name")}
+                onChange={(event) => changeDraft(property.id, { name: event.target.value })} onKeyDown={saveDraftsOnEnter(property.id)} />
+              <select value={property.type} aria-label={translate("property.type")} onChange={(event) => void save(property, { type: event.target.value as PropertyType })}>
+                {PROPERTY_TYPES.map((type) => <option key={type} value={type}>{translate(`property.type.${type}`)}</option>)}
+              </select>
+              <button type="button" className="icon-button" aria-label={translate("property.remove", { name: property.name })}
+                onClick={() => void remove(property)}><Trash2 size={14} /></button>
+            </div>
             {property.type === "select" && (
-              <input value={drafts[property.id]?.optionsText ?? property.options.join(OPTION_JOINER)} placeholder={translate("property.optionsPlaceholder")}
-                aria-label={translate("property.options")}
-                onChange={(event) => changeDraft(property.id, { optionsText: event.target.value })} onKeyDown={saveDraftsOnEnter(property.id)} />
+              <PropertyOptionsEditor propertyName={property.name} options={property.options} newOptionText={drafts[property.id]?.newOptionText ?? ""}
+                onNewOptionTextChange={(newOptionText) => changeDraft(property.id, { newOptionText })}
+                onAdd={() => saveDrafts(property.id)}
+                onRemove={(option) => void removeOption(property, option)}
+                onRename={(option, newName) => void renameOption(property, option, newName)} />
             )}
-            <button type="button" className="icon-button" aria-label={translate("property.remove", { name: property.name })}
-              onClick={() => void remove(property)}><Trash2 size={14} /></button>
           </div>
-        ))}
+        )).concat(newProperty ? [
+          // 足した行。決めるまで記録に書かないので、行を消すボタンは確かめずに行を捨てる。
+          <div key={newProperty.id} className="property-definition">
+            <div className="property-definition-row">
+              <input ref={focusAndSelectName} value={newProperty.name} aria-label={translate("property.name")}
+                onChange={(event) => changeNewProperty({ name: event.target.value })} onKeyDown={saveDraftsOnEnter(newProperty.id)} />
+              <select value={newProperty.type} aria-label={translate("property.type")} onChange={(event) => changeNewProperty({ type: event.target.value as PropertyType })}>
+                {PROPERTY_TYPES.map((type) => <option key={type} value={type}>{translate(`property.type.${type}`)}</option>)}
+              </select>
+              <button type="button" className="icon-button" aria-label={translate("property.remove", { name: translate("property.newName") })}
+                onClick={() => setAddedProperty(null)}><Trash2 size={14} /></button>
+            </div>
+            {newProperty.type === "select" && (
+              <PropertyOptionsEditor propertyName={newProperty.name} options={newProperty.options} newOptionText={newProperty.newOptionText}
+                onNewOptionTextChange={(newOptionText) => changeNewProperty({ newOptionText })}
+                onAdd={() => changeNewProperty({ options: withNewOption(newProperty.options, newProperty.newOptionText), newOptionText: "" })}
+                onRemove={(option) => changeNewProperty({ options: newProperty.options.filter((candidate) => candidate !== option) })}
+                onRename={(option, newName) => changeNewProperty({ options: newProperty.options.map((candidate) => (candidate === option ? newName : candidate)) })} />
+            )}
+          </div>,
+        ] : [])}
       </div>
       <p className="hint">{translate("property.textSaveHint")}</p>
       <div className="form-actions">
-        <button type="button" className="secondary-button" autoFocus={autoFocusAddButton} onClick={() => void add()}><Plus size={14} />{translate("property.add")}</button>
+        <button type="button" className="secondary-button" autoFocus={autoFocusAddButton} onClick={add}><Plus size={14} />{translate("property.add")}</button>
         {/* 保存していない文字があるときは「保存」を、無いときは「閉じる」を、目立つボタンにする。 */}
         <button type="button" className={hasDrafts ? "primary-button" : "secondary-button"} disabled={!hasDrafts} onClick={() => saveDrafts()}>{translate("common.save")}</button>
         <button type="button" className={hasDrafts ? "secondary-button" : "primary-button"} onClick={() => void close()}>{translate("common.close")}</button>

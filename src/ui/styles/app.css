@@ -105,10 +105,20 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 .note-property input[type="checkbox"] { justify-self: start; }
 /* ダイアログの幅は、.dialog（420px）より強く当たるよう、.dialog と重ねて書く。 */
 .dialog.notebook-properties { width: min(620px, 100%); }
-.property-definitions { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
-.property-definition { display: flex; gap: 6px; align-items: center; }
+/* プロパティどうしの間は、1 つのプロパティの中の行（名前と選択肢）の間より広くして、どの選択肢がどのプロパティのものか分かるようにする。
+   送る枠の端で欄のフォーカスの枠が切れないよう、内側に余白を取り、その分を外側の余白で打ち消す。 */
+.property-definitions { display: flex; flex-direction: column; gap: 14px; overflow-y: auto; padding: 3px; margin: -3px; }
+.property-definition { display: flex; flex-direction: column; gap: 6px; }
+.property-definition-row { display: flex; gap: 6px; align-items: center; }
 .property-definition input, .property-definition select { height: var(--control-height); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 8px; background: var(--panel); color: var(--text); min-width: 0; flex: 1; }
 .property-definition select { flex: none; }
+/* 選択肢のチップの並び。名前を押すと打ち直せ、「×」で消せる。最後に足す欄を置き、幅が足りなければ折り返す。 */
+.property-options { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.property-option { padding: 0 4px 0 0; }
+.property-option-name { padding: 3px 0 3px 10px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: inherit; }
+.property-option-remove { display: grid; place-items: center; width: 20px; height: 20px; border-radius: var(--radius-inline); color: var(--muted); }
+.property-option-remove:hover { background: var(--selected); color: var(--text); }
+.property-definition .property-options input { height: var(--control-height-compact); flex: 1 1 140px; }
 .database-view { padding: 24px 32px 60px; }
 .database-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
 .database-header h1 { font-size: var(--font-size-title); margin: 0; flex: 1; min-width: 0; }

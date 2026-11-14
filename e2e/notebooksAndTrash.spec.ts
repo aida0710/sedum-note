@@ -1,5 +1,14 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { addNotebookOnDesktop, createNoteOnDesktop, openSettingsPage, PHONE_VIEWPORT, startLocalVault } from "./devices";
+
+// プロパティのダイアログで、選択肢を 1 つずつ足す（足す欄に打って Enter）。
+async function addPropertyOptions(dialog: Locator, options: string[]) {
+  const input = dialog.getByRole("textbox", { name: "選択肢を追加" });
+  for (const option of options) {
+    await input.fill(option);
+    await input.press("Enter");
+  }
+}
 
 function notebookRow(page: Page, name: string) {
   return page.locator(".nav-row", { has: page.locator(".nav", { hasText: name }) });
@@ -132,8 +141,7 @@ test("ノートブックにプロパティを決めると、その中のメモ�
   await dialog.getByRole("textbox", { name: "名前" }).fill("状態");
   await dialog.getByRole("textbox", { name: "名前" }).press("Enter");
   await dialog.getByRole("combobox", { name: "種類" }).selectOption("select");
-  await dialog.getByRole("textbox", { name: "選択肢" }).fill("未読、読了");
-  await dialog.getByRole("textbox", { name: "選択肢" }).press("Enter");
+  await addPropertyOptions(dialog, ["未読", "読了"]);
   await dialog.getByRole("button", { name: "プロパティを追加" }).click();
   await dialog.getByRole("textbox", { name: "名前" }).last().fill("ページ数");
   await dialog.getByRole("button", { name: "保存" }).click();
@@ -163,8 +171,7 @@ test("データベース表示で、ノートブックのメモをプロパテ�
   await dialog.getByRole("textbox", { name: "名前" }).fill("状態");
   await dialog.getByRole("textbox", { name: "名前" }).press("Enter");
   await dialog.getByRole("combobox", { name: "種類" }).selectOption("select");
-  await dialog.getByRole("textbox", { name: "選択肢" }).fill("未読、読了");
-  await dialog.getByRole("textbox", { name: "選択肢" }).press("Enter");
+  await addPropertyOptions(dialog, ["未読", "読了"]);
   await dialog.getByRole("button", { name: "閉じる" }).click();
 
   await page.locator(".nav", { hasText: "読書" }).click();
@@ -247,6 +254,49 @@ test("データベース表示の表では、キーボードだけで、下の�
   await expect(database.locator("tbody tr", { hasText: "こころ" }).getByRole("textbox", { name: "著者" })).toHaveValue("夏目漱石");
 });
 
+test("プロパティの選択肢は 1 つずつのチップで、名前を変えるとその値のメモも書き換わり、消しても「元に戻す」で戻せる。足した行は決めるまで記録に書かない", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "読書");
+  const database = await openDatabaseView(page, "読書");
+  await database.getByRole("button", { name: "プロパティを追加" }).click();
+  const dialog = page.getByRole("dialog", { name: "プロパティ" });
+  await dialog.getByRole("button", { name: "プロパティを追加" }).click();
+  // 決める前に行を消すと、何も残らない。
+  await dialog.getByRole("button", { name: "プロパティ「新しいプロパティ」を消す" }).click();
+  await expect(dialog.getByText("プロパティはまだありません")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "閉じる" })).toHaveClass(/primary-button/);
+
+  await dialog.getByRole("button", { name: "プロパティを追加" }).click();
+  await dialog.getByRole("textbox", { name: "名前" }).fill("状態");
+  await dialog.getByRole("combobox", { name: "種類" }).selectOption("select");
+  await addPropertyOptions(dialog, ["未読", "読了"]);
+  await expect(dialog.locator(".property-option-name")).toHaveText(["未読", "読了"]);
+  await dialog.getByRole("textbox", { name: "名前" }).press("Enter");
+  await dialog.getByRole("button", { name: "閉じる" }).click();
+
+  await database.getByRole("radio", { name: "ボード" }).click();
+  const column = (name: string) => database.getByRole("region", { name });
+  await column("読了").getByRole("button", { name: "新しいメモ" }).click();
+  await column("読了").getByPlaceholder("タイトル").fill("こころ");
+  await column("読了").getByPlaceholder("タイトル").press("Enter");
+  await expect(column("読了").locator(".database-card")).toHaveText(["こころ"]);
+
+  // 名前を変えると、その値を入れたメモも新しい列へ移る。
+  await page.locator(".nav", { hasText: "読書" }).first().click({ button: "right" });
+  await page.getByRole("menuitem", { name: "プロパティ" }).click();
+  await dialog.locator(".property-option-name", { hasText: "読了" }).click();
+  await dialog.getByRole("textbox", { name: "選択肢「読了」の名前を変更" }).fill("読み終えた");
+  await page.keyboard.press("Enter");
+  await expect(dialog.locator(".property-option-name")).toHaveText(["未読", "読み終えた"]);
+  await expect(column("読み終えた").locator(".database-card")).toHaveText(["こころ"]);
+
+  // 消すと列も消え、「元に戻す」で元の位置に戻る。
+  await dialog.getByRole("button", { name: "選択肢「未読」を削除" }).click();
+  await expect(dialog.locator(".property-option-name")).toHaveText(["読み終えた"]);
+  await page.getByRole("status").filter({ hasText: "選択肢「未読」を削除しました" }).getByRole("button", { name: "元に戻す" }).click();
+  await expect(dialog.locator(".property-option-name")).toHaveText(["未読", "読み終えた"]);
+});
+
 test("データベース表示のボードでは、列の下の「新しいメモ」から、その列の選択肢の値を入れたメモを作れる", async ({ page }) => {
   await startLocalVault(page);
   await addNotebookOnDesktop(page, "読書");
@@ -257,8 +307,7 @@ test("データベース表示のボードでは、列の下の「新しいメ�
   await dialog.getByRole("textbox", { name: "名前" }).fill("状態");
   await dialog.getByRole("textbox", { name: "名前" }).press("Enter");
   await dialog.getByRole("combobox", { name: "種類" }).selectOption("select");
-  await dialog.getByRole("textbox", { name: "選択肢" }).fill("未読、読了");
-  await dialog.getByRole("textbox", { name: "選択肢" }).press("Enter");
+  await addPropertyOptions(dialog, ["未読", "読了"]);
   await dialog.getByRole("button", { name: "閉じる" }).click();
 
   await database.getByRole("radio", { name: "ボード" }).click();
