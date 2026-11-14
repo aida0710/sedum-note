@@ -5,6 +5,8 @@ import type { SlashCommand, SlashCommandActions } from "./slashCommands";
 
 export type SlashMenuState = {
   commands: SlashCommand[];
+  // 「/」のあとに打った絞り込みの文字。空なら、まとまりの見出しと「最近使った」を出す。
+  query: string;
   // 「/」を打った位置（画面の座標）。
   anchor: DOMRect;
   choose: (command: SlashCommand) => void;

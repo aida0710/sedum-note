@@ -34,11 +34,20 @@ export type SlashCommandActions = {
   insertTemplate: (templateId: string) => void;
 };
 
+// メニューで見出しを付けてまとめる単位。並びは SLASH_COMMAND_GROUPS の順。
+export const SLASH_COMMAND_GROUPS = ["basic", "blocks", "media", "insert", "links", "templates"] as const;
+export type SlashCommandGroup = (typeof SLASH_COMMAND_GROUPS)[number];
+
 export type SlashCommand = {
   id: string;
+  group: SlashCommandGroup;
   icon: LucideIcon;
-  // メニューに出す名前。
+  // メニューに出す名前（名詞）。
   name: () => string;
+  // 名前だけでは何を入れるか分かりにくいものに、2 行目に小さく出す説明。
+  description?: () => string;
+  // 同じブロックにできる、行の頭で打つ書き方（「# 」「- 」など。後ろの空白は出さない）。打てるものだけ。
+  shortcut?: string;
   // 絞り込みに使う言葉（英語と、かな・ローマ字）。文言のほかにこれでも当たる。
   keywords: string[];
   run: (editor: Editor, actions: SlashCommandActions) => void;
@@ -58,57 +67,77 @@ const HEADING_ICONS = { 1: Heading1, 2: Heading2, 3: Heading3, 4: Heading4, 5: H
 
 const heading = (level: HeadingLevel): SlashCommand => ({
   id: `heading${level}`,
+  group: "basic",
   icon: HEADING_ICONS[level],
+  shortcut: "#".repeat(level),
   name: () => translate(`editor.heading${level}`),
   keywords: [`h${level}`, "heading", "midashi", "みだし"],
   run: (editor) => editor.chain().focus().setHeading({ level }).run(),
 });
 
+// まとまりの順（SLASH_COMMAND_GROUPS）に並べる。絞り込んだときも、この順のまま出す。
 export const SLASH_COMMANDS: SlashCommand[] = [
-  { id: "paragraph", icon: Pilcrow, name: () => translate("editor.paragraph"), keywords: ["text", "paragraph", "honbun", "ほんぶん", "てきすと"], run: (editor) => editor.chain().focus().setParagraph().run() },
+  { id: "paragraph", group: "basic", icon: Pilcrow, name: () => translate("editor.paragraph"), keywords: ["text", "paragraph", "honbun", "ほんぶん", "てきすと"], run: (editor) => editor.chain().focus().setParagraph().run() },
   ...HEADING_LEVELS.map(heading),
-  { id: "bulletList", icon: List, name: () => translate("editor.bulletList"), keywords: ["bullet", "list", "ul", "kajou", "かじょうがき", "りすと"], run: (editor) => editor.chain().focus().toggleBulletList().run() },
-  { id: "orderedList", icon: ListOrdered, name: () => translate("editor.orderedList"), keywords: ["number", "ordered", "ol", "bangou", "ばんごう"], run: (editor) => editor.chain().focus().toggleOrderedList().run() },
-  { id: "taskList", icon: ListChecks, name: () => translate("editor.taskList"), keywords: ["todo", "task", "check", "ちぇっく", "やること"], run: (editor) => editor.chain().focus().toggleTaskList().run() },
-  { id: "blockquote", icon: TextQuote, name: () => translate("editor.blockquote"), keywords: ["quote", "inyou", "いんよう"], run: (editor) => editor.chain().focus().setBlockquote().run() },
+  { id: "bulletList", group: "basic", icon: List, name: () => translate("editor.slash.bulletList"), shortcut: "-", keywords: ["bullet", "list", "ul", "kajou", "かじょうがき", "りすと"], run: (editor) => editor.chain().focus().toggleBulletList().run() },
+  { id: "orderedList", group: "basic", icon: ListOrdered, name: () => translate("editor.orderedList"), shortcut: "1.", keywords: ["number", "ordered", "ol", "bangou", "ばんごう"], run: (editor) => editor.chain().focus().toggleOrderedList().run() },
+  { id: "taskList", group: "basic", icon: ListChecks, name: () => translate("editor.taskList"), shortcut: "[ ]", keywords: ["todo", "task", "check", "ちぇっく", "やること"], run: (editor) => editor.chain().focus().toggleTaskList().run() },
+  { id: "blockquote", group: "basic", icon: TextQuote, name: () => translate("editor.blockquote"), shortcut: ">", keywords: ["quote", "inyou", "いんよう"], run: (editor) => editor.chain().focus().setBlockquote().run() },
+  { id: "divider", group: "basic", icon: Minus, name: () => translate("editor.divider"), shortcut: "---", keywords: ["divider", "hr", "line", "kugiri", "くぎり", "せん"], run: (editor) => editor.chain().focus().setHorizontalRule().run() },
+  { id: "codeBlock", group: "blocks", icon: Code, name: () => translate("editor.code"), shortcut: "```", keywords: ["code", "こーど"], run: (editor) => editor.chain().focus().setCodeBlock().run() },
+  { id: "table", group: "blocks", icon: Table, name: () => translate("editor.table"), keywords: ["table", "hyou", "ひょう"], run: (editor) => editor.chain().focus().insertTable(NEW_TABLE_SIZE).run() },
   ...CALLOUT_KINDS.map((kind): SlashCommand => ({
-    id: `callout:${kind}`, icon: CALLOUT_ICONS[kind], name: () => translate(`editor.callout.${kind}`), keywords: ["callout", kind, "kakomi", "かこみ", "こーるあうと"],
+    id: `callout:${kind}`, group: "blocks", icon: CALLOUT_ICONS[kind], name: () => translate(`editor.callout.${kind}`), keywords: ["callout", kind, "kakomi", "かこみ", "こーるあうと"],
     run: (editor) => editor.chain().focus().setCallout(kind).run(),
   })),
-  { id: "codeBlock", icon: Code, name: () => translate("editor.code"), keywords: ["code", "こーど"], run: (editor) => editor.chain().focus().setCodeBlock().run() },
-  { id: "table", icon: Table, name: () => translate("editor.table"), keywords: ["table", "hyou", "ひょう"], run: (editor) => editor.chain().focus().insertTable(NEW_TABLE_SIZE).run() },
-  { id: "divider", icon: Minus, name: () => translate("editor.divider"), keywords: ["divider", "hr", "line", "kugiri", "くぎり", "せん"], run: (editor) => editor.chain().focus().setHorizontalRule().run() },
-  { id: "image", icon: ImagePlus, name: () => translate("editor.image"), keywords: ["image", "photo", "picture", "gazou", "がぞう", "しゃしん"], run: (_editor, actions) => actions.pickImage() },
-  { id: "file", icon: Paperclip, name: () => translate("editor.file"), keywords: ["file", "attach", "tenpu", "てんぷ", "ふぁいる"], run: (_editor, actions) => actions.pickFile() },
-  {
-    id: "recording", icon: Mic, name: () => translate("editor.startRecording"), keywords: ["record", "audio", "voice", "rokuon", "ろくおん", "おと", "こえ"],
-    isAvailable: (actions) => actions.startRecording !== undefined, run: (_editor, actions) => actions.startRecording?.(),
-  },
-  { id: "scan", icon: ScanLine, name: () => translate("editor.scan"), keywords: ["scan", "document", "camera", "sukyan", "すきゃん", "しょるい"], run: (_editor, actions) => actions.scanDocument() },
-  { id: "due", icon: AlarmClock, name: () => translate("due.slash"), keywords: ["due", "deadline", "reminder", "kigen", "きげん", "しめきり", "りまいんだー"], run: (_editor, actions) => actions.pickTaskDue() },
-  { id: "date", icon: CalendarDays, name: () => translate("editor.insertDate"), keywords: ["date", "today", "hizuke", "ひづけ", "きょう"], run: (editor) => insertCurrentDateTime(editor, "date") },
-  { id: "dateTime", icon: CalendarClock, name: () => translate("editor.insertDateTime"), keywords: ["time", "now", "datetime", "nichiji", "にちじ", "じこく", "いま"], run: (editor) => insertCurrentDateTime(editor, "dateTime") },
   ...COLUMN_COUNTS.map((columnCount): SlashCommand => ({
-    id: `columns:${columnCount}`, icon: Columns2, name: () => translate("editor.columns", { count: columnCount }), keywords: ["columns", "dangumi", "だんぐみ", "よこ"],
+    id: `columns:${columnCount}`, group: "blocks", icon: Columns2, name: () => translate("editor.columns", { count: columnCount }), keywords: ["columns", "dangumi", "だんぐみ", "よこ"],
     run: (editor) => editor.chain().focus().insertColumns(columnCount).run(),
   })),
-  { id: "embed", icon: MonitorPlay, name: () => translate("editor.embed"), keywords: ["embed", "video", "youtube", "umekomi", "うめこみ", "どうが"], run: (editor) => editor.chain().focus().insertContent({ type: EMBED_NODE }).run() },
-  { id: "footnote", icon: Superscript, name: () => translate("editor.footnote"), keywords: ["footnote", "note", "kyakuchuu", "きゃくちゅう", "ちゅう"], run: (editor) => editor.chain().focus().insertFootnote().run() },
-  { id: "math", icon: Sigma, name: () => translate("editor.math"), keywords: ["math", "latex", "formula", "suushiki", "すうしき"], run: (editor) => editor.chain().focus().insertContent({ type: BLOCK_MATH_NODE }).run() },
+  { id: "math", group: "blocks", icon: Sigma, name: () => translate("editor.math"), keywords: ["math", "latex", "formula", "suushiki", "すうしき"], run: (editor) => editor.chain().focus().insertContent({ type: BLOCK_MATH_NODE }).run() },
   {
-    id: "diagram", icon: Workflow, name: () => translate("editor.diagram"), keywords: ["diagram", "mermaid", "chart", "zu", "ず", "ふろー"],
+    id: "diagram", group: "blocks", icon: Workflow, name: () => translate("editor.slash.diagram"), description: () => translate("editor.slash.diagramDescription"),
+    keywords: ["diagram", "mermaid", "chart", "zu", "ず", "ふろー"],
     run: (editor) => editor.chain().focus().insertContent({ type: "codeBlock", attrs: { language: MERMAID_LANGUAGE }, content: [{ type: "text", text: newDiagramSource() }] }).run(),
   },
-  { id: "drawing", icon: PenTool, name: () => translate("editor.drawing"), keywords: ["draw", "drawing", "sketch", "shape", "tegaki", "てがき", "ずけい", "え"], run: (editor) => editor.chain().focus().insertContent({ type: DRAWING_NODE }).run() },
-  { id: "noteQuery", icon: ListFilter, name: () => translate("editor.noteQuery"), keywords: ["query", "list", "kueri", "くえり", "いちらん"], run: (editor) => editor.chain().focus().insertContent({ type: NOTE_QUERY_NODE }).run() },
-  { id: "noteLink", icon: FileSymlink, name: () => translate("editor.noteLink"), keywords: ["link", "note", "memo", "りんく", "めも"], run: (_editor, actions) => actions.pickNoteLink() },
-  { id: "blockLink", icon: Link2, name: () => translate("editor.blockLink"), keywords: ["link", "block", "burokku", "ぶろっく", "りんく"], run: (_editor, actions) => actions.pickBlockLink() },
-  { id: "blockEmbed", icon: SquareDashedBottom, name: () => translate("editor.blockEmbed"), keywords: ["embed", "block", "transclude", "umekomi", "うめこみ", "ぶろっく"], run: (_editor, actions) => actions.pickBlockEmbed() },
+  { id: "drawing", group: "blocks", icon: PenTool, name: () => translate("editor.drawing"), keywords: ["draw", "drawing", "sketch", "shape", "tegaki", "てがき", "ずけい", "え"], run: (editor) => editor.chain().focus().insertContent({ type: DRAWING_NODE }).run() },
+  { id: "image", group: "media", icon: ImagePlus, name: () => translate("editor.slash.image"), keywords: ["image", "photo", "picture", "gazou", "がぞう", "しゃしん"], run: (_editor, actions) => actions.pickImage() },
+  { id: "file", group: "media", icon: Paperclip, name: () => translate("editor.slash.file"), keywords: ["file", "attach", "tenpu", "てんぷ", "ふぁいる"], run: (_editor, actions) => actions.pickFile() },
+  {
+    id: "recording", group: "media", icon: Mic, name: () => translate("editor.slash.recording"), keywords: ["record", "audio", "voice", "rokuon", "ろくおん", "おと", "こえ"],
+    isAvailable: (actions) => actions.startRecording !== undefined, run: (_editor, actions) => actions.startRecording?.(),
+  },
+  { id: "scan", group: "media", icon: ScanLine, name: () => translate("editor.scan"), keywords: ["scan", "document", "camera", "sukyan", "すきゃん", "しょるい"], run: (_editor, actions) => actions.scanDocument() },
+  {
+    id: "embed", group: "media", icon: MonitorPlay, name: () => translate("editor.slash.embed"), description: () => translate("editor.slash.embedDescription"),
+    keywords: ["embed", "video", "youtube", "umekomi", "うめこみ", "どうが"], run: (editor) => editor.chain().focus().insertContent({ type: EMBED_NODE }).run(),
+  },
+  { id: "date", group: "insert", icon: CalendarDays, name: () => translate("editor.insertDate"), keywords: ["date", "today", "hizuke", "ひづけ", "きょう"], run: (editor) => insertCurrentDateTime(editor, "date") },
+  { id: "dateTime", group: "insert", icon: CalendarClock, name: () => translate("editor.insertDateTime"), keywords: ["time", "now", "datetime", "nichiji", "にちじ", "じこく", "いま"], run: (editor) => insertCurrentDateTime(editor, "dateTime") },
+  {
+    id: "due", group: "insert", icon: AlarmClock, name: () => translate("editor.slash.due"), description: () => translate("editor.slash.dueDescription"),
+    keywords: ["due", "deadline", "reminder", "kigen", "きげん", "しめきり", "りまいんだー"], run: (_editor, actions) => actions.pickTaskDue(),
+  },
+  { id: "footnote", group: "insert", icon: Superscript, name: () => translate("editor.footnote"), keywords: ["footnote", "note", "kyakuchuu", "きゃくちゅう", "ちゅう"], run: (editor) => editor.chain().focus().insertFootnote().run() },
+  {
+    id: "noteQuery", group: "insert", icon: ListFilter, name: () => translate("editor.slash.noteQuery"), description: () => translate("editor.slash.noteQueryDescription"),
+    keywords: ["query", "list", "kueri", "くえり", "いちらん"], run: (editor) => editor.chain().focus().insertContent({ type: NOTE_QUERY_NODE }).run(),
+  },
+  { id: "noteLink", group: "links", icon: FileSymlink, name: () => translate("editor.noteLink"), keywords: ["link", "note", "memo", "りんく", "めも"], run: (_editor, actions) => actions.pickNoteLink() },
+  { id: "blockLink", group: "links", icon: Link2, name: () => translate("editor.blockLink"), keywords: ["link", "block", "burokku", "ぶろっく", "りんく"], run: (_editor, actions) => actions.pickBlockLink() },
+  {
+    id: "blockEmbed", group: "links", icon: SquareDashedBottom, name: () => translate("editor.slash.blockEmbed"), description: () => translate("editor.slash.blockEmbedDescription"),
+    keywords: ["embed", "block", "transclude", "umekomi", "うめこみ", "ぶろっく"], run: (_editor, actions) => actions.pickBlockEmbed(),
+  },
 ];
+
+// テンプレートの候補の ID の頭。後ろはテンプレートのメモの ID。
+export const TEMPLATE_COMMAND_ID_PREFIX = "template:";
 
 function templateCommands(actions: SlashCommandActions): SlashCommand[] {
   return actions.templates.map((template) => ({
-    id: `template:${template.id}`,
+    id: `${TEMPLATE_COMMAND_ID_PREFIX}${template.id}`,
+    group: "templates",
     icon: LayoutTemplate,
     name: () => translate("editor.templateNamed", { title: template.title || translate("sidebar.untitled") }),
     keywords: ["template", "てんぷれーと", "かた"],
@@ -116,7 +145,7 @@ function templateCommands(actions: SlashCommandActions): SlashCommand[] {
   }));
 }
 
-// 「/」のあとに打った文字で絞り込む。名前か言葉の一部に当たるものを、一覧の順のまま返す。
+// 「/」のあとに打った文字で絞り込む。名前か言葉の一部に当たるものを、一覧の順のまま返す。打つ前は、候補に出せるものを全部返す。
 export function filterSlashCommands(query: string, actions: SlashCommandActions): SlashCommand[] {
   const commands = [...SLASH_COMMANDS, ...templateCommands(actions)].filter((command) => command.isAvailable?.(actions) ?? true);
   const needle = query.trim().toLocaleLowerCase();

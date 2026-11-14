@@ -8,16 +8,24 @@ async function openNewNote(page: Page): Promise<void> {
 
 const slashMenu = (page: Page) => page.getByRole("listbox", { name: "ブロックの種類" });
 
-test("「/」を打つとブロックの候補が出て、上下のキーと Enter で選べる", async ({ page }) => {
+test("「/」を打つとブロックの候補がまとまりの見出しの下に並び、上下のキーと Enter で選べる", async ({ page }) => {
   await openNewNote(page);
   await page.keyboard.type("/");
   // 録音は、録音できるブラウザでだけ候補に出る。
   const canRecord = await page.evaluate(() => typeof MediaRecorder !== "undefined" && typeof navigator.mediaDevices?.getUserMedia === "function");
-  await expect(slashMenu(page).getByRole("option")).toHaveText([
-    "本文", "見出し 1", "見出し 2", "見出し 3", "見出し 4", "見出し 5", "見出し 6", "箇条書き", "番号付きリスト", "チェックリスト", "引用",
-    "コールアウト: 情報", "コールアウト: ヒント", "コールアウト: 注意", "コールアウト: 警告", "コード", "表", "区切り線",
-    "画像を貼る", "ファイルを添付", ...(canRecord ? ["録音する"] : []), "書類のスキャン", "期限（チェックリストの項目に付ける）", "今日の日付", "今の日時", "2 段組み", "3 段組み", "埋め込み（動画・Web ページ）", "脚注", "数式", "図（Mermaid）", "手書き・図形", "クエリ（条件に合うメモの一覧）", "メモへのリンク", "ブロックへのリンク", "ブロックの埋め込み（ほかのメモの一部を出す）",
+  // まだ何も選んでいないので「最近使った」は無い。
+  await expect(slashMenu(page).getByRole("group")).toHaveText(["基本", "ブロック", "メディア", "挿入", "リンク"].map((heading) => new RegExp(`^${heading}`)));
+  await expect(slashMenu(page).locator(".slash-menu-name")).toHaveText([
+    "本文", "見出し 1", "見出し 2", "見出し 3", "見出し 4", "見出し 5", "見出し 6", "箇条書きリスト", "番号付きリスト", "チェックリスト", "引用", "区切り線",
+    "コード", "表", "コールアウト: 情報", "コールアウト: ヒント", "コールアウト: 注意", "コールアウト: 警告", "2 段組み", "3 段組み", "数式", "図", "手書き・図形",
+    "画像", "ファイル", ...(canRecord ? ["録音"] : []), "書類のスキャン", "埋め込み",
+    "今日の日付", "今の日時", "期限", "脚注", "クエリ",
+    "メモへのリンク", "ブロックへのリンク", "ブロックの埋め込み",
   ]);
+  // 分かりにくい名前には 2 行目に説明を添え、行の頭の書き方で作れるものには、その書き方を薄く添える。
+  await expect(slashMenu(page).getByRole("option", { name: "埋め込み", exact: true })).toHaveAccessibleDescription("動画・Webページ");
+  await expect(slashMenu(page).getByRole("option", { name: "見出し 2" }).locator("kbd")).toHaveText("##");
+  await expect(slashMenu(page).getByRole("option", { name: "チェックリスト" }).locator("kbd")).toHaveText("[ ]");
   // 候補は枠より長いが、スクロールバーは出さない（バーの分だけ中身の幅が狭くならない）。
   const scrollbar = await slashMenu(page).evaluate((menu: HTMLElement) => ({
     setting: getComputedStyle(menu).scrollbarWidth, takenWidth: menu.offsetWidth - menu.clientWidth, isScrollable: menu.scrollHeight > menu.clientHeight,
@@ -42,7 +50,7 @@ test("「/」のあとに打った文字で候補を絞り込める（文言で�
 
   await page.keyboard.press("Control+End");
   await page.keyboard.type("/todo");
-  await expect(slashMenu(page).getByRole("option")).toHaveText(["チェックリスト"]);
+  await expect(slashMenu(page).locator(".slash-menu-name")).toHaveText(["チェックリスト"]);
   await page.keyboard.press("Enter");
   await page.keyboard.type("牛乳を買う");
   await expect(page.locator('.ProseMirror ul[data-type="taskList"] li > div')).toHaveText("牛乳を買う");
@@ -79,6 +87,34 @@ test("Escape で候補を閉じると「/」はそのまま残り、コードの
   await page.keyboard.type("a / b");
   await expect(slashMenu(page)).toHaveCount(0);
   await expect(page.locator(".ProseMirror pre")).toHaveText("a / b");
+});
+
+test("選んだ候補は、次に「/」だけを打ったとき「最近使った」の先頭に出る。打ち始めると見出しは消え、記録はこのデバイスだけに残る", async ({ page }) => {
+  await openNewNote(page);
+  await page.keyboard.type("/表");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Control+End");
+  await page.keyboard.type("/くぎり");
+  await page.keyboard.press("Enter");
+
+  await page.keyboard.type("/");
+  const recent = slashMenu(page).getByRole("group", { name: "最近使った" });
+  await expect(recent.locator(".slash-menu-name")).toHaveText(["区切り線", "表"]);
+  // 「最近使った」は先頭で、その先頭の候補が選ばれている。
+  await expect(slashMenu(page).getByRole("group").first()).toHaveAccessibleName("最近使った");
+  await expect(recent.getByRole("option", { name: "区切り線" })).toHaveAttribute("aria-selected", "true");
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("sedum-note:devicePreferences") ?? "{}").recentSlashCommandIds);
+  expect(stored).toEqual(["divider", "table"]);
+
+  // 下にまだ候補があるうちは下の端をぼかし、いちばん下まで送ると消す。
+  const fade = slashMenu(page).locator(".slash-menu-fade");
+  await expect(fade).toHaveClass(/shown/);
+  await slashMenu(page).evaluate((menu) => menu.scrollTo({ top: menu.scrollHeight }));
+  await expect(fade).not.toHaveClass(/shown/);
+
+  await page.keyboard.type("み");
+  await expect(slashMenu(page).getByRole("group")).toHaveCount(0);
+  await expect(slashMenu(page).locator(".menu-heading")).toHaveCount(0);
 });
 
 test("当たる候補が無いときは「見つかりません」を出し、Enter はそのまま改行になる。パスを打っている間は何も出さない", async ({ page }) => {

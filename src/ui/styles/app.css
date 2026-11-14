@@ -741,12 +741,26 @@ button.ai-tool-activity:hover { background: var(--selected); }
 /* 候補は全部を一度に見せる。画面に収まらないとき（スマホでキーボードを開いているとき）だけ中を送れるが、スクロールバーは出さない。 */
 /* 「/」のメニューにはスクロールバーを出さない。後ろにある .menu の規則（細いバー）に負けないよう、クラスを 2 つ重ねる。 */
 /* 高さの上限は、打った行の上下の空きに合わせて SlashMenu.tsx が入れる。 */
-.menu.slash-menu { overflow-y: auto; scrollbar-width: none; min-width: 220px; }
+/* 幅は決まった値にする（名前の長さで決めると、絞り込むたびに枠が伸び縮みする）。 */
+.menu.slash-menu { overflow-y: auto; scrollbar-width: none; width: 280px; min-width: 280px; }
 .slash-menu::-webkit-scrollbar { display: none; }
 .slash-menu .menu-item { padding-top: 5px; padding-bottom: 5px; }
 .slash-menu .menu-item.on { background: var(--selected); }
 /* 絞り込みに当たる候補が無いときの 1 行。 */
 .slash-menu .menu-empty { padding: 6px 10px; color: var(--muted); }
+/* まとまりの見出し（最近使った・基本・ブロック…）。先頭の見出しだけは、メニューの上の端に近づける。 */
+.slash-menu .menu-heading { padding: 8px 10px 3px; }
+.slash-menu > .slash-menu-group:first-child > .menu-heading { padding-top: 4px; }
+/* 候補の名前と、その下の小さな説明。 */
+.slash-menu-label { display: flex; flex-direction: column; min-width: 0; line-height: 1.35; }
+.slash-menu-name, .slash-menu-description { overflow: hidden; text-overflow: ellipsis; }
+.slash-menu-description { color: var(--muted); font-size: var(--font-size-small); }
+/* 同じブロックにできる書き方（「# 」「- 」など）。覚えてもらうための手がかりなので、箱にせず薄い文字で右に添える。 */
+.slash-menu .menu-item > kbd.slash-menu-shortcut { font-family: var(--font-mono); font-size: var(--font-size-small); color: var(--muted); opacity: .75; background: none; border: 0; padding: 0; }
+/* 下にまだ候補があるときだけ、下の端をメニューの地（--raised）へぼかす。スクロールバーの代わりに、続きがあると知らせる。
+   メニューの内側の余白（6px）の分だけ外へ広げ、高さの分だけ上へ重ねて、候補の並びを動かさない。 */
+.slash-menu-fade { position: sticky; bottom: -6px; height: 24px; margin: -24px -6px -6px; background: linear-gradient(to bottom, transparent, var(--raised)); pointer-events: none; opacity: 0; }
+.slash-menu-fade.shown { opacity: 1; }
 .notebook-icon { flex: none; }
 .choice-grid { display: flex; flex-wrap: wrap; gap: 6px; }
 .choice { min-width: var(--control-height); height: var(--control-height); padding: 0 8px; border-radius: var(--radius-control); border: 1px solid var(--line); display: grid; place-items: center; color: var(--text); }

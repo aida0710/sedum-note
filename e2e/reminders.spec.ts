@@ -39,7 +39,7 @@ test("「/」の「期限」で、チェックリストの項目に期限の印�
   await createNoteOnDesktop(page, "買い物");
   await page.keyboard.type("牛乳を買う");
   await page.keyboard.type(" /きげん");
-  await page.getByRole("listbox", { name: "ブロックの種類" }).getByRole("option", { name: "期限（チェックリストの項目に付ける）" }).click();
+  await page.getByRole("listbox", { name: "ブロックの種類" }).getByRole("option", { name: "期限", exact: true }).click();
   await saveDue(page, "項目の期限", "2026-11-13T09:00");
   // 段落だった行は、チェックリストの項目になる。
   await expect(page.locator(".ProseMirror ul[data-type='taskList'] li p")).toHaveText("牛乳を買う 📅 2026-11-13 09:00");

@@ -226,7 +226,7 @@ test("ズームしている間も、表の中では表のメニューが、録�
 
   await placeCursorAtBodyEnd(page);
   await page.keyboard.press("Enter");
-  await insertFromSlashMenu(page, "録音", "録音する");
+  await insertFromSlashMenu(page, "録音", "録音");
   const stopButton = zoomedTop.getByRole("button", { name: "録音を止めて添付する" });
   await expect(stopButton).toBeVisible();
   await page.waitForTimeout(600);

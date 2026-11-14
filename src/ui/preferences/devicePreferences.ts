@@ -1,4 +1,4 @@
-// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の組み方、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか、テンプレートの日付と時刻の形式、タイプライターモード、カスタム CSS、期限の通知、常駐）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の組み方、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか、テンプレートの日付と時刻の形式、タイプライターモード、カスタム CSS、期限の通知、常駐、「/」のメニューの最近使った候補）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
@@ -55,6 +55,8 @@ export type DevicePreferences = {
   pageAlignment: PageAlignment;
   // 変えたキーボードショートカットのキー（shortcuts/shortcutOverrides.ts）。キーボードと OS がデバイスごとに違うので、同期しない。
   shortcutOverrides: ShortcutOverrides;
+  // 「/」のメニューで最近選んだ候補の ID（新しい順。editor/recentSlashCommands.ts）。組み込みの候補だけで、メモの ID は入れない。
+  recentSlashCommandIds: string[];
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
@@ -77,6 +79,7 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   stayResident: false,
   pageAlignment: "center",
   shortcutOverrides: {},
+  recentSlashCommandIds: [],
 };
 
 let current: DevicePreferences | null = null;
@@ -156,6 +159,9 @@ function validPreferences(stored: unknown): DevicePreferences {
     pageAlignment: PAGE_ALIGNMENTS.find((alignment) => alignment === candidate.pageAlignment) ?? DEFAULT_DEVICE_PREFERENCES.pageAlignment,
     sidebarWidth: clampSidebarWidth(typeof candidate.sidebarWidth === "number" ? candidate.sidebarWidth : DEFAULT_DEVICE_PREFERENCES.sidebarWidth),
     shortcutOverrides: settledShortcutOverrides(candidate.shortcutOverrides),
+    recentSlashCommandIds: Array.isArray(candidate.recentSlashCommandIds)
+      ? candidate.recentSlashCommandIds.filter((id): id is string => typeof id === "string")
+      : DEFAULT_DEVICE_PREFERENCES.recentSlashCommandIds,
   };
 }
 

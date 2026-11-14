@@ -8,7 +8,7 @@ const embed = (page: Page) => page.locator(".block-embed").first();
 // 「/」から、メモ noteTitle の中のブロック blockText の埋め込みを、カーソルの所に入れる。
 async function embedBlock(page: Page, noteTitle: string, blockText: string): Promise<void> {
   await page.keyboard.type("/うめこみ");
-  await page.getByRole("listbox", { name: "ブロックの種類" }).getByRole("option", { name: "ブロックの埋め込み（ほかのメモの一部を出す）" }).click();
+  await page.getByRole("listbox", { name: "ブロックの種類" }).getByRole("option", { name: "ブロックの埋め込み", exact: true }).click();
   await page.getByRole("dialog", { name: "ブロックのあるメモを選ぶ" }).getByRole("button", { name: noteTitle }).click();
   await page.getByRole("dialog", { name: `「${noteTitle}」の中のブロックを選ぶ` }).getByRole("button", { name: blockText }).click();
 }

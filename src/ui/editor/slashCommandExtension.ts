@@ -5,6 +5,7 @@ import { PluginKey } from "@tiptap/pm/state";
 import { Suggestion } from "@tiptap/suggestion";
 import { filterSlashCommands, type SlashCommand } from "./slashCommands";
 import type { SlashMenuController } from "./slashMenuController";
+import { rememberSlashCommand } from "./recentSlashCommands";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 
 // 候補を出す文字。日本語の入力のままでも出せるよう、全角の「／」でも出す。
@@ -32,6 +33,7 @@ export const SlashCommands = Extension.create<{ controller: SlashMenuController 
       command: ({ editor, range, props: command }) => {
         // 打った「/」と絞り込みの文字を消してから、選んだブロックにする。
         editor.chain().focus().deleteRange(range).run();
+        rememberSlashCommand(command.id);
         command.run(editor, controller.actions);
       },
       render: () => {
@@ -42,7 +44,7 @@ export const SlashCommands = Extension.create<{ controller: SlashMenuController 
           if (anchor === null || typingPath) {
             controller.hide();
           } else {
-            controller.show({ commands: props.items, anchor, choose: props.command });
+            controller.show({ commands: props.items, query: props.query, anchor, choose: props.command });
           }
         };
         return {
