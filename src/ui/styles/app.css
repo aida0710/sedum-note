@@ -67,6 +67,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 button { border: 0; background: none; cursor: pointer; padding: 0; }
 button:disabled { cursor: default; opacity: .55; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* スクロールする枠の中の項目は、外へはみ出すフォーカスの枠が枠の端で切れるので、内側に描く。 */
+:is(.note-picker-list, .property-definitions, .sidebar-scroll, .chips, .phone-scroll, .segmented) :focus-visible:not(input, textarea, select) { outline-offset: -2px; }
+/* いつも accent の枠の入力欄（数式、埋め込みの URL、名前の変更）は、フォーカスの枠を外に重ねず（二重の輪になる）、枠の外に 1px 足す。 */
+:is(.math-input, .embed-url-input, .inline-input):focus-visible { outline: 0; box-shadow: 0 0 0 1px var(--accent); }
 /* 押したときに、スマホのブラウザが既定の四角い面を重ねないようにする（押した見た目は :active で決める）。 */
 button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 
@@ -377,7 +381,6 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .nav > svg, .nav .count { flex: none; }
 .nav-row { position: relative; display: flex; align-items: center; }
 /* 左の列の行のフォーカスの枠は、行の内側に描く（外に描くと、左右は一覧のスクロールの枠で切れ、上下は隣の行に隠れる）。 */
-.sidebar-scroll :is(.nav, .tree-note):focus-visible { outline-offset: -2px; }
 .nav-row .row-actions { position: absolute; right: 4px; display: none; }
 .nav-row:hover .row-actions, .nav-row:focus-within .row-actions { display: flex; }
 /* 件数を隠すのは、その場所に行の操作（「…」）が出る行だけ。操作の無い行（ビュー、タグ）では件数を出したままにする。 */

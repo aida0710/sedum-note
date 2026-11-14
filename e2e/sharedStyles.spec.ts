@@ -68,3 +68,20 @@ test("お気に入りの星は黄色の印で、押したままの切り替え�
   await page.mouse.move(0, 0);
   await expect(outline).toHaveCSS("background-color", await rootColor("--selected"));
 });
+
+test("スクロールする枠の中の項目のフォーカスの枠は、枠の端で切れないよう内側に描き、名前の変更の欄は輪を二重にしない", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "会議");
+  const outlineOf = (selector: string) => page.locator(selector).first().evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { offset: style.outlineOffset, style: style.outlineStyle };
+  });
+  await page.keyboard.press("Escape");
+  await page.locator(".sidebar-scroll .tree-note").first().focus();
+  expect((await outlineOf(".sidebar-scroll .tree-note")).offset).toBe("-2px");
+
+  await page.locator(".sidebar-scroll .tree-note").first().dblclick();
+  const renameInput = page.locator(".sidebar-scroll .inline-input");
+  await expect(renameInput).toBeFocused();
+  expect((await outlineOf(".sidebar-scroll .inline-input")).style).toBe("none");
+});
