@@ -954,7 +954,8 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .dialog-form { display: contents; }
 .dialog p { line-height: 1.6; }
 /* ダイアログの見出しと、その下の説明。どのダイアログでも同じ形にする（ModalDialog の title と description）。 */
-.dialog-title { font-size: var(--font-size-heading); font-weight: 700; }
+/* 見出しに入る名前（ノートブックの名前など）が区切りの無い長い名前でも、ダイアログの中で折り返す。 */
+.dialog-title { font-size: var(--font-size-heading); font-weight: 700; overflow-wrap: anywhere; }
 .dialog .dialog-description { color: var(--muted); font-size: var(--font-size-small); margin-top: -8px; }
 /* 開いたときにフォーカスを枠へ移すが（Escape で閉じるため）、枠そのものに輪は出さない。 */
 .dialog:focus { outline: none; }

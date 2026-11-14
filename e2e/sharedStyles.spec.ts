@@ -86,7 +86,7 @@ test("スクロールする枠の中の項目のフォーカスの枠は、枠�
   expect((await outlineOf(".sidebar-scroll .inline-input")).style).toBe("none");
 });
 
-test("区切りの無い長い名前でも、データベース表示の見出しと本文の上のタグは、欄の外へはみ出さない", async ({ page }) => {
+test("区切りの無い長い名前でも、データベース表示の見出し・本文の上のタグ・ダイアログの見出しは、欄の外へはみ出さない", async ({ page }) => {
   const longName = "https://example.com/" + "a".repeat(140);
   await startLocalVault(page);
   await addNotebookOnDesktop(page, longName);
@@ -105,6 +105,12 @@ test("区切りの無い長い名前でも、データベース表示の見出�
   await page.getByRole("menuitem", { name: "データベース表示" }).click();
   await expect(page.locator(".database-header h1")).toHaveText(longName);
   expect(await overflowOf(".database-header h1")).toBe(0);
+
+  await page.locator(".nav", { hasText: longName }).first().click({ button: "right" });
+  await page.getByRole("menuitem", { name: "色とアイコン" }).click();
+  const title = page.getByRole("dialog").locator(".dialog-title");
+  await expect(title).toContainText(longName);
+  expect(await title.evaluate((element) => element.scrollWidth - element.clientWidth)).toBe(0);
 });
 
 test("ダイアログの幅は、ダイアログごとの幅（履歴は 760px）になり、ほかは既定の 420px になる", async ({ page }) => {
