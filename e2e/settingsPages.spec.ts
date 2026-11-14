@@ -212,3 +212,13 @@ test("AI の接続先に打ちかけがあっても、AI をオフにしたら�
   await page.getByLabel("AIチャットを使う").check();
   await expect(page.locator("#ai-claude-key")).toHaveValue("");
 });
+
+test("「このアプリについて」には、アイコンの元の絵を切り抜かずに元の大きさのまま出し、アプリの版を出す", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "設定", exact: true }).click();
+  await page.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: "このアプリについて", exact: true }).click();
+  const artwork = page.getByRole("img", { name: /アプリのアイコンの元の絵/ });
+  await expect.poll(() => artwork.evaluate((image: HTMLImageElement) => [image.naturalWidth, image.naturalHeight])).toEqual([1024, 1024]);
+  await expect(page.getByText(/^このアプリのバージョンは /)).toBeVisible();
+  await expect(page.getByRole("button", { name: "GitHub でソースコードを見る" })).toBeVisible();
+});

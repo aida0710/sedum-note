@@ -1105,6 +1105,9 @@ input[type="checkbox"].switch:disabled { cursor: default; opacity: .55; }
 /* 戻せない操作のボタンは、ほかのボタンと並べるときは先頭に置いて左端に離す（決めるボタンと並べて押し間違えないように）。 */
 .form-actions > .danger-button:first-child:not(:only-child) { margin-inline-end: auto; }
 /* 設定の「更新」の、更新を確認するボタンと、その結果の一文。 */
+/* このアプリについて: 元の絵は、欄の幅いっぱい（大きくても 520px）に、切り抜かずに出す。 */
+.about-artwork { display: block; width: 100%; max-width: 520px; height: auto; border-radius: var(--radius-dialog); }
+.about-section .about-name { color: var(--text); font-size: var(--font-size-title); font-weight: 700; }
 .update-check { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 
 /* 設定 */

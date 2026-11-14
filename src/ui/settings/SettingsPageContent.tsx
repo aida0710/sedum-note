@@ -3,6 +3,7 @@
 import { useContext } from "react";
 import type { UnlockedVault } from "../../core/vault/vaultSession";
 import { AiSection } from "../ai/AiSection";
+import { AboutSection } from "./AboutSection";
 import { PluginsSection } from "../plugins/PluginsSection";
 import type { VaultSession } from "../session/useVaultSession";
 import { BackupSection } from "./BackupSection";
@@ -65,5 +66,7 @@ export function SettingsPageContent({ page, session, vault, onSelectPage, isMobi
       return <PluginsSection />;
     case "update":
       return <UpdateSection repository={repository} />;
+    case "about":
+      return <AboutSection />;
   }
 }

@@ -61,6 +61,7 @@ export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
   { label: "ai.permissions", page: "ai" },
   { label: "settings.update", page: "update" },
   { label: "update.checkNow", page: "update" },
+  { label: "settings.about", page: "about" },
   { label: "update.checkOnStart", page: "update" },
 ];
 

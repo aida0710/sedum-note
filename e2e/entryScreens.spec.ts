@@ -5,7 +5,7 @@ test("最初の画面は、題の上にアプリのアイコンと名前を出�
   await page.goto("/");
   const card = page.locator(".entry-card");
   await expect(card.locator(".entry-brand")).toHaveText("Sedum Note");
-  await expect(card.locator(".entry-brand img")).toHaveAttribute("src", /app-icon\.svg$/);
+  await expect(card.locator(".entry-brand img")).toHaveAttribute("src", /app-icon\.png$/);
   await expect(card.getByRole("heading", { name: "メモを始める" }).locator("svg")).toHaveCount(0);
 });
 
