@@ -1,11 +1,6 @@
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
-import { createNoteOnDesktop, openSyncedDevice, PASSPHRASE, placeCursorAtBodyEnd, startLocalVault, startSyncedVault, syncNowOnDesktop } from "./devices";
-
-async function unlock(page: Page): Promise<void> {
-  await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
-  await page.getByRole("button", { name: "解除" }).click();
-}
+import { createNoteOnDesktop, openSyncedDevice, placeCursorAtBodyEnd, startLocalVault, startSyncedVault, syncNowOnDesktop, unlockApp } from "./devices";
 
 const lockScreen = (page: Page) => page.getByRole("heading", { name: "ロックを解除" });
 
@@ -23,7 +18,7 @@ test("同じメモを 2 つのタブで開いて書いても、どちらの文�
 
   const secondTab = await context.newPage();
   await secondTab.goto("/");
-  await unlock(secondTab);
+  await unlockApp(secondTab);
   await secondTab.locator(".tree-note", { hasText: "議事録" }).first().click();
   await expect(secondTab.locator(".ProseMirror")).toHaveText("1 つ目のタブの行");
   await placeCursorAtBodyEnd(secondTab);
@@ -36,7 +31,7 @@ test("同じメモを 2 つのタブで開いて書いても、どちらの文�
   await page.keyboard.type("（追記）");
   await expect(secondTab.locator(".ProseMirror p")).toHaveText(["1 つ目のタブの行", "2 つ目のタブの行（追記）"]);
   await page.reload();
-  await unlock(page);
+  await unlockApp(page);
   await page.locator(".tree-note", { hasText: "議事録" }).first().click();
   await expect(page.locator(".ProseMirror p")).toHaveText(["1 つ目のタブの行", "2 つ目のタブの行（追記）"]);
 });
@@ -83,7 +78,7 @@ test("同期は片方のタブだけが行い、もう片方のタブで書い�
 
   const secondTab = await context.newPage();
   await secondTab.goto("/");
-  await unlock(secondTab);
+  await unlockApp(secondTab);
   await expect(secondTab.locator(".sync-line")).toHaveText("別のウィンドウが同期しています");
   await secondTab.locator(".tree-note", { hasText: "共有メモ" }).first().click();
   await placeCursorAtBodyEnd(secondTab);
@@ -120,7 +115,7 @@ test("1 つのウィンドウでロックすると、別のウィンドウもロ
   await expect(lockScreen(noteWindow)).toBeVisible();
   await expect(noteWindow.getByText("今日のこと")).toHaveCount(0);
 
-  await unlock(page);
+  await unlockApp(page);
   await page.locator(".tree-note", { hasText: "日記" }).first().click();
   await expect(page.locator(".ProseMirror")).toHaveText("今日のこと、続き");
 });
@@ -138,13 +133,13 @@ test("ロックしたあとに別のウィンドウで解除すると、開い�
   await page.keyboard.press("Control+l");
   await expect(lockScreen(page)).toBeVisible();
   await expect(lockScreen(noteWindow)).toBeVisible();
-  await unlock(noteWindow);
+  await unlockApp(noteWindow);
   await expect(noteWindow.getByPlaceholder("タイトル")).toHaveValue("予定");
   await expect(page.locator(".tree-note", { hasText: "予定" })).toBeVisible();
 
   await page.keyboard.press("Control+l");
   await expect(lockScreen(noteWindow)).toBeVisible();
-  await unlock(page);
+  await unlockApp(page);
   await expect(page.locator(".tree-note", { hasText: "予定" })).toBeVisible();
   await expect(noteWindow.getByPlaceholder("タイトル")).toHaveValue("予定");
   await expect(lockScreen(otherTab)).toBeVisible();
@@ -178,7 +173,7 @@ test("同じ出どころの、アプリが開いたのではないページは�
   await expect(noteWindow.getByPlaceholder("タイトル")).toHaveValue("秘密のメモ");
   await page.keyboard.press("Control+l");
   await expect(lockScreen(noteWindow)).toBeVisible();
-  await unlock(noteWindow);
+  await unlockApp(noteWindow);
   await expect(page.locator(".tree-note", { hasText: "秘密のメモ" })).toBeVisible();
   // アプリ（Tauri）の通り道でキーを頼んでも、Web 版のウィンドウは答えない。頼んだあとにもう 1 度ロックして、返事が届く時間をおく。
   await unrelated.evaluate(() => new BroadcastChannel("sedum-note:unlocked-keys")

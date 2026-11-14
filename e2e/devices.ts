@@ -15,6 +15,12 @@ export async function startLocalVault(page: Page): Promise<void> {
   await page.getByRole("button", { name: "作成" }).click();
 }
 
+// ロックの画面で、パスフレーズを入れて解除する。
+export async function unlockApp(page: Page): Promise<void> {
+  await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
+  await page.getByRole("button", { name: "解除" }).click();
+}
+
 // 試験の同期先で使う、自分で決めた暗号化キー。
 export const SYNC_KEY = "shared-key-for-e2e";
 
