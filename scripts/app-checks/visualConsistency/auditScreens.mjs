@@ -324,7 +324,7 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
         await page.locator(".ProseMirror").click();
         await page.keyboard.press("Control+F");
         await page.keyboard.type("の");
-        await page.getByRole("button", { name: "置換の欄を出す" }).click();
+        await page.getByRole("button", { name: "置換を表示" }).click();
       },
     },
     {
@@ -332,11 +332,11 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       open: async (page) => {
         await page.locator(".ProseMirror").click();
         await page.keyboard.press("Control+R");
-        await page.getByRole("button", { name: "正規表現で探す" }).click();
+        await page.getByRole("button", { name: "正規表現を使う" }).click();
         await page.getByPlaceholder("このメモの中を検索").fill("(\\d+");
       },
       close: async (page) => {
-        await page.getByRole("button", { name: "正規表現で探す" }).click();
+        await page.getByRole("button", { name: "正規表現を使う" }).click();
         await page.keyboard.press("Escape");
       },
     },
@@ -349,7 +349,7 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       },
       close: async (page) => {
         await openEditorMoreMenu(page);
-        await page.getByRole("group", { name: "本文の配置" }).getByRole("button", { name: "既定" }).click();
+        await page.getByRole("group", { name: "本文の配置" }).getByRole("button", { name: "デフォルト" }).click();
       },
     },
     {
@@ -788,7 +788,7 @@ export function PHONE_SCREENS({ baseUrl, passphrase }) {
         await openEditorMoreMenu(page);
         await page.getByRole("menuitem", { name: "メモの中を検索" }).click();
         await page.getByPlaceholder("このメモの中を検索").fill("の");
-        await page.getByRole("button", { name: "置換の欄を出す" }).click();
+        await page.getByRole("button", { name: "置換を表示" }).click();
       },
       close: async (page) => { await page.locator(".find-bar").getByRole("button", { name: "閉じる" }).click(); },
     },

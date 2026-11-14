@@ -16,10 +16,10 @@ test("「/」を打つとブロックの候補がまとまりの見出しの下�
   // まだ何も選んでいないので「最近使った」は無い。
   await expect(slashMenu(page).getByRole("group")).toHaveText(["基本", "ブロック", "メディア", "挿入", "リンク"].map((heading) => new RegExp(`^${heading}`)));
   await expect(slashMenu(page).locator(".slash-menu-name")).toHaveText([
-    "本文", "見出し 1", "見出し 2", "見出し 3", "見出し 4", "見出し 5", "見出し 6", "箇条書きリスト", "番号付きリスト", "チェックリスト", "引用", "区切り線",
+    "テキスト", "見出し 1", "見出し 2", "見出し 3", "見出し 4", "見出し 5", "見出し 6", "箇条書きリスト", "番号付きリスト", "チェックリスト", "引用", "区切り線",
     "コード", "表", "コールアウト: 情報", "コールアウト: ヒント", "コールアウト: 注意", "コールアウト: 警告", "2 段組み", "3 段組み", "数式", "図", "手書き・図形",
     "画像", "ファイル", ...(canRecord ? ["録音"] : []), "書類のスキャン", "埋め込み",
-    "今日の日付", "今の日時", "期限", "脚注", "クエリ",
+    "今日の日付", "現在の日時", "期限", "脚注", "クエリ",
     "メモへのリンク", "ブロックへのリンク", "ブロックの埋め込み",
   ]);
   // 分かりにくい名前には 2 行目に説明を添え、行の頭の書き方で作れるものには、その書き方を薄く添える。
@@ -89,7 +89,7 @@ test("Escape で候補を閉じると「/」はそのまま残り、コードの
   await expect(page.locator(".ProseMirror pre")).toHaveText("a / b");
 });
 
-test("選んだ候補は、次に「/」だけを打ったとき「最近使った」の先頭に出る。打ち始めると見出しは消え、記録はこのデバイスだけに残る", async ({ page }) => {
+test("選んだ候補は、次に「/」だけを打ったとき「最近使った項目」の先頭に出る。打ち始めると見出しは消え、記録はこのデバイスだけに残る", async ({ page }) => {
   await openNewNote(page);
   await page.keyboard.type("/表");
   await page.keyboard.press("Enter");
@@ -98,10 +98,10 @@ test("選んだ候補は、次に「/」だけを打ったとき「最近使っ�
   await page.keyboard.press("Enter");
 
   await page.keyboard.type("/");
-  const recent = slashMenu(page).getByRole("group", { name: "最近使った" });
+  const recent = slashMenu(page).getByRole("group", { name: "最近使った項目" });
   await expect(recent.locator(".slash-menu-name")).toHaveText(["区切り線", "表"]);
   // 「最近使った」は先頭で、その先頭の候補が選ばれている。
-  await expect(slashMenu(page).getByRole("group").first()).toHaveAccessibleName("最近使った");
+  await expect(slashMenu(page).getByRole("group").first()).toHaveAccessibleName("最近使った項目");
   await expect(recent.getByRole("option", { name: "区切り線" })).toHaveAttribute("aria-selected", "true");
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("sedum-note:devicePreferences") ?? "{}").recentSlashCommandIds);
   expect(stored).toEqual(["divider", "table"]);
@@ -117,10 +117,10 @@ test("選んだ候補は、次に「/」だけを打ったとき「最近使っ�
   await expect(slashMenu(page).locator(".menu-heading")).toHaveCount(0);
 });
 
-test("当たる候補が無いときは「見つかりません」を出し、Enter はそのまま改行になる。パスを打っている間は何も出さない", async ({ page }) => {
+test("当たる候補が無いときは「一致する項目がありません」を出し、Enter はそのまま改行になる。パスを打っている間は何も出さない", async ({ page }) => {
   await openNewNote(page);
   await page.keyboard.type("/zzzz");
-  await expect(slashMenu(page)).toHaveText("見つかりません");
+  await expect(slashMenu(page)).toHaveText("一致する項目がありません");
   await expect(slashMenu(page).getByRole("option")).toHaveCount(0);
   await page.keyboard.press("Enter");
   await expect(slashMenu(page)).toHaveCount(0);
@@ -188,7 +188,7 @@ test("クエリのブロックは、条件に合うメモの一覧を出し、�
   await query.getByRole("combobox", { name: "タグ" }).selectOption("旅行");
   await expect(query.locator(".note-query-results .menu-item")).toHaveText(["旅行の持ち物"]);
   await query.getByRole("combobox", { name: "タグ" }).selectOption("");
-  await query.getByRole("textbox", { name: "含まれる言葉" }).fill("牛乳");
+  await query.getByRole("textbox", { name: "キーワード" }).fill("牛乳");
   await expect(query.locator(".note-query-results .menu-item")).toHaveText(["買い物"]);
   await query.locator(".note-query-results .menu-item").click();
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("買い物");
@@ -268,7 +268,7 @@ test("「/」から脚注を入れると、本文に番号の印が付き、本�
   await page.keyboard.press("Enter");
   const footnotes = page.getByRole("region", { name: "脚注" });
   // 入れた直後は、脚注の文の欄にカーソルがある。
-  await expect(footnotes.getByRole("textbox", { name: "脚注 1 の文" })).toBeFocused();
+  await expect(footnotes.getByRole("textbox", { name: "脚注1のテキスト" })).toBeFocused();
   await page.keyboard.type("出典は 1 章");
   await expect(page.locator(".ProseMirror .footnote-reference")).toHaveAttribute("title", "出典は 1 章");
 
@@ -278,10 +278,10 @@ test("「/」から脚注を入れると、本文に番号の印が付き、本�
   await page.keyboard.press("Enter");
   await page.keyboard.type("2 つ目の注");
   await expect(footnotes.getByRole("textbox")).toHaveCount(2);
-  await expect(footnotes.getByRole("textbox", { name: "脚注 2 の文" })).toHaveValue("2 つ目の注");
+  await expect(footnotes.getByRole("textbox", { name: "脚注2のテキスト" })).toHaveValue("2 つ目の注");
 
   await page.locator(".ProseMirror .footnote-reference").first().click();
-  await expect(footnotes.getByRole("textbox", { name: "脚注 1 の文" })).toBeFocused();
+  await expect(footnotes.getByRole("textbox", { name: "脚注1のテキスト" })).toBeFocused();
 });
 
 test("埋め込みは、URL を入れても外へつながず、「読み込む」を押したときに初めて枠の中に読み込む", async ({ page }) => {

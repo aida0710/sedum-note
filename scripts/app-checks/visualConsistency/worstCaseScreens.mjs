@@ -161,7 +161,7 @@ export function WORST_CASE_DESKTOP_SCREENS({ baseUrl, passphrase }) {
       open: async (page) => {
         await openNote(page, seeded.ids.notes.properties);
         await openEditorMoreMenu(page);
-        await page.getByRole("menuitem", { name: "ノートブックを選ぶ" }).click();
+        await page.getByRole("menuitem", { name: "ノートブックを選択" }).click();
         await page.getByRole("dialog").waitFor();
       },
     },
@@ -281,7 +281,7 @@ export function WORST_CASE_PHONE_SCREENS({ baseUrl, passphrase, phoneViewport })
       open: async (page) => {
         await openPhoneNote(page, "properties");
         await openEditorMoreMenu(page);
-        await page.getByRole("menuitem", { name: "ノートブックを選ぶ" }).click();
+        await page.getByRole("menuitem", { name: "ノートブックを選択" }).click();
         await page.getByRole("dialog").waitFor();
       },
       close: backToList,

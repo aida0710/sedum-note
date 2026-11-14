@@ -51,8 +51,8 @@ test("スマホの下のツールバーで、箇条書きの項目を字下げ�
   await openNewNoteOnPhone(page, "字下げ");
   const body = page.locator(".ProseMirror");
   const toolbar = page.locator(".editor-bar");
-  const indent = toolbar.getByRole("button", { name: "字下げ", exact: true });
-  const outdent = toolbar.getByRole("button", { name: "字下げを戻す" });
+  const indent = toolbar.getByRole("button", { name: "インデントを増やす", exact: true });
+  const outdent = toolbar.getByRole("button", { name: "インデントを減らす" });
   // 箇条書きの外では、字下げのボタンは出さない。
   await body.click();
   await expect(indent).toHaveCount(0);
@@ -68,9 +68,9 @@ test("スマホの下のツールバーで、箇条書きの項目を字下げ�
   await outdent.click();
   await expect(body.locator("ul ul")).toHaveCount(0);
 
-  await toolbar.getByRole("button", { name: "ブロックを上へ動かす" }).click();
+  await toolbar.getByRole("button", { name: "ブロックを上に移動" }).click();
   await expect(body.locator("ul > li")).toHaveText(["子", "親"]);
-  await toolbar.getByRole("button", { name: "ブロックを下へ動かす" }).click();
+  await toolbar.getByRole("button", { name: "ブロックを下に移動" }).click();
   await expect(body.locator("ul > li")).toHaveText(["親", "子"]);
 });
 
@@ -79,7 +79,7 @@ test("箇条書きの中に入れたチェックリストでは、カーソル�
   await openNewNoteOnPhone(page, "入れ子");
   const body = page.locator(".ProseMirror");
   const toolbar = page.locator(".editor-bar");
-  const indent = toolbar.getByRole("button", { name: "字下げ", exact: true });
+  const indent = toolbar.getByRole("button", { name: "インデントを増やす", exact: true });
   await body.click();
   await toolbar.getByRole("button", { name: "箇条書き", exact: true }).click();
   await page.keyboard.type("親");
@@ -350,7 +350,7 @@ test("指で使う端末では、箇条書きの折りたたみの印がいつ�
   await page.keyboard.type("親");
   await page.keyboard.press("Enter");
   await page.keyboard.type("子");
-  await page.locator(".editor-bar").getByRole("button", { name: "字下げ", exact: true }).click();
+  await page.locator(".editor-bar").getByRole("button", { name: "インデントを増やす", exact: true }).click();
   const foldToggle = body.locator(".fold-toggle").first();
   await expect(foldToggle).toHaveCSS("opacity", "0.45");
   await foldToggle.click();
@@ -432,7 +432,7 @@ test("スマホのチェックリストでも、折りたたみの印が画面�
   await page.keyboard.type("親");
   await page.keyboard.press("Enter");
   await page.keyboard.type("子");
-  await toolbar.getByRole("button", { name: "字下げ", exact: true }).click();
+  await toolbar.getByRole("button", { name: "インデントを増やす", exact: true }).click();
   const foldToggle = body.locator("li .fold-toggle").first();
   const toggleBox = (await foldToggle.boundingBox())!;
   expect(toggleBox.x).toBeGreaterThanOrEqual(0);

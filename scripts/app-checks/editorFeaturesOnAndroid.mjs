@@ -65,7 +65,7 @@ console.log("ok: the AI chat dialog opens");
 
 // 4. 録音。初めて使うときに、マイクの許可を聞かれる。
 await app.locator(".ProseMirror").first().click();
-await app.getByRole("button", { name: "録音する" }).click();
+await app.getByRole("button", { name: "録音を開始" }).click();
 // 許可のダイアログは別のアプリの画面なので、ページの中からは見えない。前面の画面の名前で待つ。
 const topActivity = () => shell("dumpsys", "activity", "activities").split("\n").find((line) => line.includes("topResumedActivity")) ?? "";
 const PERMISSION_WAIT_MILLISECONDS = 15_000;

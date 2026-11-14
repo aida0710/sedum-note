@@ -189,7 +189,7 @@ test("文字を選んだときのボタンは Esc で消え、選択は残る。
 test("持ち手のメニューの「変換」には、「/」と同じく見出し 1〜6 が並び、見出し 4 のブロックでは「見出し 4」に印が付く", async ({ page }) => {
   await openNoteWith(page, "<h4>小さな見出し</h4><p>段落</p>");
   await page.locator(".ProseMirror h4").hover();
-  await page.getByRole("button", { name: "ドラッグしてブロックを動かす" }).click();
+  await page.getByRole("button", { name: "ドラッグしてブロックを移動" }).click();
   const menu = page.getByRole("menu");
   for (const level of [1, 2, 3, 4, 5, 6]) {
     await expect(menu.getByRole("menuitemradio", { name: `見出し ${level}` })).toHaveAttribute("aria-checked", String(level === 4));

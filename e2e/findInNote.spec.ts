@@ -114,7 +114,7 @@ test("正規表現が読めないときは、入力欄の下に知らせを出�
   await startLocalVault(page);
   await createNoteOnDesktop(page, "正規表現");
   await page.keyboard.press("Control+f");
-  await page.getByRole("button", { name: "正規表現で探す" }).click();
+  await page.getByRole("button", { name: "正規表現を使う" }).click();
   await findInput(page).fill("abc");
   const widthBefore = (await findInput(page).boundingBox())!.width;
   await findInput(page).fill("(abc");

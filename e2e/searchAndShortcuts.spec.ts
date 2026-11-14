@@ -154,8 +154,8 @@ test("メモの中の言葉を、1 つずつ、または全部まとめて置換
   await newNote(page, "置換の試し", "りんご と みかん。りんご の木。りんご の実。");
   await page.keyboard.press("Control+f");
   await page.getByPlaceholder("このメモの中を検索").fill("りんご");
-  await page.getByRole("button", { name: "置換の欄を出す" }).click();
-  await page.getByPlaceholder("置換後の言葉").fill("もも");
+  await page.getByRole("button", { name: "置換を表示" }).click();
+  await page.getByPlaceholder("置換後のテキスト").fill("もも");
 
   const body = page.locator(".ProseMirror");
   await page.getByRole("button", { name: "置換", exact: true }).click();
@@ -176,13 +176,13 @@ test("Ctrl+R で、置換の欄を開いた検索が出る。ブラウザの再�
     (window as unknown as { reloadKeyPrevented: boolean }).reloadKeyPrevented = event.defaultPrevented;
   }));
   await page.keyboard.press("Control+r");
-  await expect(page.getByPlaceholder("置換後の言葉")).toBeVisible();
+  await expect(page.getByPlaceholder("置換後のテキスト")).toBeVisible();
   await expect(page.getByPlaceholder("このメモの中を検索")).toBeFocused();
   expect(await page.evaluate(() => (window as unknown as { reloadKeyPrevented: boolean }).reloadKeyPrevented)).toBe(true);
 
   // 置換の欄は、左端のボタンで閉じて、また開ける。
-  await page.getByRole("button", { name: "置換の欄を出す" }).click();
-  await expect(page.getByPlaceholder("置換後の言葉")).toBeHidden();
+  await page.getByRole("button", { name: "置換を表示" }).click();
+  await expect(page.getByPlaceholder("置換後のテキスト")).toBeHidden();
 });
 
 test("大文字と小文字の区別と、単語単位をボタンで切り替えて探せる", async ({ page }) => {
@@ -194,7 +194,7 @@ test("大文字と小文字の区別と、単語単位をボタンで切り替�
   await expect(count).toHaveText("1 / 3");
   await page.getByRole("button", { name: "大文字と小文字を区別する" }).click();
   await expect(count).toHaveText("1 / 2");
-  await page.getByRole("button", { name: "単語単位で探す" }).click();
+  await page.getByRole("button", { name: "単語単位で検索" }).click();
   await expect(count).toHaveText("1 / 1");
 });
 
@@ -202,7 +202,7 @@ test("正規表現で探して、$1 を使って置換できる。読めない�
   await startLocalVault(page);
   await newNote(page, "正規表現の試し", "締切は 2026-11-12、予備は 2026-12-01。");
   await page.keyboard.press("Control+r");
-  await page.getByRole("button", { name: "正規表現で探す" }).click();
+  await page.getByRole("button", { name: "正規表現を使う" }).click();
   const query = page.getByPlaceholder("このメモの中を検索");
 
   await query.fill("(\\d+)-(\\d+");
@@ -211,7 +211,7 @@ test("正規表現で探して、$1 を使って置換できる。読めない�
 
   await query.fill("(\\d{4})-(\\d{2})-(\\d{2})");
   await expect(page.locator(".find-bar").getByRole("status")).toHaveText("1 / 2");
-  await page.getByPlaceholder(/置換後の言葉/).fill("$2/$3（$1）");
+  await page.getByPlaceholder(/置換後のテキスト/).fill("$2/$3（$1）");
   await page.getByRole("button", { name: "すべて置換" }).click();
   await expect(page.locator(".ProseMirror")).toHaveText("締切は 11/12（2026）、予備は 12/01（2026）。");
 });
@@ -222,7 +222,7 @@ test("本文の文字数が出て、選んでいる間は選んだ範囲の文�
   await expect(page.locator(".character-count")).toHaveText("5 文字");
   await page.keyboard.press("Shift+ArrowLeft");
   await page.keyboard.press("Shift+ArrowLeft");
-  await expect(page.locator(".character-count")).toHaveText("選択 2 / 5 文字");
+  await expect(page.locator(".character-count")).toHaveText("5文字中2文字を選択");
 });
 
 test("「/」のメニューとショートカットで、今日の日付を本文に入れられる", async ({ page }) => {
@@ -293,7 +293,7 @@ test("コマンドパレット（Ctrl+K）で、メモを題で探して開け�
   await page.keyboard.press("Control+k");
   const palette = page.getByRole("dialog", { name: "コマンドパレット" });
   await palette.getByRole("combobox").fill("会議");
-  await expect(palette.getByRole("option")).toHaveText(["会議の記録", "「会議」という題で新しいメモを作る"]);
+  await expect(palette.getByRole("option")).toHaveText(["会議の記録", "「会議」というタイトルでメモを作成"]);
   await page.keyboard.press("Enter");
   await expect(palette).toHaveCount(0);
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("会議の記録");
@@ -417,7 +417,7 @@ test("コマンドパレットから、開いているメモの名前の変更�
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("定例の記録");
 
   await runCommand("複製", "開いているメモ: 複製");
-  await expect(page.getByPlaceholder("タイトル")).toHaveValue("「定例の記録」のコピー");
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("定例の記録のコピー");
 
   await runCommand("ノートブック", "ノートブックを追加");
   await prompt.getByRole("textbox").fill("会議");
@@ -431,7 +431,7 @@ test("コマンドパレットで打った言葉を題にして、新しいメ�
   await page.keyboard.press("Control+k");
   const palette = page.getByRole("dialog", { name: "コマンドパレット" });
   await palette.getByRole("combobox").fill("来週の買い物");
-  await palette.getByRole("option", { name: "「来週の買い物」という題で新しいメモを作る" }).click();
+  await palette.getByRole("option", { name: "「来週の買い物」というタイトルでメモを作成" }).click();
   await expect(page.getByRole("tab", { name: "来週の買い物" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("来週の買い物");
 });

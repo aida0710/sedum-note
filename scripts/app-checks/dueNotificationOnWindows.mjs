@@ -52,7 +52,7 @@ captureScreen(outputDirectory, "windows-notifications-turned-on");
 console.log("ok: due notifications are turned on");
 
 // 3. 常駐を入れる。通知の領域にアイコンが出る。
-await app.getByLabel("ウィンドウを閉じても、アプリを動かしたままにする").click();
+await app.getByLabel("ウィンドウを閉じても、バックグラウンドで実行する").click();
 await pause(2_000);
 captureScreen(outputDirectory, "windows-resident-turned-on");
 

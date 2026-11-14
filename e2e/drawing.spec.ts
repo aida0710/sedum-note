@@ -25,13 +25,13 @@ test("手書きの枠に、ペンの線と図形を描ける。消しゴムで 1
 
   await drag(page, [0.1, 0.2], [0.4, 0.6]);
   await expect(strokes(page)).toHaveCount(1);
-  await page.getByRole("button", { name: "四角" }).click();
+  await page.getByRole("button", { name: "四角形" }).click();
   await page.getByRole("button", { name: "赤" }).click();
   await drag(page, [0.5, 0.2], [0.8, 0.7]);
   await page.getByRole("button", { name: "円", exact: true }).click();
   await drag(page, [0.2, 0.65], [0.4, 0.9]);
   await expect(strokes(page)).toHaveCount(3);
-  await expect(canvas(page)).toHaveAccessibleName("手書きの枠（線 3 本）");
+  await expect(canvas(page)).toHaveAccessibleName("手書きのキャンバス（線3本）");
   if (SCREENSHOT_DIRECTORY) {
     await page.screenshot({ path: `${SCREENSHOT_DIRECTORY}/drawing.png` });
   }

@@ -188,7 +188,7 @@ const LIST_INDENT = 24;
 
 test("持ち手は、段落・見出し・チェックリストで同じ横の位置に出て、箇条書きの項目は 1 段ごとに字下げの分だけ右に出る", async ({ page }) => {
   await openNoteWith(page, '<p>段落</p><h2>見出し</h2><ul><li><p>点 1 段目</p><ul><li><p>点 2 段目</p></li></ul></li></ul><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>チェック</p></li></ul>');
-  const handle = page.getByRole("button", { name: "ドラッグしてブロックを動かす" });
+  const handle = page.getByRole("button", { name: "ドラッグしてブロックを移動" });
   const handleLeftAt = async (block: Locator) => {
     const box = (await block.boundingBox())!;
     await page.mouse.move(box.x + 30, box.y + 10);

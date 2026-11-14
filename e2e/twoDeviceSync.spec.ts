@@ -137,7 +137,7 @@ test("1 台で残した履歴を、もう 1 台の履歴のダイアログで見
   const history = desktop.getByRole("dialog", { name: "履歴" });
   await expect(history.getByRole("option")).toHaveCount(1);
   await expect(history.locator(".note-history-preview")).toContainText("書き直す前の文");
-  await history.getByRole("button", { name: "このバージョンに戻す" }).click();
+  await history.getByRole("button", { name: "このバージョンを復元" }).click();
   await expect(desktop.locator(".ProseMirror")).toHaveText("書き直す前の文");
   await expect(desktop.locator(".tree-note", { hasText: "議事録" })).toHaveCount(1);
 

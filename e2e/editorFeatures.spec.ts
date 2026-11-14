@@ -140,7 +140,7 @@ test("本文の配置は、メモの「…」でメモごとに選べ、既定�
 
   await page.locator(".editor-bar").getByRole("button", { name: "その他の操作" }).click();
   await page.getByRole("menuitem", { name: "複製" }).click();
-  await expect(page.getByRole("tab", { name: "「右に置くメモ」のコピー" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "右に置くメモのコピー" })).toHaveAttribute("aria-selected", "true");
   await expect(documentColumn).toHaveClass(/align-right/);
 
   // 既定を左寄せにすると、配置を選んでいないメモは左寄せになり、選んだメモは変わらない。
@@ -154,7 +154,7 @@ test("本文の配置は、メモの「…」でメモごとに選べ、既定�
 
   // 「既定」に戻すと、設定の既定に従う。
   await page.locator(".editor-bar").getByRole("button", { name: "その他の操作" }).click();
-  await page.getByRole("group", { name: "本文の配置" }).getByRole("button", { name: "既定" }).click();
+  await page.getByRole("group", { name: "本文の配置" }).getByRole("button", { name: "デフォルト" }).click();
   await expect(documentColumn).toHaveClass(/align-left/);
 });
 
@@ -205,7 +205,7 @@ test("メニューから開いたダイアログも、Escape で閉じられる"
   await expect(page.getByRole("dialog", { name: "履歴" })).toBeHidden();
 });
 
-test("履歴から、書き直す前の状態にそのメモを戻せる。戻す前の状態は「復元の前」として履歴に残る", async ({ page }) => {
+test("履歴から、書き直す前の状態にそのメモを戻せる。戻す前の状態は「復元前」として履歴に残る", async ({ page }) => {
   await page.clock.install({ time: new Date("2026-11-11T09:00:00+09:00") });
   await startLocalVault(page);
   await newNote(page, "議事録");
@@ -229,7 +229,7 @@ test("履歴から、書き直す前の状態にそのメモを戻せる。戻�
   const history = page.getByRole("dialog", { name: "履歴" });
   await expect(history.getByRole("option")).toHaveCount(1);
   await expect(history.locator(".note-history-preview")).toContainText("書き直す前の文");
-  await history.getByRole("button", { name: "このバージョンに戻す" }).click();
+  await history.getByRole("button", { name: "このバージョンを復元" }).click();
 
   // 別のメモは作らず、開いているメモがそのまま戻る。
   await expect(history).toBeHidden();
@@ -242,7 +242,7 @@ test("履歴から、書き直す前の状態にそのメモを戻せる。戻�
   await page.getByRole("button", { name: "その他の操作" }).click();
   await page.getByRole("menuitem", { name: "履歴" }).click();
   await expect(history.getByRole("option")).toHaveCount(2);
-  await expect(history.getByRole("option").first()).toContainText("復元の前");
+  await expect(history.getByRole("option").first()).toContainText("復元前");
   await history.getByRole("option").first().click();
   await expect(history.locator(".note-history-preview")).toContainText("書き直した文");
 });
@@ -310,7 +310,7 @@ test("メモをテンプレートにすると「テンプレート」に並び�
   await expect(page.locator(".nav-row", { hasText: "すべてのメモ" }).locator(".count")).toHaveCount(0);
   await expect(page.locator(".nav-row", { hasText: "テンプレート" }).locator(".count")).toHaveText("1");
 
-  await page.getByRole("button", { name: "このテンプレートから新しいメモを作る" }).click();
+  await page.getByRole("button", { name: "このテンプレートからメモを作成" }).click();
   await expect(page.getByRole("tab")).toHaveCount(2);
   await expect(page.locator(".ProseMirror h2")).toHaveText("決まったこと");
   await expect(page.getByText("このメモはテンプレートです")).toHaveCount(0);
@@ -335,7 +335,7 @@ test("テンプレートの @date・@time・@title は、新しいメモを作�
   await page.getByRole("menuitem", { name: "テンプレートにする" }).click();
   await expect(page.getByText("@date（日付）・@time（時刻）")).toBeVisible();
 
-  await page.getByRole("button", { name: "このテンプレートから新しいメモを作る" }).click();
+  await page.getByRole("button", { name: "このテンプレートからメモを作成" }).click();
   await expect(page.getByRole("tab")).toHaveCount(2);
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("2026-11-13 の日報");
   await expect(page.locator(".ProseMirror h2")).toHaveText("2026-11-13 の日報");
@@ -372,7 +372,7 @@ test("テンプレートの日付と時刻の形式を言語の書き方にす�
   await page.keyboard.type("作成 @datetime");
   await page.getByRole("button", { name: "その他の操作" }).click();
   await page.getByRole("menuitem", { name: "テンプレートにする" }).click();
-  await page.getByRole("button", { name: "このテンプレートから新しいメモを作る" }).click();
+  await page.getByRole("button", { name: "このテンプレートからメモを作成" }).click();
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("2026年11月13日 の日報");
   await expect(page.locator(".ProseMirror p", { hasText: "作成" })).toHaveText("作成 2026年11月13日 9:05");
 });
@@ -712,7 +712,7 @@ test("ブロックにマウスを乗せると出る持ち手をドラッグす�
   await expect(paragraphs).toHaveText(["1 つ目", "2 つ目", "3 つ目"]);
 
   await paragraphs.nth(2).hover();
-  const handle = page.getByRole("button", { name: "ドラッグしてブロックを動かす" });
+  const handle = page.getByRole("button", { name: "ドラッグしてブロックを移動" });
   await expect(handle).toBeVisible();
   // 3 つ目の段落を、1 つ目の段落の上へ落とす。
   const handleBox = (await handle.boundingBox())!;
@@ -737,7 +737,7 @@ test("持ち手をつかんだまま、持ち手の左右の位置を変えず�
   await expect(paragraphs).toHaveText(["1 つ目", "2 つ目", "3 つ目"]);
 
   await paragraphs.nth(2).hover();
-  const handle = page.getByRole("button", { name: "ドラッグしてブロックを動かす" });
+  const handle = page.getByRole("button", { name: "ドラッグしてブロックを移動" });
   await expect(handle).toBeVisible();
   // マウスは本文の左の余白（持ち手の x）のまま、1 つ目の段落の高さまで上げて落とす。
   const handleBox = (await handle.boundingBox())!;
@@ -768,7 +768,7 @@ test("箇条書きの項目を持ち手でドラッグすると、子の項目�
 
   const itemA = page.locator(".ProseMirror li", { has: page.locator("> p", { hasText: /^A$/ }) });
   await itemA.locator("> p").hover();
-  const handle = page.getByRole("button", { name: "ドラッグしてブロックを動かす" });
+  const handle = page.getByRole("button", { name: "ドラッグしてブロックを移動" });
   const handleBox = (await handle.boundingBox())!;
   const itemC = (await page.locator(".ProseMirror li > p", { hasText: /^C$/ }).boundingBox())!;
   await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
@@ -881,7 +881,7 @@ test("すべて折りたたむ・すべて開くで、子のある項目と見�
   await page.getByRole("menuitem", { name: "すべて折りたたむ" }).click();
   await expect(body.locator("[data-collapsed=true]")).toHaveCount(2);
   await page.getByRole("button", { name: "その他の操作" }).last().click();
-  await page.getByRole("menuitem", { name: "すべて開く" }).click();
+  await page.getByRole("menuitem", { name: "すべて展開" }).click();
   await expect(body.locator("[data-collapsed]")).toHaveCount(0);
 });
 
@@ -929,7 +929,7 @@ test("持ち手を押すとブロックのメニューが開き、変換・動�
     await page.keyboard.type(line);
     await page.keyboard.press("Enter");
   }
-  const handle = page.getByRole("button", { name: "ドラッグしてブロックを動かす" });
+  const handle = page.getByRole("button", { name: "ドラッグしてブロックを移動" });
   const openMenuOf = async (text: string) => {
     await body.locator("p, h2", { hasText: new RegExp(`^${text}$`) }).first().hover();
     await handle.click();
@@ -937,7 +937,7 @@ test("持ち手を押すとブロックのメニューが開き、変換・動�
   };
 
   let menu = await openMenuOf("二");
-  await expect(menu.getByRole("menuitemradio", { name: "本文" })).toHaveAttribute("aria-checked", "true");
+  await expect(menu.getByRole("menuitemradio", { name: "テキスト" })).toHaveAttribute("aria-checked", "true");
   await menu.getByRole("menuitemradio", { name: "見出し 2" }).click();
   await expect(body.locator("h2")).toHaveText("二");
 
@@ -949,7 +949,7 @@ test("持ち手を押すとブロックのメニューが開き、変換・動�
   await expect(body.locator("> p")).toHaveText(["三", "三", ""]);
 
   menu = await openMenuOf("二");
-  await menu.getByRole("menuitemradio", { name: "本文" }).click();
+  await menu.getByRole("menuitemradio", { name: "テキスト" }).click();
   await expect(body.locator("> p")).toHaveText(["二", "三", "三", ""]);
 
   // 何行かを選んでから、そのうちの 1 行の持ち手で「箇条書き」を選ぶと、選んだ行が全部 1 つの箇条書きになる。
@@ -968,8 +968,8 @@ test("行の左の「＋」を押すと、すぐ下に行を足して「/」の�
   await page.keyboard.type("下の行");
   const body = page.locator(".ProseMirror");
   await body.locator("p", { hasText: "上の行" }).hover();
-  const handleBox = (await page.getByRole("button", { name: "ドラッグしてブロックを動かす" }).boundingBox())!;
-  const insertButton = page.getByRole("button", { name: "下にブロックを足す" });
+  const handleBox = (await page.getByRole("button", { name: "ドラッグしてブロックを移動" }).boundingBox())!;
+  const insertButton = page.getByRole("button", { name: "下にブロックを追加" });
   const insertBox = (await insertButton.boundingBox())!;
   expect(insertBox.x + insertBox.width).toBeLessThanOrEqual(handleBox.x + 1);
   await insertButton.click();
@@ -1011,7 +1011,7 @@ test("写真の右下の持ち手をドラッグすると幅が変わり、ダ�
   const startWidth = 640;
   await expect.poll(imageWidth).toBe(startWidth);
   await image.hover();
-  const handle = page.getByRole("button", { name: /写真の大きさを変える/ });
+  const handle = page.getByRole("button", { name: /画像のサイズを変更/ });
   // 持ち手も写真と一緒に描き直されるので、描き直しの間は位置が取れず、描き直したあとに位置が動くことがある（CI で
   // どちらも落ちた）。hover は、持ち手が動かなくなり、その位置で押せるようになるまで待つ。そのあとの位置を使う。
   await handle.hover();
@@ -1074,7 +1074,7 @@ test("持ち手は、本文から左の余白を通って近づいても消え�
   await page.keyboard.type("段落");
   await page.keyboard.press("Enter");
   await page.keyboard.type("- 項目");
-  const handle = page.getByRole("button", { name: "ドラッグしてブロックを動かす" });
+  const handle = page.getByRole("button", { name: "ドラッグしてブロックを移動" });
 
   for (const block of [page.locator(".ProseMirror > p", { hasText: "段落" }), page.locator(".ProseMirror h2"), page.locator(".ProseMirror li")]) {
     const blockBox = (await block.boundingBox())!;

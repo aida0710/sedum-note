@@ -57,7 +57,7 @@ test("お気に入りの星は黄色の印で、押したままの切り替え�
   }, name);
   // 左の列の「お気に入り」の一覧と見分けるため、メモの上のバーの中で探す。
   const noteBar = page.locator(".pane:not(.split-pane)");
-  const star = noteBar.getByRole("button", { name: "お気に入り", exact: true });
+  const star = noteBar.getByRole("button", { name: "お気に入りに追加", exact: true });
   await star.click();
   await page.mouse.move(0, 0);
   const bookmarked = noteBar.getByRole("button", { name: "お気に入りから外す" });
@@ -137,7 +137,7 @@ test("ノートブックを選ぶ一覧では、子のチェックボックス�
   await page.getByPlaceholder("ノートブックの名前").press("Enter");
   await createNoteOnDesktop(page, "会議");
   await page.locator(".pane:not(.split-pane)").getByRole("button", { name: "その他の操作" }).click();
-  await page.getByRole("menuitem", { name: "ノートブックを選ぶ" }).click();
+  await page.getByRole("menuitem", { name: "ノートブックを選択" }).click();
   const dialog = page.getByRole("dialog");
   const parentMark = (await dialog.locator(".notebook-choice", { hasText: "仕事" }).locator(".dot, .notebook-icon").boundingBox())!;
   const childCheckbox = (await dialog.locator(".notebook-choice", { hasText: "議事録" }).locator("input").boundingBox())!;

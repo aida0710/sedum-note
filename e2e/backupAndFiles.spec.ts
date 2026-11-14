@@ -238,7 +238,7 @@ test("録音のボタンで録り始め、止めると音声が添付される�
 
   // PC では「/」から録音を始め、録音している間だけ上のバーに出る「録音を止めて添付する」で止める。
   await insertFromSlashMenu(page, "録音", "録音");
-  const stopButton = page.getByRole("button", { name: "録音を止めて添付する" });
+  const stopButton = page.getByRole("button", { name: "録音を停止して添付" });
   await expect(stopButton).toBeVisible();
   await page.waitForTimeout(600);
   await stopButton.click();

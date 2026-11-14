@@ -39,7 +39,7 @@ await expectEmptyNoteOpen(app, "a new note opens after unlocking when the reques
 captureScreen("new-note-from-shortcut");
 
 // 3. カメラのボタンが、カメラを開く。
-await app.clickButton("カメラで撮る");
+await app.clickButton("写真を撮影");
 await pause(4_000);
 const top = shell("dumpsys", "activity", "activities").split("\n").find((line) => line.includes("topResumedActivity")) ?? "";
 if (!/camera/i.test(top)) {

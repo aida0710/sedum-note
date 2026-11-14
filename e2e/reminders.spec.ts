@@ -20,7 +20,7 @@ test("メモに期限を付けると、期限の一覧に並ぶ。期限を過�
   await page.getByRole("button", { name: "その他の操作" }).last().click();
   await page.getByRole("menuitem", { name: "メモの期限を設定" }).click();
   await saveDue(page, "メモの期限", "2026-11-12T18:30");
-  await expect(page.locator(".due-chip")).toContainText("期限 11月12日 18:30");
+  await expect(page.locator(".due-chip")).toContainText("期限: 11月12日 18:30");
 
   await page.keyboard.press("Control+Alt+e");
   await expect(group(page, "今日")).toContainText("提出物");
@@ -28,7 +28,7 @@ test("メモに期限を付けると、期限の一覧に並ぶ。期限を過�
   await expect(group(page, "期限切れ")).toContainText("提出物");
 
   await dueList(page).getByRole("button", { name: "「提出物」の期限を外す" }).click();
-  await expect(dueList(page)).toContainText("期限のあるものはありません");
+  await expect(dueList(page)).toContainText("期限が設定された項目はありません");
   await page.getByRole("status").filter({ hasText: "「提出物」の期限を外しました" }).getByRole("button", { name: "元に戻す" }).click();
   await expect(group(page, "期限切れ")).toContainText("提出物");
 });
@@ -55,14 +55,14 @@ test("「/」の「期限」で、チェックリストの項目に期限の印�
 
   await page.clock.runFor(1_000);
   await page.keyboard.press("Control+Alt+e");
-  await expect(group(page, "これから")).toContainText("牛乳を買う");
-  await expect(group(page, "これから")).toContainText("買い物");
+  await expect(group(page, "今後")).toContainText("牛乳を買う");
+  await expect(group(page, "今後")).toContainText("買い物");
   // 完了にした行は一覧から消えるので、チェックの状態は待たずに押す。
   await dueList(page).getByRole("checkbox", { name: "「牛乳を買う」を完了にする" }).click();
   // 本文の変更は、少し待ってからまとめて保存し、そのときに一覧へ出る。
   await page.clock.runFor(1_000);
-  await expect(dueList(page)).toContainText("期限のあるものはありません");
-  await dueList(page).getByLabel(/完了も出す/).check();
+  await expect(dueList(page)).toContainText("期限が設定された項目はありません");
+  await dueList(page).getByLabel(/完了したものも表示/).check();
   await group(page, "完了").locator(".reminder-text", { hasText: "牛乳を買う" }).click();
   await expect(page.locator(".ProseMirror li[data-checked='true']")).toHaveCount(1);
 });
@@ -142,7 +142,7 @@ test("期限の通知を入れると、期限が来たときに 1 回だけ通�
   await expect(page.locator(".document-meta .chip", { hasText: "#夕方" })).toBeVisible();
   await page.clock.runFor(4 * 60_000);
   // 設定を入れたときに、確かめの通知が 1 つ出る。
-  const confirmation = { title: "期限の通知を入れました", body: "期限が来たら、このように知らせます。" };
+  const confirmation = { title: "期限の通知をオンにしました", body: "期限が来ると、このように通知します。" };
   expect(await shownNotifications(page)).toEqual([confirmation]);
   await page.clock.runFor(2 * 60_000);
   const groceries = [

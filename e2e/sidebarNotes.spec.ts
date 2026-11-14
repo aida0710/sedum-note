@@ -216,14 +216,14 @@ test("メモを複製すると、同じ本文のコピーが開く。ほかの�
 
   await page.getByRole("button", { name: "その他の操作" }).click();
   await page.getByRole("menuitem", { name: "複製" }).click();
-  await expect(page.getByPlaceholder("タイトル")).toHaveValue("「手順」のコピー");
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("手順のコピー");
   await expect(page.locator(".ProseMirror")).toHaveText("混ぜる");
 
   await page.getByRole("button", { name: "その他の操作" }).click();
   await page.getByRole("menuitem", { name: "ほかのメモを結合" }).click();
   // 選んだだけでは結合しない。確認をやめると、何も変わらない。
   await page.getByRole("dialog").getByRole("button", { name: "材料" }).click();
-  const confirmation = page.getByRole("dialog").filter({ hasText: "「材料」の本文をこのメモの末尾に追加し、「材料」をゴミ箱に移動します。" });
+  const confirmation = page.getByRole("dialog").filter({ hasText: "「材料」をこのメモに結合しますか？「材料」の本文はこのメモの末尾に追加され、「材料」はゴミ箱に移動します。" });
   await confirmation.getByRole("button", { name: "キャンセル" }).click();
   await expect(page.locator(".ProseMirror")).toHaveText("混ぜる");
   await expect(noteRow(page, "材料")).toHaveCount(1);

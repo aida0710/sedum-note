@@ -542,7 +542,7 @@ test("開いているメモの直しを頼むと、差分を承認してから�
   // 直す前の状態は、メモの履歴に残る。
   await page.getByRole("button", { name: "その他の操作" }).last().click();
   await page.getByRole("menuitem", { name: "履歴" }).click();
-  await expect(page.getByRole("dialog", { name: "履歴" }).getByRole("option").first()).toContainText("本文の置き換えの前（AI・MCP・プラグイン）");
+  await expect(page.getByRole("dialog", { name: "履歴" }).getByRole("option").first()).toContainText("置き換え前（AI・MCP・プラグイン）");
   await page.keyboard.press("Escape");
 
   // AI の直しは、エディタの取り消しで 1 回で戻せる。

@@ -17,8 +17,8 @@ function notebookRow(page: Page, name: string) {
 // 開いているメモの「…」から、入れるノートブックを選ぶダイアログを開く（PC は上のバー、スマホは上の行の「…」）。
 async function openNotebookPicker(page: Page) {
   await page.locator(".editor-bar, .phone-top").getByRole("button", { name: "その他の操作" }).click();
-  await page.getByRole("menuitem", { name: "ノートブックを選ぶ" }).click();
-  return page.getByRole("dialog", { name: "入れるノートブックを選ぶ" });
+  await page.getByRole("menuitem", { name: "ノートブックを選択" }).click();
+  return page.getByRole("dialog", { name: "追加するノートブックを選択" });
 }
 
 // メモの上に並ぶ、入っているノートブックの印（タグなどのチップは除く）。
@@ -368,7 +368,7 @@ test("データベース表示のボードでは、列の下の「新しいメ�
   await expect(notebookChipsOfNote(page)).toHaveText(["読書"]);
 });
 
-test("メモの「…」の「ノートブックを選ぶ」では、入っているノートブックに印が付いた一覧が入れ子の字下げつきで開き、複数に入れたり全部外したりできる", async ({ page }) => {
+test("メモの「…」の「ノートブックを選択」では、入っているノートブックに印が付いた一覧が入れ子の字下げつきで開き、複数に入れたり全部外したりできる", async ({ page }) => {
   await startLocalVault(page);
   await addNotebookOnDesktop(page, "仕事");
   await addNotebookOnDesktop(page, "旅行");
@@ -404,7 +404,7 @@ test("メモの「…」の「ノートブックを選ぶ」では、入って�
   await search.fill("会議");
   await expect(dialog.locator(".notebook-choice")).toHaveText(["仕事", "会議"]);
   await search.fill("無い名前");
-  await expect(dialog.getByText("当てはまるノートブックがありません")).toBeVisible();
+  await expect(dialog.getByText("一致するノートブックがありません")).toBeVisible();
   await search.fill("");
 
   // 全部外すと、どのノートブックにも入っていないメモになる。
@@ -478,7 +478,7 @@ test("ノートブックを選ぶダイアログでは、↓ で一覧へ移っ�
   // 一覧に無い名前を打つと、その名前で作って、このメモを入れる行が出る。
   await dialog.getByPlaceholder("ノートブックを名前で絞り込む").focus();
   await page.keyboard.type("買い物");
-  await expect(dialog.getByText("当てはまるノートブックがありません")).toBeVisible();
+  await expect(dialog.getByText("一致するノートブックがありません")).toBeVisible();
   await page.keyboard.press("ArrowDown");
   const create = dialog.getByRole("button", { name: "「買い物」を作成して追加" });
   await expect(create).toBeFocused();

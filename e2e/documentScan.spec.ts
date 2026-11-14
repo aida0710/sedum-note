@@ -59,7 +59,7 @@ test("書類のスキャンは、写真の上で四隅を合わせると、傾�
   if (SCREENSHOT_DIRECTORY) {
     await page.screenshot({ path: `${SCREENSHOT_DIRECTORY}/scan-corners.png` });
   }
-  await dialog.getByRole("button", { name: "傾きを直して貼る" }).click();
+  await dialog.getByRole("button", { name: "補正して挿入" }).click();
   await expect(dialog).toHaveCount(0);
 
   // 貼った画像は、四隅まで書類の白になっている（机の色が残っていない）。

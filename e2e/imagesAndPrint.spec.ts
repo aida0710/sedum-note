@@ -57,13 +57,13 @@ test("「貼るたびに聞く」では、小さくするか元のままかを�
 
   await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "big.jpg", mimeType: "image/jpeg", buffer: await largePhoto(page, 3000, 2000) });
   const question = page.getByRole("dialog");
-  await expect(question).toContainText("写真を小さくして貼りますか");
-  await question.getByRole("button", { name: "元のまま" }).click();
+  await expect(question).toContainText("画像を縮小して挿入しますか");
+  await question.getByRole("button", { name: "元のサイズ" }).click();
   await expect(page.locator(".attachment-image img")).toBeVisible();
   expect(await attachedImageWidth(page)).toBe(3000);
 
   await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "small.jpg", mimeType: "image/jpeg", buffer: await largePhoto(page, 800, 600) });
-  await page.getByRole("dialog").getByRole("button", { name: "小さくする" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "縮小" }).click();
   await expect(page.locator(".attachment-image img")).toHaveCount(2);
   expect(await page.locator(".attachment-image img").last().evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(800);
 });
