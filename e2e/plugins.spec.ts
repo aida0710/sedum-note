@@ -33,7 +33,7 @@ async function serveGitHub(page: Page, { manifest, module }: PluginFiles): Promi
 
 async function fetchPlugin(page: Page, source: string): Promise<void> {
   await openSettingsPage(page, "プラグイン");
-  await page.getByLabel("取り込み元（GitHub）").fill(source);
+  await page.getByLabel("インストール元（GitHub）").fill(source);
   await page.getByRole("button", { name: "取ってくる" }).click();
 }
 
@@ -53,12 +53,12 @@ test("GitHub からプラグインを取り込むと、できることを確か�
   await page.keyboard.type("ぶどう");
 
   await fetchPlugin(page, "aida0710/sedum-note/plugins/text-tools");
-  const review = page.getByRole("dialog", { name: "プラグイン「Text tools」を入れる" });
+  const review = page.getByRole("dialog", { name: "プラグイン「Text tools」をインストール" });
   await expect(review).toContainText("選択した文字");
   await expect(review).toContainText("開いているメモの本文");
   await expect(review).toContainText("短い知らせを出す");
   await expect(review).toContainText(COMMIT_SHA);
-  await review.getByRole("button", { name: "入れる" }).click();
+  await review.getByRole("button", { name: "インストール" }).click();
   await expect(page.locator(".plugin-list li")).toContainText("Text tools");
   // ブランチの名前をコミットに直してから、そのコミットのファイルを読む。
   expect(requestedUrls).toEqual([
@@ -99,7 +99,7 @@ test("外の関数を使おうとするプラグインは、入れられない",
   await serveGitHub(page, { manifest: exampleManifest, module: moduleWithImport() });
   await startLocalVault(page);
   await fetchPlugin(page, "someone/plugin");
-  await expect(page.getByRole("alert")).toContainText("外の関数を使うプラグインは入れられません");
+  await expect(page.getByRole("alert")).toContainText("外部の関数を使っているため、インストールできません");
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
@@ -118,7 +118,7 @@ test("プラグインが外の画像や埋め込みを書いても、外へは�
   await createNoteOnDesktop(page, "日記");
   await page.keyboard.type("今日のこと");
   await fetchPlugin(page, "someone/plugin");
-  await page.getByRole("dialog").getByRole("button", { name: "入れる" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "インストール" }).click();
   await page.getByRole("tab", { name: "日記" }).click();
   await runFromNoteMenu(page, "Leak");
 
@@ -135,7 +135,7 @@ test("終わらないプラグインは、決めた時間で止めて知らせ�
   await startLocalVault(page);
   await createNoteOnDesktop(page, "メモ");
   await fetchPlugin(page, "someone/plugin");
-  await page.getByRole("dialog").getByRole("button", { name: "入れる" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "インストール" }).click();
   await page.getByRole("tab", { name: "メモ" }).click();
   await runFromNoteMenu(page, "Count characters");
   await expect(page.getByRole("status").filter({ hasText: "決めた時間のうちに終わりませんでした" })).toBeVisible();
@@ -166,7 +166,7 @@ test("本文の全部を置き換えるコマンドのあとも、添付と、�
   await expect(blockLink).toHaveText("計画 › 宿は駅前");
 
   await fetchPlugin(page, "aida0710/sedum-note/plugins/text-tools");
-  await page.getByRole("dialog").getByRole("button", { name: "入れる" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "インストール" }).click();
   await page.getByRole("tab", { name: "計画" }).click();
   await runFromNoteMenu(page, "Remove trailing spaces");
 

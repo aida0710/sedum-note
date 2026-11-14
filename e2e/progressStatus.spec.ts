@@ -54,12 +54,12 @@ test("同期先から添付を取ってバックアップに入れる間、件�
   const releaseBlobs = holdObjectGets(phone, "blobs");
   await openSettingsPage(phone, "データ");
   const download = phone.waitForEvent("download");
-  await phone.getByRole("button", { name: "バックアップを書き出す" }).click();
+  await phone.getByRole("button", { name: "バックアップをエクスポート" }).click();
   // 記録（メモ 1 件）は入れ終え、添付の 1 件を取っているところ。
   await expect(phone.getByRole("status").filter({ hasText: "バックアップをエクスポートしています" })).toHaveText("バックアップをエクスポートしています（1/2件）");
   await expect(phone.getByRole("progressbar", { name: "バックアップをエクスポートしています" })).toHaveAttribute("aria-valuenow", "1");
   releaseBlobs();
   await download;
-  await expect(phone.getByText("1件のメモを書き出しました")).toBeVisible();
+  await expect(phone.getByText("1件のメモをエクスポートしました")).toBeVisible();
   await expect(phone.getByRole("progressbar")).toHaveCount(0);
 });

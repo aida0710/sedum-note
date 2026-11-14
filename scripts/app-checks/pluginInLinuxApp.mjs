@@ -49,9 +49,9 @@ try {
   await app.click(await app.waitForXPath("//nav[@aria-label='設定のページ']//button[normalize-space()='プラグイン']", 10_000));
   await app.type(await app.waitForXPath("//input[@id='plugin-source']", 10_000), pluginSource);
   await app.click(await app.findByXPath("//button[normalize-space()='取ってくる']"));
-  await app.waitForXPath("//div[@role='dialog']//button[normalize-space()='入れる']", 60_000);
+  await app.waitForXPath("//div[@role='dialog']//button[normalize-space()='インストール']", 60_000);
   await capture("linux-plugin-review");
-  await app.click(await app.findByXPath("//div[@role='dialog']//button[normalize-space()='入れる']"));
+  await app.click(await app.findByXPath("//div[@role='dialog']//button[normalize-space()='インストール']"));
   await app.waitForXPath("//ul[contains(@class,'plugin-list')]/li", 15_000);
   console.log("ok: the plugin was fetched from GitHub and installed");
 

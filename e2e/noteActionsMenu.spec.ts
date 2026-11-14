@@ -43,7 +43,7 @@ test("PC のメモの「…」は、まとまりごとに区切り線で分か�
     ["メモの中を検索 [Ctrl + F]", "この項目にズーム [Ctrl + .]", "すべて折りたたむ [Ctrl + Alt + []", "すべて開く [Ctrl + Alt + ]]"],
     ["右に並べて開く", "別のウィンドウで開く"],
     ["AI チャット [Ctrl + Alt + A]", "履歴"],
-    ["書き出す", "印刷・PDF で保存"],
+    ["エクスポート", "印刷・PDF で保存"],
     ["ゴミ箱に入れる"],
   ]);
   // 線は、まとまりの間にだけ引く（先頭のまとまりの上には引かない）。
@@ -71,7 +71,7 @@ test("ゴミ箱の中のメモでは、項目の無くなったまとまりご�
     ["メモの中を検索 [Ctrl + F]"],
     ["右に並べて開く", "別のウィンドウで開く"],
     ["AI チャット [Ctrl + Alt + A]", "履歴"],
-    ["書き出す", "印刷・PDF で保存"],
+    ["エクスポート", "印刷・PDF で保存"],
     ["ゴミ箱に入れる"],
   ]);
   expect(groups.map((group) => group.separatorWidth)).toEqual(["0px", "1px", "1px", "1px", "1px", "1px", "1px"]);
@@ -101,15 +101,15 @@ test("スマホ（390px）のメモの「…」は画面の中に収まり、キ
     ["テンプレートにする", "複製", "ほかのメモを結合"],
     ["メモの中を検索", "この項目にズーム", "すべて折りたたむ", "すべて開く"],
     ["AI チャット", "履歴"],
-    ["書き出す", "印刷・PDF で保存"],
+    ["エクスポート", "印刷・PDF で保存"],
     ["ゴミ箱に入れる"],
   ]);
   await expect(menu.locator("kbd")).toHaveCount(0);
   await expectInsideViewport(menu, PHONE_VIEWPORT);
 
   // 書き出しのダイアログも、390px の幅に収まる。
-  await menu.getByRole("menuitem", { name: "書き出す" }).click();
-  const dialog = page.getByRole("dialog", { name: "メモを書き出す" });
+  await menu.getByRole("menuitem", { name: "エクスポート" }).click();
+  const dialog = page.getByRole("dialog", { name: "メモをエクスポート" });
   await expect(dialog.getByRole("radio", { name: "Markdown" })).toHaveAttribute("aria-checked", "true");
   await expectInsideViewport(dialog, PHONE_VIEWPORT);
 });

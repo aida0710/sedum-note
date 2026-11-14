@@ -220,7 +220,7 @@ test("同期の設定を、暗号化キーを入力せずに書き出せる。�
 
   // 書き出す。暗号化キーもパスフレーズも聞かれない。
   await laptop.locator(".sync-line").click();
-  await laptop.getByRole("button", { name: "同期の設定を書き出す" }).click();
+  await laptop.getByRole("button", { name: "同期設定をエクスポート" }).click();
   const exportDialog = laptop.getByRole("dialog", { name: "同期の設定を渡す" });
   const download = laptop.waitForEvent("download");
   await exportDialog.getByRole("button", { name: "ファイルに保存" }).click();
@@ -245,14 +245,14 @@ test("同期の設定を、暗号化キーを入力せずに書き出せる。�
     await expect(device.getByText("同期の設定を読みました")).toBeVisible();
     // 違う暗号化キーでは開かず、同期先の欄にも何も入らない。
     await device.getByLabel("暗号化キー", { exact: true }).fill("not-the-shared-key");
-    await device.getByRole("button", { name: "取り込む" }).click();
+    await device.getByRole("button", { name: "インポート" }).click();
     await expect(device.getByRole("alert")).toContainText("暗号化キーが違います");
     await expect(device.getByLabel("バケット")).toHaveValue("");
     // Enter は、画面全体の「作成」ではなく、この欄の「取り込む」に効く。
     await device.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
     await device.getByLabel("暗号化キー", { exact: true }).press("Enter");
     // 同期先が入り、確かめまで済んで、暗号化キーも入っている。あとは参加を押すだけ。
-    await expect(device.getByText("同期の設定を取り込みました")).toBeVisible();
+    await expect(device.getByText("同期設定をインポートしました")).toBeVisible();
     await expect(device.getByLabel("バケット")).toHaveValue(remoteConfig.bucket);
     await expect(device.getByLabel("フォルダ")).toHaveValue(remoteConfig.prefix);
     await expect(device.locator(".sync-target-result")).toContainText("既存のメモが見つかりました");
@@ -271,7 +271,7 @@ test("カメラをかざして QR を読むと、暗号化キーを聞かれ、�
   const remoteConfig = await newTestRemoteConfig();
   const laptop = await openSyncedDevice(browser, { remoteConfig, join: false });
   await laptop.locator(".sync-line").click();
-  await laptop.getByRole("button", { name: "同期の設定を書き出す" }).click();
+  await laptop.getByRole("button", { name: "同期設定をエクスポート" }).click();
   const qrCodeImage = await laptop.getByRole("img", { name: "同期の設定の QR コード" }).getAttribute("src");
 
   const phone = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
@@ -297,7 +297,7 @@ test("カメラをかざして QR を読むと、暗号化キーを聞かれ、�
   await expect(phone.getByText("同期の設定を読みました")).toBeVisible();
   await expect(phone.getByRole("dialog", { name: "QR を読む" })).toBeHidden();
   await phone.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
-  await phone.getByRole("button", { name: "取り込む" }).click();
+  await phone.getByRole("button", { name: "インポート" }).click();
   await expect(phone.locator(".sync-target-result")).toContainText("既存のメモが見つかりました");
 });
 
@@ -324,7 +324,7 @@ test("同期の設定でないファイルや、QR の無い写真を選ぶと�
   const otherFile = testInfo.outputPath("notes.json");
   writeFileSync(otherFile, JSON.stringify({ hello: "world" }));
   await page.locator('input[type="file"][aria-label="設定のファイルを選ぶ"]').setInputFiles(otherFile);
-  await expect(page.getByRole("alert")).toContainText("同期の設定として読めません");
+  await expect(page.getByRole("alert")).toContainText("同期設定として読み込めません");
   // 1x1 の PNG（QR は写っていない）。
   const blankPhoto = testInfo.outputPath("blank.png");
   writeFileSync(blankPhoto, Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64"));

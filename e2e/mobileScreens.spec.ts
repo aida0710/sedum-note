@@ -363,7 +363,7 @@ test("設定の「同期」でも、書き出した同期の設定のファイ�
   const phone = await openSyncedDevice(browser, { remoteConfig, join: false, viewport: PHONE_VIEWPORT });
   await selectPhoneTab(phone, "設定");
   await phone.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: /同期/ }).click();
-  await phone.getByRole("button", { name: "同期の設定を書き出す" }).click();
+  await phone.getByRole("button", { name: "同期設定をエクスポート" }).click();
   const download = phone.waitForEvent("download");
   await phone.getByRole("dialog", { name: "同期の設定を渡す" }).getByRole("button", { name: "ファイルに保存" }).click();
   const setupFile = testInfo.outputPath("sync-setup.sedumsync");
@@ -378,7 +378,7 @@ test("設定の「同期」でも、書き出した同期の設定のファイ�
   await syncKey.fill(SYNC_KEY);
   // 暗号化キーの欄の Enter は「取り込む」に効き、下の同期先の「保存」は送らない（同期先の欄は開いたまま）。
   await syncKey.press("Enter");
-  await expect(phone.getByText("同期の設定を取り込みました")).toBeVisible();
+  await expect(phone.getByText("同期設定をインポートしました")).toBeVisible();
   await expect(phone.getByLabel("バケット")).toHaveValue(remoteConfig.bucket);
 });
 

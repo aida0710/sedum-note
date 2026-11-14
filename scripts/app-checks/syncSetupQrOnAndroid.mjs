@@ -21,7 +21,7 @@ const ALLOW_BUTTON = /text="(?:While using the app|アプリの使用時のみ)"
 if (mode === "prepare") {
   const laptop = await startBrowserDevice(await newCheckRemoteConfig());
   await laptop.page.locator(".sync-line").click();
-  await laptop.page.getByRole("button", { name: "同期の設定を書き出す" }).click();
+  await laptop.page.getByRole("button", { name: "同期設定をエクスポート" }).click();
   const image = await laptop.page.getByRole("img", { name: "同期の設定の QR コード" }).getAttribute("src");
   // エミュレーターは、横長の画像の左寄りの一部だけを、縦長のカメラの枠に写す。QR だけの画像だと端が切れるので、
   // 4:3 の白い地の、写る範囲に収まる位置に小さめに置いた画像にする。
@@ -68,7 +68,7 @@ if (mode === "prepare") {
   await app.waitForText("同期の設定を読みました", 30_000);
   captureScreen(outputDirectory, "android-qr-read");
   await app.fillBySelector("#sync-setup-key", SYNC_KEY);
-  await app.clickButton("取り込む");
+  await app.clickButton("インポート");
   await app.waitForText("既存のメモが見つかりました", 30_000);
   await app.clickButton("参加");
   await app.waitForText("PCで書いたメモ", 60_000);

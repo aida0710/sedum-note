@@ -55,16 +55,16 @@ test("バックアップを書き出し、別のデバイスの最初の画面�
 
   await openSettingsPage(source, "データ");
   const download = source.waitForEvent("download");
-  await source.getByRole("button", { name: "バックアップを書き出す" }).click();
+  await source.getByRole("button", { name: "バックアップをエクスポート" }).click();
   const backup = await download;
   expect(backup.suggestedFilename()).toMatch(/^sedum-note-backup-\d{8}\.sedumbackup$/);
-  await expect(source.getByText("1件のメモを書き出しました")).toBeVisible();
+  await expect(source.getByText("1件のメモをエクスポートしました")).toBeVisible();
   const backupPath = await backup.path();
   expect((await readFile(backupPath)).toString("latin1")).not.toMatch(/memo\.txt/);
 
   const target = await (await browser.newContext({ viewport: { width: 1280, height: 820 } })).newPage();
   await target.goto("/");
-  await target.getByRole("tab", { name: "バックアップから戻す" }).click();
+  await target.getByRole("tab", { name: "バックアップから復元" }).click();
   // ファイルは、アプリのボタンから選ぶ（ブラウザの既定のファイル選択は出さない）。選ぶと、ファイルの名前が横に出る。
   await expect(target.getByLabel("バックアップのファイル")).toBeHidden();
   await expect(target.locator(".file-choice")).toHaveText("ファイルを選択選択されていません");
@@ -97,14 +97,14 @@ test("Markdown で書き出すと暗号化されないことを確かめられ�
   await expect(source.locator(".attachment-file")).toContainText("memo.txt");
 
   await openSettingsPage(source, "データ");
-  await source.getByRole("button", { name: "すべてのメモを Markdown で書き出す" }).click();
+  await source.getByRole("button", { name: "すべてのメモをMarkdownでエクスポート" }).click();
   const confirmation = source.getByRole("dialog");
-  await expect(confirmation).toContainText("書き出したファイルは暗号化されません");
+  await expect(confirmation).toContainText("エクスポートしたファイルは暗号化されない");
   const download = source.waitForEvent("download");
-  await confirmation.getByRole("button", { name: "書き出す" }).click();
+  await confirmation.getByRole("button", { name: "エクスポート" }).click();
   const exported = await download;
   expect(exported.suggestedFilename()).toMatch(/^sedum-note-markdown-\d{8}\.zip$/);
-  await expect(source.getByText("1件のメモを書き出しました")).toBeVisible();
+  await expect(source.getByText("1件のメモをエクスポートしました")).toBeVisible();
 
   const target = await (await browser.newContext({ viewport: { width: 1280, height: 820 } })).newPage();
   await target.goto("/");
@@ -112,8 +112,8 @@ test("Markdown で書き出すと暗号化されないことを確かめられ�
   await target.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
   await target.getByRole("button", { name: "作成" }).click();
   await openSettingsPage(target, "データ");
-  await target.getByLabel("Markdown を取り込む").setInputFiles(await exported.path());
-  await expect(target.getByText("1件のメモを取り込みました")).toBeVisible();
+  await target.getByLabel("Markdownをインポート").setInputFiles(await exported.path());
+  await expect(target.getByText("1件のメモをインポートしました")).toBeVisible();
   await target.getByRole("button", { name: "旅のメモ" }).click();
   await expect(target.locator(".ProseMirror h2")).toHaveText("持ち物");
   await expect(target.locator(".ProseMirror")).toContainText("日焼け止め");
@@ -160,13 +160,13 @@ test("メモを HTML とテキストで書き出せる。HTML は書式と添付
   // メモの「…」の「書き出す」で、形式を選ぶダイアログが開く。暗号化されないことも、同じダイアログに出る。
   const exportAs = async (format: string) => {
     await page.getByRole("button", { name: "その他の操作" }).click();
-    await page.getByRole("menuitem", { name: "書き出す" }).click();
-    const dialog = page.getByRole("dialog", { name: "メモを書き出す" });
-    await expect(dialog).toContainText("書き出したファイルは暗号化されません");
+    await page.getByRole("menuitem", { name: "エクスポート" }).click();
+    const dialog = page.getByRole("dialog", { name: "メモをエクスポート" });
+    await expect(dialog).toContainText("エクスポートしたファイルは暗号化されない");
     await dialog.getByRole("radio", { name: format }).click();
     await expect(dialog.getByRole("radio", { name: format })).toHaveAttribute("aria-checked", "true");
     const download = page.waitForEvent("download");
-    await dialog.getByRole("button", { name: "書き出す" }).click();
+    await dialog.getByRole("button", { name: "エクスポート" }).click();
     const exported = await download;
     // 確認のダイアログは重ならない（形式を選んだダイアログの「書き出す」で、そのまま書き出す）。
     await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -250,12 +250,12 @@ test("録音のボタンで録り始め、止めると音声が添付される�
   await expect(attachment.locator("audio")).toHaveAttribute("src", /^blob:/);
 });
 
-test("最初の画面で「始める」の入力の誤りを出したあと、「バックアップから戻す」に切り替えると、誤りは消える", async ({ page }) => {
+test("最初の画面で「始める」の入力の誤りを出したあと、「バックアップから復元」に切り替えると、誤りは消える", async ({ page }) => {
   await page.goto("/");
   await page.getByLabel("パスフレーズ", { exact: true }).fill("correct horse battery");
   await page.getByLabel("パスフレーズ（確認）").fill("a different passphrase");
   await page.getByRole("button", { name: "作成" }).click();
   await expect(page.getByRole("alert")).toHaveText("確認のパスフレーズが一致しません");
-  await page.getByRole("tab", { name: "バックアップから戻す" }).click();
+  await page.getByRole("tab", { name: "バックアップから復元" }).click();
   await expect(page.getByRole("alert")).toHaveCount(0);
 });

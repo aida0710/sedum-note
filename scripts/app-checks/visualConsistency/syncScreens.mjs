@@ -53,7 +53,7 @@ export function SYNC_SCREENS({ baseUrl, passphrase }) {
     {
       name: "dialog-sync-setup-export",
       open: async (page) => {
-        await page.getByRole("button", { name: "同期の設定を書き出す" }).click();
+        await page.getByRole("button", { name: "同期設定をエクスポート" }).click();
         await page.getByRole("dialog").waitFor();
       },
     },
