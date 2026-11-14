@@ -171,6 +171,36 @@ test("PC では、知らせは左の列を除いた本文の欄の中央に出�
 test.describe("スマホの幅", () => {
   test.use({ viewport: PHONE_VIEWPORT, hasTouch: true });
 
+  test("ダイアログを開いたまま端末の「戻る」を押すと、ダイアログだけが閉じ、下のメモは開いたまま。もう一度で一覧へ戻る", async ({ page }) => {
+    await startLocalVault(page);
+    await page.locator(".fab").click();
+    await page.getByPlaceholder("タイトル").fill("会議");
+    await page.getByRole("button", { name: "その他の操作" }).click();
+    await page.getByRole("menuitem", { name: "履歴" }).click();
+    const dialog = page.getByRole("dialog", { name: "履歴" });
+    await expect(dialog).toBeVisible();
+
+    await page.goBack();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByPlaceholder("タイトル")).toHaveValue("会議");
+
+    await page.goBack();
+    await expect(page.locator(".note-item", { hasText: "会議" })).toBeVisible();
+  });
+
+  test("ダイアログを「閉じる」で閉じたあとの端末の「戻る」は、空振りせずにメモを閉じる", async ({ page }) => {
+    await startLocalVault(page);
+    await page.locator(".fab").click();
+    await page.getByPlaceholder("タイトル").fill("会議");
+    await page.getByRole("button", { name: "その他の操作" }).click();
+    await page.getByRole("menuitem", { name: "履歴" }).click();
+    await page.getByRole("dialog", { name: "履歴" }).getByRole("button", { name: "閉じる" }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await page.goBack();
+    await expect(page.locator(".note-item", { hasText: "会議" })).toBeVisible();
+  });
+
   test("ゴミ箱に入れた知らせは 1 行に収まる", async ({ page }) => {
     await startLocalVault(page);
     await page.locator(".fab").click();

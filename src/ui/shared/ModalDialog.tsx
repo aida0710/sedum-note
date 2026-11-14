@@ -1,11 +1,13 @@
 // 画面の上に重ねるダイアログの枠。背景を押すか Escape で閉じる。中身は呼び出し側が入れる。
 // 開いている間、Tab はダイアログの中だけを回る（外へ出ると、Escape が届かず閉じられなくなる）。
+// スマホの組み方では、端末の「戻る」でも閉じる（下の画面を閉じない）。
 // 見出し（title）と説明（description）を渡すと、どのダイアログでも同じ形で上に出す。
 
 import { type ReactNode, useEffect, useRef } from "react";
 import { returnFocusTo } from "./focusReturn";
 import { isImeKeyEvent } from "./imeKeyEvent";
 import { menuAnchorOf } from "./PopupMenu";
+import { useCloseDialogOnBack } from "./useCloseDialogOnBack";
 
 const FOCUSABLE_SELECTOR = 'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
 
@@ -44,6 +46,7 @@ export function ModalDialog({ label, title, description, className = "", onClose
   // 開く前にフォーカスがあった要素（開いたボタンなど）。閉じたらそこへ戻す。
   // メニューの項目から開いたときは、項目がメニューごと消えるので、メニューを開いたボタンへ戻す。
   const openerRef = useRef<Element | null>(menuAnchorOf(document.activeElement) ?? document.activeElement);
+  useCloseDialogOnBack({ dialogRef, onClose });
   useEffect(() => {
     // 中の入力欄が autoFocus でフォーカスを取っていなければ、枠にフォーカスを移す。
     // 移さないと、メニューから開いたときに Escape が枠に届かず、閉じられない。

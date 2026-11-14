@@ -19,8 +19,8 @@ test("スマホの設定は、ページの一覧から開いて「設定」で�
   await startLocalVault(page);
   const tabbar = page.locator(".tabbar");
   const settingsPages = page.getByRole("navigation", { name: "設定のページ" });
-  // 開いたページが積む履歴の印（useBackGestureToClose）。無ければ null。
-  const historyMark = () => page.evaluate(() => (window.history.state as { mark?: string } | null)?.mark ?? null);
+  // 開いたページが積む履歴の持ち主の名前（shared/backHistory.ts）。無ければ null。
+  const historyMark = () => page.evaluate(() => (window.history.state as { backEntryOwner?: string } | null)?.backEntryOwner ?? null);
 
   await tabbar.getByRole("button", { name: "設定" }).click();
   await settingsPages.getByRole("button", { name: /外観/ }).click();
