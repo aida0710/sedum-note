@@ -35,6 +35,9 @@ export function canOpenNoteWindows(): boolean {
 export async function openNoteInNewWindow({ noteId, spaceId, title }: { noteId: string; spaceId: string; title: string }): Promise<void> {
   const query = `?${NOTE_PARAMETER}=${noteId}&${SPACE_PARAMETER}=${encodeURIComponent(spaceId)}`;
   if (!isRunningInTauri()) {
+    // Ctrl（Mac では Command）を押したままの押下の処理の中で開くと、Chromium は popup の指定より修飾キーを優先し、同じウィンドウの
+    // 新しいタブで開く。押下の処理が終わった次のタスクで開く（押した直後なので、ブラウザは押した操作で開いたものとして許す）。
+    await new Promise((resolve) => setTimeout(resolve));
     // 開いたウィンドウだけが、このウィンドウにキーを頼める（openerKeyTransport.ts）。ブラウザが開くのを止めたら null。
     const opened = window.open(`${window.location.pathname}${query}`, "_blank", `popup,width=${NOTE_WINDOW_SIZE.width},height=${NOTE_WINDOW_SIZE.height}`);
     if (opened !== null) {
