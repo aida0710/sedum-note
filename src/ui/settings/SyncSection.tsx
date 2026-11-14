@@ -3,6 +3,7 @@
 import { isWebDavConfig, type RemoteConfig } from "../../core/remote/remoteConfig";
 import { useState } from "react";
 import { AppUpdateRequiredError } from "../../core/format/dataFormat";
+import { ObjectStoreError } from "../../core/remote/objectStore";
 import type { SyncStatus } from "../../core/sync/autoSync";
 import type { SyncTargetCheck } from "../../core/vault/syncTarget";
 import type { UnlockedVault } from "../../core/vault/vaultSession";
@@ -10,6 +11,7 @@ import { describeErrorReason } from "../i18n/describeError";
 import { translate } from "../i18n/translate";
 import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import type { SyncTargetConnection, VaultSession } from "../session/useVaultSession";
+import { CorsGuide } from "../shared/CorsGuide";
 import { formatDateTime } from "../shared/formatTime";
 import { ProgressStatus } from "../shared/ProgressStatus";
 import { useAsyncAction } from "../shared/useAsyncAction";
@@ -188,6 +190,8 @@ function SyncStatusDetail({ status, autoSync, onOpenUpdatePage }: SyncStatusDeta
       {status.error instanceof AppUpdateRequiredError && (
         <div><button type="button" className="secondary-button" onClick={onOpenUpdatePage}>{translate("settings.syncOpenUpdatePage")}</button></div>
       )}
+      {/* Web 版で届かないときは、文が案内する CORS の設定をその場で開けるようにする（アプリでは CorsGuide が何も出さない）。 */}
+      {status.error instanceof ObjectStoreError && status.error.reason === "unreachable" && <CorsGuide />}
       <p className="hint">{lastSynced}</p>
     </>
   );

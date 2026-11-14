@@ -38,3 +38,16 @@ test("CORS でこの画面の origin を許していないと、CORS の設定�
   await checkSyncTarget(page, config);
   await expect(page.getByRole("alert")).toContainText("バケットに CORS の設定を入れてあるかを確かめてください");
 });
+
+test("同期先を保存したあとで同期が CORS で断られたときも、設定の同期のページで CORS の設定を開ける", async ({ page }) => {
+  const config = await newTestRemoteConfigWithCors("sedum-note-cors-documented", JSON.parse(corsRuleJson(PAGE_ORIGIN)) as CorsRule[]);
+  await startSyncedVault(page, { remoteConfig: config, join: false });
+  await expect(page.getByText(/同期済み/)).toBeVisible({ timeout: 20_000 });
+  // CORS で断られたときと同じく、ブラウザの fetch が失敗する形にする。
+  await page.route((url) => url.origin === new URL(config.endpoint).origin, (route) => route.abort("failed"));
+  await page.locator(".sync-line").click();
+  await page.getByRole("button", { name: "今すぐ同期" }).click();
+  await expect(page.getByRole("alert")).toContainText("バケットに CORS の設定を入れてあるかを確かめてください");
+  await page.locator("summary", { hasText: "バケットの CORS の設定" }).click();
+  await expect(page.getByRole("button", { name: "設定をコピー" })).toBeVisible();
+});
