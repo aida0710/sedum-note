@@ -6,9 +6,6 @@ import { type RefObject, useEffect } from "react";
 // 見せる項目の合図。serial が変わるたびに探す。
 export type SettingRevealRequest = { serial: number; label: string };
 
-// 光らせておく時間（CSS の settings-revealed の動きと同じ長さ）。
-const HIGHLIGHT_MILLISECONDS = 1600;
-
 // 最後に見せた合図。設定のタブを閉じて開き直しても（ページが作り直されても）、同じ合図で二度は見せない。
 let lastRevealedSerial = 0;
 
@@ -40,8 +37,8 @@ export function useRevealSetting(request: SettingRevealRequest | null, container
     controlOf(element)?.focus({ preventScroll: true });
     const highlighted = element.closest<HTMLElement>(".setting-row, .field, .checkbox-line") ?? element;
     highlighted.classList.add("settings-revealed");
-    // 片付けで外すと、開発中（StrictMode）は作用が 2 回走って、すぐ消えてしまう。時間で外す。
-    window.setTimeout(() => highlighted.classList.remove("settings-revealed"), HIGHLIGHT_MILLISECONDS);
+    // 片付けで外すと、開発中（StrictMode）は作用が 2 回走って、すぐ消えてしまう。光る動き（CSS の settings-revealed）が終わったら外す。
+    highlighted.addEventListener("animationend", () => highlighted.classList.remove("settings-revealed"), { once: true });
     // 合図（serial）が変わったときだけ探す。
   }, [request?.serial]);
 }

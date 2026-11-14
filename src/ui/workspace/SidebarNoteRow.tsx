@@ -18,7 +18,7 @@ import { resetNoteSelection, selectNoteRange, toggleNoteSelection, useNoteSelect
 import { SelectedNotesMenu } from "./SelectedNotesMenu";
 import { extendNoteSelectionByKey, focusViewRowOfNote, isUnmodifiedKey, rowBesideNotesToRemove } from "./sidebarKeyboard";
 import { SidebarNameRow } from "./SidebarNameRow";
-import { treeDepthStyle } from "./treeDepthStyle";
+import { treeDepthStyle } from "../shared/treeDepthStyle";
 import { useRowFocusAfterNaming } from "./useRowFocusAfterNaming";
 import { useTrashWithUndo } from "./useTrashWithUndo";
 import { viewKey } from "./useWorkspaceNavigation";

@@ -3,7 +3,7 @@
 
 import type { ReactNode } from "react";
 import { InlineNameInput, type InlineNameInputProps } from "./InlineNameInput";
-import { treeDepthStyle } from "./treeDepthStyle";
+import { treeDepthStyle } from "../shared/treeDepthStyle";
 
 type SidebarNameRowProps = InlineNameInputProps & {
   // 一覧の行（ノートブック）の名前か、メモの行の題か。

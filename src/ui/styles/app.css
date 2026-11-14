@@ -31,6 +31,24 @@
   --switch-height: 20px;
   /* 選んだ見本（色、テーマ）の輪。 */
   --ring-selected: 0 0 0 2px var(--accent);
+  /* 浮いた面の影の形。影の色（--shadow*）は、暗いテーマで濃くする（下の :root[data-scheme="dark"]）。 */
+  --elevation-raised: 0 1px 4px var(--shadow);          /* 地の上に置いた見本（PDF のページ） */
+  --elevation-selected: 0 1px 2px var(--shadow-faint);  /* 選ぶ部品の、選んでいるボタン */
+  --elevation-drag: 0 4px 12px var(--shadow);           /* ドラッグ中に持っているもの */
+  --elevation-popover: 0 8px 24px var(--shadow);        /* メニュー、選んだときのボタン、リンクの見本、知らせ、候補 */
+  --elevation-dialog: 0 16px 40px var(--shadow-strong); /* ダイアログ */
+  /* 重なりの順（大きいほど上）。 */
+  --layer-sticky: 1;          /* 送る枠の中で、端に留める部品 */
+  --layer-in-pane: 5;         /* 欄の中に重ねる候補、リンクの見本、列の幅のつまみ */
+  --layer-pane-control: 6;    /* 欄の上に重ねるボタン（フォーカスモードの戻る） */
+  --layer-zoomed-view: 15;    /* ズームした表示（窓を覆う） */
+  --layer-menu: 20;
+  --layer-preview: 25;        /* メモへのリンクの見本（メニューの上にも出す） */
+  --layer-dialog: 30;
+  --layer-toast: 40;
+  /* 指で動かした行や一覧が、離したあとに落ち着く動き。 */
+  --duration-settle: 220ms;
+  --ease-settle: cubic-bezier(0.165, 0.84, 0.44, 1);
   /* チェックボックス・ラジオボタン・つまみは、どのテーマでもテーマの色で描く（決めないと、ブラウザの既定の青になる）。 */
   accent-color: var(--accent);
   /* 画面の部品の文字の大きさは、次の 6 つにする（本文は表示の設定の --editor-font-size）。スマホでは .phone が一部を大きくする。 */
@@ -101,7 +119,7 @@ svg.lucide { stroke-width: 1.75; }
 .note-window .sidebar, .note-window.single-note .tabs-bar { display: none; }
 .focus-mode .sidebar, .focus-mode .tabs-bar, .focus-mode .editor-bar { display: none; }
 /* フォーカスモードを終わるボタン。ズームの戻るボタン（.zoom-back）と同じ形で、同じ左上に置く。 */
-.focus-mode-exit { position: fixed; top: 10px; left: 14px; z-index: 6; background: var(--panel); }
+.focus-mode-exit { position: fixed; top: 10px; left: 14px; z-index: var(--layer-pane-control); background: var(--panel); }
 .typewriter-mode .document { padding-bottom: 50vh; }
 /* 設定の、本文の文字の組み方のつまみ（EditorTypographySettings.tsx）。つまみの右に今の値を出す。 */
 .setting-slider { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
@@ -200,7 +218,7 @@ svg.lucide { stroke-width: 1.75; }
 .pdf-preview-bar { display: flex; align-items: center; justify-content: center; gap: 4px; color: var(--muted); font-size: var(--font-size-small); }
 .pdf-page-number { min-width: 64px; text-align: center; }
 .pdf-preview-page { overflow: auto; max-height: 70vh; text-align: center; background: var(--tag); border-radius: var(--radius-row); padding: 8px; }
-.pdf-preview-page canvas { background: #ffffff; box-shadow: 0 1px 4px var(--shadow); }
+.pdf-preview-page canvas { background: #ffffff; box-shadow: var(--elevation-raised); }
 /* ブロックをドラッグする持ち手。エディタを包む要素（EditorContent）の中に、位置を決めて置く。 */
 .document > div:has(> .ProseMirror) { position: relative; }
 /* 持ち手と、その左の「＋」。大きさは blockDragHandle.ts の HANDLE_WIDTH・HANDLE_HEIGHT と同じ。位置（1 行目の縦の中心）は blockDragHandle.ts が入れる。 */
@@ -337,7 +355,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .mention-input { position: relative; }
 .mention-input textarea { width: 100%; border: 1px solid var(--line); border-radius: var(--radius-control); padding: 8px 10px; background: var(--panel); color: var(--text); resize: none; font: inherit; line-height: 1.5; }
 .mention-input textarea:focus { outline: 0; border-color: var(--accent); }
-.mention-candidates { position: absolute; left: 0; right: 0; bottom: calc(100% + 4px); z-index: 5; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: 0 8px 24px var(--shadow); padding: 4px; display: flex; flex-direction: column; }
+.mention-candidates { position: absolute; left: 0; right: 0; bottom: calc(100% + 4px); z-index: var(--layer-in-pane); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: var(--elevation-popover); padding: 4px; display: flex; flex-direction: column; }
 .mention-candidates .menu-item.on { background: var(--selected); }
 .dialog.ai-chat-dialog { --dialog-width: 640px; height: min(720px, 92%); padding: 0; }
 /* AI を有効にしていないときは、案内とボタンだけなので、枠を中身の高さにする（画面の高さの枠に 3 行だけが浮かないように）。 */
@@ -350,7 +368,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 
 .sidebar { background: var(--sidebar); border-right: 1px solid var(--line); padding: 14px 10px 0; display: flex; flex-direction: column; gap: 2px; min-height: 0; position: relative; }
 /* 列の右の端。つまんで幅を変える。 */
-.sidebar-resize-handle { position: absolute; top: 0; bottom: 0; right: -3px; width: 6px; cursor: col-resize; z-index: 5; touch-action: none; }
+.sidebar-resize-handle { position: absolute; top: 0; bottom: 0; right: -3px; width: 6px; cursor: col-resize; z-index: var(--layer-in-pane); touch-action: none; }
 .sidebar-resize-handle:hover, .sidebar-resize-handle:active { background: color-mix(in srgb, var(--accent) 40%, transparent); }
 /* キーボードで止まったときは、枠の代わりに端の線を濃く塗る（幅 6px の要素に枠を描くと、隣の欄に隠れる）。 */
 .sidebar-resize-handle:focus-visible { outline: none; background: var(--accent); }
@@ -417,7 +435,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 /* ドラッグして持ち上げたメモの、元の行。 */
 .nav-row.dragging .tree-note, .nav-row.dragging > .nav { opacity: .5; outline: 1px dashed var(--muted); outline-offset: -1px; }
 /* ドラッグしている間、指の下に出す札（shared/dragPreview.ts）。写し取ったらすぐ消すので、画面の外に置いて描く。 */
-.drag-preview { position: fixed; top: -100px; left: 0; max-width: 260px; padding: 4px 10px; border-radius: var(--radius-control); background: var(--panel); color: var(--text); border: 1px solid var(--accent); box-shadow: 0 4px 12px var(--shadow); font-size: var(--font-size-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.drag-preview { position: fixed; top: -100px; left: 0; max-width: 260px; padding: 4px 10px; border-radius: var(--radius-control); background: var(--panel); color: var(--text); border: 1px solid var(--accent); box-shadow: var(--elevation-drag); font-size: var(--font-size-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .nav-row .tree-note { padding-right: 30px; }
 .tree-empty { color: var(--muted); padding: 4px 8px; font-size: var(--font-size-small); }
 /* 左の列の木。行の高さを 1 つにそろえ、字下げは段の深さ（--depth。行が style で渡す）から決める。
@@ -475,14 +493,16 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--line); background: var(--sidebar); overflow-x: auto; flex: 1; min-width: 0; scrollbar-width: none; }
 .tabs-end { display: flex; align-items: center; padding: 8px 8px 0; border-bottom: 1px solid var(--line); flex: none; }
 /* タブは、並びに入り切らないときは最小幅（96px）まで縮め、それでも入らないときだけ横に溢れさせる（右の端で見えなくなるのを減らす）。 */
-.tab { display: flex; align-items: center; gap: 6px; padding: 7px 8px 7px 14px; border-radius: var(--radius-control) var(--radius-control) 0 0; color: var(--muted); font-size: var(--font-size-ui); max-width: 220px; flex: 0 1 200px; min-width: 96px; border: 1px solid transparent; }
+.tab { display: flex; align-items: center; gap: 6px; padding: 7px 8px 7px 14px; border-radius: var(--radius-control) var(--radius-control) 0 0; color: var(--muted); font-size: var(--font-size-ui); max-width: 220px; flex: 0 1 200px; min-width: 96px; border: 1px solid transparent; position: relative; }
+.tab[draggable="true"] { cursor: grab; }
+.tab.dragging { opacity: .45; }
+.tab.drop-target { box-shadow: inset 2px 0 0 var(--accent); }
 .tab .tab-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* ピン留めしたタブは、ノートブックの色のアイコンだけの小さなタブにする（PinnedTabIcon.tsx。題は title で出す）。 */
 .tab.pinned { flex: none; min-width: 0; width: 40px; padding: 7px 0; justify-content: center; }
 .tab.pinned .tab-label { display: none; }
 .tab-pinned-icon { display: grid; place-items: center; }
 /* タブとタブの間の区切り線。開いているタブと、マウスを乗せたタブの両隣には出さない（タブの形と線が重なって見えるため）。 */
-.tab { position: relative; }
 .tab + .tab::before { content: ""; position: absolute; left: -2px; top: 9px; bottom: 8px; width: 1px; background: var(--line); }
 .tab.on::before, .tab.on + .tab::before, .tab:hover::before, .tab:hover + .tab::before { background: none; }
 /* マウスを乗せたタブは、並びの地と開いているタブの地の中間の色（開いているタブと見分けがつくように）。 */
@@ -497,14 +517,14 @@ button.ai-tool-activity:hover { background: var(--selected); }
 /* 開いているタブは、太字にせず（切り替えるたびに隣のタブが動かないように）、地の色と枠で示す。 */
 .tab.on { background: var(--panel); color: var(--text); border-color: var(--line); border-bottom-color: var(--panel); margin-bottom: -1px; }
 /* ピン留めしたタブは、並びを横に送っても左端に留める（left は workspace/stickyPinnedTabs.ts が入れる）。下を通るタブが透けないよう地を塗る。 */
-.tab.pinned { position: sticky; z-index: 1; }
+.tab.pinned { position: sticky; z-index: var(--layer-sticky); }
 .tab.pinned:not(.on, :hover) { background: var(--sidebar); }
 /* sticky は並びの内側の余白の内側に留まるので、左の余白（10px）を通るタブの文字は、先頭のピン留めのタブの左に地を伸ばして隠す。 */
 .tab.pinned:first-of-type::after { content: ""; position: absolute; top: -9px; bottom: -1px; right: calc(100% + 1px); width: 10px; background: var(--sidebar); }
 /* 並びを送って、左に隠れたタブがあるときは、ピン留めの最後のタブに影を付けて、下に続きがあることを見せる。 */
 .tabs[data-more-start] .tab.pinned:not(:has(+ .tab.pinned)) { box-shadow: 8px 0 8px -6px var(--shadow-strong); }
 /* 並びの続きがある側の端に、背景色へ溶ける帯を重ねる（スマホの下のツールバーと同じ形。ピン留めが無いときは左端にも）。 */
-.tabs::before, .tabs::after { content: ""; position: sticky; z-index: 2; flex: none; align-self: stretch; width: 32px; pointer-events: none; opacity: 0; }
+.tabs::before, .tabs::after { content: ""; position: sticky; z-index: calc(var(--layer-sticky) + 1); flex: none; align-self: stretch; width: 32px; pointer-events: none; opacity: 0; }
 .tabs::before { left: -10px; margin-right: -34px; background: linear-gradient(to right, var(--sidebar), transparent); }
 .tabs::after { right: -10px; margin-left: -34px; background: linear-gradient(to left, var(--sidebar), transparent); }
 .tabs[data-more-start]:not(:has(.tab.pinned))::before, .tabs[data-more-end]::after { opacity: 1; }
@@ -521,7 +541,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .recording-stop { display: inline-flex; align-items: center; gap: 6px; height: var(--control-height-compact); padding: 0 12px; border-radius: 999px; background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); font-size: var(--font-size-small); font-weight: 600; }
 .recording-stop:hover { background: color-mix(in srgb, var(--danger) 20%, transparent); }
 /* PC で文字を選んだときに、選んだ所の上に出す書式のボタン（editor/SelectionToolbar.tsx）。メニューと同じ面の形にする。 */
-.selection-toolbar { display: flex; align-items: center; gap: 2px; padding: 4px; background: var(--raised); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: 0 8px 24px var(--shadow); z-index: 6; }
+.selection-toolbar { display: flex; align-items: center; gap: 2px; padding: 4px; background: var(--raised); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: var(--elevation-popover); z-index: var(--layer-pane-control); }
 .selection-toolbar .tool-separator { height: 20px; margin: 0 2px; }
 .icon-button { width: var(--control-height-compact); height: var(--control-height-compact); border-radius: var(--radius-row); display: grid; place-items: center; color: var(--muted); flex: none; }
 .icon-button:hover:not(:disabled) { background: var(--selected); color: var(--text); }
@@ -539,7 +559,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .settings-layout .document-scroll { scrollbar-gutter: stable; }
 .outline { width: 220px; flex: none; border-left: 1px solid var(--line); overflow-y: auto; padding: 8px 6px; display: flex; flex-direction: column; gap: 1px; }
 .menu .outline { width: auto; min-width: 200px; max-width: 280px; max-height: 50vh; border-left: 0; padding: 0; }
-.outline-item { text-align: left; padding: 5px 8px; border-radius: var(--radius-row); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; }
+/* 見出しの段（--depth、0 は見出し 1）ごとに字下げする。 */
+.outline-item { text-align: left; padding: 5px 8px 5px calc(8px + var(--depth, 0) * 12px); border-radius: var(--radius-row); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; }
 .outline-item:hover { background: var(--selected); color: var(--text); }
 /* 左右の余白は、見出しの左に並ぶ「＋」・持ち手・ズームのボタン・折りたたみの印（左へ 80px まで）が、左寄せのときも切れない幅にする。
    文字の列の幅は 648px（816 − 84 × 2）。下は、末尾の行を窓の中ほどまで送れるよう、窓の高さの 3 割を空ける。 */
@@ -671,14 +692,14 @@ button.ai-tool-activity:hover { background: var(--selected); }
 /* 1 件のメモの編集画面（editor/NoteEditor.tsx）。ふだんは箱を作らず、中の部品が画面の枠（.pane、.phone）に直接並ぶ。
    PC でズームしている間は、窓いっぱいに広げて、左の列・タブ・ほかの枠の上に重ねる（メニュー 20 とダイアログ 30 より下）。 */
 .note-editor { display: contents; }
-.note-editor.zoomed-view { position: fixed; inset: 0; z-index: 15; display: flex; flex-direction: column; background: var(--panel); }
+.note-editor.zoomed-view { position: fixed; inset: 0; z-index: var(--layer-zoomed-view); display: flex; flex-direction: column; background: var(--panel); }
 .zoomed-view-top { flex: none; display: flex; align-items: center; gap: 8px; padding: 10px 14px 0; }
 /* ズームから戻るボタン。戻り先の名前が長いときは、1 行で切る。 */
 .zoom-back { display: inline-flex; align-items: center; gap: 2px; min-width: 0; max-width: min(480px, 100%); height: var(--control-height); padding: 0 10px 0 4px; border-radius: var(--radius-row); color: var(--muted); font-size: var(--font-size-ui); }
 .zoom-back > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .zoom-back > svg { flex: none; }
 .zoom-back:hover { background: var(--selected); color: var(--text); }
-.phone-back.zoom-back { color: inherit; font-size: 16px; padding: 0; height: auto; max-width: 100%; }
+.phone-back.zoom-back { color: inherit; padding: 0; height: auto; max-width: 100%; }
 /* 箇条書きの行頭の印（・や番号）を押すと、その項目にズームする（editor/zoom.ts）。印のある左の余白だけ指の形にし、文字の上は文字の形のままにする。 */
 .ProseMirror ul:not([data-type="taskList"]), .ProseMirror ol { cursor: pointer; }
 .ProseMirror li > * { cursor: text; }
@@ -761,14 +782,13 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ProseMirror .rows-filtered { outline: 2px dashed var(--accent); outline-offset: 2px; }
 /* 表のメニューは項目が多いので、行を詰めて、タブとツールバーより下（約 100px）に収める。収まらない小さな画面だけ中を送る。 */
 .table-menu .menu-item { padding-top: 5px; padding-bottom: 5px; }
-.menu-item:disabled { color: var(--muted); }
 .note-link button { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); background: var(--accent-soft); border-radius: var(--radius-row); padding: 0 6px; vertical-align: baseline; max-width: 100%; }
 .note-link.trashed button, .note-link.missing button { color: var(--muted); background: var(--tag); }
 .note-link.ProseMirror-selectednode button { outline: 2px solid var(--accent); }
 /* メモへのリンクの見本（editor/NoteLinkPreview.tsx）。メニューと同じ面の形にする。 */
-.note-link-preview { position: fixed; z-index: 25; width: min(320px, calc(100vw - 16px)); background: var(--raised); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: 0 8px 24px var(--shadow); padding: 10px 12px; pointer-events: none; display: flex; flex-direction: column; gap: 6px; }
+.note-link-preview { position: fixed; z-index: var(--layer-preview); width: min(320px, calc(100vw - 16px)); background: var(--raised); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: var(--elevation-popover); padding: 10px 12px; pointer-events: none; display: flex; flex-direction: column; gap: 6px; }
 /* 本文の Web のリンクの中にカーソルがある間に出す、リンク先と操作の面（editor/WebLinkPopover.tsx）。メモへのリンクの見本と同じ面にする。 */
-.web-link-popover { position: absolute; z-index: 5; display: flex; align-items: center; gap: 2px; max-width: min(420px, 100%); padding: 4px 4px 4px 10px; background: var(--raised); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: 0 8px 24px var(--shadow); font-size: var(--font-size-small); line-height: 1.5; letter-spacing: 0; user-select: none; }
+.web-link-popover { position: absolute; z-index: var(--layer-in-pane); display: flex; align-items: center; gap: 2px; max-width: min(420px, 100%); padding: 4px 4px 4px 10px; background: var(--raised); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: var(--elevation-popover); font-size: var(--font-size-small); line-height: 1.5; letter-spacing: 0; user-select: none; }
 .web-link-url { min-width: 0; margin-right: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
 .note-link-preview-title { font-weight: 700; font-size: var(--font-size-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .note-link-preview-text { font-size: var(--font-size-small); line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
@@ -845,7 +865,7 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .generated-passphrase .hint { flex-basis: 100%; line-height: 1.6; }
 /* 左右の端から置いて中身の幅にする（left: 50% で置くと、幅が画面の半分までになり、スマホで文が折れる）。 */
 /* 知らせは、本文の欄の左右の中央に出す（窓の中央だと、PC では左の列の分だけ本文からずれる）。--toast-area-* は、左右で欄の外にある部分の幅。 */
-.toast { --toast-area-left: 0px; --toast-area-right: 0px; position: fixed; left: calc(var(--toast-area-left) + 16px); right: calc(var(--toast-area-right) + 16px); margin-inline: auto; width: fit-content; bottom: calc(28px + env(safe-area-inset-bottom, 0px)); z-index: 40; background: var(--text); color: var(--panel); border-radius: var(--radius-panel); padding: 9px 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 8px 24px var(--shadow); max-width: calc(100% - 32px); }
+.toast { --toast-area-left: 0px; --toast-area-right: 0px; position: fixed; left: calc(var(--toast-area-left) + 16px); right: calc(var(--toast-area-right) + 16px); margin-inline: auto; width: fit-content; bottom: calc(28px + env(safe-area-inset-bottom, 0px)); z-index: var(--layer-toast); background: var(--text); color: var(--panel); border-radius: var(--radius-panel); padding: 9px 14px; display: flex; align-items: center; gap: 14px; box-shadow: var(--elevation-popover); max-width: calc(100% - 32px); }
 :root:has(.workspace:not(.focus-mode, .note-window)) .toast { --toast-area-left: var(--sidebar-width); }
 :root:has(.workspace.with-ai-chat) .toast { --toast-area-right: var(--ai-chat-width); }
 /* ズームした表示は、窓いっぱいに本文を出す。 */
@@ -854,9 +874,6 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .toast-message { min-width: 0; overflow-wrap: anywhere; }
 /* スマホの画面では、下のメニュー（とエディタの下のバー）の上に出す。 */
 :root:has(.phone) .toast { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
-.tab[draggable="true"] { cursor: grab; }
-.tab.dragging { opacity: .45; }
-.tab.drop-target { box-shadow: inset 2px 0 0 var(--accent); }
 .dialog.note-picker { --dialog-width: 480px; max-height: min(560px, 90%); }
 .note-picker .sidebar-search { margin-bottom: 0; flex: none; }
 /* コマンドパレットは、当たりの数で高さが変わっても上端が動かないよう、上から決まった所に置く。 */
@@ -867,7 +884,8 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .command-palette .menu-heading:not(:first-child) { margin-top: 4px; }
 .note-picker-list { overflow-y: auto; min-height: 80px; display: flex; flex-direction: column; }
 /* ノートブックを選ぶダイアログの行（editor/NoteNotebooksDialog.tsx）。行のどこを押しても付け外しする。 */
-.notebook-choice { cursor: pointer; }
+/* 階層の段（--depth）ごとに、子のチェックボックスが親のノートブックの印の真下に来る幅（チェックボックスと、.menu-item の間）だけ字下げする。 */
+.menu-item.notebook-choice { cursor: pointer; padding-left: calc(10px + var(--depth, 0) * (var(--checkbox-size) + 10px)); }
 .notebook-choice .nav-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 絞り込みで、名前に当たった子の親として残しただけの行。 */
 .notebook-choice.ancestor-only { color: var(--muted); }
@@ -908,7 +926,7 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 /* メニュー */
 /* メニューはツールバーの中に置くこともあるので、文字の色を親（補助の色）から引き継がない。 */
 /* 高さの上限は PopupMenu が、開く向きの空きに合わせて入れる。項目が多いときは、メニューの中で送る。 */
-.menu { position: fixed; z-index: 20; color: var(--text); background: var(--raised); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: 0 8px 24px var(--shadow); padding: 6px; min-width: 200px; max-width: min(420px, calc(100vw - 16px)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.menu { position: fixed; z-index: var(--layer-menu); color: var(--text); background: var(--raised); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: var(--elevation-popover); padding: 6px; min-width: 200px; max-width: min(420px, calc(100vw - 16px)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
 .menu:focus { outline: none; }
 .menu .menu-item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .menu-item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--radius-row); width: 100%; text-align: left; }
@@ -930,10 +948,10 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 /* ダイアログと知らせ */
 /* 暗い地では、影だけではダイアログの端が見えないので、線で縁を取る。 */
 :root[data-scheme="dark"] .dialog { border-color: var(--line); }
-.dialog-backdrop { position: fixed; inset: 0; z-index: 30; background: var(--overlay); display: grid; place-items: center; padding: 16px; }
+.dialog-backdrop { position: fixed; inset: 0; z-index: var(--layer-dialog); background: var(--overlay); display: grid; place-items: center; padding: 16px; }
 /* 中身が画面の高さを超えるダイアログは、枠の中で送る（下のボタンが画面の外に出て、押せなくならないように）。 */
 /* ダイアログの幅は --dialog-width で決める（各ダイアログは、この変数だけを書く。width を書くと、規則の順で負けることがある）。 */
-.dialog { background: var(--raised); border: 1px solid transparent; border-radius: var(--radius-dialog); padding: 20px; width: min(var(--dialog-width, 420px), 100%); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 16px 40px var(--shadow-strong); }
+.dialog { background: var(--raised); border: 1px solid transparent; border-radius: var(--radius-dialog); padding: 20px; width: min(var(--dialog-width, 420px), 100%); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--elevation-dialog); }
 .dialog-form { display: contents; }
 .dialog p { line-height: 1.6; }
 /* ダイアログの見出しと、その下の説明。どのダイアログでも同じ形にする（ModalDialog の title と description）。 */
@@ -951,7 +969,7 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
    中身が窓に入り切らないときは、ページではなくカードの中だけを送り、ボタンの行はカードの下の端に固定する。 */
 .entry { --entry-card-top: 12vh; --entry-card-padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); justify-items: center; align-items: start; height: 100%; padding: max(var(--entry-card-top), env(safe-area-inset-top)) 16px 24px; overflow: hidden; }
 .entry-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-dialog); width: min(520px, 100%); max-height: 100%; overflow-y: auto; padding: var(--entry-card-padding) var(--entry-card-padding) 0; display: flex; flex-direction: column; gap: 14px; }
-.entry-card > .form-actions { position: sticky; bottom: 0; z-index: 1; margin: 0 calc(var(--entry-card-padding) * -1); padding: 14px var(--entry-card-padding) 20px; background: var(--panel); border-top: 1px solid var(--line); }
+.entry-card > .form-actions { position: sticky; bottom: 0; z-index: var(--layer-sticky); margin: 0 calc(var(--entry-card-padding) * -1); padding: 14px var(--entry-card-padding) 20px; background: var(--panel); border-top: 1px solid var(--line); }
 /* カードの上のアプリのアイコンと名前（entry/EntryBrand.tsx）。 */
 .entry-brand { display: flex; align-items: center; gap: 10px; min-height: 28px; font-weight: 700; font-size: var(--font-size-heading); flex: none; }
 .entry-card h1 { font-size: var(--font-size-title); display: flex; align-items: center; gap: 10px; }
@@ -960,7 +978,7 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--tag); border-radius: var(--radius-control); padding: 3px; gap: 3px; }
 .segmented button { padding: 7px; border-radius: var(--radius-row); color: var(--muted); min-width: 0; }
 .segmented button:not(.on, [aria-checked="true"], [aria-selected="true"]):hover { color: var(--text); }
-.segmented button:is(.on, [aria-checked="true"], [aria-selected="true"]) { background: var(--panel); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px var(--shadow-faint); }
+.segmented button:is(.on, [aria-checked="true"], [aria-selected="true"]) { background: var(--panel); color: var(--text); font-weight: 600; box-shadow: var(--elevation-selected); }
 .segmented.compact { padding: 2px; gap: 2px; border-radius: var(--radius-row); }
 .segmented.compact button { padding: 3px 8px; border-radius: var(--radius-inline); font-size: var(--font-size-small); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .field { display: flex; flex-direction: column; gap: 4px; }
@@ -1137,8 +1155,8 @@ details summary { cursor: pointer; color: var(--accent); }
 .phone-scroll { overflow-y: auto; flex: 1; min-height: 0; }
 /* 一覧を上から引いて同期する（usePullToSync.ts）。引いた一覧が下のタブに重ならないよう、外側で切り取る。 */
 .phone-list { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-.phone-list .phone-scroll { overscroll-behavior-y: contain; transition: transform 220ms cubic-bezier(0.165, 0.84, 0.44, 1); }
-.pull-to-sync { position: absolute; top: 0; left: 0; right: 0; height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--muted); font-size: var(--font-size-small); opacity: 0; pointer-events: none; transition: opacity 220ms ease-out; }
+.phone-list .phone-scroll { overscroll-behavior-y: contain; transition: transform var(--duration-settle) var(--ease-settle); }
+.pull-to-sync { position: absolute; top: 0; left: 0; right: 0; height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--muted); font-size: var(--font-size-small); opacity: 0; pointer-events: none; transition: opacity var(--duration-settle) ease-out; }
 .pull-to-sync svg { transform: rotate(calc(var(--pull-progress, 0) * 180deg)); }
 .pull-to-sync[data-state="syncing"] svg { animation: pull-to-sync-spin 1s linear infinite; }
 @keyframes pull-to-sync-spin { to { transform: rotate(360deg); } }
@@ -1147,7 +1165,7 @@ details summary { cursor: pointer; color: var(--accent); }
 /* 画面の外の行は、描く手間（文字の組みと塗り）を省く。メモが 2,000 件あると、一覧を出すたびに全部の行を組んで 0.5 秒ほど止まるため。
    見込みの高さ 103px は、題・本文 2 行・日付の行の高さ。一度描いた行は、描いたときの高さを覚えて使う（auto）。 */
 .phone-list .note-item-row { content-visibility: auto; contain-intrinsic-size: auto 103px; }
-.note-item-row .note-item { position: relative; background: var(--panel); touch-action: pan-y; transition: transform 220ms cubic-bezier(0.165, 0.84, 0.44, 1); }
+.note-item-row .note-item { position: relative; background: var(--panel); touch-action: pan-y; transition: transform var(--duration-settle) var(--ease-settle); }
 .swipe-action { position: absolute; inset: 0; display: none; align-items: center; gap: 6px; padding: 0 20px; font-size: var(--font-size-small); font-weight: 600; }
 .note-item-row[data-swipe="right"] .swipe-action-right { display: flex; justify-content: flex-start; background: var(--accent); color: var(--on-accent); }
 .note-item-row[data-swipe="left"] .swipe-action-left { display: flex; justify-content: flex-end; background: var(--danger); color: var(--on-danger); }
@@ -1239,7 +1257,7 @@ details summary { cursor: pointer; color: var(--accent); }
 /* スマホの下のツールバーは横に送れる。まだ先がある側の端に、背景色へ溶ける帯を重ねて、続きがあることを見せる
    （shared/useHorizontalScrollEdges.ts が data 属性を付ける）。帯は sticky で端に留め、幅と間隔の分を負の余白で打ち消して、ボタンの並びを動かさない。
    mask-image は使わない（バーの中から開く色・表のメニューまで切り取られる）。 */
-.phone .editor-bar::before, .phone .editor-bar::after { content: ""; position: sticky; z-index: 1; flex: none; align-self: stretch; width: 40px; pointer-events: none; opacity: 0; }
+.phone .editor-bar::before, .phone .editor-bar::after { content: ""; position: sticky; z-index: var(--layer-sticky); flex: none; align-self: stretch; width: 40px; pointer-events: none; opacity: 0; }
 .phone .editor-bar::before { left: -10px; margin-right: -44px; background: linear-gradient(to right, var(--panel), transparent); }
 .phone .editor-bar::after { right: -10px; margin-left: -44px; background: linear-gradient(to left, var(--panel), transparent); }
 .phone .editor-bar[data-more-start]::before, .phone .editor-bar[data-more-end]::after { opacity: 1; }

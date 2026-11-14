@@ -12,12 +12,9 @@ import { moveFocusAmongItems } from "../shared/arrowKeyFocus";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
 import { ModalDialog } from "../shared/ModalDialog";
 import { assignNotebookColors, NotebookMark } from "../shared/notebookAppearance";
+import { treeDepthStyle } from "../shared/treeDepthStyle";
 import { notebookTreeRows } from "./notebookTreeRows";
 
-// 行の左の余白（.menu-item と同じ）。
-const ROW_PADDING_LEFT = 10;
-// 階層 1 段ごとの字下げ。子のチェックボックスが、親のノートブックの印の真下に来る幅（チェックボックス 15px + 間 10px。app.css の .notebook-choice）。
-const TREE_INDENT_STEP = 25;
 // 一覧の中で ↑ ↓ で移る項目（ノートブックのチェックボックスと、作成して追加の行）。
 const LIST_ITEM_SELECTOR = ".notebook-choice input, .notebook-create";
 
@@ -65,7 +62,7 @@ export function NoteNotebooksDialog({ note, notebooks, repository, onClose }: No
         {rows.length === 0 && <div className="tree-empty">{translate("editor.notebookPickerNone")}</div>}
         {rows.map(({ notebook, depth, matchesSearch }) => (
           <label key={notebook.id} className={`menu-item notebook-choice${matchesSearch ? "" : " ancestor-only"}`}
-            style={{ paddingLeft: ROW_PADDING_LEFT + depth * TREE_INDENT_STEP }}>
+            style={treeDepthStyle(depth)}>
             <input type="checkbox" checked={note.content.notebookIds.includes(notebook.id)} onChange={() => toggleNotebook(notebook.id)}
               onKeyDown={(event) => {
                 // チェックボックスは Space でしか切り替わらないので、Enter でも付け外しできるようにする。

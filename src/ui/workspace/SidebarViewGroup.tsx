@@ -17,7 +17,7 @@ import { markSidebarDropTarget, useSidebarDragState } from "./sidebarDragState";
 import type { InlineNameInputProps } from "./InlineNameInput";
 import { expandOrCollapseViewRow, isUnmodifiedKey } from "./sidebarKeyboard";
 import { SidebarNameRow } from "./SidebarNameRow";
-import { treeDepthStyle } from "./treeDepthStyle";
+import { treeDepthStyle } from "../shared/treeDepthStyle";
 import { SidebarNoteRow } from "./SidebarNoteRow";
 import { SidebarCount } from "./SidebarCount";
 import { useMovedNotesToast } from "./useMovedNotesToast";
