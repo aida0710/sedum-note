@@ -149,8 +149,6 @@ test("空の題の欄にフォーカスがあっても、まだ打っていな�
   const opened = context.waitForEvent("page");
   await page.getByRole("menuitem", { name: "別のウィンドウで開く" }).click();
   const noteWindow = await opened;
-  await noteWindow.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
-  await noteWindow.getByRole("button", { name: "解除" }).click();
   await expect(titleInput(noteWindow)).toBeFocused();
   await titleInput(page).fill("買い物");
   await expect(titleInput(noteWindow)).toHaveValue("買い物");

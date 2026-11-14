@@ -78,14 +78,13 @@ for ($attempt = 0; (Get-AppWindows).Count -lt 2; $attempt++) {
 $noteWindow = Get-AppWindows | Where-Object { $_.Current.NativeWindowHandle -ne $main.Current.NativeWindowHandle } | Select-Object -First 1
 Write-Output "ok: a second window opened"
 
-# 2. ロックを解除すると、そのメモが出て、ウィンドウの名前がメモの題になる。
-Unlock-Window $noteWindow
+# 2. 最初のウィンドウのキーを受け取り、パスフレーズを聞かずに、そのメモが出て、ウィンドウの名前がメモの題になる。
 for ($attempt = 0; $noteWindow.Current.Name -eq "Sedum Note" -or $noteWindow.Current.Name -eq ""; $attempt++) {
   if ($attempt -ge 40) { Save-Screen "note-window-not-unlocked"; throw "the note window did not show the note" }
   Start-Sleep -Milliseconds 500
 }
 Save-Screen "note-window"
-Write-Output "ok: the note window shows the note after unlocking (window name: $($noteWindow.Current.Name))"
+Write-Output "ok: the note window shows the note without asking for the passphrase (window name: $($noteWindow.Current.Name))"
 
 # 3. 最前面に固定する。固定したウィンドウは、最初のウィンドウを前に出しても、その上に残る。
 Invoke-Element (Wait-Element $noteWindow "その他の操作")

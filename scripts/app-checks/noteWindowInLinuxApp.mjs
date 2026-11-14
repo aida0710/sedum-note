@@ -1,7 +1,9 @@
-// Linux 版のアプリ（deb を入れたコンテナの中）で、メモを別のウィンドウで開き、ウィンドウの間で編集とロックが伝わるかを確かめる。
-// 手で流す確認の道具。アプリのウィンドウどうしで、BroadcastChannel と Web Locks が働くことを見る。
+// Linux 版のアプリ（deb を入れたコンテナの中）で、メモを別のウィンドウで開き、ウィンドウの間で編集とロック・解除が伝わるかを確かめる。
+// 手で流す確認の道具。アプリのウィンドウどうしで、BroadcastChannel（ロックを解除したウィンドウのマスターキーの受け渡しも）と
+// Web Locks が働くことを見る。
 //
-// 前提: scripts/app-checks/linux/run-driver.sh でコンテナを起動しておく。
+// 前提: scripts/app-checks/linux/run-driver.sh（組み立てた実行ファイルなら run-built-app-driver.sh）でコンテナを起動しておく。
+// 実行ファイルの場所は APP_PATH で変えられる（run-built-app-driver.sh は /app/sedum-note）。
 // 使い方: node scripts/app-checks/noteWindowInLinuxApp.mjs <画像を置くフォルダ>
 
 import { writeFileSync } from "node:fs";
@@ -13,7 +15,7 @@ const WAIT_STEP_MILLISECONDS = 500;
 
 const app = await WebDriverSession.start("http://127.0.0.1:14444", {
   browserName: "wry",
-  "tauri:options": { application: "/usr/bin/sedum-note" },
+  "tauri:options": { application: process.env.APP_PATH ?? "/usr/bin/sedum-note" },
 });
 
 const runInPage = (script) => app.command("POST", "/execute/sync", { script, args: [] });
@@ -55,16 +57,14 @@ try {
   await waitUntil("the body of the first window", bodyText, (text) => text === "牛乳");
   const [mainWindow] = await windowHandles();
 
-  // 1. 別のウィンドウで開く。ロックの解除のあと、そのメモだけが出る。
+  // 1. 別のウィンドウで開く。最初のウィンドウのキーを受け取り、パスフレーズを聞かずに、そのメモだけが出る。
   await chooseFromNoteMenu("別のウィンドウで開く");
   const handles = await waitUntil("a second window", windowHandles, (list) => list.length === 2);
   const noteWindow = handles.find((handle) => handle !== mainWindow);
   await switchToWindow(noteWindow);
-  await app.type(await app.waitForXPath("//input[@id='unlock-passphrase']", 30_000), PASSPHRASE);
-  await app.click(await app.findByXPath("//button[normalize-space()='解除']"));
   await waitUntil("the body of the note window", bodyText, (text) => text === "牛乳");
   await capture("linux-note-window");
-  console.log("ok: the note opens in a second window after unlocking");
+  console.log("ok: the note opens in a second window without asking for the passphrase");
 
   // 2. 別のウィンドウで書いた文字が、最初のウィンドウに出る。
   await app.type(await app.find(".ProseMirror"), "と卵");
@@ -89,6 +89,15 @@ try {
   await app.waitForXPath("//input[@id='unlock-passphrase']", 15_000);
   await capture("linux-note-window-locked");
   console.log("ok: locking the first window locks the note window too");
+
+  // 5. 別のウィンドウで解除すると、ロックの画面のままの最初のウィンドウも、そのキーで開く。
+  await app.type(await app.find("#unlock-passphrase"), PASSPHRASE);
+  await app.click(await app.findByXPath("//button[normalize-space()='解除']"));
+  await waitUntil("the body of the note window after unlocking", bodyText, (text) => text?.includes("卵"));
+  await switchToWindow(mainWindow);
+  await app.waitForXPath("//button[normalize-space()='新しいメモ']", 15_000);
+  await capture("linux-main-window-unlocked-by-note-window");
+  console.log("ok: unlocking the note window unlocks the first window too");
 } finally {
   await app.end();
 }
