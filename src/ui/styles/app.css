@@ -987,6 +987,10 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .settings-page-list .library-row svg { color: var(--muted); flex: none; }
 .settings-page-list .settings-page-list-chevron { margin-left: auto; }
 .settings-section p { color: var(--muted); line-height: 1.6; }
+/* 開けない記録の知らせ（UnreadableRecordsNotice.tsx）。文とボタンと ID の一覧を、知らせの枠の中に縦に並べる。 */
+.unreadable-records { display: flex; flex-direction: column; gap: 8px; }
+.unreadable-records ul { margin: 6px 0 0; padding-left: 18px; }
+.unreadable-records code { font-family: var(--font-mono); font-size: var(--font-size-small); overflow-wrap: anywhere; }
 .settings pre { font-family: var(--font-mono); background: var(--tag); border-radius: var(--radius-control); padding: 10px 12px; font-size: var(--font-size-small); overflow-x: auto; }
 details summary { cursor: pointer; color: var(--accent); }
 

@@ -107,3 +107,34 @@ test("設定のボタンは右にそろい、並べて置くボタンは縦に�
   await phone.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: /データ/ }).click();
   await expect(phone.locator(".phone-top .phone-top-title")).toHaveText("データ");
 });
+
+test("開けない記録があると、設定に件数と次の手と記録の ID を出す", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await page.getByPlaceholder("タイトル").fill("壊れるメモ");
+  await page.getByPlaceholder("タイトル").press("Enter");
+  // 手元の記録の暗号文を、同じ長さの 0 に置き換えて、復号できなくする。
+  const brokenId = await page.evaluate(() => new Promise<string>((resolve, reject) => {
+    const request = indexedDB.open("sedum-note");
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const store = request.result.transaction("records", "readwrite").objectStore("records");
+      const getAll = store.getAll();
+      getAll.onsuccess = () => {
+        const entry = (getAll.result as Array<{ id: string; sealed: Uint8Array | ArrayBuffer }>)[0]!;
+        const length = entry.sealed.byteLength;
+        store.put({ ...entry, sealed: entry.sealed instanceof ArrayBuffer ? new ArrayBuffer(length) : new Uint8Array(length) });
+        store.transaction.oncomplete = () => resolve(entry.id);
+      };
+    };
+  }));
+  await page.reload();
+  await page.getByLabel("パスフレーズ").fill("correct horse battery");
+  await page.getByRole("button", { name: "解除" }).click();
+  await page.getByRole("button", { name: "設定", exact: true }).click();
+  const notice = page.locator(".unreadable-records");
+  await expect(notice).toContainText("開けない記録が 1 件あります");
+  await expect(notice).toContainText("同期していないので、この記録をほかの場所から取り戻すことはできません。");
+  await notice.getByText("開けない記録の ID").click();
+  await expect(notice.locator("code")).toHaveText(brokenId);
+});

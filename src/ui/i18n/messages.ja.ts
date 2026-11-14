@@ -670,6 +670,9 @@ export const japaneseMessages = {
   "settings.lockNow": "今すぐロック",
   "settings.lockDescription": "このデバイスのメモをロックします。解除にはパスフレーズが要ります。",
   "settings.unreadable": "開けない記録が {count} 件あります（壊れているか、別のパスフレーズのメモです）",
+  "settings.unreadableNextStepSynced": "同期先の記録が壊れていなければ、このデバイスのデータを消して同期先のメモに参加し直すと開けます。まだ送っていない変更は消えるので、先にバックアップを書き出してください。",
+  "settings.unreadableNextStepLocal": "同期していないので、この記録をほかの場所から取り戻すことはできません。ほかのメモは、このまま使えます。",
+  "settings.unreadableIds": "開けない記録の ID",
 
   "settings.display": "表示",
   "settings.language": "言語",

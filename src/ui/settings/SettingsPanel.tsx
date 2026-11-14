@@ -10,6 +10,7 @@ import { SettingsNavigation, SettingsPageList } from "./SettingsNavigation";
 import { SettingsPageContent } from "./SettingsPageContent";
 import { FIRST_SETTINGS_PAGE, SETTINGS_PAGE_META, type SettingsPage, settingsPagesFor } from "./settingsPages";
 import { type SettingRevealRequest, useRevealSetting } from "./revealSetting";
+import { UnreadableRecordsNotice } from "./UnreadableRecordsNotice";
 
 type SettingsPanelProps = {
   session: VaultSession;
@@ -32,7 +33,9 @@ export function SettingsPanel({ session, vault, unreadableCount, isMobile, page,
   const pageContent = useRef<HTMLDivElement>(null);
   useRevealSetting(revealRequest, pageContent);
   // 開けない記録の知らせは、どのページを開いていても出す。
-  const unreadableWarning = unreadableCount > 0 && <div className="form-error">{translate("settings.unreadable", { count: unreadableCount })}</div>;
+  const unreadableWarning = unreadableCount > 0 && (
+    <UnreadableRecordsNotice recordIds={vault.repository.unreadableIds()} synced={vault.syncEngine !== null} onSelectPage={onSelectPage} />
+  );
   if (isMobile) {
     return <PhoneSettings session={session} vault={vault} pages={pages} page={page} onSelectPage={onSelectPage}
       onBackToPageList={onBackToPageList ?? (() => onSelectPage(null))} unreadableWarning={unreadableWarning} />;
