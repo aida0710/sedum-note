@@ -22,10 +22,10 @@ const INSERT_BUTTON_CLASS = "block-insert-button";
 // 持ち手と「＋」の大きさ（px）。CSS（.block-drag-handle、.block-insert-button）と同じ値。押しやすいよう、本文の 1 行ぶんの高さにする。
 const HANDLE_WIDTH = 18;
 const HANDLE_HEIGHT = 24;
-// 持ち手の右端と、ブロックの左端との間（px）。間に出る印をよける。「＋」は持ち手のすぐ左に置く。
-//   見出し: 折りたたみの印（左へ 20px まで）と、ズームのボタン（左へ 42px まで）。
-//   箇条書きの項目: 行頭の印と、折りたたみの印（左へ 34px まで）。
-const HANDLE_GAP = { heading: 44, listItem: 38, other: 6 };
+// 持ち手の右端と、ブロックの左端との間（px）。どの種類のブロックでも同じにして、縦に動かしても持ち手が左右に跳ばないようにする
+// （項目は、字下げの分だけ右に出る）。間には、見出しのズームのボタン（左へ 42px まで）と折りたたみの印、
+// 項目の折りたたみの印（左へ 44px まで。CSS の .fold-toggle）と行頭の印が入る。「＋」は持ち手のすぐ左に置く。
+const HANDLE_GAP = 44;
 
 const LIST_ITEM_TYPES = ["listItem", "taskItem"];
 const LIST_TYPES = ["bulletList", "orderedList", "taskList"];
@@ -91,13 +91,6 @@ function draggableBlockAt(view: EditorView, mouse: { clientX: number; clientY: n
   const itemPosition = view.posAtDOM(item, 0) - 1;
   const itemNode = view.state.doc.nodeAt(itemPosition);
   return itemNode && LIST_ITEM_TYPES.includes(itemNode.type.name) ? { position: itemPosition, node: itemNode, element: item } : { position, node, element };
-}
-
-function handleGapOf(node: ProseMirrorNode): number {
-  if (node.type.name === "heading") {
-    return HANDLE_GAP.heading;
-  }
-  return LIST_ITEM_TYPES.includes(node.type.name) ? HANDLE_GAP.listItem : HANDLE_GAP.other;
 }
 
 // ブロックの中の、最初の文字の段落（項目なら題の行）の中の位置。無ければ null。
@@ -218,7 +211,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             const containerBox = container.getBoundingClientRect();
             const blockBox = block.element.getBoundingClientRect();
             const top = `${firstLineMiddle(view, block) - HANDLE_HEIGHT / 2 - containerBox.top}px`;
-            const handleLeft = blockBox.left - containerBox.left - handleGapOf(block.node) - HANDLE_WIDTH;
+            const handleLeft = blockBox.left - containerBox.left - HANDLE_GAP - HANDLE_WIDTH;
             handle.style.top = top;
             handle.style.left = `${handleLeft}px`;
             insertButton.style.top = top;

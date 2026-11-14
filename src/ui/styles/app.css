@@ -600,7 +600,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ProseMirror h3 { font-size: 1.12em; margin: 1.2em 0 .3em; }
 .ProseMirror li, .ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { position: relative; }
 /* 印の高さを 1 行ぶん（文字の行の高さ）にして、その中央に置く。こうすると、行の文字と縦の中心がそろう。lh を知らないブラウザでは、本文の行の高さに近い 1.7em にする。 */
-.ProseMirror .fold-toggle { position: absolute; left: -34px; top: 0; width: 16px; height: 1.7em; height: 1lh; display: grid; place-items: center; border-radius: var(--radius-row); color: var(--muted); opacity: 0; }
+/* 項目の印は、持ち手（editor/blockDragHandle.ts、項目の左端から 44px より左）のすぐ右に置く。行頭の番号（「10.」「100.」）と重ならない。 */
+.ProseMirror .fold-toggle { position: absolute; left: -44px; top: 0; width: 16px; height: 1.7em; height: 1lh; display: grid; place-items: center; border-radius: var(--radius-row); color: var(--muted); opacity: 0; }
 /* 印は右向きの山形で、開いているときは下向きに回す。たたんだ所の印は、いつも出しておく。 */
 .ProseMirror .fold-toggle:not(.collapsed) > svg { transform: rotate(90deg); }
 .ProseMirror .fold-toggle.collapsed { opacity: 1; }

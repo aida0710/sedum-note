@@ -172,3 +172,41 @@ test("作ったばかりの空のメモには文字数と更新日時を出さ�
   await expect(page.locator(".document-meta .character-count")).toHaveText("0 文字");
   await expect(page.locator(".document-meta .updated")).toBeVisible();
 });
+
+// 箇条書きの 1 段の字下げ（app.css の --list-indent）。
+const LIST_INDENT = 24;
+
+test("持ち手は、段落・見出し・チェックリストで同じ横の位置に出て、箇条書きの項目は 1 段ごとに字下げの分だけ右に出る", async ({ page }) => {
+  await openNoteWith(page, '<p>段落</p><h2>見出し</h2><ul><li><p>点 1 段目</p><ul><li><p>点 2 段目</p></li></ul></li></ul><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>チェック</p></li></ul>');
+  const handle = page.getByRole("button", { name: "ドラッグしてブロックを動かす" });
+  const handleLeftAt = async (block: Locator) => {
+    const box = (await block.boundingBox())!;
+    await page.mouse.move(box.x + 30, box.y + 10);
+    await expect(handle).toBeVisible();
+    return Math.round((await handle.boundingBox())!.x);
+  };
+  const paragraph = await handleLeftAt(page.locator(".ProseMirror > p", { hasText: "段落" }));
+  expect(await handleLeftAt(page.locator(".ProseMirror h2"))).toBe(paragraph);
+  expect(await handleLeftAt(page.locator("li", { hasText: "チェック" }))).toBe(paragraph);
+  expect(await handleLeftAt(page.locator("li > p", { hasText: "点 1 段目" }))).toBe(paragraph + LIST_INDENT);
+  expect(await handleLeftAt(page.locator("li > p", { hasText: "点 2 段目" }))).toBe(paragraph + LIST_INDENT * 2);
+});
+
+test("番号が 2 桁・3 桁の項目でも、折りたたみの印が番号に重ならない", async ({ page }) => {
+  const items = Array.from({ length: 100 }, (_unused, index) => `<li><p>番号 ${index + 1}</p>${index === 9 || index === 99 ? "<ol><li><p>子</p></li></ol>" : ""}</li>`).join("");
+  await openNoteWith(page, `<ol>${items}</ol>`);
+  for (const number of [10, 100]) {
+    const item = page.locator(".ProseMirror > ol > li").nth(number - 1);
+    await item.scrollIntoViewIfNeeded();
+    await item.locator(":scope > p").hover();
+    const fold = (await item.locator(":scope > .fold-toggle").boundingBox())!;
+    const itemLeft = (await item.boundingBox())!.x;
+    // 番号（「100.」）は、項目の左端の手前に、番号の文字の幅だけ出る。
+    const numberWidth = await item.evaluate((element, label) => {
+      const context = document.createElement("canvas").getContext("2d")!;
+      context.font = getComputedStyle(element).font;
+      return context.measureText(label).width;
+    }, `${number}.`);
+    expect(fold.x + fold.width).toBeLessThanOrEqual(itemLeft - numberWidth);
+  }
+});
