@@ -27,8 +27,9 @@ function durationLabel(minutes: number): string {
 
 export function InactivityLockSetting() {
   const { inactivityLockMinutes } = useDevicePreferences();
-  // 選択肢に無い時間を保存してあれば、最初から「時間を指定」の欄を出す。
-  const [choosesCustom, setChoosesCustom] = useState(inactivityLockMinutes !== null && !isPresetInactivityLockMinutes(inactivityLockMinutes));
+  // 「時間を指定」を選んだか。選択肢に無い時間を保存してあるとき（ほかのウィンドウで保存したときも）は、選ばなくても指定の欄を出す。
+  const [choosesCustom, setChoosesCustom] = useState(false);
+  const showsCustom = choosesCustom || (inactivityLockMinutes !== null && !isPresetInactivityLockMinutes(inactivityLockMinutes));
   // 指定の欄に最初に入れておく値。今の設定があればそれ。
   const amountToShow = () => inactivityLockAmountOf(inactivityLockMinutes ?? INITIAL_CUSTOM_MINUTES);
   const [amountText, setAmountText] = useState(() => String(amountToShow().amount));
@@ -36,7 +37,7 @@ export function InactivityLockSetting() {
   const typed = parseInactivityLockInput(amountText, unit);
   const typedMinutes = "minutes" in typed ? typed.minutes : null;
 
-  const selectedChoice = choosesCustom ? CUSTOM_CHOICE : inactivityLockMinutes === null ? NEVER_CHOICE : String(inactivityLockMinutes);
+  const selectedChoice = showsCustom ? CUSTOM_CHOICE : inactivityLockMinutes === null ? NEVER_CHOICE : String(inactivityLockMinutes);
   const choose = (choice: string) => {
     setChoosesCustom(choice === CUSTOM_CHOICE);
     if (choice === CUSTOM_CHOICE) {
@@ -71,7 +72,7 @@ export function InactivityLockSetting() {
           </select>
         )}
       </SettingRow>
-      {choosesCustom && (
+      {showsCustom && (
         // 数・単位・保存の 3 つを並べると、右に寄せる行（SettingRow）の欄の幅に収まらないので、名前の下に欄を置く縦の形にする。
         <div className="field inactivity-lock-amount">
           <label htmlFor="inactivity-lock-amount">{translate("inactivityLock.customAmount")}</label>
