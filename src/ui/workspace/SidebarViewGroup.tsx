@@ -144,7 +144,7 @@ export function ViewGroup(props: ViewGroupProps) {
     <>
       {childBranches}
       {/* 空のノートブックに「メモはありません」は出さない（件数を出さないことと開閉の印が無いことで分かる）。 */}
-      {(notebookId === null || notes.length > 0) && <NoteRows notes={notes} view={view} navigation={navigation} repository={repository} depth={depth} />}
+      {(notebookId === null || notes.length > 0) && <NoteRows notes={notes} view={view} navigation={navigation} repository={repository} depth={depth} opensInPreviewTab />}
     </>
   );
   if (dropsOnWholeGroup) {
@@ -168,9 +168,11 @@ type NoteRowsProps = {
   depth: number | null;
   // 検索の結果なら、行に添える本文の一部（当たった所）。
   snippetOf?: (summary: NoteSummary) => SearchSnippet | null;
+  // 普通に押したメモを、仮のタブで開くか（ノートブックの木の中）。検索の結果は、普通のタブで開く。
+  opensInPreviewTab: boolean;
 };
 
-export function NoteRows({ notes, view, navigation, repository, depth, snippetOf }: NoteRowsProps) {
+export function NoteRows({ notes, view, navigation, repository, depth, snippetOf, opensInPreviewTab }: NoteRowsProps) {
   // 行は描き直しを省く（memo）ので、行が使う値は、変わらない限り同じものを渡す。並びが同じなら同じ配列を渡し、
   // 未送信の印は行ごとの真偽値にする（未送信の ID の Set は、スナップショットのたびに作り直される）。
   const listedNoteIdsText = notes.map(({ note }) => note.id).join(" ");
@@ -183,7 +185,9 @@ export function NoteRows({ notes, view, navigation, repository, depth, snippetOf
   }
   return notes.map((summary) => (
     <SidebarNoteRow key={summary.note.id} note={summary.note} view={view} listedNoteIds={listedNoteIds} depth={depth}
-      activeTab={navigation.activeTab} openNote={navigation.openNote} repository={repository} unsynced={unsyncedIds.has(summary.note.id)} language={language}
+      activeTab={navigation.activeTab} openNote={opensInPreviewTab ? navigation.openNoteInPreviewTab : navigation.openNote}
+      openNoteInNewTab={navigation.openNote} keepPreviewTab={navigation.keepPreviewTab}
+      repository={repository} unsynced={unsyncedIds.has(summary.note.id)} language={language}
       snippet={snippetOf?.(summary) ?? null} />
   ));
 }
@@ -199,7 +203,7 @@ export function SearchResults({ summaries, view, navigation, repository }: Searc
       {/* 当たりが無いときは、「メモはありません」ではなく、検索の結果だと分かる文にする。 */}
       {summaries.length === 0 && <div className="tree-empty unindented">{translate("sidebar.noSearchResults", { query: navigation.searchText.trim() })}</div>}
       {summaries.length > 0 && <NoteRows notes={summaries} view={view} navigation={navigation} repository={repository} depth={null}
-        snippetOf={(summary) => searchSnippetOf(summary.plainText, words)} />}
+        snippetOf={(summary) => searchSnippetOf(summary.plainText, words)} opensInPreviewTab={false} />}
     </>
   );
 }

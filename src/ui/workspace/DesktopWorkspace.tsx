@@ -18,6 +18,7 @@ import { EmptyEditorPane } from "./EmptyEditorPane";
 import { openNoteCommands } from "./openNoteCommands";
 import { workspaceCommands } from "./workspaceCommands";
 import { useTrashWithUndo } from "./useTrashWithUndo";
+import { useKeepPreviewTabOnEdit } from "./useKeepPreviewTabOnEdit";
 import { APP_SHORTCUT_IDS, useKeyboardShortcuts } from "./keyboardShortcuts";
 import { UpdateChip } from "../update/UpdateChip";
 import { NotebookDatabaseView } from "./NotebookDatabaseView";
@@ -51,6 +52,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
   const splitNote = navigation.splitNoteId === null ? undefined : repository.note(navigation.splitNoteId);
   const databaseNotebook = snapshot.notebooks.find((notebook) => notebook.id === notebookIdOfDatabaseTab(navigation.activeTab));
   const createNote = async () => navigation.openNote((await createNoteInView(repository, navigation.view)).id);
+  useKeepPreviewTabOnEdit({ repository, previewTab: navigation.previewTab, keepPreviewTab: navigation.keepPreviewTab });
   // フォーカスモード: 左の列・タブ・ツールバーを隠して、本文だけにする。開き直すと戻る。
   const [focusMode, setFocusMode] = useState(false);
   const exitFocusMode = useCallback(() => setFocusMode(false), []);
@@ -62,7 +64,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
     if (neighbor === SETTINGS_TAB) {
       navigation.openSettings();
     } else if (neighbor !== undefined) {
-      navigation.openNote(neighbor);
+      navigation.openTab(neighbor);
     }
   };
   const aiChat = useAiChatSession();

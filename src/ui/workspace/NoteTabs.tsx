@@ -4,6 +4,7 @@
 // 右端のボタンで開いているタブの一覧を出す（タブが多くて隠れたときに選べるように）。
 // キーボードでは、Tab で選んでいるタブへ移り、← → Home End でタブを切り替え、Shift+F10 かメニューのキーでタブのメニューを開く。
 // ピン留めしたタブは、並びを横に送っても左端に留まる（stickyPinnedTabs.ts）。並びに続きがある側の端は、ぼかして見せる。
+// 仮のタブ（tabState.ts）は題を斜体にし、ダブルクリックかドラッグで動かすと普通のタブになる。
 
 import { Check, ChevronDown, Columns2, Pin, PinOff, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -122,8 +123,9 @@ function OpenTabsBar({ navigation, repository }: NoteTabsProps) {
         const label = labelOf(tabId);
         const isPinned = navigation.pinnedTabs.includes(tabId);
         const isOn = navigation.activeTab === tabId;
+        const isPreview = navigation.previewTab === tabId;
         return (
-          <div key={tabId} className={`tab${isOn ? " on" : ""}${isPinned ? " pinned" : ""}${draggedTabId === tabId ? " dragging" : ""}${dropTargetTabId === tabId && draggedTabId !== tabId ? " drop-target" : ""}`}
+          <div key={tabId} className={`tab${isOn ? " on" : ""}${isPinned ? " pinned" : ""}${isPreview ? " preview" : ""}${draggedTabId === tabId ? " dragging" : ""}${dropTargetTabId === tabId && draggedTabId !== tabId ? " drop-target" : ""}`}
             role="tab" aria-selected={isOn} tabIndex={isOn ? 0 : -1} title={label} aria-label={isPinned ? label : undefined} aria-haspopup="menu"
             onKeyDown={(event) => moveOrOpenMenuByKey(event, tabId)}
             draggable
@@ -144,6 +146,7 @@ function OpenTabsBar({ navigation, repository }: NoteTabsProps) {
               navigation.moveTab(event.dataTransfer.getData(TAB_DRAG_TYPE), tabId);
             }}
             onClick={() => navigation.openTab(tabId)}
+            onDoubleClick={() => navigation.keepPreviewTab(tabId)}
             onContextMenu={(event) => { event.preventDefault(); setTabMenu({ tabId, anchor: event.currentTarget }); }}
             onAuxClick={(event) => event.button === 1 && !isPinned && navigation.closeTab(tabId)}>
             {/* ピン留めしたタブは、アイコンだけを出す（題は title で出し、読み上げの名前にもする）。 */}

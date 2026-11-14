@@ -1,4 +1,6 @@
-// 左の列のメモの 1 行。押すと開く。「…」か右クリックでメニュー（名前の変更・お気に入り・ピン留め・ゴミ箱）を出し、
+// 左の列のメモの 1 行。押すと開く（ノートブックの木の中では仮のタブで。tabState.ts）。中クリックは、いつも普通のタブで開く。
+// ダブルクリックで名前を変え、仮のタブも普通のタブにする。
+// 「…」か右クリックでメニュー（名前の変更・お気に入り・ピン留め・ゴミ箱）を出し、
 // ドラッグして別の一覧へ落とせる。Ctrl（Mac では Command）か Shift を押しながら押すと、開かずに選ぶ（noteSelection.ts）。
 
 import { MoreHorizontal, Pencil, Pin, PinOff, RotateCcw, Star, StarOff, Trash2 } from "lucide-react";
@@ -24,6 +26,9 @@ import { useTrashWithUndo } from "./useTrashWithUndo";
 import { viewKey } from "./useWorkspaceNavigation";
 import { ICON_SIZE } from "../shared/iconSizes";
 
+// MouseEvent.button の中ボタン（ホイール）。
+const MIDDLE_BUTTON = 1;
+
 type SidebarNoteRowProps = {
   note: LiveNote;
   // この行が並んでいる一覧。ドラッグで「どこから移すか」を決めるのに使う。
@@ -34,7 +39,12 @@ type SidebarNoteRowProps = {
   depth: number | null;
   // タブで開いているメモ（か設定などのタブ）の ID。
   activeTab: string | null;
+  // 普通に押したとき（Enter も）。木の中は仮のタブで、検索の結果は普通のタブで開く。
   openNote: (noteId: string) => void;
+  // 中クリックしたとき。いつも普通のタブで開く。
+  openNoteInNewTab: (noteId: string) => void;
+  // ダブルクリックしたとき。仮のタブで開いていたら、普通のタブにする。
+  keepPreviewTab: (tabId: string) => void;
   repository: NoteRepository;
   // まだ同期先へ送っていないか。
   unsynced: boolean;
@@ -53,7 +63,7 @@ function isSameRow(previous: SidebarNoteRowProps, next: SidebarNoteRowProps): bo
 
 export const SidebarNoteRow = memo(SidebarNoteRowContent, isSameRow);
 
-function SidebarNoteRowContent({ note, view, listedNoteIds, depth, activeTab, openNote, repository, unsynced, snippet = null }: SidebarNoteRowProps) {
+function SidebarNoteRowContent({ note, view, listedNoteIds, depth, activeTab, openNote, openNoteInNewTab, keepPreviewTab, repository, unsynced, snippet = null }: SidebarNoteRowProps) {
   const dialogs = useDialogs();
   const moveToTrash = useTrashWithUndo(repository);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
@@ -127,7 +137,17 @@ function SidebarNoteRowContent({ note, view, listedNoteIds, depth, activeTab, op
     <div className={`nav-row${isDragged ? " dragging" : ""}`} onContextMenu={(event) => { event.preventDefault(); setMenuAnchor(event.currentTarget); }}>
       <button ref={rowButton} className={rowClassName} style={treeDepthStyle(depth)} title={title} data-note-id={note.id} aria-pressed={selection.noteIds.length > 0 ? isSelected : undefined}
         draggable onDragStart={(event) => startNoteDrag(event, { noteId: note.id, title, fromView: view })}
-        onClick={selectOrOpen} onDoubleClick={() => setRenaming(true)} onKeyDown={(event) => {
+        onClick={selectOrOpen}
+        onAuxClick={(event) => {
+          if (event.button === MIDDLE_BUTTON) {
+            resetNoteSelection(note.id);
+            openNoteInNewTab(note.id);
+          }
+        }}
+        onDoubleClick={() => {
+          keepPreviewTab(note.id);
+          setRenaming(true);
+        }} onKeyDown={(event) => {
           focusViewRowOfNote(event, viewKey(view));
           extendNoteSelectionByKey(event, { noteId: note.id, listedNoteIds });
           if (event.key === "Escape") {

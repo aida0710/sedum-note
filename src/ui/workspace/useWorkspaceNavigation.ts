@@ -9,7 +9,10 @@ import { runAfterConfirmingDraftDiscard } from "../settings/unsavedSettingsDraft
 import { useDialogs } from "../shared/DialogProvider";
 import type { SettingRevealRequest } from "../settings/revealSetting";
 import type { WorkspaceLayout } from "../../core/vault/workspaceLayout";
-import { closeTabsIn, moveTabIn, NO_TABS, openTabIn, otherTabsThan, reopenClosedTabIn, restoreTabsIn, type TabsState, tabsRightOf, togglePinnedTabIn } from "./tabState";
+import {
+  closeTabsIn, keepPreviewTabIn, moveTabIn, NO_TABS, openKeptTabIn, openPreviewTabIn, openTabIn, otherTabsThan, reopenClosedTabIn, restoreTabsIn, type TabsState, tabsRightOf,
+  togglePinnedTabIn,
+} from "./tabState";
 
 // 設定はメモと同じくタブで開く。メモの ID（16 進）と重ならない名前にする。
 export const SETTINGS_TAB = "settings";
@@ -35,11 +38,18 @@ export type WorkspaceNavigation = {
   selectView: (view: NoteView) => void;
   openTabs: string[];
   activeTab: string | null;
+  // 仮のタブ（tabState.ts）。無ければ null。
+  previewTab: string | null;
+  // メモを普通のタブで開く。仮のタブで開いていたら、普通のタブにする。
   // blockId を渡すと、メモを開いたあと、そのブロックまで送る（ブロックを指すリンクから開いたとき）。
   openNote: (noteId: string, blockId?: string) => void;
+  // メモを仮のタブで開く（左の列でメモを普通に押したとき）。
+  openNoteInPreviewTab: (noteId: string) => void;
+  // 仮のタブを普通のタブにする（書いた、ダブルクリックした）。tabId が仮のタブでなければ何もしない。
+  keepPreviewTab: (tabId: string) => void;
   // リンクから来て、開いたメモの中で見せるブロック。ほかのタブへ移ると消える。
   blockToReveal: BlockToReveal | null;
-  // メモ以外のタブ（データベース表示）を開く。
+  // タブを選ぶ（タブを押す、← → で移る）。開いていなければ、普通のタブで開く（データベース表示などのメモ以外のタブ）。
   openTab: (tabId: string) => void;
   // 設定のタブを開く。ページを渡すとそのページを出し、渡さなければ前に見ていたページのままにする。
   openSettings: (page?: SettingsPage) => void;
@@ -123,18 +133,22 @@ export function useWorkspaceNavigation(initialNoteId: string | null = null): Wor
     }
   }, [confirm]);
 
-  const openTab = useCallback((tabId: string) => {
+  // 開き方（tabState.ts の openTabIn など）でタブを開く。設定から離れるなら、打ちかけを捨ててよいかを先に聞く。
+  const openTabWith = useCallback((tabId: string, openIn: (state: TabsState, tabId: string) => TabsState) => {
     leaveSettingsThen(tabId, () => {
-      setTabs((current) => openTabIn(current, tabId));
+      setTabs((current) => openIn(current, tabId));
       setBlockToReveal(null);
     });
   }, [leaveSettingsThen]);
+  const openTab = useCallback((tabId: string) => openTabWith(tabId, openTabIn), [openTabWith]);
+  const openNoteInPreviewTab = useCallback((noteId: string) => openTabWith(noteId, openPreviewTabIn), [openTabWith]);
+  const keepPreviewTab = useCallback((tabId: string) => setTabs((current) => keepPreviewTabIn(current, tabId)), []);
 
   const openNote = useCallback((noteId: string, blockId?: string) => {
-    openTab(noteId);
+    openTabWith(noteId, openKeptTabIn);
     // 一覧の行などは、押したときの出来事を 2 つ目の引数に渡してくることがあるので、文字のときだけブロックの指定として読む。
     setBlockToReveal(typeof blockId === "string" ? { noteId, blockId } : null);
-  }, [openTab]);
+  }, [openTabWith]);
 
   // 開いているタブを閉じたら、その右（無ければ左）のタブを開く（tabState.ts）。
   const closeTabs = useCallback((tabIds: string[]) => {
@@ -194,7 +208,8 @@ export function useWorkspaceNavigation(initialNoteId: string | null = null): Wor
   }, [setExpanded]);
 
   return {
-    view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, openNote, blockToReveal, openTab, openSettings, closeTab, moveTab,
+    view, selectView, openTabs: tabs.openTabs, activeTab: tabs.activeTab, previewTab: tabs.previewTab, openNote, openNoteInPreviewTab, keepPreviewTab,
+    blockToReveal, openTab, openSettings, closeTab, moveTab,
     closeOtherTabs: (tabId) => closeTabs(otherTabsThan(tabs, tabId)),
     closeTabsToRight: (tabId) => closeTabs(tabsRightOf(tabs, tabId)),
     splitNoteId, openInSplit: setSplitNoteId, closeSplit,

@@ -20,7 +20,7 @@ describe("PC の画面の並びの保存", () => {
 
   it("残した並びを読み戻せ、手元にはメモの ID が平文で残らない", async () => {
     const { localStore, masterKey } = await newStore();
-    const layout: WorkspaceLayout = { openTabs: [NOTE_ID, "settings"], pinnedTabs: [NOTE_ID], activeTab: "settings", settingsPage: "sync", expandedRows: { trash: true } };
+    const layout: WorkspaceLayout = { openTabs: [NOTE_ID, "settings"], pinnedTabs: [NOTE_ID], activeTab: "settings", previewTab: null, settingsPage: "sync", expandedRows: { trash: true } };
     await writeWorkspaceLayout(localStore, masterKey, layout);
     expect(await readWorkspaceLayout(localStore, masterKey)).toEqual(layout);
     const stored = await localStore.readSetting<Uint8Array>("sealedWorkspaceLayout");

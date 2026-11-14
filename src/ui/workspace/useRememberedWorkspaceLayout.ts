@@ -1,4 +1,4 @@
-// PC の画面の並び（開いているタブ、ピン留め、選んでいるタブ、設定のページ、左の列で開け閉めした行）を、暗号化した手元の保存
+// PC の画面の並び（開いているタブ、ピン留め、選んでいるタブ、仮のタブ、設定のページ、左の列で開け閉めした行）を、暗号化した手元の保存
 // （core/vault/workspaceLayout.ts）に残し、ロックを解除したあと・読み込み直したあとに戻す。
 
 import { useEffect, useMemo, useState } from "react";
@@ -42,7 +42,7 @@ type RememberedWorkspaceLayoutInput = {
 export function useRememberedWorkspaceLayout({ vault, navigation, enabled }: RememberedWorkspaceLayoutInput): void {
   // 残した並びを戻し終えたか。戻す前に書くと、開いた直後の空の並びで上書きしてしまう。
   const [restored, setRestored] = useState(false);
-  const { restoreLayout, openTabs, pinnedTabs, activeTab, settingsPage, expandedRows } = navigation;
+  const { restoreLayout, openTabs, pinnedTabs, activeTab, previewTab, settingsPage, expandedRows } = navigation;
   useEffect(() => {
     if (!enabled || restored) {
       return undefined;
@@ -69,7 +69,7 @@ export function useRememberedWorkspaceLayout({ vault, navigation, enabled }: Rem
     if (!enabled || !restored) {
       return;
     }
-    const layout: WorkspaceLayout = { openTabs, pinnedTabs, activeTab, settingsPage, expandedRows: Object.fromEntries(expandedRows) };
+    const layout: WorkspaceLayout = { openTabs, pinnedTabs, activeTab, previewTab, settingsPage, expandedRows: Object.fromEntries(expandedRows) };
     void writes.run(() => writeWorkspaceLayout(vault.localStore, vault.masterKey, layout));
-  }, [enabled, restored, vault, writes, openTabs, pinnedTabs, activeTab, settingsPage, expandedRows]);
+  }, [enabled, restored, vault, writes, openTabs, pinnedTabs, activeTab, previewTab, settingsPage, expandedRows]);
 }
