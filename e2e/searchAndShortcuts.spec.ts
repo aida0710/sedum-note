@@ -246,7 +246,7 @@ test("フォーカスモードでは左の列・タブ・ツールバーが隠�
   await expect(page.locator(".ProseMirror")).toHaveText("本文");
 
   // 戻るボタンは、ズームの戻るボタンと同じ左上に置く。
-  const exitButton = page.getByRole("button", { name: "フォーカスモードを終わる" });
+  const exitButton = page.getByRole("button", { name: "フォーカスモードを終了" });
   const exitBox = await exitButton.boundingBox();
   expect(exitBox!.x).toBeLessThan(40);
   expect(exitBox!.y).toBeLessThan(40);

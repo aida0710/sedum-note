@@ -176,7 +176,7 @@ test("タブはドラッグで並べ替えられる", async ({ page }) => {
 test("左の列の端をドラッグすると幅が変わり、開き直しても保たれる", async ({ page }) => {
   await startLocalVault(page);
   const sidebar = page.locator(".sidebar");
-  const handle = page.getByRole("separator", { name: "左の列の幅を変える" });
+  const handle = page.getByRole("separator", { name: "サイドバーの幅を変更" });
   const handleBox = (await handle.boundingBox())!;
 
   await page.mouse.move(handleBox.x + handleBox.width / 2, 300);
@@ -501,7 +501,7 @@ test("左の列をいちばん狭くしても、上の行のボタンは列の�
 
 test("左の列の幅のつまみは Tab で止まり、← → で幅を変えられ、Home と End でいちばん狭く・広くなる", async ({ page }) => {
   await startLocalVault(page);
-  const handle = page.getByRole("separator", { name: "左の列の幅を変える" });
+  const handle = page.getByRole("separator", { name: "サイドバーの幅を変更" });
   const sidebarWidth = async () => (await page.locator(".sidebar").boundingBox())!.width;
   const startWidth = await sidebarWidth();
   await handle.focus();

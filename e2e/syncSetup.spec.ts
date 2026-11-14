@@ -143,7 +143,7 @@ test("自動の同期を切ると、編集しても送らず、「今すぐ同�
   await laptop.locator(".sync-line").click();
   await expect(laptop.getByLabel("自動で同期する")).not.toBeChecked();
   await laptop.getByRole("button", { name: "今すぐ同期" }).click();
-  await expect(laptop.locator(".sync-line")).toContainText("自動の同期はオフ");
+  await expect(laptop.locator(".sync-line")).toContainText("自動同期はオフ");
   await expect(laptop.locator(".sync-line")).not.toContainText("未送信");
 });
 
@@ -221,7 +221,7 @@ test("同期の設定を、暗号化キーを入力せずに書き出せる。�
   // 書き出す。暗号化キーもパスフレーズも聞かれない。
   await laptop.locator(".sync-line").click();
   await laptop.getByRole("button", { name: "同期設定をエクスポート" }).click();
-  const exportDialog = laptop.getByRole("dialog", { name: "同期の設定を渡す" });
+  const exportDialog = laptop.getByRole("dialog", { name: "同期設定のエクスポート" });
   const download = laptop.waitForEvent("download");
   await exportDialog.getByRole("button", { name: "ファイルに保存" }).click();
   const setupFile = testInfo.outputPath("sync-setup.sedumsync");
@@ -231,7 +231,7 @@ test("同期の設定を、暗号化キーを入力せずに書き出せる。�
     expect(setupText).not.toContain(secret);
   }
   // 画面の QR を、撮った写真の代わりに画像のファイルにする。
-  const qrCodeImage = await exportDialog.getByRole("img", { name: "同期の設定の QR コード" }).getAttribute("src");
+  const qrCodeImage = await exportDialog.getByRole("img", { name: "同期設定のQRコード" }).getAttribute("src");
   const qrCodeFile = testInfo.outputPath("sync-setup-qr.png");
   writeFileSync(qrCodeFile, Buffer.from(qrCodeImage!.split(",")[1]!, "base64"));
 
@@ -242,7 +242,7 @@ test("同期の設定を、暗号化キーを入力せずに書き出せる。�
     await device.getByLabel("パスフレーズ（確認）").fill(SECOND_DEVICE_PASSPHRASE);
     await device.getByLabel("ほかのデバイスと同期する").check();
     await device.locator(`input[type="file"][aria-label="${pickLabel}"]`).setInputFiles(file);
-    await expect(device.getByText("同期の設定を読みました")).toBeVisible();
+    await expect(device.getByText("同期設定を読み込みました")).toBeVisible();
     // 違う暗号化キーでは開かず、同期先の欄にも何も入らない。
     await device.getByLabel("暗号化キー", { exact: true }).fill("not-the-shared-key");
     await device.getByRole("button", { name: "インポート" }).click();
@@ -272,7 +272,7 @@ test("カメラをかざして QR を読むと、暗号化キーを聞かれ、�
   const laptop = await openSyncedDevice(browser, { remoteConfig, join: false });
   await laptop.locator(".sync-line").click();
   await laptop.getByRole("button", { name: "同期設定をエクスポート" }).click();
-  const qrCodeImage = await laptop.getByRole("img", { name: "同期の設定の QR コード" }).getAttribute("src");
+  const qrCodeImage = await laptop.getByRole("img", { name: "同期設定のQRコード" }).getAttribute("src");
 
   const phone = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
   await phone.addInitScript((image) => {
@@ -292,10 +292,10 @@ test("カメラをかざして QR を読むと、暗号化キーを聞かれ、�
   }, qrCodeImage!);
   await phone.goto("/");
   await phone.getByLabel("ほかのデバイスと同期する").check();
-  await phone.getByRole("button", { name: "カメラで QR を読む" }).click();
+  await phone.getByRole("button", { name: "QRコードをスキャン" }).click();
   // 読めたら、ダイアログが閉じて、暗号化キーを聞く。
-  await expect(phone.getByText("同期の設定を読みました")).toBeVisible();
-  await expect(phone.getByRole("dialog", { name: "QR を読む" })).toBeHidden();
+  await expect(phone.getByText("同期設定を読み込みました")).toBeVisible();
+  await expect(phone.getByRole("dialog", { name: "QRコードをスキャン" })).toBeHidden();
   await phone.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
   await phone.getByRole("button", { name: "インポート" }).click();
   await expect(phone.locator(".sync-target-result")).toContainText("既存のメモが見つかりました");
@@ -307,8 +307,8 @@ test("カメラを許可しなかったときは、ほかの読み方を案内�
   });
   await page.goto("/");
   await page.getByLabel("ほかのデバイスと同期する").check();
-  await page.getByRole("button", { name: "カメラで QR を読む" }).click();
-  const scanner = page.getByRole("dialog", { name: "QR を読む" });
+  await page.getByRole("button", { name: "QRコードをスキャン" }).click();
+  const scanner = page.getByRole("dialog", { name: "QRコードをスキャン" });
   await expect(scanner.getByRole("alert")).toContainText("カメラへのアクセスが許可されていません");
   await expect(scanner.getByRole("button", { name: "設定ファイルを選択" })).toBeVisible();
   // ダイアログの中のボタンで、ダイアログを閉じて、画像を選ぶ画面が開く。

@@ -230,11 +230,11 @@ test("スマホの検索で当たるメモが無いと、探した言葉を添�
   await backToList(page);
   const search = page.getByPlaceholder("メモを検索");
   await expect(search).toHaveAttribute("enterkeyhint", "search");
-  await expect(page.getByRole("button", { name: "検索の文字を消去" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "検索をクリア" })).toHaveCount(0);
 
   await search.fill("見つからない言葉");
-  await expect(page.locator(".empty-state")).toHaveText("「見つからない言葉」に当てはまるメモはありません");
-  await page.getByRole("button", { name: "検索の文字を消去" }).click();
+  await expect(page.locator(".empty-state")).toHaveText("「見つからない言葉」に一致するメモはありません");
+  await page.getByRole("button", { name: "検索をクリア" }).click();
   await expect(search).toHaveValue("");
   await expect(page.locator(".note-item", { hasText: "買い物" })).toBeVisible();
 });
@@ -365,15 +365,15 @@ test("設定の「同期」でも、書き出した同期の設定のファイ�
   await phone.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: /同期/ }).click();
   await phone.getByRole("button", { name: "同期設定をエクスポート" }).click();
   const download = phone.waitForEvent("download");
-  await phone.getByRole("dialog", { name: "同期の設定を渡す" }).getByRole("button", { name: "ファイルに保存" }).click();
+  await phone.getByRole("dialog", { name: "同期設定のエクスポート" }).getByRole("button", { name: "ファイルに保存" }).click();
   const setupFile = testInfo.outputPath("sync-setup.sedumsync");
   await (await download).saveAs(setupFile);
-  await phone.getByRole("dialog", { name: "同期の設定を渡す" }).getByRole("button", { name: "閉じる" }).click();
+  await phone.getByRole("dialog", { name: "同期設定のエクスポート" }).getByRole("button", { name: "閉じる" }).click();
 
   await phone.getByRole("button", { name: "同期先を変更" }).click();
   await phone.getByLabel("バケット").fill("another-bucket");
   await phone.locator('input[type="file"][aria-label="設定ファイルを選択"]').setInputFiles(setupFile);
-  await expect(phone.getByText("同期の設定を読みました")).toBeVisible();
+  await expect(phone.getByText("同期設定を読み込みました")).toBeVisible();
   const syncKey = phone.locator("#sync-setup-key");
   await syncKey.fill(SYNC_KEY);
   // 暗号化キーの欄の Enter は「取り込む」に効き、下の同期先の「保存」は送らない（同期先の欄は開いたまま）。

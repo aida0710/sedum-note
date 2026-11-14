@@ -22,7 +22,7 @@ if (mode === "prepare") {
   const laptop = await startBrowserDevice(await newCheckRemoteConfig());
   await laptop.page.locator(".sync-line").click();
   await laptop.page.getByRole("button", { name: "同期設定をエクスポート" }).click();
-  const image = await laptop.page.getByRole("img", { name: "同期の設定の QR コード" }).getAttribute("src");
+  const image = await laptop.page.getByRole("img", { name: "同期設定のQRコード" }).getAttribute("src");
   // エミュレーターは、横長の画像の左寄りの一部だけを、縦長のカメラの枠に写す。QR だけの画像だと端が切れるので、
   // 4:3 の白い地の、写る範囲に収まる位置に小さめに置いた画像にする。
   const framed = await laptop.page.evaluate(async (source) => {
@@ -54,7 +54,7 @@ if (mode === "prepare") {
   await app.fillByLabel("パスフレーズ", PASSPHRASE);
   await app.fillByLabel("パスフレーズ（確認）", PASSPHRASE);
   await app.evaluate(`[...document.querySelectorAll("label")].find((label) => label.textContent.includes("ほかのデバイスと同期する")).querySelector("input").click()`);
-  await app.clickButton("カメラで QR を読む");
+  await app.clickButton("QRコードをスキャン");
   await pause(3_000);
   captureScreen(outputDirectory, "android-camera-permission");
   // 初めて使うので、Android がカメラの許可を聞く。画面の部品の一覧から「アプリの使用時のみ」を探して押す。
@@ -65,7 +65,7 @@ if (mode === "prepare") {
   }
   const [left, top, right, bottom] = bounds.slice(1).map(Number);
   execFileSync(adb, ["-s", device, "shell", "input", "tap", String((left + right) / 2), String((top + bottom) / 2)]);
-  await app.waitForText("同期の設定を読みました", 30_000);
+  await app.waitForText("同期設定を読み込みました", 30_000);
   captureScreen(outputDirectory, "android-qr-read");
   await app.fillBySelector("#sync-setup-key", SYNC_KEY);
   await app.clickButton("インポート");
