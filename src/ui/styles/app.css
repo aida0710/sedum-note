@@ -120,7 +120,7 @@ svg.lucide { stroke-width: 1.75; }
 .note-property input:not([type="checkbox"]), .note-property select { height: var(--control-height-compact); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 8px; background: var(--panel); color: var(--text); width: 100%; min-width: 0; }
 .note-property input[type="checkbox"] { justify-self: start; }
 /* ダイアログの幅は、.dialog（420px）より強く当たるよう、.dialog と重ねて書く。 */
-.dialog.notebook-properties { width: min(620px, 100%); }
+.dialog.notebook-properties { --dialog-width: 620px; }
 /* プロパティどうしの間は、1 つのプロパティの中の行（名前と選択肢）の間より広くして、どの選択肢がどのプロパティのものか分かるようにする。
    送る枠の端で欄のフォーカスの枠が切れないよう、内側に余白を取り、その分を外側の余白で打ち消す。 */
 .property-definitions { display: flex; flex-direction: column; gap: 14px; overflow-y: auto; padding: 3px; margin: -3px; }
@@ -234,7 +234,7 @@ svg.lucide { stroke-width: 1.75; }
 /* エディタが末尾に足す空の段落（リストなどのあとに打てるようにするもの）は、読むだけの埋め込みでは出さない。 */
 .block-embed .ProseMirror > p:last-child:has(> br.ProseMirror-trailingBreak:only-child) { display: none; }
 /* 書類のスキャン。写真の上に、四隅の印と、囲んだ範囲の線を重ねる。 */
-.dialog.document-scan { width: min(720px, 100%); max-height: 94%; }
+.dialog.document-scan { --dialog-width: 720px; max-height: 94%; }
 .document-scan-photo { position: relative; min-height: 0; overflow: auto; }
 .document-scan-photo canvas { display: block; width: 100%; height: auto; }
 .document-scan-photo svg { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
@@ -339,7 +339,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .mention-input textarea:focus { outline: 0; border-color: var(--accent); }
 .mention-candidates { position: absolute; left: 0; right: 0; bottom: calc(100% + 4px); z-index: 5; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: 0 8px 24px var(--shadow); padding: 4px; display: flex; flex-direction: column; }
 .mention-candidates .menu-item.on { background: var(--selected); }
-.dialog.ai-chat-dialog { width: min(640px, 100%); height: min(720px, 92%); padding: 0; }
+.dialog.ai-chat-dialog { --dialog-width: 640px; height: min(720px, 92%); padding: 0; }
 /* AI を有効にしていないときは、案内とボタンだけなので、枠を中身の高さにする（画面の高さの枠に 3 行だけが浮かないように）。 */
 .dialog.ai-chat-dialog:has(.ai-chat > .ai-chat-notice) { height: auto; }
 .ai-chat-dialog .ai-chat { flex: 1; border-left: 0; border-radius: inherit; }
@@ -564,7 +564,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .plugin-list li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .plugin-summary { flex: 1; min-width: 220px; }
 .plugin-summary p { margin: 2px 0 0; overflow-wrap: anywhere; }
-.dialog.plugin-review { width: min(620px, 100%); }
+.dialog.plugin-review { --dialog-width: 620px; }
 .plugin-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 0; }
 .plugin-facts dt { color: var(--muted); font-size: var(--font-size-small); }
 .plugin-facts dd { margin: 0; overflow-wrap: anywhere; }
@@ -857,7 +857,7 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .tab[draggable="true"] { cursor: grab; }
 .tab.dragging { opacity: .45; }
 .tab.drop-target { box-shadow: inset 2px 0 0 var(--accent); }
-.dialog.note-picker { width: min(480px, 100%); max-height: min(560px, 90%); }
+.dialog.note-picker { --dialog-width: 480px; max-height: min(560px, 90%); }
 .note-picker .sidebar-search { margin-bottom: 0; flex: none; }
 /* コマンドパレットは、当たりの数で高さが変わっても上端が動かないよう、上から決まった所に置く。 */
 .dialog.command-palette { --palette-top: 12vh; align-self: start; margin-top: var(--palette-top); max-height: min(560px, calc(100% - var(--palette-top))); }
@@ -874,7 +874,7 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 /* フォーカスの枠は、小さなチェックボックスではなく行に出す（一覧のどこにいるかを見やすくするため）。 */
 .notebook-choice input:focus-visible { outline: none; }
 .notebook-choice:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
-.dialog.note-history { width: min(760px, 100%); max-height: min(620px, 92%); }
+.dialog.note-history { --dialog-width: 760px; max-height: min(620px, 92%); }
 .note-history-body { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 12px; min-height: 0; flex: 1; }
 .note-history-list { overflow-y: auto; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius-control); padding: 4px; }
 .note-history-list .menu-item.on { background: var(--selected); }
@@ -932,7 +932,8 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 :root[data-scheme="dark"] .dialog { border-color: var(--line); }
 .dialog-backdrop { position: fixed; inset: 0; z-index: 30; background: var(--overlay); display: grid; place-items: center; padding: 16px; }
 /* 中身が画面の高さを超えるダイアログは、枠の中で送る（下のボタンが画面の外に出て、押せなくならないように）。 */
-.dialog { background: var(--raised); border: 1px solid transparent; border-radius: var(--radius-dialog); padding: 20px; width: min(420px, 100%); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 16px 40px var(--shadow-strong); }
+/* ダイアログの幅は --dialog-width で決める（各ダイアログは、この変数だけを書く。width を書くと、規則の順で負けることがある）。 */
+.dialog { background: var(--raised); border: 1px solid transparent; border-radius: var(--radius-dialog); padding: 20px; width: min(var(--dialog-width, 420px), 100%); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 16px 40px var(--shadow-strong); }
 .dialog-form { display: contents; }
 .dialog p { line-height: 1.6; }
 /* ダイアログの見出しと、その下の説明。どのダイアログでも同じ形にする（ModalDialog の title と description）。 */
@@ -1008,10 +1009,10 @@ input[type="checkbox"].switch:disabled { cursor: default; opacity: .55; }
 .settings-actions > :not(button) { justify-self: end; }
 .phone .settings-actions, .phone .settings .sync-setup-import-buttons { grid-template-columns: minmax(0, 1fr); justify-content: stretch; }
 .sync-setup-import-buttons button { display: inline-flex; align-items: center; gap: 6px; }
-.dialog.sync-setup-export { width: min(480px, 100%); }
+.dialog.sync-setup-export { --dialog-width: 480px; }
 /* QR は、暗いテーマでも読めるよう、白地のままにする。 */
 .sync-setup-qr { width: min(100%, 360px); align-self: center; border-radius: var(--radius-control); background: #fff; }
-.dialog.qr-code-scanner { width: min(480px, 100%); }
+.dialog.qr-code-scanner { --dialog-width: 480px; }
 /* カメラに写っている範囲を全部見せる（切り取ると、QR が枠に入っているかが分からない）。 */
 .qr-code-scanner-video { width: 100%; max-height: 60vh; border-radius: var(--radius-control); background: #000; object-fit: contain; }
 .found-folders { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

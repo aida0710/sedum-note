@@ -106,3 +106,15 @@ test("区切りの無い長い名前でも、データベース表示の見出�
   await expect(page.locator(".database-header h1")).toHaveText(longName);
   expect(await overflowOf(".database-header h1")).toBe(0);
 });
+
+test("ダイアログの幅は、ダイアログごとの幅（履歴は 760px）になり、ほかは既定の 420px になる", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "会議");
+  await page.locator(".pane:not(.split-pane)").getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "履歴" }).click();
+  expect((await page.getByRole("dialog", { name: "履歴" }).boundingBox())!.width).toBeCloseTo(760, 0);
+  await page.keyboard.press("Escape");
+  await page.locator(".pane:not(.split-pane)").getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "メモの期限を設定" }).click();
+  expect((await page.getByRole("dialog", { name: "メモの期限" }).boundingBox())!.width).toBeCloseTo(420, 0);
+});
