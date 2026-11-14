@@ -106,7 +106,7 @@ test("同期なしで始めたあと、設定で同期先を足せる。暗号�
   await laptop.locator(".sync-line").click();
   const keySection = laptop.locator(".settings-section", { has: laptop.getByRole("heading", { name: "暗号化キー", exact: true }) });
   await keySection.getByLabel("このデバイスのパスフレーズ").fill("wrong horse battery");
-  await keySection.getByLabel("前の暗号化キーでは参加できなくなること、メモは暗号化し直さないことを確かめました").check();
+  await keySection.getByLabel("前の暗号化キーで参加できなくなることと、メモを再暗号化しないことを理解しました").check();
   await keySection.getByRole("button", { name: "暗号化キーを作り直す" }).click();
   await expect(keySection.getByRole("alert")).toContainText("パスフレーズが違います");
   await keySection.getByLabel("このデバイスのパスフレーズ").fill(PASSPHRASE);
@@ -170,7 +170,7 @@ test("暗号化キーは、自動で生成するか自分で入力するかを�
   await keySection.getByRole("radio", { name: "自分で入力する" }).click();
   await keySection.getByLabel("暗号化キー", { exact: true }).fill("another-key-of-my-own");
   await keySection.getByLabel("このデバイスのパスフレーズ").fill(PASSPHRASE);
-  await keySection.getByLabel("前の暗号化キーでは参加できなくなること、メモは暗号化し直さないことを確かめました").check();
+  await keySection.getByLabel("前の暗号化キーで参加できなくなることと、メモを再暗号化しないことを理解しました").check();
   await keySection.getByRole("button", { name: "暗号化キーを作り直す" }).click();
   await expect(keySection.getByText("暗号化キーを作り直しました")).toBeVisible();
 

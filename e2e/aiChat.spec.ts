@@ -29,7 +29,7 @@ async function enableAi(page: Page): Promise<void> {
 
 // 「保存して確かめる」でモデルの一覧を取ってきてから、メモに戻ってチャットを開く。
 async function saveAiSettingsAndOpenChat(page: Page, noteTitle: string): Promise<void> {
-  await page.getByRole("button", { name: "保存して確かめる" }).click();
+  await page.getByRole("button", { name: "保存して接続を確認" }).click();
   await expect(page.getByRole("status").filter({ hasText: "つなぎ先につながりました" })).toBeVisible();
   await page.getByRole("tab", { name: noteTitle }).click();
   await page.keyboard.press("Control+Alt+a");
@@ -308,7 +308,7 @@ test("OpenAI 互換のエンドポイントをつなぎ先にして答えても�
   authorized = false;
   await input.fill("もう一度");
   await page.keyboard.press("Enter");
-  await expect(chat(page).getByRole("alert")).toHaveText("API キーが受け付けられませんでした。「設定」の「AI」のページの API キーを確かめてください。");
+  await expect(chat(page).getByRole("alert")).toHaveText("APIキーが認証されませんでした。「設定」の「AI」ページでAPIキーを確認してください。");
   // 失敗した回の、空の答えは会話に残さない。
   await expect(chat(page).locator(".ai-message.assistant")).toHaveCount(1);
 
@@ -369,12 +369,12 @@ test("API キーを保存すると、モデルの一覧を取ってきてキー�
   await startLocalVault(page);
   await enableAi(page);
   await page.getByLabel("API キー").fill("wrong-key");
-  await page.getByRole("button", { name: "保存して確かめる" }).click();
-  await expect(page.getByRole("alert")).toHaveText("API キーが受け付けられませんでした。「設定」の「AI」のページの API キーを確かめてください。");
+  await page.getByRole("button", { name: "保存して接続を確認" }).click();
+  await expect(page.getByRole("alert")).toHaveText("APIキーが認証されませんでした。「設定」の「AI」ページでAPIキーを確認してください。");
   await expect(page.getByRole("combobox", { name: "モデル" })).toHaveCount(0);
 
   await page.getByLabel("API キー").fill("test-key");
-  await page.getByRole("button", { name: "保存して確かめる" }).click();
+  await page.getByRole("button", { name: "保存して接続を確認" }).click();
   await expect(page.getByRole("status").filter({ hasText: "つなぎ先につながりました" }))
     .toHaveText("つなぎ先につながりました。モデルを 2 個取得しました。使うモデルは「Claude Opus 5.5」です。");
   const modelSelect = page.getByRole("combobox", { name: "モデル" });
@@ -818,7 +818,7 @@ test("本文で文字を選び、上のボタンの「AI に頼む」から訳�
   await page.keyboard.type("最初に、こんにちは世界、と書く。");
   await enableAi(page);
   await page.getByLabel("API キー").fill("test-key");
-  await page.getByRole("button", { name: "保存して確かめる" }).click();
+  await page.getByRole("button", { name: "保存して接続を確認" }).click();
   await expect(page.getByRole("status").filter({ hasText: "つなぎ先につながりました" })).toBeVisible();
   await page.getByRole("tab", { name: "あいさつ" }).click();
 

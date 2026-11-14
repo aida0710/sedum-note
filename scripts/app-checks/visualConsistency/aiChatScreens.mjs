@@ -60,7 +60,7 @@ export function AI_CHAT_SCREENS({ openNote }) {
         // 前の画面で選んだつなぎ先（OpenAI 互換）から、Claude に戻す。
         await page.getByLabel("つなぎ先").selectOption({ index: 0 });
         await page.getByLabel("API キー").fill("visual-audit-not-a-key");
-        await page.getByRole("button", { name: "保存して確かめる" }).click();
+        await page.getByRole("button", { name: "保存して接続を確認" }).click();
         await page.getByRole("status").filter({ hasText: "つなぎ先につながりました" }).waitFor();
       },
     },

@@ -36,7 +36,7 @@ test("CORS でこの画面の origin を許していないと、CORS の設定�
     ...rule, AllowedOrigins: rule.AllowedOrigins.filter((origin) => origin !== PAGE_ORIGIN),
   })));
   await checkSyncTarget(page, config);
-  await expect(page.getByRole("alert")).toContainText("バケットに CORS の設定を入れてあるかを確かめてください");
+  await expect(page.getByRole("alert")).toContainText("バケットにCORSを設定してあるかを確認してください");
 });
 
 test("同期先を保存したあとで同期が CORS で断られたときも、設定の同期のページで CORS の設定を開ける", async ({ page }) => {
@@ -47,7 +47,7 @@ test("同期先を保存したあとで同期が CORS で断られたときも�
   await page.route((url) => url.origin === new URL(config.endpoint).origin, (route) => route.abort("failed"));
   await page.locator(".sync-line").click();
   await page.getByRole("button", { name: "今すぐ同期" }).click();
-  await expect(page.getByRole("alert")).toContainText("バケットに CORS の設定を入れてあるかを確かめてください");
-  await page.locator("summary", { hasText: "バケットの CORS の設定" }).click();
+  await expect(page.getByRole("alert")).toContainText("バケットにCORSを設定してあるかを確認してください");
+  await page.locator("summary", { hasText: "バケットのCORS設定" }).click();
   await expect(page.getByRole("button", { name: "設定をコピー" })).toBeVisible();
 });

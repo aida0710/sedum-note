@@ -27,7 +27,7 @@ try {
     await app.type(input, remote[field]);
   }
   // アプリには、CORS の案内を出さない。
-  const corsGuideShown = await execute(`return document.body.innerText.includes("バケットの CORS の設定")`);
+  const corsGuideShown = await execute(`return document.body.innerText.includes("バケットのCORS設定")`);
   await app.click(await app.findByXPath("//button[normalize-space()='接続を確認']"));
   // 空の同期先と分かったら、暗号化キーは生成に任せて作る。作成のあとに出るキーのダイアログを閉じる。
   await app.waitForXPath("//*[@role='status'][contains(., '空の同期先です')]", 30_000);
