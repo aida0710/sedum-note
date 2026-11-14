@@ -1,4 +1,4 @@
-// 仮のタブ（左の列でメモを普通に押して開くタブ）。次に押したメモと入れ替わり、題を斜体で出し、書く・ダブルクリック・
+// 仮のタブ（サイドバーでメモを普通に押して開くタブ）。次に押したメモと入れ替わり、タイトルを斜体で出し、書く・ダブルクリック・
 // ピン留め・並べ替えで普通のタブになる。
 
 import { expect, type Page, test } from "@playwright/test";
@@ -8,7 +8,7 @@ function sidebarNote(page: Page, title: string) {
   return page.locator(".sidebar .tree-note", { hasText: title }).first();
 }
 
-// タブの読み上げの名前は、題と「×」（タブを閉じる）。ピン留めしたタブは題だけ。
+// タブの読み上げの名前は、タイトルと「×」（タブを閉じる）。ピン留めしたタブはタイトルだけ。
 function tabOf(page: Page, title: string) {
   return page.getByRole("tab", { name: new RegExp(`^${title}( タブを閉じる)?$`) });
 }
@@ -23,7 +23,7 @@ async function expectKeptTab(page: Page, title: string): Promise<void> {
   await expect(tabOf(page, title).locator(".tab-label")).toHaveCSS("font-style", "normal");
 }
 
-// メモを作り（作ったメモは普通のタブで開く）、タブを全部閉じて、左の列から開く前の状態にする。
+// メモを作り（作ったメモは普通のタブで開く）、タブを全部閉じて、サイドバーから開く前の状態にする。
 async function createNotesWithoutTabs(page: Page, titles: string[]): Promise<void> {
   await startLocalVault(page);
   for (const title of titles) {
@@ -40,7 +40,7 @@ async function createNotesWithoutTabs(page: Page, titles: string[]): Promise<voi
 // 普通のタブになってしまう不具合があれば、この間に出る。
 const AFTER_OPENING_WAIT_MILLISECONDS = 600;
 
-test("左の列でメモを押すと、題が斜体の仮のタブで開き、次に押したメモと入れ替わる。もう開いているメモは選ぶだけ", async ({ page }) => {
+test("サイドバーでメモを押すと、タイトルが斜体の仮のタブで開き、次に押したメモと入れ替わる。もう開いているメモは選ぶだけ", async ({ page }) => {
   await createNotesWithoutTabs(page, ["一", "二", "三"]);
 
   await sidebarNote(page, "一").click();
@@ -51,7 +51,7 @@ test("左の列でメモを押すと、題が斜体の仮のタブで開き、�
   await expect(page.getByRole("tab")).toHaveText(["二"]);
   await expectPreviewTab(page, "二");
 
-  // 普通のタブで開いているメモを左の列で押しても、そのタブを選ぶだけで、仮のタブは残る。
+  // 普通のタブで開いているメモをサイドバーで押しても、そのタブを選ぶだけで、仮のタブは残る。
   await createNoteOnDesktop(page, "四");
   await expect(page.getByRole("tab")).toHaveText(["二", "四"]);
   await sidebarNote(page, "四").click();
@@ -64,8 +64,8 @@ test("左の列でメモを押すと、題が斜体の仮のタブで開き、�
   await expectPreviewTab(page, "三");
 });
 
-test("仮のタブのメモの本文か題を書くと、普通のタブになり、次に押したメモは新しいタブで開く", async ({ page }) => {
-  await createNotesWithoutTabs(page, ["本文を書く", "題を書く", "あとで開く"]);
+test("仮のタブのメモの本文かタイトルを書くと、普通のタブになり、次に押したメモは新しいタブで開く", async ({ page }) => {
+  await createNotesWithoutTabs(page, ["本文を書く", "タイトルを書く", "あとで開く"]);
 
   await sidebarNote(page, "本文を書く").click();
   await expectPreviewTab(page, "本文を書く");
@@ -73,18 +73,18 @@ test("仮のタブのメモの本文か題を書くと、普通のタブにな�
   await page.keyboard.type("書いた");
   await expectKeptTab(page, "本文を書く");
 
-  await sidebarNote(page, "題を書く").click();
-  await expect(page.getByRole("tab")).toHaveText(["本文を書く", "題を書く"]);
-  await expectPreviewTab(page, "題を書く");
+  await sidebarNote(page, "タイトルを書く").click();
+  await expect(page.getByRole("tab")).toHaveText(["本文を書く", "タイトルを書く"]);
+  await expectPreviewTab(page, "タイトルを書く");
   await page.getByPlaceholder("タイトル").press("End");
   await page.keyboard.type("た");
-  await expectKeptTab(page, "題を書くた");
+  await expectKeptTab(page, "タイトルを書くた");
 
   await sidebarNote(page, "あとで開く").click();
-  await expect(page.getByRole("tab")).toHaveText(["本文を書く", "題を書くた", "あとで開く"]);
+  await expect(page.getByRole("tab")).toHaveText(["本文を書く", "タイトルを書くた", "あとで開く"]);
 });
 
-test("仮のタブをダブルクリックするか、左の列の行をダブルクリックすると、普通のタブになる", async ({ page }) => {
+test("仮のタブをダブルクリックするか、サイドバーの行をダブルクリックすると、普通のタブになる", async ({ page }) => {
   await createNotesWithoutTabs(page, ["タブで残す", "行で残す", "三つ目"]);
 
   await sidebarNote(page, "タブで残す").click();
@@ -132,7 +132,7 @@ test("中クリックは、仮のタブを残したまま、新しい普通の�
   await expect(tabOf(page, "中クリック")).toHaveAttribute("aria-selected", "true");
 });
 
-test("コマンドパレットと左の列の検索の結果から開いたメモは、普通のタブで開く", async ({ page }) => {
+test("コマンドパレットとサイドバーの検索の結果から開いたメモは、普通のタブで開く", async ({ page }) => {
   await createNotesWithoutTabs(page, ["パレットで開く", "検索で開く", "仮で開く"]);
 
   await sidebarNote(page, "仮で開く").click();

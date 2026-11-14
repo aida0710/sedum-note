@@ -165,7 +165,7 @@ await expectVibrations("しきい値に届かないところまで引いて離�
 // 5. 一覧のメモを左へ払ってゴミ箱に入れる。しきい値を越えたときに 1 回。
 await expectVibrations("一覧のメモを左へ払って、しきい値を越える", { fromApp: 1 }, async () => {
   await drag(firstRow, { from: { xFraction: 0.9 }, deltaX: -300, deltaY: 0 });
-  await app.getByRole("status").filter({ hasText: "ゴミ箱に入れました" }).waitFor();
+  await app.getByRole("status").filter({ hasText: "ゴミ箱に移動しました" }).waitFor();
 });
 
 writeFileSync(`${outputDirectory}/vibrations.md`, `# アプリが要求した振動の記録（dumpsys vibrator_manager）\n\n${log.join("\n")}\n`);

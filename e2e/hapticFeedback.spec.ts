@@ -7,7 +7,7 @@ import { createNoteOnDesktop, openSettingsPage, startLocalVault } from "./device
 // 試験が navigator.vibrate を差し替えて、呼ばれた引数を置く所。
 type WindowWithVibrateCalls = Window & { vibrateCalls?: unknown[] };
 
-test("Web 版では、チェックボックスや設定のスイッチを押しても振動を要求せず、振動の設定も出ない", async ({ page }) => {
+test("Web版では、チェックボックスや設定のスイッチを押しても振動を要求せず、振動の設定も出ない", async ({ page }) => {
   await page.addInitScript(() => {
     const calls: unknown[] = [];
     (window as WindowWithVibrateCalls).vibrateCalls = calls;
