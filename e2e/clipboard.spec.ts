@@ -211,6 +211,8 @@ test("チェックリストの項目の文字を押しても、チェックは�
   await page.keyboard.type("下の段落");
   await item.locator("p").click({ position: { x: 30, y: 8 } });
   await expect(item).toHaveAttribute("data-checked", "false");
+  // 押した直後は、エディタの選択が少し遅れて追いつくので、その行に移ったのを確かめてから打つ。
+  await expect.poll(() => textOfBlockAtCursor(page)).toBe("牛乳を買う");
   await page.keyboard.type("!");
   await expect(item.locator("p")).toContainText("!");
 });

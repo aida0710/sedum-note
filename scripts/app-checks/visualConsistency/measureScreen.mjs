@@ -47,15 +47,15 @@ export function measureScreen() {
     return `${parts.join(" > ")}${label ? ` 「${label.slice(0, 24)}」` : ""}`;
   };
 
-  // 要素の中の、見えている文字の行の箱。svg の中の文字と、読み上げ用だけの文字は除く。
-  const textLineRects = (element) => {
+  // 要素の中の、見えている文字の行の箱。svg の中の文字と、読み上げ用だけの文字と、isExcluded に当たる要素の中の文字は除く。
+  const textLineRects = (element, isExcluded = () => false) => {
     const rects = [];
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       if (!node.textContent || !node.textContent.trim()) continue;
       const parent = node.parentElement;
       // 数式（KaTeX）は、上付きなどで文字の箱が上下に散るので、行の文字として扱わない。
-      if (!parent || parent.closest("svg, .katex") || isScreenReaderOnly(parent) || !isShown(parent)) continue;
+      if (!parent || parent.closest("svg, .katex") || isScreenReaderOnly(parent) || isExcluded(parent) || !isShown(parent)) continue;
       const range = document.createRange();
       range.selectNodeContents(node);
       for (const rect of range.getClientRects()) {
@@ -173,9 +173,8 @@ export function measureScreen() {
     if (container.getBoundingClientRect().height > SINGLE_LINE_CONTROL_MAX_HEIGHT * 2) continue;
     // 入れ物の中に開いたメニュー（ツールバーから開いた表のメニューなど）の文字は、同じ行の文字ではない。
     const overlays = [...container.querySelectorAll(".menu, [role=menu], [role=dialog]")].filter((overlay) => !overlay.contains(svg));
-    const sameLine = textLineRects(container)
-      .filter((rect) => !overlays.some((overlay) => { const box = overlay.getBoundingClientRect(); return rect.left >= box.left && rect.right <= box.right && rect.top >= box.top && rect.bottom <= box.bottom; }))
-      .filter((rect) => rect.bottom > icon.top && rect.top < icon.bottom);
+    const insideOverlay = (element) => overlays.some((overlay) => overlay.contains(element));
+    const sameLine = textLineRects(container, insideOverlay).filter((rect) => rect.bottom > icon.top && rect.top < icon.bottom);
     if (sameLine.length === 0) continue;
     // アイコンにいちばん近い文字の行（文字の大きさが違う文字が並ぶときは、近い方の文字に合わせる）。
     const nearest = sameLine.reduce((best, rect) => Math.abs(horizontalCenter(rect) - horizontalCenter(icon)) < Math.abs(horizontalCenter(best) - horizontalCenter(icon)) ? rect : best);

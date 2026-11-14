@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { caretAndBodyFrame, createNoteOnDesktop, insertBodyHtml, PHONE_VIEWPORT, startLocalVault } from "./devices";
+import { caretAndBodyFrame, createNoteOnDesktop, insertBodyHtml, PHONE_VIEWPORT, startLocalVault, textOfBlockAtCursor } from "./devices";
 
 const LONG_BODY_HTML = Array.from({ length: 60 }, (_unused, index) => `<p>段落 ${index + 1}</p>`).join("");
 // 打っている行の下に残す余白（px）の下限。editor/bodyScroll.ts の CARET_SCROLL_MARGIN の下の値（PC 160、スマホ 80）より少し小さく見る。
@@ -46,10 +46,11 @@ test("本文をホイールで送った直後に押すと、押した所の段�
   await page.mouse.move(point.x, point.y);
   await page.mouse.wheel(0, 900);
   await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
-  // 送り終わるのを待たずに押す。
-  await page.mouse.click(point.x, point.y);
-  await page.keyboard.type("！");
+  // 送り終わるのを待たずに押す。カーソルは、押した所にある段落に入る。
   const paragraphAtPoint = () => page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest("p")?.textContent ?? "", point);
+  await page.mouse.click(point.x, point.y);
+  await expect.poll(() => textOfBlockAtCursor(page)).toBe(await paragraphAtPoint());
+  await page.keyboard.type("！");
   await expect.poll(paragraphAtPoint).toMatch(/^段落 \d+！$/);
   await expect(page.locator(".ProseMirror p", { hasText: "！" })).toHaveCount(1);
 });
