@@ -74,7 +74,7 @@ test("バックアップを書き出し、別のデバイスの最初の画面�
   await expect(target.locator(".file-choice-name")).toHaveText(basename(backupPath));
   await target.getByLabel("パスフレーズ", { exact: true }).fill("a wrong passphrase");
   await target.getByRole("button", { name: "復元" }).click();
-  await expect(target.getByRole("alert")).toContainText("パスフレーズが違います");
+  await expect(target.getByRole("alert")).toContainText("パスフレーズが正しくありません。");
   await target.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await target.getByRole("button", { name: "復元" }).click();
 
@@ -255,7 +255,7 @@ test("最初の画面で「始める」の入力の誤りを出したあと、�
   await page.getByLabel("パスフレーズ", { exact: true }).fill("correct horse battery");
   await page.getByLabel("パスフレーズ（確認）").fill("a different passphrase");
   await page.getByRole("button", { name: "作成" }).click();
-  await expect(page.getByRole("alert")).toHaveText("確認のパスフレーズが一致しません");
+  await expect(page.getByRole("alert")).toHaveText("パスフレーズが一致しません。");
   await page.getByRole("tab", { name: "バックアップから復元" }).click();
   await expect(page.getByRole("alert")).toHaveCount(0);
 });

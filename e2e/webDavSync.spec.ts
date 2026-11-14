@@ -90,7 +90,7 @@ test("WebDAV の URL が https でなければ、接続を確かめる前に知�
   await fillWebDavTarget(page, "secret");
   await page.getByLabel("フォルダの URL").fill("http://webdav.sedum-note.test/files/tester/notes");
   await page.getByRole("button", { name: "接続を確認" }).click();
-  await expect(page.getByRole("alert")).toContainText("フォルダの URL は https:// で始めてください");
+  await expect(page.getByRole("alert")).toContainText("フォルダのURLはhttps://で始めてください。");
 
   await page.getByLabel("フォルダの URL").fill(FOLDER_URL);
   await page.getByRole("button", { name: "接続を確認" }).click();

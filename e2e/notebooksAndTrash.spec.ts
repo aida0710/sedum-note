@@ -71,7 +71,7 @@ test("ゴミ箱の自動削除は、既定ではオフ。日数は Enter か「�
   await expect(page.getByText("今の設定は 30 日です")).toBeVisible();
   const days = page.getByLabel("ゴミ箱に残す日数");
   await days.fill("0");
-  await expect(page.getByRole("alert")).toContainText("1〜3650 の整数");
+  await expect(page.getByRole("alert")).toContainText("1〜3650の整数");
 
   // 捨ててから 5 日後。打っただけ・欄を離れただけでは決まらない（「365」と打つ途中の「3」で消えないように）。
   await page.clock.fastForward(5 * 24 * 60 * 60 * 1000);

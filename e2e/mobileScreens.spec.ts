@@ -372,7 +372,7 @@ test("設定の「同期」でも、書き出した同期の設定のファイ�
 
   await phone.getByRole("button", { name: "同期先を変更" }).click();
   await phone.getByLabel("バケット").fill("another-bucket");
-  await phone.locator('input[type="file"][aria-label="設定のファイルを選ぶ"]').setInputFiles(setupFile);
+  await phone.locator('input[type="file"][aria-label="設定ファイルを選択"]').setInputFiles(setupFile);
   await expect(phone.getByText("同期の設定を読みました")).toBeVisible();
   const syncKey = phone.locator("#sync-setup-key");
   await syncKey.fill(SYNC_KEY);

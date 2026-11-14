@@ -62,7 +62,7 @@ test("自分を含むブロックを埋め込んでも、決めた段数で止�
   // 「親」の項目の中（子の項目）に、「親」の項目そのものの埋め込みを入れる。
   await page.keyboard.press("Tab");
   await embedBlock(page, "入れ子", "親");
-  await expect(page.locator(".block-embed").filter({ hasText: "埋め込みが深すぎるので、ここから先は出しません" }).first()).toBeVisible();
+  await expect(page.locator(".block-embed").filter({ hasText: "埋め込みの階層が深すぎるため、ここから先は表示しません。" }).first()).toBeVisible();
   await expect(page.locator(".block-embed")).toHaveCount(4);
 });
 

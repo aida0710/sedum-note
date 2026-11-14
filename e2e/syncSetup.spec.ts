@@ -46,7 +46,7 @@ test("生成した暗号化キーは 1 度だけ表示され、そのキーと�
   // 1 台目のパスフレーズは、暗号化キーの代わりにならない。
   await phone.getByLabel("暗号化キー", { exact: true }).fill(PASSPHRASE);
   await phone.getByRole("button", { name: "参加" }).click();
-  await expect(phone.getByRole("alert")).toContainText("暗号化キーが違います");
+  await expect(phone.getByRole("alert")).toContainText("暗号化キーが正しくありません。");
   await phone.getByLabel("暗号化キー", { exact: true }).fill(generatedKey);
   await phone.getByRole("button", { name: "参加" }).click();
   await expect(phone.getByRole("button", { name: /1 台目で書いたメモ/ }).first()).toBeVisible({ timeout: 20_000 });
@@ -108,7 +108,7 @@ test("同期なしで始めたあと、設定で同期先を足せる。暗号�
   await keySection.getByLabel("このデバイスのパスフレーズ").fill("wrong horse battery");
   await keySection.getByLabel("前の暗号化キーで参加できなくなることと、メモを再暗号化しないことを理解しました").check();
   await keySection.getByRole("button", { name: "暗号化キーを作り直す" }).click();
-  await expect(keySection.getByRole("alert")).toContainText("パスフレーズが違います");
+  await expect(keySection.getByRole("alert")).toContainText("パスフレーズが正しくありません。");
   await keySection.getByLabel("このデバイスのパスフレーズ").fill(PASSPHRASE);
   await keySection.getByRole("button", { name: "暗号化キーを作り直す" }).click();
   const secondKey = await keyDialog.locator("code").innerText();
@@ -120,7 +120,7 @@ test("同期なしで始めたあと、設定で同期先を足せる。暗号�
   await phone.getByRole("button", { name: "接続を確認" }).click();
   await phone.getByLabel("暗号化キー", { exact: true }).fill(firstKey);
   await phone.getByRole("button", { name: "参加" }).click();
-  await expect(phone.getByRole("alert")).toContainText("暗号化キーが違います");
+  await expect(phone.getByRole("alert")).toContainText("暗号化キーが正しくありません。");
   // 同期先が変わっていないので、確かめ直さずにキーだけ入れ直せる。
   await phone.getByLabel("暗号化キー", { exact: true }).fill(secondKey);
   await phone.getByRole("button", { name: "参加" }).click();
@@ -157,7 +157,7 @@ test("暗号化キーは、自動で生成するか自分で入力するかを�
   await laptop.getByRole("radio", { name: "自分で入力する" }).click();
   await laptop.getByLabel("暗号化キー", { exact: true }).fill("short");
   await laptop.getByRole("button", { name: "作成" }).click();
-  await expect(laptop.getByRole("alert")).toContainText("暗号化キーは12文字以上にしてください");
+  await expect(laptop.getByRole("alert")).toContainText("暗号化キーは12文字以上にしてください。");
   await laptop.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
   await laptop.getByRole("button", { name: "作成" }).click();
   // 自分で入力したキーは、あらためて表示しない。
@@ -189,7 +189,7 @@ test("v0.2 までのアプリで作った同期先は、確かめた時点で使
   await writeRemoteVault(new S3ObjectStore(remoteConfig), document, { ifAbsent: true });
   await openSetupWithSync(page, remoteConfig, PASSPHRASE);
   await page.getByRole("button", { name: "接続を確認" }).click();
-  await expect(page.getByRole("alert")).toContainText("v0.2 までのアプリで作られたもので、今のアプリでは使えません");
+  await expect(page.getByRole("alert")).toContainText("v0.2以前のアプリで作成されたため、このバージョンでは使えません");
   await expect(page.getByRole("button", { name: "作成" })).toBeDisabled();
 });
 
@@ -246,7 +246,7 @@ test("同期の設定を、暗号化キーを入力せずに書き出せる。�
     // 違う暗号化キーでは開かず、同期先の欄にも何も入らない。
     await device.getByLabel("暗号化キー", { exact: true }).fill("not-the-shared-key");
     await device.getByRole("button", { name: "インポート" }).click();
-    await expect(device.getByRole("alert")).toContainText("暗号化キーが違います");
+    await expect(device.getByRole("alert")).toContainText("暗号化キーが正しくありません。");
     await expect(device.getByLabel("バケット")).toHaveValue("");
     // Enter は、画面全体の「作成」ではなく、この欄の「取り込む」に効く。
     await device.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
@@ -260,8 +260,8 @@ test("同期の設定を、暗号化キーを入力せずに書き出せる。�
     await device.getByRole("button", { name: "参加" }).click();
     await expect(device.getByRole("button", { name: /書き出す側のメモ/ }).first()).toBeVisible({ timeout: 20_000 });
   };
-  await joinWith("設定のファイルを選ぶ", setupFile);
-  await joinWith("QR の画像を選ぶ", qrCodeFile);
+  await joinWith("設定ファイルを選択", setupFile);
+  await joinWith("QRコードの画像を選択", qrCodeFile);
 
 });
 
@@ -309,11 +309,11 @@ test("カメラを許可しなかったときは、ほかの読み方を案内�
   await page.getByLabel("ほかのデバイスと同期する").check();
   await page.getByRole("button", { name: "カメラで QR を読む" }).click();
   const scanner = page.getByRole("dialog", { name: "QR を読む" });
-  await expect(scanner.getByRole("alert")).toContainText("カメラを使う許可がありません");
-  await expect(scanner.getByRole("button", { name: "設定のファイルを選ぶ" })).toBeVisible();
+  await expect(scanner.getByRole("alert")).toContainText("カメラへのアクセスが許可されていません");
+  await expect(scanner.getByRole("button", { name: "設定ファイルを選択" })).toBeVisible();
   // ダイアログの中のボタンで、ダイアログを閉じて、画像を選ぶ画面が開く。
   const fileChooser = page.waitForEvent("filechooser");
-  await scanner.getByRole("button", { name: "QR の画像を選ぶ" }).click();
+  await scanner.getByRole("button", { name: "QRコードの画像を選択" }).click();
   await fileChooser;
   await expect(scanner).toHaveCount(0);
 });
@@ -323,13 +323,13 @@ test("同期の設定でないファイルや、QR の無い写真を選ぶと�
   await page.getByLabel("ほかのデバイスと同期する").check();
   const otherFile = testInfo.outputPath("notes.json");
   writeFileSync(otherFile, JSON.stringify({ hello: "world" }));
-  await page.locator('input[type="file"][aria-label="設定のファイルを選ぶ"]').setInputFiles(otherFile);
+  await page.locator('input[type="file"][aria-label="設定ファイルを選択"]').setInputFiles(otherFile);
   await expect(page.getByRole("alert")).toContainText("同期設定として読み込めません");
   // 1x1 の PNG（QR は写っていない）。
   const blankPhoto = testInfo.outputPath("blank.png");
   writeFileSync(blankPhoto, Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64"));
-  await page.locator('input[type="file"][aria-label="QR の画像を選ぶ"]').setInputFiles(blankPhoto);
-  await expect(page.getByRole("alert")).toContainText("画像から QR を読めませんでした");
+  await page.locator('input[type="file"][aria-label="QRコードの画像を選択"]').setInputFiles(blankPhoto);
+  await expect(page.getByRole("alert")).toContainText("画像からQRコードを読み取れませんでした");
   await expect(page.getByLabel("暗号化キー", { exact: true })).toBeHidden();
 });
 

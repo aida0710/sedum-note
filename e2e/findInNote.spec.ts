@@ -118,6 +118,6 @@ test("正規表現が読めないときは、入力欄の下に知らせを出�
   await findInput(page).fill("abc");
   const widthBefore = (await findInput(page).boundingBox())!.width;
   await findInput(page).fill("(abc");
-  await expect(page.locator(".find-bar").getByRole("alert")).toHaveText("正規表現が正しくありません");
+  await expect(page.locator(".find-bar").getByRole("alert")).toHaveText("正規表現が正しくありません。");
   expect((await findInput(page).boundingBox())!.width).toBe(widthBefore);
 });

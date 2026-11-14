@@ -295,7 +295,7 @@ test("埋め込みは、URL を入れても外へつながず、「読み込む�
   await page.keyboard.type("/うめこみ");
   await page.keyboard.press("Enter");
   await page.getByRole("textbox", { name: "埋め込む URL" }).fill("http://example.com/");
-  await expect(page.getByText("https:// で始まる URL を入れてください")).toBeVisible();
+  await expect(page.getByText("https://で始まるURLを入力してください。")).toBeVisible();
   await page.getByRole("textbox", { name: "埋め込む URL" }).fill("https://www.youtube.com/watch?v=abcdefghijk");
   await page.keyboard.press("Enter");
 

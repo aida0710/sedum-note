@@ -161,6 +161,6 @@ test("通知が許可されなければ、期限の通知は入らず、その�
   await startLocalVault(page);
   await openSettingsPage(page, "一般");
   await page.getByLabel("期限が来たら通知する").click();
-  await expect(page.getByRole("alert")).toContainText("通知を出せませんでした");
+  await expect(page.getByRole("alert")).toContainText("通知を表示できませんでした");
   await expect(page.getByLabel("期限が来たら通知する")).not.toBeChecked();
 });

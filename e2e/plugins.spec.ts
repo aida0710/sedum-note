@@ -138,7 +138,7 @@ test("終わらないプラグインは、決めた時間で止めて知らせ�
   await page.getByRole("dialog").getByRole("button", { name: "インストール" }).click();
   await page.getByRole("tab", { name: "メモ" }).click();
   await runFromNoteMenu(page, "Count characters");
-  await expect(page.getByRole("status").filter({ hasText: "決めた時間のうちに終わりませんでした" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "制限時間内に終わりませんでした。" })).toBeVisible();
   await page.locator(".ProseMirror").click();
   await page.keyboard.type("まだ書ける");
   await expect(page.locator(".ProseMirror")).toHaveText("まだ書ける");
