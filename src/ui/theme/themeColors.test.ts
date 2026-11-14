@@ -73,3 +73,30 @@ describe("parseStoredCustomTheme", () => {
     expect(parseStoredCustomTheme({ id: "a", name: "a", colors: { ...LIGHT_THEME.colors, text: "#ffffff" } })).toBeNull();
   });
 });
+
+// 文字に使う色と、その文字が載る地の組（QA-02）。どの組み合わせも、小さい文字の 4.5 を満たすこと。
+const TEXT_COLORS = ["muted", "ok", "accent", "danger"] as const;
+const TEXT_BACKGROUNDS = ["panel", "sidebar", "tag", "selected", "accentSoft"] as const;
+// 今は 4.5 に届かない組（2026-11-14）。色を直したら、ここから消す（届いたのに残っていると、下の試験が落ちて知らせる）。
+// accent と danger を、地の色の付いた所（左の列・タグ・選んだ行・accentSoft）の小さい文字に使うと読みにくい。色の見直しの対象。
+const KNOWN_LOW_CONTRAST_TEXT: ReadonlySet<string> = new Set([
+  "light accent/sidebar", "light accent/tag", "light accent/selected", "light accent/accentSoft",
+  "dark accent/tag", "dark accent/selected", "dark accent/accentSoft", "dark danger/tag", "dark danger/selected", "dark danger/accentSoft",
+  "sedum accent/sidebar", "sedum accent/tag", "sedum accent/selected", "sedum accent/accentSoft", "sedum danger/selected",
+  "sedumDark danger/tag", "sedumDark danger/selected", "sedumDark danger/accentSoft",
+  "sepia accent/sidebar", "sepia accent/tag", "sepia accent/selected", "sepia accent/accentSoft",
+]);
+
+describe("組み込みのテーマの、文字に使う色と地の組", () => {
+  const pairs = BUILT_IN_THEMES.flatMap((theme) => TEXT_COLORS.flatMap((foreground) => TEXT_BACKGROUNDS.map((background) => ({
+    name: `${theme.id} ${foreground}/${background}`, ratio: contrastRatio(theme.colors[foreground], theme.colors[background]),
+  }))));
+
+  it("知られている組のほかは、どれも小さい文字の 4.5 を満たす", () => {
+    expect(pairs.filter((pair) => pair.ratio < SMALL_TEXT_MINIMUM_CONTRAST && !KNOWN_LOW_CONTRAST_TEXT.has(pair.name)).map((pair) => pair.name)).toEqual([]);
+  });
+
+  it("4.5 に届かないと書いてある組は、今も届いていない（直したら一覧から消す）", () => {
+    expect(pairs.filter((pair) => pair.ratio >= SMALL_TEXT_MINIMUM_CONTRAST && KNOWN_LOW_CONTRAST_TEXT.has(pair.name)).map((pair) => pair.name)).toEqual([]);
+  });
+});
