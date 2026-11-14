@@ -129,7 +129,14 @@ export class NoteRepository {
     dependencies.recordChangeChannel?.subscribe((recordId) => void this.#adoptRecordStoredByOtherWindow(recordId));
   }
 
+  // 手元の保存から全部の記録を読む。ほかのウィンドウの書き込みと同じ順番待ちの中で読む。外で読むと、読んでいる間にほかのウィンドウが
+  // 書いて知らせた記録を先に取り込んだあとで、読み始めに取った古い中身で上書きしてしまう（開いたばかりの別のウィンドウで起きる）。
   async load(): Promise<void> {
+    await this.#dependencies.writeQueue.run(() => this.#readAllStoredRecords());
+    this.#notify("stored");
+  }
+
+  async #readAllStoredRecords(): Promise<void> {
     this.#holders.clear();
     this.#unreadableIds = [];
     this.#waitingForPushIds.clear();
@@ -143,7 +150,6 @@ export class NoteRepository {
         this.#unreadableIds.push(entry.id);
       }
     }
-    this.#notify("stored");
   }
 
   // データの形の移し替えの手順を、読み込んだ全部の記録に流し、変わった記録を手元に書く（送る記録にもなる）。

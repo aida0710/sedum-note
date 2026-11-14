@@ -16,9 +16,9 @@ async function twoWindows() {
   const hub = new MemoryRecordChangeHub();
   // ウィンドウをまたいで 1 つずつ書く（アプリでは Web Locks が受け持つ）。
   const writeQueue = new SerialQueue();
-  const openWindow = async () => {
+  const openWindow = async (localStore = new IndexedDbLocalStore(databaseName)) => {
     const repository = new NoteRepository({
-      localStore: new IndexedDbLocalStore(databaseName), masterKey, deviceId: "device", writeQueue,
+      localStore, masterKey, deviceId: "device", writeQueue,
       downloadBlob: async () => null, downloadVersions: async () => undefined, recordChangeChannel: hub.createChannel(),
     });
     await repository.load();
@@ -32,8 +32,12 @@ async function twoWindows() {
     await second.flush();
     await writeQueue.run(async () => undefined);
   };
-  return { first, second, settle, openWindow, hub };
+  return { first, second, settle, openWindow, hub, databaseName, writeQueue };
 }
+
+// ほかのウィンドウの保存と、その知らせの取り込みが済むのを待つ上限。順番待ちに入れないときは済まないので、この長さで見切る
+// （fake-indexeddb では、入れれば数 ms で済む）。
+const OTHER_WINDOW_WRITE_WAIT_MS = 200;
 
 const bodyLines = (repository: NoteRepository, noteId: string) => bodyPlainText(repository.note(noteId)!.body).split("\n").sort();
 
@@ -60,6 +64,28 @@ describe("同じ手元の保存を 2 つのウィンドウで開く", () => {
     expect(bodyLines(second, note.id)).toEqual(expected);
     // 開き直したウィンドウ（手元の保存から読む）にも、両方の行がある。
     expect(bodyLines(await openWindow(), note.id)).toEqual(expected);
+  });
+
+  it("開いている途中のウィンドウでも、読み込みの間にほかのウィンドウが書いた題を、古い題で上書きしない", async () => {
+    const { first, settle, openWindow, databaseName, writeQueue } = await twoWindows();
+    const note = await first.createNote({ title: "" });
+    await settle();
+    // 3 つ目のウィンドウが記録の一覧を読んだ直後に、1 つ目のウィンドウが題を付けて保存し、知らせる。
+    const localStore = new IndexedDbLocalStore(databaseName);
+    const listRecordEntries = localStore.listRecordEntries.bind(localStore);
+    localStore.listRecordEntries = async () => {
+      const entries = await listRecordEntries();
+      await first.updateNote(note.id, { title: "日記" });
+      const otherWindowSettled = (async () => {
+        await first.flush();
+        await writeQueue.run(async () => undefined);
+      })();
+      await Promise.race([otherWindowSettled, new Promise((resolve) => setTimeout(resolve, OTHER_WINDOW_WRITE_WAIT_MS))]);
+      return entries;
+    };
+    const third = await openWindow(localStore);
+    await settle();
+    expect(third.note(note.id)?.content.title).toBe("日記");
   });
 
   it("片方で完全に削除したメモは、もう片方からも消える", async () => {
