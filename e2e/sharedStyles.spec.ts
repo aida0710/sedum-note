@@ -141,3 +141,21 @@ test("ノートブックを選ぶ一覧では、子のチェックボックス�
   const childCheckbox = (await dialog.locator(".notebook-choice", { hasText: "議事録" }).locator("input").boundingBox())!;
   expect(Math.abs(childCheckbox.x - parentMark.x)).toBeLessThanOrEqual(1);
 });
+
+test("同期先の種類は、矢印ではフォーカスだけが移り、入れた値を消さない。Space で選ぶ", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("ほかのデバイスと同期する").check();
+  await page.getByLabel("エンドポイント").fill("https://s3.example.com");
+  const kinds = page.getByRole("radiogroup", { name: "同期先の種類" });
+  const s3 = kinds.getByRole("radio", { checked: true });
+  await s3.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(s3).toHaveAttribute("aria-checked", "true");
+  await expect(kinds.getByRole("radio", { checked: false })).toBeFocused();
+  await page.keyboard.press("ArrowLeft");
+  await expect(page.getByLabel("エンドポイント")).toHaveValue("https://s3.example.com");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Space");
+  await expect(kinds.getByRole("radio", { checked: true })).toBeFocused();
+  await expect(page.getByLabel("エンドポイント")).toHaveCount(0);
+});

@@ -21,6 +21,9 @@ type RadioGroupProps = {
   // 読み上げの名前。見える見出しがあれば labelledBy でその要素を指す。
   label?: string;
   labelledBy?: string;
+  // 矢印で移った先をすぐ選ぶか（既定）。選ぶと入力を消すもの（同期先の種類）は false にし、矢印ではフォーカスだけを移して、
+  // Space か Enter で選ぶ。
+  checksOnArrow?: boolean;
   children: ReactNode;
 };
 
@@ -28,7 +31,7 @@ function radiosIn(group: HTMLElement): HTMLElement[] {
   return [...group.querySelectorAll<HTMLElement>(RADIO_SELECTOR)];
 }
 
-export function RadioGroup({ className, label, labelledBy, children }: RadioGroupProps) {
+export function RadioGroup({ className, label, labelledBy, checksOnArrow = true, children }: RadioGroupProps) {
   const groupRef = useRef<HTMLDivElement>(null);
   // 選んでいるボタンは、描くたびに変わりうる（中のボタンの aria-checked は呼び出し側が決める）ので、毎回付け直す。
   useLayoutEffect(() => {
@@ -54,7 +57,9 @@ export function RadioGroup({ className, label, labelledBy, children }: RadioGrou
     event.stopPropagation();
     const next = radios[step(index, radios.length)];
     next?.focus();
-    next?.click();
+    if (checksOnArrow) {
+      next?.click();
+    }
   };
   return (
     <div ref={groupRef} className={className} role="radiogroup" aria-label={label} aria-labelledby={labelledBy} onKeyDown={moveSelection}>

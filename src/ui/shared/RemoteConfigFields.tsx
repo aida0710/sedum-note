@@ -26,7 +26,7 @@ export function RemoteConfigFields({ value, onChange }: RemoteConfigFieldsProps)
     <>
       <div className="field">
         <span className="field-label" id="remote-kind-label">{translate("remote.kind")}</span>
-        <RadioGroup className="segmented" labelledBy="remote-kind-label">
+        <RadioGroup className="segmented" labelledBy="remote-kind-label" checksOnArrow={false}>
           {REMOTE_KINDS.map(({ kind, label, empty }) => (
             // 種類を変えたら、欄は空から始める（別の種類の値は使えない）。
             <button key={kind} type="button" role="radio" aria-checked={selectedKind === kind} className={selectedKind === kind ? "on" : ""}
