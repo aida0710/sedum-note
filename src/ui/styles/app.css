@@ -1131,6 +1131,11 @@ input[type="checkbox"].switch:disabled { cursor: default; opacity: .55; }
   /* ゴミ箱に残す日数（最大 3650）の 4 桁と、上下の矢印が入る幅。 */
   .setting-row input[type="number"] { width: 96px; }
 }
+/* 自動でロックするまでの時間の指定（InactivityLockSetting.tsx）。数の欄は 5 桁（10080 分）と上下の矢印が入る幅、単位の選択は
+   選択肢の文字の幅にして、保存のボタンと 1 行に並べる。 */
+.inactivity-lock-amount .field-row { align-items: center; }
+.inactivity-lock-amount input[type="number"] { flex: 0 1 120px; }
+.inactivity-lock-amount select { width: auto; flex: none; }
 /* PC: 左に設定のページの一覧、右に開いているページ。一覧の行は、左の列（ノートブックの木）の行と同じ形にする。 */
 .settings-layout { display: flex; flex: 1; min-height: 0; }
 .settings-navigation { width: 200px; flex: none; border-right: 1px solid var(--line); padding: 24px 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }

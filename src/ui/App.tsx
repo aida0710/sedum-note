@@ -19,6 +19,7 @@ import { MobileWorkspace } from "./mobile/MobileWorkspace";
 import { UnsyncedRecordsContext, useRepositorySnapshot } from "./session/useRepositorySnapshot";
 import { useTrashRetention } from "./session/useTrashRetention";
 import { useDueReminders } from "./session/useDueReminders";
+import { useInactivityLock } from "./session/useInactivityLock";
 import { applyResidentAppSetting } from "./platform/residentApp";
 import { canStayResident } from "./platform/runtime";
 import { noteIdOfThisWindow, setWindowTitle, spaceIdOfThisWindow } from "./platform/noteWindows";
@@ -116,6 +117,7 @@ function UnlockedApp({ session, vault }: { session: VaultSession; vault: Unlocke
   useLaunchRequests(vault.repository, navigation.openNote);
   const updateCheck = useUpdateCheck();
   useTrashRetention(vault, session.syncStatus);
+  useInactivityLock(session.lock);
   const aiSettings = useAiSettingsOfVault(vault);
   const plugins = usePluginsOfVault(vault);
   const props = { session, vault, snapshot, navigation, isNoteWindow };

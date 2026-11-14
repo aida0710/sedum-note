@@ -47,6 +47,7 @@ export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
   { label: "settings.markdownImport", page: "data" },
   { label: "settings.passphrase", page: "security" },
   { label: "settings.lock", page: "security" },
+  { label: "settings.inactivityLock", page: "security" },
   { label: "wipe.title", page: "security" },
   { label: "settings.shortcuts", page: "shortcuts" },
   { label: "settings.mcp", page: "ai", onlyIn: "desktopApp" },

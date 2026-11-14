@@ -1,4 +1,4 @@
-// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の組み方、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか、テンプレートの日付と時刻の形式、タイプライターモード、カスタム CSS、期限の通知、常駐、「/」のメニューの最近使った候補、操作したときの振動）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の組み方、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか、テンプレートの日付と時刻の形式、タイプライターモード、カスタム CSS、期限の通知、常駐、「/」のメニューの最近使った候補、操作したときの振動、操作が無いときに自動でロックするまでの時間）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
@@ -8,6 +8,7 @@ import { NOTE_SORT_ORDERS, type NoteSortOrder } from "../../core/notes/noteQueri
 import { TEMPLATE_DATE_FORMATS, type TemplateDateFormat } from "../editor/templateTimeValues";
 import { DEFAULT_EDITOR_TYPOGRAPHY, type EditorTypography, settledEditorTypography } from "./editorTypography";
 import { type ShortcutOverrides, settledShortcutOverrides } from "../shortcuts/shortcutOverrides";
+import { isInactivityLockMinutes } from "./inactivityLockMinutes";
 
 // Web 版はほかのページと同じ origin（github.io）に載るので、キーにアプリの名前を付ける。
 const STORAGE_KEY = "sedum-note:devicePreferences";
@@ -59,6 +60,8 @@ export type DevicePreferences = {
   recentSlashCommandIds: string[];
   // 操作したときに短く振動させるか（Android のアプリだけ。platform/hapticFeedback.ts）。
   hapticFeedback: boolean;
+  // どのウィンドウでも操作が無いまま、この分数が過ぎたらロックする（session/inactivityLock.ts）。null なら自動ではロックしない。
+  inactivityLockMinutes: number | null;
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
@@ -83,6 +86,7 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   shortcutOverrides: {},
   recentSlashCommandIds: [],
   hapticFeedback: true,
+  inactivityLockMinutes: null,
 };
 
 let current: DevicePreferences | null = null;
@@ -174,6 +178,7 @@ function validPreferences(stored: unknown): DevicePreferences {
       ? candidate.recentSlashCommandIds.filter((id): id is string => typeof id === "string")
       : DEFAULT_DEVICE_PREFERENCES.recentSlashCommandIds,
     hapticFeedback: typeof candidate.hapticFeedback === "boolean" ? candidate.hapticFeedback : DEFAULT_DEVICE_PREFERENCES.hapticFeedback,
+    inactivityLockMinutes: isInactivityLockMinutes(candidate.inactivityLockMinutes) ? candidate.inactivityLockMinutes : DEFAULT_DEVICE_PREFERENCES.inactivityLockMinutes,
   };
 }
 
