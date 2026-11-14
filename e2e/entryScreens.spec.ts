@@ -39,3 +39,13 @@ test("ロックの画面では、「パスフレーズを忘れたとき」を�
   await page.getByRole("button", { name: "解除" }).click();
   await expect(page.getByRole("button", { name: "新しいメモ" })).toBeVisible();
 });
+
+test("ロックの画面では、パスフレーズを打って Enter で解除でき、「このデバイスのデータを消す」は押されない", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "新しいメモ" }).waitFor();
+  await page.keyboard.press("Control+l");
+  await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
+  await page.getByLabel("パスフレーズ", { exact: true }).press("Enter");
+  await expect(page.getByRole("button", { name: "新しいメモ" })).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
