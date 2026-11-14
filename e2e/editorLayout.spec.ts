@@ -3,7 +3,7 @@ import { addNotebookOnDesktop, createNoteOnDesktop, insertBodyHtml, startLocalVa
 
 // 本文の文字の大きさの既定（px）。ブロックの間は、これに比例する（app.css の --block-gap・--block-gap-loose）。
 const BODY_FONT_SIZE = 16;
-const NARROW_GAP = BODY_FONT_SIZE * 0.3;
+const NARROW_GAP = BODY_FONT_SIZE * 0.4;
 const LOOSE_GAP = BODY_FONT_SIZE;
 const DIVIDER_GAP = BODY_FONT_SIZE * 1.5;
 
@@ -52,6 +52,16 @@ test("ブロックの上下の間は 2 段にそろう。コードの前後は�
   const after = (await page.locator(".ProseMirror > p", { hasText: "段落G" }).boundingBox())!;
   expect(dividerBox.y - (before.y + before.height)).toBe(DIVIDER_GAP);
   expect(after.y - (dividerBox.y + dividerBox.height)).toBe(DIVIDER_GAP);
+});
+
+test("見出しの上の余白は下の約 3 倍で、見出し 4 は本文より大きく、太字の段落と見分けられる", async ({ page }) => {
+  await openNoteWith(page, "<p>段落A</p><h2>見出しB</h2><p>段落C</p><h4>見出しD</h4><p><strong>太字の段落E</strong></p>");
+  const above = await gapBetweenBlocks(page, "段落A", "見出しB");
+  const below = await gapBetweenBlocks(page, "見出しB", "段落C");
+  expect(above / below).toBeGreaterThan(2.8);
+  expect(above / below).toBeLessThan(3.4);
+  const fontSizeOf = (selector: string) => page.locator(selector).first().evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+  expect(await fontSizeOf(".ProseMirror h4")).toBeGreaterThan(await fontSizeOf(".ProseMirror p strong"));
 });
 
 test("引用・コールアウト・セルの中の最初と最後のブロックは、入れ物の余白に重ねて間をあけない", async ({ page }) => {

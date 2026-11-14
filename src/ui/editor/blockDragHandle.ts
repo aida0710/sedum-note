@@ -20,7 +20,7 @@ import { createHoveredBlockMarks } from "./hoveredBlockMarks";
 const HANDLE_CLASS = "block-drag-handle";
 const INSERT_BUTTON_CLASS = "block-insert-button";
 // 持ち手と「＋」の大きさ（px）。CSS（.block-drag-handle、.block-insert-button）と同じ値。押しやすいよう、本文の 1 行ぶんの高さにする。
-const HANDLE_WIDTH = 18;
+const HANDLE_WIDTH = 21;
 const HANDLE_HEIGHT = 24;
 // 持ち手の右端と、ブロックの左端との間（px）。どの種類のブロックでも同じにして、縦に動かしても持ち手が左右に跳ばないようにする
 // （項目は、字下げの分だけ右に出る）。間には、見出しのズームのボタン（左へ 42px まで）と折りたたみの印、

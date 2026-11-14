@@ -187,7 +187,8 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 /* ブロックをドラッグする持ち手。エディタを包む要素（EditorContent）の中に、位置を決めて置く。 */
 .document > div:has(> .ProseMirror) { position: relative; }
 /* 持ち手と、その左の「＋」。大きさは blockDragHandle.ts の HANDLE_WIDTH・HANDLE_HEIGHT と同じ。位置（1 行目の縦の中心）は blockDragHandle.ts が入れる。 */
-.block-drag-handle, .block-insert-button { position: absolute; width: 18px; height: 24px; border-radius: var(--radius-row); color: var(--muted); display: grid; place-items: center; user-select: none; opacity: .7; }
+/* ふだんは薄く出して本文の邪魔をせず、ポインターを乗せたときだけ濃くする。 */
+.block-drag-handle, .block-insert-button { position: absolute; width: 21px; height: 24px; border-radius: var(--radius-row); color: var(--muted); display: grid; place-items: center; user-select: none; opacity: .58; }
 .block-drag-handle { cursor: grab; }
 .block-insert-button { cursor: pointer; }
 .block-drag-handle[hidden], .block-insert-button[hidden] { display: none; }
@@ -591,7 +592,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
      狭い間: 段落どうしと、箇条書きの前後。
      広い間: 本文の流れから切り離して見せるブロック（コード、表、引用、コールアウト、写真、添付、数式、図、段組み、埋め込み、手書き、クエリ）の前後。
    区切り線の前後は、広い間の 1.5 倍。入れ物（引用、コールアウト、セル、段）と本文の、最初と最後のブロックは、外側の余白と重ねない。 */
-.ProseMirror { --block-gap: calc(var(--editor-font-size) * .3); --block-gap-loose: var(--editor-font-size); --list-indent: 24px; }
+.ProseMirror { --block-gap: calc(var(--editor-font-size) * .4); --block-gap-loose: var(--editor-font-size); --list-indent: 24px; }
 .ProseMirror p + p { margin-top: var(--block-gap); }
 .ProseMirror :is(ul, ol) { margin: var(--block-gap) 0; }
 .ProseMirror li :is(ul, ol) { margin: 0; }
@@ -600,10 +601,11 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ProseMirror > :first-child, .ProseMirror :is(blockquote, .callout, td, th, .column) > :first-child { margin-top: 0; }
 .ProseMirror :is(blockquote, .callout, td, th, .column) > :last-child { margin-bottom: 0; }
 .ProseMirror p.is-editor-empty:first-child::before, .ProseMirror p.empty-column::before { content: attr(data-placeholder); color: var(--muted); opacity: .6; float: left; height: 0; pointer-events: none; }
-/* 見出しは本文の文字の大きさに比例させる（本文 16px のとき 25.6・20.8・17.9px）。上の余白を広くとって、まとまりの切れ目を見せる。 */
-.ProseMirror h1 { font-size: 1.6em; margin: 1.5em 0 .4em; letter-spacing: .02em; }
-.ProseMirror h2 { font-size: 1.3em; margin: 1.4em 0 .35em; letter-spacing: .02em; }
-.ProseMirror h3 { font-size: 1.12em; margin: 1.2em 0 .3em; }
+/* 見出しは本文の文字の大きさに比例させる（本文 16px のとき 25.6・20.8・17.9px）。上と下の余白は約 3 : 1 にして、
+   まとまりの切れ目を見せつつ、見出しを下の本文の側に付ける。 */
+.ProseMirror h1 { font-size: 1.6em; margin: 1.375em 0 .45em; letter-spacing: .02em; }
+.ProseMirror h2 { font-size: 1.3em; margin: 1.275em 0 .4em; letter-spacing: .02em; }
+.ProseMirror h3 { font-size: 1.12em; margin: 1.1em 0 .35em; }
 .ProseMirror li, .ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { position: relative; }
 /* 印の高さを 1 行ぶん（文字の行の高さ）にして、その中央に置く。こうすると、行の文字と縦の中心がそろう。lh を知らないブラウザでは、本文の行の高さに近い 1.7em にする。 */
 /* 項目の印は、持ち手（editor/blockDragHandle.ts、項目の左端から 44px より左）のすぐ右に置く。行頭の番号（「10.」「100.」）と重ならない。 */
@@ -655,9 +657,11 @@ button.ai-tool-activity:hover { background: var(--selected); }
 @media (hover: none) { .ProseMirror .section-zoom { opacity: .45; } }
 .ProseMirror li.collapsed-item > ul, .ProseMirror li.collapsed-item > ol, .ProseMirror li.collapsed-item > div > ul, .ProseMirror li.collapsed-item > div > ol { display: none; }
 .ProseMirror .folded-block { display: none; }
-.ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { font-size: 1em; margin: 12px 0 4px; }
-.ProseMirror h5 { color: var(--muted); }
-.ProseMirror h6 { color: var(--muted); font-weight: 600; }
+/* 見出し 4〜6。見出し 4 は本文より少し大きくして、太字の段落と見分けられるようにする。 */
+.ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { margin: 14px 0 5px; }
+.ProseMirror h4 { font-size: 1.05em; font-weight: 700; }
+.ProseMirror h5 { font-size: 1em; font-weight: 700; color: var(--muted); }
+.ProseMirror h6 { font-size: .9em; font-weight: 600; color: var(--muted); }
 /* 点・番号の字下げは、チェックリスト（チェックボックス 16px と間 8px）と同じ幅にして、同じ段の文字の左端をそろえる。 */
 .ProseMirror ul, .ProseMirror ol { padding-left: var(--list-indent); }
 .ProseMirror li { margin: .1em 0; }
@@ -684,15 +688,15 @@ button.ai-tool-activity:hover { background: var(--selected); }
 /* 取り消し線と薄い色は、チェックした項目の行だけに付ける（下にある、まだの子の項目には付けない）。 */
 .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div > p { color: var(--muted); text-decoration: line-through; }
 .ProseMirror ul[data-type="taskList"] li > div { flex: 1; }
-.ProseMirror .callout { border-left: 3px solid var(--callout-color); background: color-mix(in srgb, var(--callout-color) 12%, transparent); border-radius: var(--radius-control); padding: 6px 12px; }
+.ProseMirror .callout { border-left: 3px solid var(--callout-color); background: color-mix(in srgb, var(--callout-color) 12%, transparent); border-radius: var(--radius-control); padding: 8px 13px; }
 .ProseMirror .callout[data-callout="note"] { --callout-color: #2f6fde; }
 .ProseMirror .callout[data-callout="tip"] { --callout-color: #2da44e; }
 .ProseMirror .callout[data-callout="warning"] { --callout-color: #d4a017; }
 .ProseMirror .callout[data-callout="danger"] { --callout-color: #d1242f; }
-.ProseMirror blockquote { border-left: 3px solid var(--line); padding: 2px 0 2px 16px; color: var(--muted); }
+.ProseMirror blockquote { border-left: 2px solid var(--line); padding: 2px 0 2px 15px; color: var(--muted); }
 .ProseMirror code { font-family: var(--font-mono); background: var(--tag); border-radius: var(--radius-inline); padding: 2px 6px; font-size: .86em; }
 /* コードは本文より小さい字と狭い行の間にし、長い行は折り返さずに、枠の中で横に送る。 */
-.ProseMirror pre { font-family: var(--font-mono); background: var(--tag); border-radius: var(--radius-control); padding: 10px 14px; overflow-x: auto; font-size: .875em; line-height: 1.6; }
+.ProseMirror pre { font-family: var(--font-mono); background: var(--tag); border-radius: var(--radius-control); padding: 11px 15px; overflow-x: auto; font-size: .875em; line-height: 1.6; }
 /* エディタ（Tiptap）が自分で入れる `.ProseMirror pre { white-space: pre-wrap }` より強い書き方にする。 */
 .document .ProseMirror pre { white-space: pre; }
 .ProseMirror pre code { background: none; padding: 0; font-size: inherit; }
@@ -708,6 +712,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .ProseMirror .tableWrapper { overflow-x: auto; padding: 1px; }
 .ProseMirror table { border-collapse: collapse; min-width: 100%; }
 .ProseMirror th, .ProseMirror td { border: 1px solid var(--line); padding: 5px 10px; min-width: 72px; vertical-align: top; text-align: left; position: relative; }
+/* セルの中は本文より行の間を詰める（1 行のセルが縦に間延びしないように）。 */
+.ProseMirror :is(th, td) { line-height: 1.7; }
 .ProseMirror th { background: var(--tag); font-weight: 600; }
 /* 何個かのセルを選んだときの色。セルの背景色（tableCellBackground.ts）の上にも出すよう面を重ねるので、中の文字が透けて読める薄さにする。 */
 .ProseMirror .selectedCell::after { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--accent) 18%, transparent); pointer-events: none; }
