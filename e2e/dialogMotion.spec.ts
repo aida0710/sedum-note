@@ -65,8 +65,8 @@ test("知らせは 150ms で現れ、「元に戻す」で閉じると 100ms で
   await startLocalVault(page);
   await createNoteOnDesktop(page, "会議");
   await noteMenuButton(page).click();
-  await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
-  const toast = page.getByRole("status").filter({ hasText: "ゴミ箱に入れました" });
+  await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
+  const toast = page.getByRole("status").filter({ hasText: "ゴミ箱に移動しました" });
   await expect(toast).toBeVisible();
   await expect(page.locator(".toast")).toHaveCSS("animation-name", "appear-rise");
 
@@ -111,7 +111,7 @@ test.describe("動きを減らす設定", () => {
     await expect(page.locator(".dialog-backdrop")).toHaveCount(0);
 
     await noteMenuButton(page).click();
-    await page.getByRole("menuitem", { name: "ゴミ箱に入れる" }).click();
+    await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
     await expect(page.locator(".toast")).toHaveCSS("animation-name", "none");
   });
 });
