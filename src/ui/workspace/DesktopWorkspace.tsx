@@ -31,7 +31,8 @@ import { parseNoteSearchQuery } from "../../core/notes/noteSearchQuery";
 import { NoteQuerySourceContext } from "../editor/noteQuerySource";
 import { AiChat } from "../ai/AiChat";
 import { McpSectionSlot } from "../settings/mcpSectionSlot";
-import { SETTINGS_SEARCH_ENTRIES } from "../settings/settingsSearchEntries";
+import { settingsSearchEntriesFor } from "../settings/settingsSearchEntries";
+import { isAndroidApp } from "../platform/runtime";
 import { workspacePaletteCandidates } from "./workspacePaletteCandidates";
 import { useAiChatSession } from "../ai/aiChatSession";
 import { shortcutTextOf } from "../shortcuts/shortcutBindings";
@@ -135,7 +136,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
           onCreateNote={(title) => void createNoteInView(repository, navigation.view, title).then((note) => navigation.openNote(note.id))}
           candidates={workspacePaletteCandidates({
           summaries: snapshot.summaries, notebooks: snapshot.notebooks, commands: paletteCommands, navigation,
-          settingsEntries: SETTINGS_SEARCH_ENTRIES.filter((entry) => includesMcp || !entry.desktopAppOnly),
+          settingsEntries: settingsSearchEntriesFor({ isDesktopApp: includesMcp, isAndroidApp: isAndroidApp() }),
         })} />
       )}
       <main className="main">

@@ -5,6 +5,7 @@
 // 設定の本文が狭いとき（スマホ、PC で窓が狭いときや AI のチャットを開いているとき）は、CSS が今までの縦の並びに戻す。
 
 import type { ReactNode } from "react";
+import { SwitchInput } from "../shared/SwitchInput";
 
 // 欄に付ける属性。名前（label の for）と説明（aria-describedby）を、欄に結び付ける。
 type SettingControlProps = { id: string; "aria-describedby": string | undefined };
@@ -29,12 +30,12 @@ type SettingCheckboxRowProps = Omit<SettingRowProps, "children"> & {
   onChange: (checked: boolean) => void;
 };
 
-// 設定のオンとオフ。押した時点で効くので、スイッチの形にする（読み上げも「スイッチ」）。
+// 設定のオンとオフ。押した時点で効くので、スイッチの形にする（読み上げも「スイッチ」。shared/SwitchInput.tsx）。
 // 操作の前の確かめのチェック（「〜を確かめました」）は、設定ではないので、これを使わない。
 export function SettingCheckboxRow({ checked, disabled, onChange, ...row }: SettingCheckboxRowProps) {
   return (
     <SettingRowLayout {...row} className="setting-row setting-checkbox-row">
-      {(control) => <input type="checkbox" role="switch" className="switch" {...control} checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} />}
+      {(control) => <SwitchInput {...control} checked={checked} disabled={disabled} onChange={onChange} />}
     </SettingRowLayout>
   );
 }

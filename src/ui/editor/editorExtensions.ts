@@ -40,6 +40,7 @@ import { BlockStartBackspace } from "./blockStartBackspace";
 import { TableBoundaryKeys } from "./tableBoundaryKeys";
 import { TitleBodyNavigation } from "./titleBodyNavigation";
 import { TaskItemKeys } from "./taskItemKeys";
+import { TaskCheckHapticFeedback } from "./taskCheckHapticFeedback";
 import { SelectAllInSteps } from "./selectAllInSteps";
 import { FoldedBlockKeys } from "./foldedBlockKeys";
 import { ZoomOutOnEscape } from "./zoomOutOnEscape";
@@ -135,6 +136,7 @@ export function createEditorExtensions({ body, slashMenuController, blockMenuCon
     TableBoundaryKeys,
     TitleBodyNavigation.configure({ moveToTitle }),
     TaskItemKeys,
+    TaskCheckHapticFeedback,
     SelectAllInSteps,
     FoldedBlockKeys,
     DueMarks,

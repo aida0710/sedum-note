@@ -7,8 +7,8 @@ import type { SettingsPage } from "./settingsPages";
 export type SettingsSearchEntry = {
   label: MessageKey;
   page: SettingsPage;
-  // PC 版（デスクトップのアプリ）にだけある項目。
-  desktopAppOnly?: boolean;
+  // その版にだけある項目。desktopApp は PC 版（デスクトップのアプリ）、androidApp は Android のアプリ。
+  onlyIn?: "desktopApp" | "androidApp";
 };
 
 export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
@@ -21,11 +21,13 @@ export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
   { label: "settings.pageAlignment", page: "general" },
   { label: "settings.imageAttachment", page: "general" },
   { label: "settings.typewriterMode", page: "general" },
+  { label: "settings.vibration", page: "general", onlyIn: "androidApp" },
+  { label: "settings.hapticFeedback", page: "general", onlyIn: "androidApp" },
   { label: "settings.templates", page: "general" },
   { label: "settings.templateDateFormat", page: "general" },
   { label: "settings.reminders", page: "general" },
   { label: "reminders.notify", page: "general" },
-  { label: "reminders.stayResident", page: "general", desktopAppOnly: true },
+  { label: "reminders.stayResident", page: "general", onlyIn: "desktopApp" },
   { label: "settings.spaces", page: "general" },
   { label: "settings.plugins", page: "plugins" },
   { label: "settings.trash", page: "general" },
@@ -47,9 +49,9 @@ export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
   { label: "settings.lock", page: "security" },
   { label: "wipe.title", page: "security" },
   { label: "settings.shortcuts", page: "shortcuts" },
-  { label: "settings.mcp", page: "ai", desktopAppOnly: true },
-  { label: "mcp.enable", page: "ai", desktopAppOnly: true },
-  { label: "mcp.allowPermanentDelete", page: "ai", desktopAppOnly: true },
+  { label: "settings.mcp", page: "ai", onlyIn: "desktopApp" },
+  { label: "mcp.enable", page: "ai", onlyIn: "desktopApp" },
+  { label: "mcp.allowPermanentDelete", page: "ai", onlyIn: "desktopApp" },
   { label: "settings.ai", page: "ai" },
   { label: "ai.enable", page: "ai" },
   { label: "ai.provider", page: "ai" },
@@ -60,3 +62,10 @@ export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
   { label: "update.checkNow", page: "update" },
   { label: "update.checkOnStart", page: "update" },
 ];
+
+type AppKinds = { isDesktopApp: boolean; isAndroidApp: boolean };
+
+// 今の版にある項目だけを返す（ほかの版にだけある欄は、探しても開いた先に無いので出さない）。
+export function settingsSearchEntriesFor({ isDesktopApp, isAndroidApp }: AppKinds): SettingsSearchEntry[] {
+  return SETTINGS_SEARCH_ENTRIES.filter(({ onlyIn }) => onlyIn === undefined || (onlyIn === "desktopApp" ? isDesktopApp : isAndroidApp));
+}

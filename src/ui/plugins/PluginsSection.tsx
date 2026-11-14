@@ -11,6 +11,7 @@ import { type MessageKey, translate } from "../i18n/translate";
 import { useDialogs } from "../shared/DialogProvider";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 import { ModalDialog } from "../shared/ModalDialog";
+import { SwitchInput } from "../shared/SwitchInput";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { useUnsavedSettingsDraft } from "../settings/unsavedSettingsDrafts";
 import { sendPluginRequest, usePlugins } from "./pluginAccess";
@@ -114,7 +115,7 @@ export function PluginsSection() {
               {upToDateId === plugin.manifest.id && <p className="form-success" role="status">{translate("plugin.upToDate")}</p>}
             </div>
             <label className="checkbox-line">
-              <input type="checkbox" role="switch" className="switch" checked={plugin.enabled} onChange={(event) => void setPluginEnabled(plugin.manifest.id, event.target.checked)} />
+              <SwitchInput checked={plugin.enabled} onChange={(enabled) => void setPluginEnabled(plugin.manifest.id, enabled)} />
               {translate("plugin.enabled")}
             </label>
             <button type="button" className="secondary-button" disabled={checkForUpdate.busy} onClick={() => void checkForUpdate.run(plugin)}>{translate("plugin.checkForUpdate")}</button>

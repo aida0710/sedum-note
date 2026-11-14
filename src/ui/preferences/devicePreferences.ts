@@ -1,4 +1,4 @@
-// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の組み方、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか、テンプレートの日付と時刻の形式、タイプライターモード、カスタム CSS、期限の通知、常駐、「/」のメニューの最近使った候補）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の組み方、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか、テンプレートの日付と時刻の形式、タイプライターモード、カスタム CSS、期限の通知、常駐、「/」のメニューの最近使った候補、操作したときの振動）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
@@ -57,6 +57,8 @@ export type DevicePreferences = {
   shortcutOverrides: ShortcutOverrides;
   // 「/」のメニューで最近選んだ候補の ID（新しい順。editor/recentSlashCommands.ts）。組み込みの候補だけで、メモの ID は入れない。
   recentSlashCommandIds: string[];
+  // 操作したときに短く振動させるか（Android のアプリだけ。platform/hapticFeedback.ts）。
+  hapticFeedback: boolean;
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
@@ -80,6 +82,7 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   pageAlignment: "center",
   shortcutOverrides: {},
   recentSlashCommandIds: [],
+  hapticFeedback: true,
 };
 
 let current: DevicePreferences | null = null;
@@ -162,6 +165,7 @@ function validPreferences(stored: unknown): DevicePreferences {
     recentSlashCommandIds: Array.isArray(candidate.recentSlashCommandIds)
       ? candidate.recentSlashCommandIds.filter((id): id is string => typeof id === "string")
       : DEFAULT_DEVICE_PREFERENCES.recentSlashCommandIds,
+    hapticFeedback: typeof candidate.hapticFeedback === "boolean" ? candidate.hapticFeedback : DEFAULT_DEVICE_PREFERENCES.hapticFeedback,
   };
 }
 

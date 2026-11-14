@@ -1,11 +1,12 @@
 // スマホの一覧を、いちばん上から下へ引いて離すと同期する（同期先があるときだけ）。
 //   引いている間は、一覧が指の半分の速さで下がり、上に案内が出る（React の描画を通さず、transform を直接書く）。
-//   決めた幅より引いて離すと同期し、終わるまで案内を残す。
+//   決めた幅より引いて離すと同期し、終わるまで案内を残す。その幅を越えた瞬間に、短く振動させる（Android のアプリだけ）。
 // ポインターのイベントでは、ブラウザが縦のスクロールを始めると指の動きが届かなくなるので、タッチのイベントで受け、
 // 引いている間だけスクロール（とブラウザ自身の引いて再読み込み）を止める。
 // タッチは一覧の外側（listRef）で受ける。同期のあと一覧が上へ戻る途中に引き直すと、指は一覧の上の隙間に触れるため。
 
 import { useEffect, useRef, useState } from "react";
+import { giveHapticFeedback } from "../platform/hapticFeedback";
 
 // 離すと同期する、一覧を下げた幅（px）。
 const PULL_THRESHOLD = 64;
@@ -19,6 +20,10 @@ const PULL_LOCK_DISTANCE = 8;
 export type PullState = "idle" | "pulling" | "ready" | "syncing";
 
 type PullGesture = { startX: number; startY: number; pulling: boolean; offset: number };
+
+function isPastPullThreshold(offset: number): boolean {
+  return offset >= PULL_THRESHOLD;
+}
 
 export function usePullToSync(onSync: (() => Promise<void>) | null) {
   const listRef = useRef<HTMLDivElement>(null);
@@ -72,9 +77,14 @@ export function usePullToSync(onSync: (() => Promise<void>) | null) {
         gesture.pulling = true;
       }
       event.preventDefault();
+      const wasPastThreshold = isPastPullThreshold(gesture.offset);
       gesture.offset = Math.max(0, deltaY * PULL_RESISTANCE);
       moveList(gesture.offset, { animated: false });
-      setPullState(gesture.offset >= PULL_THRESHOLD ? "ready" : "pulling");
+      const pastThreshold = isPastPullThreshold(gesture.offset);
+      if (pastThreshold && !wasPastThreshold) {
+        giveHapticFeedback();
+      }
+      setPullState(pastThreshold ? "ready" : "pulling");
     };
     // 指を離したら（canceled なら、ブラウザに指を取られたら）引くのを終える。取られたときは同期しない。
     const finishPull = ({ canceled }: { canceled: boolean }) => {
@@ -84,7 +94,7 @@ export function usePullToSync(onSync: (() => Promise<void>) | null) {
         return;
       }
       const sync = onSyncRef.current;
-      if (canceled || released.offset < PULL_THRESHOLD || sync === null) {
+      if (canceled || !isPastPullThreshold(released.offset) || sync === null) {
         moveList(0, { animated: true });
         setPullState("idle");
         return;

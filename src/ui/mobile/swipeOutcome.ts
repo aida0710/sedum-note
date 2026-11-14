@@ -14,12 +14,17 @@ export type SwipeDirection = "left" | "right";
 
 type SwipeRelease = { offset: number; velocity: number; width: number };
 
+// 動かした距離だけで、離せば操作を行う所まで来ているか（指を動かしている間に、越えた瞬間を知らせるのに使う）。
+export function isPastCommitDistance({ offset, width }: Pick<SwipeRelease, "offset" | "width">): boolean {
+  return offset !== 0 && Math.abs(offset) >= width * COMMIT_FRACTION;
+}
+
 // 離したときに操作を行う向き。行わないなら null。払った向きと動かした向きが逆なら、行わない。
 export function swipeOutcome({ offset, velocity, width }: SwipeRelease): SwipeDirection | null {
   const direction: SwipeDirection = offset < 0 ? "left" : "right";
   const distance = Math.abs(offset);
   const flickedSameWay = Math.sign(velocity) === Math.sign(offset) && Math.abs(velocity) >= FLICK_VELOCITY;
-  if (distance >= width * COMMIT_FRACTION || (flickedSameWay && distance >= FLICK_MIN_DISTANCE)) {
+  if (isPastCommitDistance({ offset, width }) || (flickedSameWay && distance >= FLICK_MIN_DISTANCE)) {
     return offset === 0 ? null : direction;
   }
   return null;

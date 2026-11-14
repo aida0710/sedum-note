@@ -8,9 +8,11 @@ import type { VaultSession } from "../session/useVaultSession";
 import { BackupSection } from "./BackupSection";
 import { CustomCssSection } from "./CustomCssSection";
 import { DisplaySection } from "./DisplaySection";
+import { HapticFeedbackSection } from "./HapticFeedbackSection";
 import { LockSection } from "./LockSection";
 import { MarkdownSection } from "./MarkdownSection";
 import { McpSectionSlot } from "./mcpSectionSlot";
+import { isAndroidApp } from "../platform/runtime";
 import { PassphraseSection } from "./PassphraseSection";
 import type { SettingsPage } from "./settingsPages";
 import { RemindersSection } from "./RemindersSection";
@@ -39,7 +41,14 @@ export function SettingsPageContent({ page, session, vault, onSelectPage, isMobi
   const mcpSection = useContext(McpSectionSlot);
   switch (page) {
     case "general":
-      return <><DisplaySection showsPageAlignment={!isMobile} /><TemplateSection /><RemindersSection /><TrashSection repository={repository} /><SpacesSection /></>;
+      return (
+        <>
+          <DisplaySection showsPageAlignment={!isMobile} />
+          {/* 振動は Android のアプリだけ（Web 版と PC のアプリでは何もしないので、欄も出さない）。 */}
+          {isAndroidApp() && <HapticFeedbackSection />}
+          <TemplateSection /><RemindersSection /><TrashSection repository={repository} /><SpacesSection />
+        </>
+      );
     case "appearance":
       return <><ThemeSection /><CustomCssSection /></>;
     case "sync":

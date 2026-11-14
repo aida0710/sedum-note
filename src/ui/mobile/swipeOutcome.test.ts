@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { swipeOutcome } from "./swipeOutcome";
+import { isPastCommitDistance, swipeOutcome } from "./swipeOutcome";
 
 const WIDTH = 390;
 
@@ -17,5 +17,12 @@ describe("スワイプして離したときの操作", () => {
 
   it("動かした向きと逆へ払って戻したら、操作を行わない", () => {
     expect(swipeOutcome({ offset: -60, velocity: 0.8, width: WIDTH })).toBeNull();
+  });
+
+  it("離せば操作を行う距離を越えたかは、速さを見ずに、動かした距離だけで決まる（指を動かしている間に振動させる所）", () => {
+    expect(isPastCommitDistance({ offset: -150, width: WIDTH })).toBe(true);
+    expect(isPastCommitDistance({ offset: 150, width: WIDTH })).toBe(true);
+    expect(isPastCommitDistance({ offset: -100, width: WIDTH })).toBe(false);
+    expect(isPastCommitDistance({ offset: 0, width: WIDTH })).toBe(false);
   });
 });

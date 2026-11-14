@@ -2,10 +2,12 @@
 //   指が触れている間は、行が指にそのまま付いて動く（React の描画を通さず、transform を直接書く）。
 //   縦に動かし始めたら一覧のスクロールに任せ、横に動かし始めたときだけ行を動かす。
 //   離したら、動かした距離か払った速さで、操作を行うか元に戻すかを決める（swipeOutcome.ts）。
+//   離せば操作を行う距離を越えた瞬間に、短く振動させる（Android のアプリだけ。速く払って決まるときは振動しない）。
 // 押した向きの下に出す色と文字は、行の data-swipe で CSS が切り替える。
 
 import { useRef } from "react";
-import { RUBBER_BAND_FACTOR, type SwipeDirection, swipeOutcome } from "./swipeOutcome";
+import { giveHapticFeedback } from "../platform/hapticFeedback";
+import { isPastCommitDistance, RUBBER_BAND_FACTOR, type SwipeDirection, swipeOutcome } from "./swipeOutcome";
 
 // 縦か横かを決めるまでに待つ、指の動きの距離（px）。
 const AXIS_LOCK_DISTANCE = 8;
@@ -24,6 +26,8 @@ type SwipeGesture = {
   lastTime: number;
   // px/ms。左へ動いているときは負。
   velocity: number;
+  // 離せば操作を行う距離を越えているか。越えた瞬間だけ振動させるために覚える。
+  pastCommitDistance: boolean;
 };
 
 export function useSwipeActions({ onSwipeLeft, onSwipeRight }: SwipeActions) {
@@ -59,7 +63,7 @@ export function useSwipeActions({ onSwipeLeft, onSwipeRight }: SwipeActions) {
       }
       gesture.current = {
         pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, axis: null,
-        offset: 0, lastX: event.clientX, lastTime: event.timeStamp, velocity: 0,
+        offset: 0, lastX: event.clientX, lastTime: event.timeStamp, velocity: 0, pastCommitDistance: false,
       };
     },
     onPointerMove: (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -89,6 +93,11 @@ export function useSwipeActions({ onSwipeLeft, onSwipeRight }: SwipeActions) {
       const hasAction = actionFor(deltaX < 0 ? "left" : "right") !== undefined;
       current.offset = hasAction ? deltaX : deltaX * RUBBER_BAND_FACTOR;
       moveItem(current.offset, { animated: false });
+      const pastCommitDistance = hasAction && isPastCommitDistance({ offset: current.offset, width: event.currentTarget.offsetWidth });
+      if (pastCommitDistance && !current.pastCommitDistance) {
+        giveHapticFeedback();
+      }
+      current.pastCommitDistance = pastCommitDistance;
     },
     onPointerUp: (event: React.PointerEvent<HTMLButtonElement>) => {
       const current = gesture.current;
