@@ -89,3 +89,10 @@ test("カスタム CSS は、ロックを解除している間だけ当たり、
   await expect.poll(headingSpacing).not.toBe("7px");
   await expect(page.getByRole("switch", { name: "カスタム CSS を当てる" })).not.toBeChecked();
 });
+
+test("アイコンの線は、大きさによらず枠の中で 1.75 の太さにそろう", async ({ page }) => {
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "新しいメモ" }).waitFor();
+  const strokeWidths = await page.locator("svg.lucide").evaluateAll((icons) => [...new Set(icons.map((icon) => getComputedStyle(icon).strokeWidth))]);
+  expect(strokeWidths).toEqual(["1.75px"]);
+});
