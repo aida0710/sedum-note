@@ -146,7 +146,7 @@ svg.lucide { stroke-width: 1.75; }
 .database-group { max-width: 260px; margin-bottom: 12px; }
 .database-board { display: flex; gap: 12px; align-items: flex-start; overflow-x: auto; }
 .database-column { flex: 0 0 220px; background: var(--tag); border-radius: var(--radius-panel); padding: 8px; display: flex; flex-direction: column; gap: 6px; min-height: 80px; }
-.database-column h2 { font-size: var(--font-size-small); font-weight: 600; margin: 2px 4px 4px; display: flex; justify-content: space-between; color: var(--muted); }
+.database-column h2 { margin: 2px 4px 4px; display: flex; justify-content: space-between; }
 .database-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 8px 10px; text-align: left; font-size: var(--font-size-ui); color: var(--text); }
 /* ボードのカードのドラッグ。左の列と同じく、持っているカードを薄くし、落とし先の列を光らせる。 */
 .database-card.dragging { opacity: .5; outline: 1px dashed var(--muted); outline-offset: -1px; }
@@ -336,7 +336,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .dialog.ai-chat-dialog:has(.ai-chat > .ai-chat-notice) { height: auto; }
 .ai-chat-dialog .ai-chat { flex: 1; border-left: 0; border-radius: inherit; }
 .backlinks { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); }
-.backlinks h2 { font-size: var(--font-size-small); font-weight: 600; color: var(--muted); margin: 0 0 6px; }
+.backlinks h2 { margin: 0 0 6px; }
 .sidebar-brand-actions { margin-left: auto; display: flex; gap: 2px; }
 .sidebar-brand .sidebar-brand-actions .icon-button { margin-left: 0; }
 
@@ -380,7 +380,9 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .nav-row:hover .row-actions, .nav-row:focus-within .row-actions { display: flex; }
 /* 件数を隠すのは、その場所に行の操作（「…」）が出る行だけ。操作の無い行（ビュー、タグ）では件数を出したままにする。 */
 .nav-row:has(.row-actions):hover .count, .nav-row:has(.row-actions):focus-within .count { display: none; }
-.section-title { color: var(--muted); font-size: var(--font-size-caption); font-weight: 600; letter-spacing: .04em; padding: 14px 8px 4px; display: flex; align-items: center; }
+/* 区切りの見出し（左の列とメニューのまとまり、バックリンク、ボードの列、期限の一覧のまとまり）は、どこでも同じ形にする。 */
+.section-title, .menu-heading, .backlinks h2, .database-column h2, .reminders-group h2 { color: var(--muted); font-size: var(--font-size-caption); font-weight: 600; letter-spacing: .04em; }
+.section-title { padding: 14px 8px 4px; display: flex; align-items: center; }
 .section-title .icon-button { margin-left: auto; }
 /* ノートブックを一番上の段へ移す落とし先（「ノートブック」の見出し）。 */
 .section-title.drop-target { background: var(--accent-soft); outline: 1px dashed var(--accent); outline-offset: -1px; border-radius: var(--radius-row); }
@@ -580,7 +582,7 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .reminders-view { width: min(760px, 100%); margin: 0 auto; padding: 28px 24px 60px; display: flex; flex-direction: column; gap: 18px; }
 .reminders-header { display: flex; align-items: center; gap: 10px; }
 .reminders-header h1 { font-size: var(--font-size-title); flex: 1; }
-.reminders-group h2 { font-size: var(--font-size-small); color: var(--muted); display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px; }
+.reminders-group h2 { display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px; }
 .reminders-group.overdue h2 { color: var(--danger); }
 .reminders-group ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .reminder-row { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-bottom: 1px solid var(--line); }
@@ -903,7 +905,7 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .menu-item:active:not(:disabled) { background: var(--pressed); }
 .menu-item.danger { color: var(--danger); }
 .menu-separator { height: 1px; background: var(--line); margin: 4px 0; }
-.menu-heading { color: var(--muted); font-size: var(--font-size-caption); font-weight: 600; padding: 6px 10px 2px; }
+.menu-heading { padding: 6px 10px 2px; }
 .menu-check { margin-left: auto; color: var(--accent); }
 /* 項目の右に出すショートカットのキー（メモの「…」とコマンドパレット）。 */
 .menu-item > kbd { margin-left: auto; color: var(--muted); font-size: var(--font-size-caption); }
@@ -1027,6 +1029,8 @@ input[type="checkbox"].switch:disabled { cursor: default; opacity: .55; }
 .settings h1 { font-size: var(--font-size-title); }
 .settings-section { display: flex; flex-direction: column; gap: 12px; padding-top: 18px; border-top: 1px solid var(--line); }
 .settings-section h2 { font-size: var(--font-size-heading); }
+/* 欄の中の小見出し。ブラウザの既定（1.17em の太字）だと、上の欄の見出しより大きくなる。 */
+.settings-section h3 { font-size: var(--font-size-ui); font-weight: 600; }
 /* コマンドパレットから選んだ設定の項目を、少しの間光らせる（settings/revealSetting.ts。時間はそちらと同じ）。 */
 .settings-revealed { animation: settings-revealed-fade 1.6s ease-out; border-radius: var(--radius-row); }
 @keyframes settings-revealed-fade { from { background: var(--accent-soft); box-shadow: 0 0 0 6px var(--accent-soft); } to { background: transparent; box-shadow: 0 0 0 6px transparent; } }
