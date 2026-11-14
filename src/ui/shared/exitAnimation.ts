@@ -9,9 +9,22 @@ import { type RefObject, useLayoutEffect } from "react";
 const LEAVING_CLASS = "leaving";
 const MEDIA_SELECTOR = "iframe, video, audio";
 
+// 写しを見た目だけの絵にする。役割（role="dialog" など）・aria・id を外す。残すと、開いているダイアログを探す所
+// （ショートカットや Esc を止める判定）が写しを数え、閉じたあとの 0.1 秒、キーが効かなかった。id は本物と重なる。
+function stripSemantics(copy: HTMLElement): void {
+  for (const element of [copy, ...copy.querySelectorAll<HTMLElement>("*")]) {
+    element.removeAttribute("id");
+    element.removeAttribute("role");
+    for (const name of element.getAttributeNames().filter((attribute) => attribute.startsWith("aria-"))) {
+      element.removeAttribute(name);
+    }
+  }
+}
+
 function leaveWithAnimation(element: HTMLElement): void {
   const copy = element.cloneNode(true) as HTMLElement;
   copy.classList.add(LEAVING_CLASS);
+  stripSemantics(copy);
   copy.inert = true;
   copy.setAttribute("aria-hidden", "true");
   // 写しの中の埋め込み・動画・音声は外す（写すと、外のページを読み込み直したり、音を鳴らし直したりするため）。

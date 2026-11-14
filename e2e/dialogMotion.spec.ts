@@ -115,3 +115,20 @@ test.describe("動きを減らす設定", () => {
     await expect(page.locator(".toast")).toHaveCSS("animation-name", "none");
   });
 });
+
+test("ダイアログを閉じた直後でも、ショートカットが効く（消える写しを、開いているダイアログとして数えない）", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "会議");
+  await noteMenuButton(page).click();
+  await page.getByRole("menuitem", { name: "履歴" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await recordLeavingCopies(page);
+  await page.keyboard.press("Escape");
+  // 写しが消える前に、コマンドパレットのキーを押す。
+  await page.keyboard.press("Control+k");
+  await expect(page.getByPlaceholder("メモ・設定・操作を検索（「>」で操作のみ）")).toBeVisible();
+  const records = await leavingRecords(page);
+  expect(records[0]?.kind).toBe("added");
+  // 写しは役割を持たないので、開いているダイアログはパレットの 1 つだけ。
+  await expect(page.locator(".leaving [role], .leaving[role]")).toHaveCount(0);
+});
