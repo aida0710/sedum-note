@@ -1032,6 +1032,9 @@ details summary { cursor: pointer; color: var(--accent); }
 @keyframes pull-to-sync-spin { to { transform: rotate(360deg); } }
 /* メモを横に払う（useSwipeActions.ts）。行が動いた下に、払った向きの操作の色と文字を出す。 */
 .note-item-row { position: relative; overflow: hidden; }
+/* 画面の外の行は、描く手間（文字の組みと塗り）を省く。メモが 2,000 件あると、一覧を出すたびに全部の行を組んで 0.5 秒ほど止まるため。
+   見込みの高さ 103px は、題・本文 2 行・日付の行の高さ。一度描いた行は、描いたときの高さを覚えて使う（auto）。 */
+.phone-list .note-item-row { content-visibility: auto; contain-intrinsic-size: auto 103px; }
 .note-item-row .note-item { position: relative; background: var(--panel); touch-action: pan-y; transition: transform 220ms cubic-bezier(0.165, 0.84, 0.44, 1); }
 .swipe-action { position: absolute; inset: 0; display: none; align-items: center; gap: 6px; padding: 0 20px; font-size: var(--font-size-small); font-weight: 600; }
 .note-item-row[data-swipe="right"] .swipe-action-right { display: flex; justify-content: flex-start; background: var(--accent); color: var(--on-accent); }
