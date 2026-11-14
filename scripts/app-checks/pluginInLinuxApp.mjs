@@ -48,7 +48,7 @@ try {
   await app.click(await app.findByXPath("//button[@aria-label='設定']"));
   await app.click(await app.waitForXPath("//nav[@aria-label='設定のページ']//button[normalize-space()='プラグイン']", 10_000));
   await app.type(await app.waitForXPath("//input[@id='plugin-source']", 10_000), pluginSource);
-  await app.click(await app.findByXPath("//button[normalize-space()='取ってくる']"));
+  await app.click(await app.findByXPath("//button[normalize-space()='取得']"));
   await app.waitForXPath("//div[@role='dialog']//button[normalize-space()='インストール']", 60_000);
   await capture("linux-plugin-review");
   await app.click(await app.findByXPath("//div[@role='dialog']//button[normalize-space()='インストール']"));

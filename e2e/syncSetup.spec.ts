@@ -107,10 +107,10 @@ test("同期なしで始めたあと、設定で同期先を足せる。暗号�
   const keySection = laptop.locator(".settings-section", { has: laptop.getByRole("heading", { name: "暗号化キー", exact: true }) });
   await keySection.getByLabel("このデバイスのパスフレーズ").fill("wrong horse battery");
   await keySection.getByLabel("前の暗号化キーで参加できなくなることと、メモを再暗号化しないことを理解しました").check();
-  await keySection.getByRole("button", { name: "暗号化キーを作り直す" }).click();
+  await keySection.getByRole("button", { name: "暗号化キーを再生成" }).click();
   await expect(keySection.getByRole("alert")).toContainText("パスフレーズが正しくありません。");
   await keySection.getByLabel("このデバイスのパスフレーズ").fill(PASSPHRASE);
-  await keySection.getByRole("button", { name: "暗号化キーを作り直す" }).click();
+  await keySection.getByRole("button", { name: "暗号化キーを再生成" }).click();
   const secondKey = await keyDialog.locator("code").innerText();
   expect(secondKey).not.toBe(firstKey);
   await keyDialog.getByRole("button", { name: "控えました" }).click();
@@ -171,8 +171,8 @@ test("暗号化キーは、自動で生成するか自分で入力するかを�
   await keySection.getByLabel("暗号化キー", { exact: true }).fill("another-key-of-my-own");
   await keySection.getByLabel("このデバイスのパスフレーズ").fill(PASSPHRASE);
   await keySection.getByLabel("前の暗号化キーで参加できなくなることと、メモを再暗号化しないことを理解しました").check();
-  await keySection.getByRole("button", { name: "暗号化キーを作り直す" }).click();
-  await expect(keySection.getByText("暗号化キーを作り直しました")).toBeVisible();
+  await keySection.getByRole("button", { name: "暗号化キーを再生成" }).click();
+  await expect(keySection.getByText("暗号化キーを再生成しました")).toBeVisible();
 
   const phone = await (await browser.newContext({ viewport: DESKTOP_VIEWPORT })).newPage();
   await openSetupWithSync(phone, remoteConfig, SECOND_DEVICE_PASSPHRASE);
@@ -198,7 +198,7 @@ test("同期を設定したあとの設定の画面は、同期先の要約を�
   const laptop = await openSyncedDevice(browser, { remoteConfig, join: false });
   await laptop.locator(".sync-line").click();
   const syncSection = laptop.locator(".settings-section", { has: laptop.getByRole("heading", { name: "同期", exact: true }) });
-  await expect(syncSection).toContainText(`同期先: バケット「${remoteConfig.bucket}」の ${remoteConfig.prefix}`);
+  await expect(syncSection).toContainText(`同期先: バケット「${remoteConfig.bucket}」（${remoteConfig.prefix}）`);
   await expect(syncSection.getByLabel("エンドポイント")).toBeHidden();
 
   await syncSection.getByRole("button", { name: "同期先を変更" }).click();

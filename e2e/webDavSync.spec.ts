@@ -74,7 +74,7 @@ test("WebDAV のサーバーを同期先にして、2 台で同期できる", as
   expect(server.requests.some((request) => request.method === "PUT" && request.path.includes("/records/"))).toBe(true);
   // 設定には、同期先が WebDAV として出る。
   await desktop.locator(".sync-line").click();
-  await expect(desktop.getByText(`同期先: WebDAV の ${FOLDER_URL}`)).toBeVisible();
+  await expect(desktop.getByText(`同期先: WebDAV（${FOLDER_URL}）`)).toBeVisible();
 });
 
 test("WebDAV の URL が https でなければ、接続を確かめる前に知らせる。条件付きの書き込みを守らないサーバーは断る", async ({ browser }) => {

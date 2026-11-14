@@ -26,7 +26,7 @@ await app.keyboard.type("牛乳と卵");
 await app.getByRole("button", { name: "設定", exact: true }).click();
 await app.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: "プラグイン", exact: true }).click();
 await app.locator("#plugin-source").fill(pluginSource);
-await app.getByRole("button", { name: "取ってくる" }).click();
+await app.getByRole("button", { name: "取得" }).click();
 await app.getByRole("dialog").getByRole("button", { name: "インストール" }).click({ timeout: 60_000 });
 await app.locator(".plugin-list li").first().waitFor();
 captureScreen(outputDirectory, "windows-plugin-installed");

@@ -29,15 +29,15 @@ test("システムに合わせるテーマは、OS がダークならダーク�
 
 test("自作のテーマは、読めない色の組み合わせでは保存できず、直すと保存して使える", async ({ page }) => {
   await openAppearanceOfNewVault(page);
-  await page.getByRole("button", { name: "テーマを作る" }).click();
+  await page.getByRole("button", { name: "テーマを作成" }).click();
   await page.getByLabel("テーマの名前").fill("わたしの色");
-  await page.getByLabel("文字", { exact: true }).fill("#f0f0f0");
-  await expect(page.getByRole("alert").first()).toContainText("「文字」と「メモの地」の色が近く");
+  await page.getByLabel("テキスト", { exact: true }).fill("#f0f0f0");
+  await expect(page.getByRole("alert").first()).toContainText("「テキスト」と「メモの背景」の色が近く");
   await expect(page.getByRole("button", { name: "保存", exact: true })).toBeDisabled();
   // 設定の画面そのものは、保存するまで元の色のまま（読める）。
   expect(await cssVariable(page, "--text")).toBe("#1f2328");
 
-  await page.getByLabel("文字", { exact: true }).fill("#102030");
+  await page.getByLabel("テキスト", { exact: true }).fill("#102030");
   await page.getByLabel("アクセント", { exact: true }).fill("#8a2be2");
   await page.getByRole("button", { name: "保存", exact: true }).click();
   await expect(page.getByRole("radio", { name: "わたしの色" })).toHaveAttribute("aria-checked", "true");
@@ -52,9 +52,9 @@ test("自作のテーマは、読めない色の組み合わせでは保存で�
 test("本文の文字の大きさ・字の間・行の間を変えると、見本とエディタの文字に当たり、標準にも戻せる", async ({ page }) => {
   await startLocalVault(page);
   await openSettingsPage(page, "一般");
-  await page.getByLabel("本文の文字の大きさ").fill("20");
-  await page.getByLabel("本文の字の間").fill("0.08");
-  await page.getByLabel("本文の行の間").fill("2.2");
+  await page.getByLabel("本文のテキストサイズ").fill("20");
+  await page.getByLabel("本文の文字間隔").fill("0.08");
+  await page.getByLabel("本文の行間").fill("2.2");
   const sample = page.locator(".typography-preview p");
   await expect(sample).toHaveCSS("font-size", "20px");
   await expect(sample).toHaveCSS("letter-spacing", "1.6px");
@@ -67,9 +67,9 @@ test("本文の文字の大きさ・字の間・行の間を変えると、見�
   await expect(body).toHaveCSS("line-height", "44px");
 
   await openSettingsPage(page, "一般");
-  await page.getByRole("button", { name: "文字の大きさと間を標準に戻す" }).click();
+  await page.getByRole("button", { name: "テキストサイズと間隔をデフォルトに戻す" }).click();
   await expect(sample).toHaveCSS("font-size", "16px");
-  await expect(page.getByRole("button", { name: "文字の大きさと間を標準に戻す" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "テキストサイズと間隔をデフォルトに戻す" })).toBeDisabled();
 });
 
 test("カスタム CSS は、ロックを解除している間だけ当たり、ロック解除の画面でオフにできる", async ({ page }) => {
@@ -87,7 +87,7 @@ test("カスタム CSS は、ロックを解除している間だけ当たり、
   await page.getByRole("button", { name: "解除" }).click();
   await openSettingsPage(page, "外観");
   await expect.poll(headingSpacing).not.toBe("7px");
-  await expect(page.getByRole("switch", { name: "カスタム CSS を当てる" })).not.toBeChecked();
+  await expect(page.getByRole("switch", { name: "カスタムCSSを適用する" })).not.toBeChecked();
 });
 
 test("アイコンの線は、大きさによらず枠の中で 1.75 の太さにそろう", async ({ page }) => {

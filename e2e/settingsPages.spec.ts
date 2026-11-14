@@ -57,9 +57,9 @@ async function nameAndControlBoxes(page: Page, name: string) {
 test("PC の広い画面では、選択欄とチェックを名前の右に並べる。説明は欄の説明として読み上げる", async ({ page }) => {
   await startLocalVault(page);
   await page.getByRole("button", { name: "設定", exact: true }).click();
-  await expect(page.getByLabel("本文の配置の既定")).toHaveAccessibleDescription("メモの「…」の「本文の配置」で、メモごとに変えられます。");
+  await expect(page.getByLabel("本文の配置（デフォルト）")).toHaveAccessibleDescription("メモの「…」の「本文の配置」で、メモごとに変更できます。");
 
-  for (const name of ["本文の配置の既定", "打っている行を中央に保つ（タイプライターモード）"]) {
+  for (const name of ["本文の配置（デフォルト）", "入力中の行を中央に保つ（タイプライターモード）"]) {
     const { nameBox, controlBox } = await nameAndControlBoxes(page, name);
     expect(controlBox.x).toBeGreaterThan(nameBox.x + nameBox.width);
     // 名前の縦の中央が、欄の上の端と下の端の間にある（同じ行に並んでいる）。
@@ -72,7 +72,7 @@ test("PC の広い画面では、選択欄とチェックを名前の右に並�
 test("設定のオンとオフはスイッチで、押すとその場で設定が変わり、つまみが右へ動く", async ({ page }) => {
   await startLocalVault(page);
   await page.getByRole("button", { name: "設定", exact: true }).click();
-  const typewriterMode = page.getByRole("switch", { name: "打っている行を中央に保つ（タイプライターモード）" });
+  const typewriterMode = page.getByRole("switch", { name: "入力中の行を中央に保つ（タイプライターモード）" });
   await expect(typewriterMode).not.toBeChecked();
   await expect(typewriterMode).toHaveCSS("width", "34px");
   const knobLeft = () => typewriterMode.evaluate((input) => getComputedStyle(input, "::before").left);
@@ -93,8 +93,8 @@ test("スマホでは、選択欄を今までどおり名前の下に出し、�
 
   const sortOrder = await nameAndControlBoxes(page, "メモの並び順");
   expect(sortOrder.controlBox.y).toBeGreaterThanOrEqual(sortOrder.nameBox.y + sortOrder.nameBox.height);
-  await expect(page.getByLabel("本文の配置の既定")).toHaveCount(0);
-  const typewriterMode = await nameAndControlBoxes(page, "打っている行を中央に保つ（タイプライターモード）");
+  await expect(page.getByLabel("本文の配置（デフォルト）")).toHaveCount(0);
+  const typewriterMode = await nameAndControlBoxes(page, "入力中の行を中央に保つ（タイプライターモード）");
   expect(typewriterMode.controlBox.x + typewriterMode.controlBox.width).toBeLessThanOrEqual(typewriterMode.nameBox.x);
 });
 
@@ -163,7 +163,7 @@ test("開けない記録があると、設定に件数と次の手と記録の I
   const notice = page.locator(".unreadable-records");
   await expect(notice).toContainText("開けないデータが1件あります");
   await expect(notice).toContainText("同期していないため、このデータをほかの場所から復元することはできません。");
-  await notice.getByText("開けない記録の ID").click();
+  await notice.getByText("開けないデータのID").click();
   await expect(notice.locator("code")).toHaveText(brokenId);
 });
 
@@ -179,13 +179,13 @@ test("設定に保存していない入力を残したまま、ほかのペー�
 
   // ほかのページへ: やめると、今のページと入力が残る。
   await pages.getByRole("button", { name: "一般", exact: true }).click();
-  const confirmation = page.getByRole("dialog").filter({ hasText: "保存していない変更があります" });
+  const confirmation = page.getByRole("dialog").filter({ hasText: "保存せずに移動しますか？" });
   await confirmation.getByRole("button", { name: "キャンセル" }).click();
   await expect(css).toHaveValue(".ProseMirror { line-height: 2; }");
 
   // ほかのタブへ: 捨ててよいと答えると移る。
   await page.getByRole("tab", { name: "買い物" }).click();
-  await confirmation.getByRole("button", { name: "保存せずに移る" }).click();
+  await confirmation.getByRole("button", { name: "破棄して移動" }).click();
   await expect(page.getByPlaceholder("タイトル")).toHaveValue("買い物");
 
   // 打ちかけが無ければ、聞かずに移る。

@@ -34,7 +34,7 @@ for (const [index, themeName] of THEME_NAMES.entries()) {
 // 設定のテーマの欄（見本の並び）も撮る。
 await openAppearanceSettings();
 await page.getByRole("radio", { name: "ライト", exact: true }).click();
-await page.getByRole("button", { name: "テーマを作る" }).click();
+await page.getByRole("button", { name: "テーマを作成" }).click();
 await page.screenshot({ path: `${outputDirectory}/theme-settings.png` });
 
 const sheet = await (await browser.newContext({ viewport: { width: 1960, height: 100 }, deviceScaleFactor: 1 })).newPage();

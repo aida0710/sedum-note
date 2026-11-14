@@ -411,7 +411,7 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
         const dialog = page.getByRole("dialog");
         await dialog.getByRole("button", { name: "プロパティを追加" }).click();
         await dialog.getByRole("button", { name: "プロパティを追加" }).click();
-        await dialog.getByLabel("種類").nth(1).selectOption({ label: "選択肢" });
+        await dialog.getByLabel("種類").nth(1).selectOption({ label: "セレクト" });
         await dialog.getByLabel("選択肢").fill("未着手、進行中、完了");
         await dialog.getByLabel("選択肢").press("Tab");
       },
@@ -560,7 +560,7 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
     ...AI_CHAT_SCREENS({ openNote: openRichNote }),
     {
       name: "custom-theme-editor",
-      open: async (page) => { await openSettingsOnDesktop(page, "外観"); await page.getByRole("button", { name: "テーマを作る" }).click(); },
+      open: async (page) => { await openSettingsOnDesktop(page, "外観"); await page.getByRole("button", { name: "テーマを作成" }).click(); },
     },
     {
       name: "settings-sync-fields",
@@ -621,7 +621,7 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
     },
     {
       name: "space-switcher-menu",
-      open: async (page) => { await page.getByRole("button", { name: /スペースを切り替える/ }).click(); await page.getByRole("menu").waitFor(); },
+      open: async (page) => { await page.getByRole("button", { name: /スペースを切り替え/ }).click(); await page.getByRole("menu").waitFor(); },
       // 見本のメモがある最初のスペースへ戻る（あとの英語の画面が使う）。
       close: async (page) => { await page.getByRole("menuitemradio", { name: "最初のスペース" }).click(); await page.locator(".tree-note").first().waitFor(); },
     },

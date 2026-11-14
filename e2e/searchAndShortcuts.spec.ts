@@ -448,12 +448,12 @@ test("コマンドパレットは、メモの本文・ノートブック・設�
   await page.keyboard.press("Escape");
 
   await page.keyboard.press("Control+k");
-  await palette.getByRole("combobox").fill("文字の大きさ");
-  const setting = palette.getByRole("option", { name: /本文の文字の大きさ/ });
+  await palette.getByRole("combobox").fill("テキストサイズ");
+  const setting = palette.getByRole("option", { name: /本文のテキストサイズ/ });
   await expect(setting).toContainText("設定 › 一般");
   await setting.click();
   await expect(page.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: "一般", exact: true })).toHaveAttribute("aria-current", "page");
-  await expect(page.getByLabel("本文の文字の大きさ")).toBeFocused();
+  await expect(page.getByLabel("本文のテキストサイズ")).toBeFocused();
 
   await page.keyboard.press("Control+k");
   await palette.getByRole("combobox").fill("暗号化キー");

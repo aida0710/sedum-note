@@ -65,10 +65,10 @@ test("ゴミ箱の自動削除は、既定ではオフ。日数は Enter か「�
 
   // 入れた直後は、30 日を過ぎたメモが無いので、聞かずに有効になる。
   await openSettingsPage(page, "一般");
-  const autoDelete = page.getByLabel("ゴミ箱のメモを、日数がたったら完全に削除する");
+  const autoDelete = page.getByLabel("ゴミ箱のメモを一定の日数後に完全に削除する");
   await expect(autoDelete).not.toBeChecked();
   await autoDelete.check();
-  await expect(page.getByText("今の設定は 30 日です")).toBeVisible();
+  await expect(page.getByText("現在の設定は30日です")).toBeVisible();
   const days = page.getByLabel("ゴミ箱に残す日数");
   await days.fill("0");
   await expect(page.getByRole("alert")).toContainText("1〜3650の整数");
@@ -78,20 +78,20 @@ test("ゴミ箱の自動削除は、既定ではオフ。日数は Enter か「�
   await days.fill("3");
   await days.blur();
   await page.clock.runFor(1_000);
-  await expect(page.getByText("今の設定は 30 日です")).toBeVisible();
+  await expect(page.getByText("現在の設定は30日です")).toBeVisible();
   await expect(trashCount).toHaveText("1");
 
   // 「3」を Enter で決めようとすると、いま消える 1 件を出して確かめる。やめれば決まらず、メモも残る。
   await days.press("Enter");
   const confirmRemoval = page.getByRole("dialog", { name: /3日を過ぎたメモが1件あり/ });
   await confirmRemoval.getByRole("button", { name: "キャンセル" }).click();
-  await expect(page.getByText("今の設定は 30 日です")).toBeVisible();
+  await expect(page.getByText("現在の設定は30日です")).toBeVisible();
   await expect(trashCount).toHaveText("1");
 
   // 消えるメモの無い日数は、聞かずに決まる。
   await days.fill("7");
   await page.getByRole("button", { name: "保存", exact: true }).click();
-  await expect(page.getByText("今の設定は 7 日です")).toBeVisible();
+  await expect(page.getByText("現在の設定は7日です")).toBeVisible();
   await page.clock.runFor(1_000);
   // まだ 7 日たっていないので残る。
   await expect(trashCount).toHaveText("1");
@@ -562,7 +562,7 @@ test("選択肢のプロパティが無いノートブックをボードにす�
   await addNotebookOnDesktop(page, "読書");
   const database = await openDatabaseView(page, "読書");
   await database.getByRole("radio", { name: "ボード" }).click();
-  await expect(database.getByText("ボードは、選択肢のプロパティで列を分けます。")).toBeVisible();
+  await expect(database.getByText("ボード表示には、セレクトのプロパティが必要です。")).toBeVisible();
   await database.getByRole("button", { name: "プロパティを追加" }).click();
   await expect(page.getByRole("dialog", { name: "プロパティ" })).toBeVisible();
 });

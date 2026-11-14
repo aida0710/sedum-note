@@ -31,7 +31,7 @@ async function openNewNote(page: Page): Promise<void> {
 
 const attachedImageWidth = (page: Page) => page.locator(".attachment-image img").evaluate((image: HTMLImageElement) => image.naturalWidth);
 
-test("写真は既定では元のまま貼り、「小さくして貼る」にすると長い辺を 2048px まで縮める", async ({ page }) => {
+test("写真は既定では元のまま貼り、「縮小して挿入」にすると長い辺を 2048px まで縮める", async ({ page }) => {
   await openNewNote(page);
   const photo = await largePhoto(page, 4000, 3000);
   await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "IMG_0001.jpg", mimeType: "image/jpeg", buffer: photo });
@@ -39,7 +39,7 @@ test("写真は既定では元のまま貼り、「小さくして貼る」に�
   expect(await attachedImageWidth(page)).toBe(4000);
 
   await openSettingsPage(page, "一般");
-  await page.getByLabel("写真を貼るとき").selectOption("reduced");
+  await page.getByLabel("画像を挿入するとき").selectOption("reduced");
   await page.getByRole("button", { name: "新しいメモ" }).click();
   await page.getByPlaceholder("タイトル").fill("小さくした写真");
   await page.getByPlaceholder("タイトル").press("Enter");
@@ -49,10 +49,10 @@ test("写真は既定では元のまま貼り、「小さくして貼る」に�
   await expect(page.locator(".attachment-image")).toContainText("IMG_0002.jpg");
 });
 
-test("「貼るたびに聞く」では、小さくするか元のままかを選べる。もう小さい写真は縮めない", async ({ page }) => {
+test("「毎回確認」では、小さくするか元のままかを選べる。もう小さい写真は縮めない", async ({ page }) => {
   await openNewNote(page);
   await openSettingsPage(page, "一般");
-  await page.getByLabel("写真を貼るとき").selectOption("ask");
+  await page.getByLabel("画像を挿入するとき").selectOption("ask");
   await page.getByRole("tab", { name: "写真のメモ" }).click();
 
   await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "big.jpg", mimeType: "image/jpeg", buffer: await largePhoto(page, 3000, 2000) });

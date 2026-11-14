@@ -146,7 +146,7 @@ test("本文の配置は、メモの「…」でメモごとに選べ、既定�
   // 既定を左寄せにすると、配置を選んでいないメモは左寄せになり、選んだメモは変わらない。
   await newNote(page, "既定に従うメモ");
   await openSettingsPage(page, "一般");
-  await page.getByLabel("本文の配置の既定").selectOption("left");
+  await page.getByLabel("本文の配置（デフォルト）").selectOption("left");
   await page.getByRole("tab", { name: "既定に従うメモ" }).click();
   await expect(documentColumn).toHaveClass(/align-left/);
   await page.getByRole("tab", { name: "右に置くメモ", exact: true }).click();
@@ -366,7 +366,7 @@ test("テンプレートの日付と時刻の形式を言語の書き方にす�
   await startLocalVault(page);
   await openSettingsPage(page, "一般");
   await page.getByLabel("日付と時刻の形式").selectOption("long");
-  await expect(page.getByText("テンプレートの @date・@time・@datetime を、この形式で入れます。")).toBeVisible();
+  await expect(page.getByText("テンプレートの@date・@time・@datetimeを、この形式の日時に置き換えます。")).toBeVisible();
 
   await newNote(page, "@date の日報");
   await page.keyboard.type("作成 @datetime");

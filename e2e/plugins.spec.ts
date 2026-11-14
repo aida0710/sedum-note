@@ -34,7 +34,7 @@ async function serveGitHub(page: Page, { manifest, module }: PluginFiles): Promi
 async function fetchPlugin(page: Page, source: string): Promise<void> {
   await openSettingsPage(page, "プラグイン");
   await page.getByLabel("インストール元（GitHub）").fill(source);
-  await page.getByRole("button", { name: "取ってくる" }).click();
+  await page.getByRole("button", { name: "取得" }).click();
 }
 
 async function runFromNoteMenu(page: Page, commandTitle: string): Promise<void> {
@@ -54,9 +54,9 @@ test("GitHub からプラグインを取り込むと、できることを確か�
 
   await fetchPlugin(page, "aida0710/sedum-note/plugins/text-tools");
   const review = page.getByRole("dialog", { name: "プラグイン「Text tools」をインストール" });
-  await expect(review).toContainText("選択した文字");
+  await expect(review).toContainText("選択したテキスト");
   await expect(review).toContainText("開いているメモの本文");
-  await expect(review).toContainText("短い知らせを出す");
+  await expect(review).toContainText("短いメッセージを表示する");
   await expect(review).toContainText(COMMIT_SHA);
   await review.getByRole("button", { name: "インストール" }).click();
   await expect(page.locator(".plugin-list li")).toContainText("Text tools");
