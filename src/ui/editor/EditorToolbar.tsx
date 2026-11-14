@@ -40,10 +40,12 @@ export function EditorToolbar({ editor, onPickImage, onPickFile, onCapturePhoto,
     <div ref={bar} className="editor-bar">
       <HistoryTools editor={editor} />
       <span className="tool-separator" />
-      <ListItemTools editor={editor} />
       <ToolButton label="editor.bulletList" isOn={state.bulletList} onPress={() => commands().toggleBulletList().run()}><List size={ICON_SIZE.button} /></ToolButton>
       <ToolButton label="editor.taskList" isOn={state.taskList} onPress={() => commands().toggleTaskList().run()}><ListChecks size={ICON_SIZE.button} /></ToolButton>
       <ToolButton label="editor.orderedList" isOn={state.orderedList} onPress={() => commands().toggleOrderedList().run()}><ListOrdered size={ICON_SIZE.button} /></ToolButton>
+      {/* 箇条書きの中だけで出すボタンは、箇条書きのボタンの後ろに置く。前に置くと、箇条書きにした瞬間に箇条書きのボタンが右へずれ、
+          同じ所をもう一度押すと別のボタン（インデントを戻す）に当たる。 */}
+      <ListItemTools editor={editor} />
       <span className="tool-separator" />
       <TextStyleTools editor={editor} state={state} />
       <TextColorTools editor={editor} state={state} />

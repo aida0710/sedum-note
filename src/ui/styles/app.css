@@ -539,7 +539,9 @@ button.ai-tool-activity:hover { background: var(--selected); }
 
 .editor-bar { display: flex; align-items: center; gap: 4px; padding: 8px 14px; border-bottom: 1px solid var(--line); color: var(--muted); flex: none; overflow-x: auto; scrollbar-width: none; }
 .tool { width: var(--control-height-compact); height: var(--control-height-compact); border-radius: var(--radius-row); display: grid; place-items: center; font-weight: 700; font-size: var(--font-size-ui); color: var(--text); flex: none; }
-.tool:hover { background: var(--selected); }
+/* 指で操作する端末では、押したボタンにホバーが残る。押したままの形（.on）と同じ背景なので、押していないのに押したままに見える。
+   ホバーの背景は、マウスのある端末だけで出す。 */
+@media (hover: hover) { .tool:hover { background: var(--selected); } }
 .tool.on { background: var(--selected); color: var(--accent); }
 .tool-separator { width: 1px; height: 18px; background: var(--line); margin: 0 4px; flex: none; }
 /* 右端のボタン（目次・お気に入り・「…」）。左に出るもの（表のメニュー、録音を止めるボタン）で幅が足りなくなっても、右に出したままにする。 */

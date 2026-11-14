@@ -96,6 +96,25 @@ test("スマホの下のツールバーで、箇条書きの項目を字下げ�
   await expect(body.locator("ul > li")).toHaveText(["親", "子"]);
 });
 
+test("スマホの下のツールバーの箇条書きのボタンを、同じ所で 2 回押すと、箇条書きが付いて外れ、ボタンも押していない形に戻る", async ({ browser }) => {
+  const page = await openPhone(browser);
+  await openNewNoteOnPhone(page, "箇条書きの付け外し");
+  const body = page.locator(".ProseMirror");
+  const bulletList = page.locator(".editor-bar").getByRole("button", { name: "箇条書き", exact: true });
+  await body.click();
+  // 指は同じ所を 2 回押す（箇条書きにしたときにボタンの位置がずれると、2 回目は別のボタンに当たる）。
+  const place = (await bulletList.boundingBox())!;
+  const [x, y] = [place.x + place.width / 2, place.y + place.height / 2];
+  await page.mouse.click(x, y);
+  await expect(body.locator("ul")).toHaveCount(1);
+  await expect(bulletList).toHaveAttribute("aria-pressed", "true");
+  // 箇条書きの中だけで出すボタンが増えても、押した所には箇条書きのボタンが残っている。
+  expect(await page.evaluate(([pointX, pointY]) => document.elementFromPoint(pointX!, pointY!)?.closest("button")?.getAttribute("aria-label"), [x, y])).toBe("箇条書き");
+  await page.mouse.click(x, y);
+  await expect(body.locator("ul")).toHaveCount(0);
+  await expect(bulletList).toHaveAttribute("aria-pressed", "false");
+});
+
 test("箇条書きの中に入れたチェックリストでは、カーソルのある内側の項目を字下げする", async ({ browser }) => {
   const page = await openPhone(browser);
   await openNewNoteOnPhone(page, "入れ子");
