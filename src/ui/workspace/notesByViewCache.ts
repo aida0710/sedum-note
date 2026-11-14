@@ -13,12 +13,20 @@ export class NotesByViewCache {
   #summaries: NoteSummary[] = [];
   #sortOrder: NoteSortOrder | null = null;
   #cachedViews = new Map<string, CachedView>();
+  // 前のスナップショットから今までに引かれた一覧。引かれなくなった一覧（検索の言葉を打つ途中のタグなど）は、次の update で捨てる。
+  #requestedViewKeys = new Set<string>();
 
   // 新しいスナップショットのメモと並び順を受け取る。並び順が変わったら全部、メモが変わったら、そのメモが入る一覧だけを捨てる。
   update(summaries: NoteSummary[], sortOrder: NoteSortOrder): void {
     if (summaries === this.#summaries && sortOrder === this.#sortOrder) {
       return;
     }
+    for (const key of this.#cachedViews.keys()) {
+      if (!this.#requestedViewKeys.has(key)) {
+        this.#cachedViews.delete(key);
+      }
+    }
+    this.#requestedViewKeys.clear();
     if (sortOrder !== this.#sortOrder) {
       this.#cachedViews.clear();
     } else {
@@ -30,6 +38,7 @@ export class NotesByViewCache {
 
   notesIn(view: NoteView): NoteSummary[] {
     const key = viewKey(view);
+    this.#requestedViewKeys.add(key);
     const cached = this.#cachedViews.get(key);
     if (cached) {
       return cached.notes;
