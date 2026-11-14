@@ -1,7 +1,11 @@
 // ボタンの下に開くメニュー。外を押すか Escape で閉じる。
-// 開くとフォーカスがメニューへ移り、↑↓・Home・End で項目を選べる。閉じると、開いたボタンへフォーカスを戻す。
+// 開くとフォーカスがメニューへ移り、↑↓・Home・End と、項目の名前の頭の文字で項目を選べる。閉じると、開いたボタンへフォーカスを戻す。
+// 本文の選択を保つメニュー（takesFocus が false）は、フォーカスを本文に残したまま ↑↓ と Enter を受け、選んでいる項目を
+// aria-activedescendant で示す。
+// 開いたボタン（aria-haspopup を持つもの）には、開いている間 aria-expanded="true" を付ける。
 
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { foldForSearch } from "../../core/notes/searchTextFolding";
 import { returnFocusTo } from "./focusReturn";
 import { isImeKeyEvent } from "./imeKeyEvent";
 
@@ -23,6 +27,8 @@ const VIEWPORT_MARGIN = 8;
 const ANCHOR_GAP = 4;
 
 const MENU_ITEM_SELECTOR = "button:not(:disabled), a[href], input:not(:disabled)";
+// 本文の選択を保つメニューで、キーで選んでいる項目に付けるクラス。
+const ACTIVE_DESCENDANT_CLASS = "active-descendant";
 
 // メニューの要素から、それを開いたボタンを引く。メニューの項目から開いたダイアログが、閉じたときにフォーカスを戻す先に使う
 // （項目そのものは、メニューと一緒に消えている）。
@@ -50,8 +56,18 @@ function placeMenu(anchorBox: DOMRect, menuSize: { width: number; height: number
 
 export function PopupMenu({ anchor, onClose, children, align = "end", takesFocus = true }: PopupMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
   const [placement, setPlacement] = useState<MenuPlacement | null>(null);
   const isPlaced = placement !== null;
+
+  // 開いているかを、開いたボタンの aria-expanded で読み上げに伝える。右クリックで開いた行など、メニューのボタンでないものには付けない。
+  useEffect(() => {
+    if (!anchor.hasAttribute("aria-haspopup")) {
+      return;
+    }
+    anchor.setAttribute("aria-expanded", "true");
+    return () => anchor.setAttribute("aria-expanded", "false");
+  }, [anchor]);
 
   useLayoutEffect(() => {
     const menu = menuRef.current;
@@ -104,6 +120,9 @@ export function PopupMenu({ anchor, onClose, children, align = "end", takesFocus
       if (!takesFocus || !menu || !menu.contains(document.activeElement)) {
         return;
       }
+      if (event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
       if (event.key === "Tab") {
         // メニューは画面の並びの外にあるので、Tab で次へ進むと行き先が飛ぶ。閉じて、開いたボタンへ戻す。
         event.preventDefault();
@@ -114,37 +133,73 @@ export function PopupMenu({ anchor, onClose, children, align = "end", takesFocus
       if (document.activeElement instanceof HTMLInputElement && (event.key === "Home" || event.key === "End")) {
         return;
       }
-      const target = itemToFocus(menu, event.key);
+      const items = menuItemsIn(menu);
+      const target = itemToMoveTo({ items, current: items.indexOf(document.activeElement as HTMLElement), key: event.key })
+        ?? (document.activeElement instanceof HTMLInputElement ? null : itemStartingWith(items, event.key));
       if (target) {
         event.preventDefault();
         target.focus();
       }
     };
+    // 本文の選択を保つメニュー: フォーカスは本文にあるので、本文より先に（捕まえる段階で）キーを受ける。
+    const moveActiveDescendant = (event: KeyboardEvent) => {
+      const menu = menuRef.current;
+      if (takesFocus || !menu || isImeKeyEvent(event) || event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+      const items = menuItemsIn(menu);
+      const active = items.find((item) => item.classList.contains(ACTIVE_DESCENDANT_CLASS)) ?? null;
+      if (event.key === "Enter" && active) {
+        event.preventDefault();
+        event.stopPropagation();
+        active.click();
+        return;
+      }
+      const target = itemToMoveTo({ items, current: active ? items.indexOf(active) : -1, key: event.key });
+      if (!target) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      showActiveDescendant({ menu, target, menuId });
+    };
     document.addEventListener("pointerdown", closeOnOutside);
     document.addEventListener("keydown", handleKey);
+    document.addEventListener("keydown", moveActiveDescendant, true);
     return () => {
       document.removeEventListener("pointerdown", closeOnOutside);
       document.removeEventListener("keydown", handleKey);
+      document.removeEventListener("keydown", moveActiveDescendant, true);
     };
-  }, [anchor, onClose, takesFocus]);
+  }, [anchor, onClose, takesFocus, menuId]);
+
+  // 閉じたら、本文に付けた aria-activedescendant を外す。
+  useEffect(() => () => {
+    const focused = document.activeElement;
+    if (focused?.getAttribute("aria-activedescendant")?.startsWith(menuId)) {
+      focused.removeAttribute("aria-activedescendant");
+    }
+  }, [menuId]);
 
   return (
-    <div ref={menuRef} className="menu" role="menu" tabIndex={-1}
+    <div ref={menuRef} id={menuId} className="menu" role="menu" tabIndex={-1}
       style={placement ?? { top: 0, left: 0, visibility: "hidden" }}>
       {children}
     </div>
   );
 }
 
-// ↑↓・Home・End で次にフォーカスする項目。それ以外のキーなら null。
-function itemToFocus(menu: HTMLElement, key: string): HTMLElement | null {
-  const items = [...menu.querySelectorAll<HTMLElement>(MENU_ITEM_SELECTOR)];
-  const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+function menuItemsIn(menu: HTMLElement): HTMLElement[] {
+  return [...menu.querySelectorAll<HTMLElement>(MENU_ITEM_SELECTOR)];
+}
+
+// ↑↓・Home・End で次に選ぶ項目。current は今の項目の位置（無ければ -1）。それ以外のキーなら null。
+function itemToMoveTo({ items, current, key }: { items: HTMLElement[]; current: number; key: string }): HTMLElement | null {
   switch (key) {
     case "ArrowDown":
-      return items[(currentIndex + 1) % items.length] ?? null;
+      return items[(current + 1) % items.length] ?? null;
     case "ArrowUp":
-      return items[currentIndex <= 0 ? items.length - 1 : currentIndex - 1] ?? null;
+      return items[current <= 0 ? items.length - 1 : current - 1] ?? null;
     case "Home":
       return items[0] ?? null;
     case "End":
@@ -152,4 +207,32 @@ function itemToFocus(menu: HTMLElement, key: string): HTMLElement | null {
     default:
       return null;
   }
+}
+
+// 打った 1 文字で名前が始まる項目（今の項目の次から探し、最後まで行ったら先頭に戻る）。全角と半角、大文字と小文字は区別しない。
+function itemStartingWith(items: HTMLElement[], key: string): HTMLElement | null {
+  if ([...key].length !== 1 || key.trim() === "") {
+    return null;
+  }
+  const typed = foldForSearch(key);
+  const current = items.indexOf(document.activeElement as HTMLElement);
+  for (let offset = 1; offset <= items.length; offset += 1) {
+    const item = items[(current + offset) % items.length];
+    const name = item?.getAttribute("aria-label") ?? item?.textContent ?? "";
+    if (item && foldForSearch(name.trim()).startsWith(typed)) {
+      return item;
+    }
+  }
+  return null;
+}
+
+// 本文の選択を保つメニューで、キーで選んだ項目を見せ、フォーカスのある本文から aria-activedescendant で指す。
+function showActiveDescendant({ menu, target, menuId }: { menu: HTMLElement; target: HTMLElement; menuId: string }): void {
+  for (const item of menuItemsIn(menu)) {
+    item.classList.remove(ACTIVE_DESCENDANT_CLASS);
+  }
+  target.classList.add(ACTIVE_DESCENDANT_CLASS);
+  target.id ||= `${menuId}-item-${menuItemsIn(menu).indexOf(target)}`;
+  target.scrollIntoView({ block: "nearest" });
+  document.activeElement?.setAttribute("aria-activedescendant", target.id);
 }

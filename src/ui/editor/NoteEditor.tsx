@@ -281,7 +281,9 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
 
   const trailing = (
     <>
-      <button type="button" className="icon-button" aria-label={translate("editor.outline")} aria-pressed={outlineShown}
+      {/* PC では目次を出す切り替え、スマホでは目次のメニューを開くボタン。 */}
+      <button type="button" className="icon-button" aria-label={translate("editor.outline")} aria-pressed={isMobile ? undefined : outlineShown}
+        aria-haspopup={isMobile ? "menu" : undefined}
         onClick={(event) => (isMobile ? setOutlineAnchor(outlineAnchor ? null : event.currentTarget) : updateDevicePreferences({ showOutline: !showOutline }))}>
         <ListTree size={16} />
       </button>

@@ -216,3 +216,39 @@ test("履歴の一覧は ↑↓・Home・End で版を移れ、移った版の�
   await expect(options.first()).toBeFocused();
   await expect(history.locator(".note-history-preview")).toContainText("二回目の文");
 });
+
+test("メニューでは、項目の名前の頭の文字を打つとその項目へ移り、開いたボタンは開いている間 aria-expanded になる", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "会議");
+  await expect(noteMenuButton(page)).not.toHaveAttribute("aria-expanded", "true");
+  await noteMenuButton(page).focus();
+  await page.keyboard.press("Enter");
+  const menu = page.getByRole("menu");
+  await expect(noteMenuButton(page)).toHaveAttribute("aria-expanded", "true");
+  // 「a」を打つと、「AI チャット」へ移る（大文字と小文字は区別しない）。
+  await page.keyboard.press("a");
+  await expect(menu.getByRole("menuitem", { name: "AI チャット" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(noteMenuButton(page)).toHaveAttribute("aria-expanded", "false");
+});
+
+test("本文の選択を保つメニュー（文字色）は、フォーカスを本文に置いたまま ↑↓ で項目を選び、Enter で決められる", async ({ page }) => {
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "会議");
+  await page.keyboard.type("色を付ける言葉");
+  await page.keyboard.press("Shift+Home");
+  await page.getByRole("button", { name: "文字色" }).click();
+  const menu = page.getByRole("menu");
+  await expect(menu).toBeVisible();
+  await expect(page.locator(".ProseMirror")).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  const active = menu.locator(".active-descendant");
+  await expect(active).toHaveCount(1);
+  const activeId = await active.getAttribute("id");
+  await expect(page.locator(".ProseMirror")).toHaveAttribute("aria-activedescendant", activeId ?? "");
+  const colorName = await active.getAttribute("aria-label");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".ProseMirror [data-text-color]")).toHaveText("色を付ける言葉");
+  expect(colorName).not.toBeNull();
+});
