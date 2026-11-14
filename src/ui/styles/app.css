@@ -910,6 +910,11 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .note-history-list .menu-item span { display: flex; flex-direction: column; gap: 2px; }
 .note-history-preview { overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-control); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 .note-history-preview pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.7; }
+/* スマホの組み方の幅（shared/useMediaQuery.ts の MOBILE_LAYOUT_QUERY と同じ値）では、画面の部品の文字を 1 段大きくする（利用者が選んだ C-39 の案 B）。
+   一覧・エディタ・設定だけでなく、最初の画面・ロック・ダイアログ・知らせも同じ大きさにそろえる。 */
+@media (max-width: 760px) {
+  :root { --font-size-ui: 14px; --font-size-heading: 16px; --font-size-list-title: 15px; }
+}
 @media (max-width: 760px) {
   /* スマホの幅では、段組みを縦に並べる。 */
   .ProseMirror .columns { grid-auto-flow: row; }
@@ -1166,7 +1171,7 @@ details summary { cursor: pointer; color: var(--accent); }
 /* ── スマホの組み方 ───────────────────────── */
 /* スマホでは、部品の文字を PC より 1px 大きくする（PC の 13px では、指で持って離して見る画面には小さい）。
    部品の文字は :root の font-size を受け継ぐので、ここでも font-size を決め直す。 */
-.phone { display: flex; flex-direction: column; height: 100%; background: var(--panel); --font-size-ui: 14px; --font-size-heading: 16px; --font-size-list-title: 15px; font-size: var(--font-size-ui); }
+.phone { display: flex; flex-direction: column; height: 100%; background: var(--panel); }
 .phone-top { padding: 14px 16px 8px; display: flex; align-items: center; gap: 10px; flex: none; padding-top: max(14px, env(safe-area-inset-top)); }
 .phone-top h2 { font-size: var(--font-size-title); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .phone-top .phone-top-end { margin-left: auto; display: flex; gap: 6px; color: var(--muted); align-items: center; }

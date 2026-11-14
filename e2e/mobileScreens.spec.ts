@@ -1,6 +1,7 @@
 import { type Browser, expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
 import { createNoteOnDesktop, openSyncedDevice, PHONE_VIEWPORT, startLocalVault, SYNC_KEY } from "./devices";
+import { PAGE_ORIGIN } from "./devServer";
 
 // スマホの幅の画面で、同期なしの vault を作る。hasTouch を付けると、指で使う端末（pointer: coarse）として開く。
 async function openPhone(browser: Browser, { hasTouch = false }: { hasTouch?: boolean } = {}): Promise<Page> {
@@ -24,6 +25,27 @@ test("スマホでは、部品の文字が PC より 1px 大きく、一覧の�
   await expect(page.locator(".ProseMirror")).toHaveCSS("font-size", "16px");
   await page.locator(".phone-back").first().click();
   await expect(page.locator(".note-item h3").first()).toHaveCSS("font-size", "15px");
+});
+
+test("スマホの幅では、最初の画面・ロック・ダイアログ・知らせの文字も一覧と同じ 14px になる。PC の幅では 13px のまま", async ({ browser }) => {
+  const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
+  await page.goto(PAGE_ORIGIN);
+  await expect(page.locator(".entry-card")).toHaveCSS("font-size", "14px");
+  await startLocalVault(page);
+  await openNewNoteOnPhone(page, "文字の大きさ");
+  await page.getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "ゴミ箱に移動しました" })).toHaveCSS("font-size", "14px");
+  await page.locator(".trash-banner").getByRole("button", { name: "完全に削除" }).click();
+  await expect(page.getByRole("dialog")).toHaveCSS("font-size", "14px");
+  await page.getByRole("dialog").getByRole("button", { name: "キャンセル" }).click();
+  // 読み込み直すと、ロックの画面になる。
+  await page.reload();
+  await expect(page.getByRole("button", { name: "解除" })).toBeVisible();
+  await expect(page.locator(".entry-card")).toHaveCSS("font-size", "14px");
+
+  await page.setViewportSize({ width: 1280, height: 820 });
+  await expect(page.locator(".entry-card")).toHaveCSS("font-size", "13px");
 });
 
 test("スマホの下のツールバーで、打った文字を元に戻してやり直せる", async ({ browser }) => {
