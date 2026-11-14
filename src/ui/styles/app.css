@@ -1015,6 +1015,8 @@ details summary { cursor: pointer; color: var(--accent); }
 .phone-top h2 { font-size: var(--font-size-title); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .phone-top .phone-top-end { margin-left: auto; display: flex; gap: 6px; color: var(--muted); align-items: center; }
 .phone-back { display: flex; align-items: center; gap: 2px; font-size: 16px; }
+/* 戻るボタンの右の、開いているページの名前（設定のページ）。戻るボタンの文字より太くして、今いる所だと分かるようにする。 */
+.phone-top-title { font-size: 16px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .phone-search { margin: 4px 16px 8px; height: 38px; border-radius: var(--radius-control); background: var(--canvas); display: flex; align-items: center; gap: 8px; padding: 0 10px; color: var(--muted); flex: none; }
 .phone-search input { border: 0; outline: 0; background: none; flex: 1; min-width: 0; color: var(--text); }
 .chips { display: flex; gap: 6px; padding: 0 16px 8px; overflow-x: auto; flex: none; scrollbar-width: none; }

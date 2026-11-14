@@ -72,11 +72,11 @@ function PhoneSettings({ session, vault, pages, page, onSelectPage, onBackToPage
   }
   return (
     <>
+      {/* 戻るボタンの右に、開いているページの名前を出す（「< 設定　一般」）。ページの中の見出しと重ならないよう、見出しにはしない。 */}
       <div className="phone-top">
         <button type="button" className="phone-back" onClick={onBackToPageList}><ChevronLeft size={20} />{translate("settings.title")}</button>
+        <span className="phone-top-title">{translate(SETTINGS_PAGE_META[shownPage].label)}</span>
       </div>
-      {/* 開いているページの名前を、戻るボタンの下に出す（ノートブックから開いたメモの一覧と同じ形）。 */}
-      <div className="phone-top phone-top-below-back"><h2>{translate(SETTINGS_PAGE_META[shownPage].label)}</h2></div>
       <div className="document-scroll">
         <div className="settings">
           {unreadableWarning}

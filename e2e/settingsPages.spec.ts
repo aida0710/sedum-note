@@ -105,5 +105,5 @@ test("設定のボタンは右にそろい、並べて置くボタンは縦に�
   await startLocalVault(phone);
   await phone.locator(".tabbar").getByRole("button", { name: "設定" }).click();
   await phone.getByRole("navigation", { name: "設定のページ" }).getByRole("button", { name: /データ/ }).click();
-  await expect(phone.locator(".phone-top h2")).toHaveText("データ");
+  await expect(phone.locator(".phone-top .phone-top-title")).toHaveText("データ");
 });
