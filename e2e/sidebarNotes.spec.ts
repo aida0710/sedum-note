@@ -622,7 +622,7 @@ test("タブが多くても、ピン留めしたタブは並びを送っても�
     await page.getByRole("tab", { name: title, exact: true }).click({ button: "right" });
     await page.getByRole("menuitem", { name: "タブをピン留め" }).click();
   }
-  await page.locator(".tab[title='とても長い題のメモ その 10']").click();
+  await page.locator(".tab[title='とても長い題のメモ その 16']").click();
   await expect(strip).toHaveAttribute("data-more-start", "");
   const stripBox = (await strip.boundingBox())!;
   const pinnedBoxes = await page.locator(".tab.pinned").evaluateAll((tabs) => tabs.map((tab) => tab.getBoundingClientRect().toJSON() as DOMRect));
