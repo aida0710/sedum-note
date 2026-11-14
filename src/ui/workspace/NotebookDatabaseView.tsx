@@ -11,6 +11,7 @@ import type { NoteView } from "../../core/notes/noteQueries";
 import type { LiveNote, LiveNotebook } from "../../core/notes/noteRecords";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { type MessageKey, translate } from "../i18n/translate";
+import { showDragPreview } from "../shared/dragPreview";
 import { formatDateTime } from "../shared/formatTime";
 import { PropertyInput } from "../shared/PropertyInput";
 import { createNoteInView } from "./createNoteInView";
@@ -150,6 +151,14 @@ type DatabaseBoardProps = DatabaseContentProps & {
 };
 
 function DatabaseBoard({ notes, properties, view, repository, notebookView, titleOf, onOpenNote, onChooseGroup, onEditProperties }: DatabaseBoardProps) {
+  // ドラッグしているカードと、いま上にある落とし先の列（列の key）。左の列やタブのドラッグと同じく、持っているカードを薄くし、
+  // 落とし先の列を光らせる。
+  const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
+  const [dropColumnKey, setDropColumnKey] = useState<string | null>(null);
+  const endCardDrag = () => {
+    setDraggedCardId(null);
+    setDropColumnKey(null);
+  };
   const groupProperty = boardGroupProperty(properties, view.groupBy);
   if (!groupProperty) {
     // 選択肢のプロパティが無いと列を作れない。足す所（プロパティのダイアログ）へのボタンを添える。
@@ -176,20 +185,39 @@ function DatabaseBoard({ notes, properties, view, repository, notebookView, titl
         </select>
       </div>
       <div className="database-board">
-        {boardColumns(notes, groupProperty).map((column) => (
-          <section key={column.option ?? NO_GROUP_PROPERTY} className="database-column" aria-label={column.option ?? translate("database.unset")}
-            onDragOver={(event) => event.dataTransfer.types.includes(CARD_DRAG_TYPE) && event.preventDefault()}
-            onDrop={(event) => void repository.setNotePropertyValue(event.dataTransfer.getData(CARD_DRAG_TYPE), groupProperty.id, column.option)}>
-            <h2>{column.option ?? translate("database.unset")}<span>{column.notes.length}</span></h2>
-            {column.notes.map((note) => (
-              <button key={note.id} type="button" className="database-card" draggable
-                onDragStart={(event) => event.dataTransfer.setData(CARD_DRAG_TYPE, note.id)} onClick={() => onOpenNote(note.id)}>
-                {titleOf(note)}
-              </button>
-            ))}
-            <DatabaseNewNoteButton onCreate={(title) => void createCard(title, column.option)} />
-          </section>
-        ))}
+        {boardColumns(notes, groupProperty).map((column) => {
+          const columnKey = column.option ?? NO_GROUP_PROPERTY;
+          // 持っているカードが今いる列は、落としても何も変わらないので光らせない。
+          const isDropTarget = dropColumnKey === columnKey && !column.notes.some((note) => note.id === draggedCardId);
+          return (
+            <section key={columnKey} className={`database-column${isDropTarget ? " drop-target" : ""}`} aria-label={column.option ?? translate("database.unset")}
+              onDragOver={(event) => {
+                if (event.dataTransfer.types.includes(CARD_DRAG_TYPE)) {
+                  event.preventDefault();
+                  setDropColumnKey(columnKey);
+                }
+              }}
+              onDragLeave={(event) => !event.currentTarget.contains(event.relatedTarget as Node | null) && setDropColumnKey(null)}
+              onDrop={(event) => {
+                endCardDrag();
+                void repository.setNotePropertyValue(event.dataTransfer.getData(CARD_DRAG_TYPE), groupProperty.id, column.option);
+              }}>
+              <h2>{column.option ?? translate("database.unset")}<span>{column.notes.length}</span></h2>
+              {column.notes.map((note) => (
+                <button key={note.id} type="button" className={`database-card${draggedCardId === note.id ? " dragging" : ""}`} draggable
+                  onDragStart={(event) => {
+                    event.dataTransfer.setData(CARD_DRAG_TYPE, note.id);
+                    showDragPreview(event, titleOf(note));
+                    setDraggedCardId(note.id);
+                  }}
+                  onDragEnd={endCardDrag} onClick={() => onOpenNote(note.id)}>
+                  {titleOf(note)}
+                </button>
+              ))}
+              <DatabaseNewNoteButton onCreate={(title) => void createCard(title, column.option)} />
+            </section>
+          );
+        })}
       </div>
     </>
   );

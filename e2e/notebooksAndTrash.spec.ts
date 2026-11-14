@@ -297,6 +297,37 @@ test("プロパティの選択肢は 1 つずつのチップで、名前を変�
   await expect(dialog.locator(".property-option-name")).toHaveText(["未読", "読み終えた"]);
 });
 
+test("ボードのカードをドラッグすると、持っているカードが薄くなり、落とし先の列が光る。落とすとその列へ移る", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "読書");
+  const database = await openDatabaseView(page, "読書");
+  await database.getByRole("button", { name: "プロパティを追加" }).click();
+  const dialog = page.getByRole("dialog", { name: "プロパティ" });
+  await dialog.getByRole("button", { name: "プロパティを追加" }).click();
+  await dialog.getByRole("textbox", { name: "名前" }).fill("状態");
+  await dialog.getByRole("combobox", { name: "種類" }).selectOption("select");
+  await addPropertyOptions(dialog, ["未読", "読了"]);
+  await dialog.getByRole("textbox", { name: "名前" }).press("Enter");
+  await dialog.getByRole("button", { name: "閉じる" }).click();
+  await database.getByRole("radio", { name: "ボード" }).click();
+  const column = (name: string) => database.getByRole("region", { name });
+  await column("未読").getByRole("button", { name: "新しいメモ" }).click();
+  await column("未読").getByPlaceholder("タイトル").fill("こころ");
+  await column("未読").getByPlaceholder("タイトル").press("Enter");
+
+  const card = column("未読").locator(".database-card", { hasText: "こころ" });
+  await card.hover();
+  await page.mouse.down();
+  const target = (await column("読了").boundingBox())!;
+  await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 8 });
+  await expect(card).toHaveClass(/dragging/);
+  await expect(column("読了")).toHaveClass(/drop-target/);
+  await expect(column("未読")).not.toHaveClass(/drop-target/);
+  await page.mouse.up();
+  await expect(column("読了").locator(".database-card")).toHaveText(["こころ"]);
+  await expect(database.locator(".drop-target")).toHaveCount(0);
+});
+
 test("データベース表示のボードでは、列の下の「新しいメモ」から、その列の選択肢の値を入れたメモを作れる", async ({ page }) => {
   await startLocalVault(page);
   await addNotebookOnDesktop(page, "読書");

@@ -139,6 +139,9 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
 .database-column { flex: 0 0 220px; background: var(--tag); border-radius: var(--radius-panel); padding: 8px; display: flex; flex-direction: column; gap: 6px; min-height: 80px; }
 .database-column h2 { font-size: var(--font-size-small); font-weight: 600; margin: 2px 4px 4px; display: flex; justify-content: space-between; color: var(--muted); }
 .database-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 8px 10px; text-align: left; font-size: var(--font-size-ui); color: var(--text); }
+/* ボードのカードのドラッグ。左の列と同じく、持っているカードを薄くし、落とし先の列を光らせる。 */
+.database-card.dragging { opacity: .5; outline: 1px dashed var(--muted); outline-offset: -1px; }
+.database-column.drop-target { background: var(--accent-soft); outline: 1px dashed var(--accent); outline-offset: -1px; }
 /* 表の右端の、プロパティを足す「＋」の列。アイコンのボタンだけが入る幅にし、見出しの行の高さをほかの見出しとそろえる。 */
 .database-table .database-add-property { width: 1%; padding: 0 2px; }
 .database-add-property .icon-button { display: grid; margin: 0 auto; color: var(--muted); }
