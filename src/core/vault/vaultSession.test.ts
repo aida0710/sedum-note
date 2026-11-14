@@ -15,10 +15,13 @@ import {
   createNewVault,
   joinExistingVault,
   readVaultState,
+  reopenLocalVault,
+  reopenLocalVaultWithKeyOf,
   replaceSyncKey,
   summarizeDeviceData,
   unlockLocalVault,
   VaultAlreadyExistsError,
+  VaultKeyMismatchError,
   type VaultSessionEnvironment,
   wipeDeviceData,
 } from "./vaultSession";
@@ -184,6 +187,30 @@ describe("wipeDeviceData", () => {
     await createLocalVault({ localStore: locked, createObjectStore: () => new MemoryObjectStore(), kdfCost: TEST_KDF_COST }, "correct horse battery");
     await wipeDeviceData(new IndexedDbLocalStore(databaseName), null);
     expect(await readVaultState(new IndexedDbLocalStore(databaseName))).toBe("absent");
+  });
+});
+
+describe("ほかのウィンドウで開いてあるキーで開き直す", () => {
+  it("同じ vault のキーなら、パスフレーズを聞かずに開け、メモを読める", async () => {
+    const shared = environment(new MemoryObjectStore());
+    const firstWindow = await createLocalVault(shared, "correct horse battery");
+    await firstWindow.repository.createNote({ title: "最初のウィンドウで書いた" });
+
+    const secondWindow = await reopenLocalVaultWithKeyOf(environment(new MemoryObjectStore(), shared), firstWindow);
+    expect(secondWindow.vaultId).toBe(firstWindow.vaultId);
+    expect(secondWindow.repository.notes().map((note) => note.content.title)).toEqual(["最初のウィンドウで書いた"]);
+  });
+
+  it("別の vault のキーでは開かない。キーを確かめない reopenLocalVault は、別のキーでも空の vault として開いてしまう", async () => {
+    const here = environment(new MemoryObjectStore());
+    const local = await createLocalVault(here, "correct horse battery");
+    await local.repository.createNote({ title: "このスペースのメモ" });
+    const other = await createLocalVault(environment(new MemoryObjectStore()), "correct horse battery");
+
+    await expect(reopenLocalVaultWithKeyOf(here, other)).rejects.toBeInstanceOf(VaultKeyMismatchError);
+    // 確かめないと、メモが読めないまま開ける（この試験は、上の確かめが要る理由を残すためのもの）。
+    const unchecked = await reopenLocalVault(here, other.masterKey);
+    expect(unchecked.repository.notes()).toEqual([]);
   });
 });
 

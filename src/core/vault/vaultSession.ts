@@ -43,6 +43,13 @@ export class VaultNotFoundError extends Error {
   }
 }
 
+export class VaultKeyMismatchError extends Error {
+  constructor() {
+    super("the master key belongs to another vault");
+    this.name = "VaultKeyMismatchError";
+  }
+}
+
 export type VaultSessionEnvironment = {
   localStore: LocalStore;
   createObjectStore: (config: RemoteConfig) => ObjectStore;
@@ -74,6 +81,9 @@ export type UnlockedVault = {
   syncEngine: SyncEngine | null;
   remoteConfig: RemoteConfig | null;
 };
+
+// マスターキーと、それがどの vault のものか。開いてあるキーを、ほかのウィンドウへ渡すときの形。
+export type VaultKey = Pick<UnlockedVault, "vaultId" | "masterKey">;
 
 export type VaultState = "absent" | "locked";
 
@@ -215,6 +225,17 @@ export async function reopenLocalVault(environment: VaultSessionEnvironment, mas
     ? (JSON.parse(textDecoder.decode(await open(masterKey, sealedRemoteConfig, REMOTE_CONFIG_BINDING))) as RemoteConfig)
     : null;
   return assembleUnlockedVault(environment, masterKey, remoteConfig);
+}
+
+// ほかのウィンドウで開いてあるマスターキーで、手元の vault を開き直す（パスフレーズは聞かない）。キーの vault の ID が手元の vault と
+// 違えば開かない。reopenLocalVault はキーそのものを確かめない（同期先が無ければ、復号できない記録を読めない記録として除けるだけ）ので、
+// 別の vault のキーで開くと、メモが空に見えたまま、そのキーで書き足してしまう。
+export async function reopenLocalVaultWithKeyOf(environment: VaultSessionEnvironment, key: VaultKey): Promise<UnlockedVault> {
+  const { vaultId } = await readLocalVaultDocument(environment.localStore);
+  if (vaultId !== key.vaultId) {
+    throw new VaultKeyMismatchError();
+  }
+  return reopenLocalVault(environment, key.masterKey);
 }
 
 type SaveVaultInput = { document: VaultDocument; masterKey: CryptoKey; remoteConfig: RemoteConfig | null };
