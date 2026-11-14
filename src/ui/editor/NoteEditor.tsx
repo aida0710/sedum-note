@@ -420,7 +420,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
             <>
               <div className="document-meta">
                 {noteNotebooks.map((notebook) => (
-                  <span key={notebook.id} className="chip"><NotebookMark notebook={notebook} colors={notebookColors} />{notebook.content.name}</span>
+                  <span key={notebook.id} className="chip"><NotebookMark notebook={notebook} colors={notebookColors} /><span className="chip-label">{notebook.content.name}</span></span>
                 ))}
                 <NoteTagChips tags={tags} />
                 {note.content.dueAt !== null && (

@@ -13,7 +13,7 @@ export function NoteTagChips({ tags }: { tags: string[] }) {
   const shownTags = showsAll || hiddenCount <= 0 ? tags : tags.slice(0, MAX_TAGS_SHOWN);
   return (
     <>
-      {shownTags.map((tag) => <span key={tag} className="chip">#{tag}</span>)}
+      {shownTags.map((tag) => <span key={tag} className="chip"><span className="chip-label">#{tag}</span></span>)}
       {hiddenCount > 0 && (
         <button type="button" className="chip more-tags" aria-expanded={showsAll} onClick={() => setShowsAll(!showsAll)}
           aria-label={translate(showsAll ? "editor.showFewerTags" : "editor.showMoreTags", { count: hiddenCount })}>
