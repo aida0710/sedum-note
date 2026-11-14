@@ -1,7 +1,7 @@
 // 画面のあちこちで使う部品の見た目が、置き場所でばらばらにならないか。
 
 import { expect, type Locator, test } from "@playwright/test";
-import { createNoteOnDesktop, openSettingsPage, startLocalVault } from "./devices";
+import { addNotebookOnDesktop, createNoteOnDesktop, openSettingsPage, startLocalVault } from "./devices";
 
 const headingStyleOf = (heading: Locator) => heading.evaluate((element) => {
   const style = getComputedStyle(element);
@@ -84,4 +84,25 @@ test("スクロールする枠の中の項目のフォーカスの枠は、枠�
   const renameInput = page.locator(".sidebar-scroll .inline-input");
   await expect(renameInput).toBeFocused();
   expect((await outlineOf(".sidebar-scroll .inline-input")).style).toBe("none");
+});
+
+test("区切りの無い長い名前でも、データベース表示の見出しと本文の上のタグは、欄の外へはみ出さない", async ({ page }) => {
+  const longName = "https://example.com/" + "a".repeat(140);
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, longName);
+  await page.locator(".nav", { hasText: longName }).click();
+  await createNoteOnDesktop(page, "メモ");
+  await page.keyboard.type(`#${"tag".repeat(60)} `);
+  const overflowOf = (selector: string) => page.locator(selector).first().evaluate((element) => {
+    const container = element.closest(".document, .database-view")!.getBoundingClientRect();
+    // 要素の箱がはみ出す分と、箱の中の文字が箱の外へはみ出す分。
+    return Math.max(0, element.getBoundingClientRect().right - container.right, element.scrollWidth - element.clientWidth);
+  });
+  await expect(page.locator(".document-meta .chip", { hasText: "#tagtag" })).toBeVisible();
+  expect(await overflowOf(".document-meta .chip:not(:has(.dot, .notebook-icon))")).toBe(0);
+
+  await page.locator(".nav", { hasText: longName }).first().click({ button: "right" });
+  await page.getByRole("menuitem", { name: "データベース表示" }).click();
+  await expect(page.locator(".database-header h1")).toHaveText(longName);
+  expect(await overflowOf(".database-header h1")).toBe(0);
 });

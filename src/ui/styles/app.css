@@ -137,7 +137,9 @@ svg.lucide { stroke-width: 1.75; }
 .property-definition .property-options input { height: var(--control-height-compact); flex: 1 1 140px; }
 .database-view { padding: 24px 32px 60px; }
 .database-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
-.database-header h1 { font-size: var(--font-size-title); margin: 0; flex: 1; min-width: 0; }
+/* ノートブックの名前と選択肢の名前は、URL のような区切りの無い長い名前でも、欄の中で折り返す。 */
+.database-header h1 { font-size: var(--font-size-title); margin: 0; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.database-column h2 { overflow-wrap: anywhere; }
 .database-header .segmented button { display: inline-flex; align-items: center; gap: 4px; }
 /* 横に送る枠は、はみ出たものを切る。表の端に来る欄とボタン（下の「新しいメモ」）のフォーカスの枠（太さ 2px、離れ 1px）が
    切れないよう、その分の余白を内側に取り、外側の負の余白で表の位置を戻す。 */
@@ -553,7 +555,8 @@ button.ai-tool-activity:hover { background: var(--selected); }
 .document-meta .chip.more-tags:hover { color: var(--text); }
 /* 文字数と更新日時は右に寄せ、欄が狭くて折り返すときも 2 つ一緒に次の行の右へ移す。 */
 .document-meta-end { margin-left: auto; display: inline-flex; flex-wrap: wrap; justify-content: flex-end; column-gap: 12px; }
-.chip { background: var(--tag); border-radius: 999px; padding: 2px 9px; font-size: var(--font-size-small); color: var(--text); display: inline-flex; align-items: center; gap: 5px; }
+/* タグやノートブックの名前は、区切りの無い長い名前でも、置き場所の幅の中で折り返す。 */
+.chip { background: var(--tag); border-radius: 999px; padding: 2px 9px; font-size: var(--font-size-small); color: var(--text); display: inline-flex; align-items: center; gap: 5px; max-width: 100%; overflow-wrap: anywhere; }
 /* プラグイン。設定の一覧と、入れる前の確認。 */
 .field-row { display: flex; gap: 8px; }
 .field-row input { flex: 1; }
