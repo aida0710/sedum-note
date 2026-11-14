@@ -37,7 +37,7 @@ export function openNoteCommands({ note, navigation, repository, dialogs, spaceI
     noteCommand("toggleBookmark", note.content.bookmarked ? "editor.unbookmark" : "editor.bookmark", () => repository.updateNote(note.id, { bookmarked: !note.content.bookmarked })),
     noteCommand("togglePin", note.content.pinned ? "editor.unpin" : "editor.pin", () => repository.updateNote(note.id, { pinned: !note.content.pinned })),
     noteCommand("renameNote", "notebook.rename", async () => {
-      const title = await dialogs.prompt({ message: translate("notebook.rename"), confirmLabel: translate("common.save"), initialValue: note.content.title });
+      const title = await dialogs.prompt({ title: translate("notebook.rename"), message: translate("editor.titlePlaceholder"), confirmLabel: translate("common.save"), initialValue: note.content.title });
       if (title !== null && title.trim() !== note.content.title) {
         await repository.updateNote(note.id, { title: title.trim() });
       }

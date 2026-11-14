@@ -22,7 +22,7 @@ type WorkspaceCommandsInput = {
 export function workspaceCommands({ repository, navigation, dialogs, spaces, currentSpaceId }: WorkspaceCommandsInput): PaletteCommand[] {
   // 作ったノートブックを開いて見せる（左の列の「＋」で作ったときと同じ所に並ぶ）。
   const addNotebook = async () => {
-    const name = (await dialogs.prompt({ message: translate("sidebar.newNotebookPlaceholder"), confirmLabel: translate("common.create") }))?.trim();
+    const name = (await dialogs.prompt({ title: translate("sidebar.newNotebook"), message: translate("sidebar.newNotebookPlaceholder"), confirmLabel: translate("common.create") }))?.trim();
     if (name) {
       navigation.selectView({ kind: "notebook", notebookId: (await repository.createNotebook(name)).id });
     }
