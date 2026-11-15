@@ -96,6 +96,12 @@ describe("Markdown の取り込み", () => {
     expect(body.toArray().map((node) => (node as Y.XmlElement).nodeName)).toEqual(["heading", "paragraph", "taskList", "table", "codeBlock"]);
   });
 
+  it("区切りの行の - が 1 個の表も、表にする", async () => {
+    const body = await bodyFromMarkdown("| a | b |\n|:-|-:|\n| 1 | 2 |\n", importContext({}));
+    expect(body.toArray().map((node) => (node as Y.XmlElement).nodeName)).toEqual(["table"]);
+    expect(bodyPlainText(body)).toBe("a\nb\n1\n2");
+  });
+
   it("一緒に渡されたファイルを指す画像とリンクは、添付にする", async () => {
     const photo = { attachmentId: "a".repeat(32), fileName: "海 (1).png", mimeType: "image/png", byteLength: 3 };
     const report = { attachmentId: "b".repeat(32), fileName: "report.pdf", mimeType: "application/pdf", byteLength: 9 };
