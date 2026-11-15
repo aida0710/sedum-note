@@ -1,7 +1,8 @@
 // メモとノートブックを変えるツール（作る、題やノートブックを変える、本文に足す・差し替える、ゴミ箱、ノートブックの作成・名前の変更・削除、
-// 完全な削除）。本文の差し替えは、変わったブロックだけを入れ替え（noteBodyChange.ts）、その前に履歴に今の状態を残す
-// （メモの「…」の履歴から戻せる）。
+// 完全な削除）。本文の差し替えは、変わったブロックだけを入れ替える（noteBodyChange.ts）。本文に足す・差し替える前には、
+// 今の状態を、誰が変えるか（changedBy）と一緒に履歴に残す（メモの「…」の履歴から戻せ、利用者の編集と見分けられる）。
 
+import type { VersionChangedBy } from "../../core/local/localStore";
 import type { NoteChanges } from "../../core/notes/noteRepository";
 import { appendMarkdownToBody } from "../markdown/appendMarkdown";
 import { ATTACHMENT_HREF_PREFIX, writeMarkdownToBody } from "../markdown/markdownDocument";
@@ -15,7 +16,7 @@ const yesNo = (value: boolean): string => (value ? "yes" : "no");
 // 差し替えの案を作ったあとで本文が変わったときの知らせ。AI は読み直して、もう一度呼べる。
 const STALE_BODY_MESSAGE = "the note changed after this call was prepared; read it again with get_note and retry";
 
-export function noteChangeTools(context: NoteToolContext): NoteTool[] {
+export function noteChangeTools(context: NoteToolContext, changedBy: VersionChangedBy): NoteTool[] {
   const { repository, noteOf, notebookOf, existingNotebookIds, notebookName, describeNoteAfterChange, exportContext, importContext } = context;
   return [
     {
@@ -107,6 +108,7 @@ export function noteChangeTools(context: NoteToolContext): NoteTool[] {
           preview: { kind: "appendToNote", noteId: note.id, title: note.content.title, characterCount: markdown.length },
           isCurrent: ALWAYS_CURRENT,
           run: async () => {
+            await repository.captureVersionBeforeReplace(note.id, changedBy);
             await appendMarkdownToBody(markdown, note.body, importContext);
             await repository.flush();
             return describeNoteAfterChange(note);
@@ -141,7 +143,7 @@ export function noteChangeTools(context: NoteToolContext): NoteTool[] {
             }
             // 履歴に残すのを待つ間に、本文が変わることがある（エディタで書いている、ほかのデバイスから届く）。前と後で確かめる。
             ensureCurrent();
-            await repository.captureVersionBeforeReplace(note.id);
+            await repository.captureVersionBeforeReplace(note.id, changedBy);
             ensureCurrent();
             applyBodyChange(note.body, bodyChange, exportContext);
             await repository.flush();

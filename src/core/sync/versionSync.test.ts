@@ -69,6 +69,22 @@ describe("履歴の同期", () => {
     expect(await remoteVersionCount(store)).toBe(2);
   });
 
+  it("AI が変える前の版を同期先から取ってきても、AI が変えたことが分かる", async () => {
+    const { laptop, phone } = await twoDevices();
+    const note = await laptop.repository.createNote({ title: "議事録" });
+    appendParagraph(note.body, "1 行目");
+    await laptop.repository.flush();
+    await laptop.repository.captureVersionBeforeReplace(note.id, "ai");
+    appendParagraph(note.body, "AI の行");
+    await laptop.repository.flush();
+    await sync(laptop);
+    await sync(phone);
+    await phone.repository.downloadNoteVersions(note.id);
+    expect((await phone.repository.noteVersions(note.id)).filter((version) => version.reason !== "sync").map((version) => [version.reason, version.changedBy, version.plainText])).toEqual([
+      ["replace", "ai", "1 行目"],
+    ]);
+  });
+
   it("もう 1 台で取ってきた版にメモを戻すと、戻した中身も「復元の前」の版も、書いた側に届く", async () => {
     const { store, laptop, phone, advance, writeLineAfterInterval } = await twoDevices();
     const note = await laptop.repository.createNote({ title: "議事録" });

@@ -84,6 +84,36 @@ describe("メモの履歴", () => {
     ]);
   });
 
+  it("AI が本文を変える前の状態を、AI が変えたこととして残し、そのあとの自分の最初の編集では、間隔を待たずに AI の変えた結果を残す", async () => {
+    const { repository, advance, writeLine } = await repositoryWithClock();
+    const note = await repository.createNote({ title: "議事録" });
+    await writeLine(note.id, "自分の行");
+    advance(MINUTE);
+    await repository.captureVersionBeforeReplace(note.id, "ai");
+    await writeLine(note.id, "AI の行");
+    advance(MINUTE);
+    await writeLine(note.id, "自分で足した行");
+    advance(MINUTE);
+    // 2 回目からは、ふだんの間隔に戻る。
+    await writeLine(note.id, "もう 1 行");
+    expect((await repository.noteVersions(note.id)).map((version) => [version.reason, version.changedBy, version.plainText])).toEqual([
+      ["edit", undefined, "自分の行\nAI の行"],
+      ["replace", "ai", "自分の行"],
+    ]);
+  });
+
+  it("MCP とプラグインが変える前の版も、誰が変えたかを持つ", async () => {
+    const { repository, advance, writeLine } = await repositoryWithClock();
+    const note = await repository.createNote({ title: "メモ" });
+    await writeLine(note.id, "1 行目");
+    await repository.captureVersionBeforeReplace(note.id, "mcp");
+    await writeLine(note.id, "MCP の行");
+    advance(MINUTE);
+    await repository.captureVersionBeforeReplace(note.id, "plugin");
+    await writeLine(note.id, "プラグインの行");
+    expect((await repository.noteVersions(note.id)).map((version) => version.changedBy)).toEqual(["plugin", "mcp"]);
+  });
+
   it("タイトルやピン留めだけの変更では残さない", async () => {
     const { repository, advance, writeLine } = await repositoryWithClock();
     const note = await repository.createNote({ title: "メモ" });

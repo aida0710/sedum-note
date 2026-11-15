@@ -68,7 +68,7 @@ export class VersionSync {
         if (!remoteVersionIds.has(version.id)) {
           const identity = { recordId, versionId: version.id };
           const capturedAtMilliseconds = new Date(version.capturedAt).getTime();
-          const sealed = await sealVersionPayload(masterKey, identity, { reason: version.reason, capturedAt: version.capturedAt, sealedRecord: version.sealed });
+          const sealed = await sealVersionPayload(masterKey, identity, { reason: version.reason, changedBy: version.changedBy, capturedAt: version.capturedAt, sealedRecord: version.sealed });
           const objectKey = await versionObjectKey(masterKey, { ...identity, capturedAtMilliseconds });
           await objectStore.put(objectKey, sealed, { ifAbsent: true });
           remoteVersions.push({ ...identity, capturedAtMilliseconds, objectKey, showsCaptureTime: false });
@@ -129,7 +129,7 @@ export class VersionSync {
       }
       try {
         const payload = await openVersionPayload(masterKey, version, stored.body);
-        await localStore.putVersion({ id: version.versionId, recordId, capturedAt: payload.capturedAt, reason: payload.reason, sealed: payload.sealedRecord, uploaded: true });
+        await localStore.putVersion({ id: version.versionId, recordId, capturedAt: payload.capturedAt, reason: payload.reason, changedBy: payload.changedBy, sealed: payload.sealedRecord, uploaded: true });
       } catch {
         continue;
       }

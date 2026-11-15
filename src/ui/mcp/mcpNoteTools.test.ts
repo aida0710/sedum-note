@@ -67,15 +67,15 @@ describe("MCP のメモのツール", () => {
     const { noteId } = await run("create_note", { title: "下書き", markdown: "利用者が書いた文" });
     await run("replace_note_body", { noteId, markdown: "AI が書き換えた文" });
     expect(bodyPlainText(repository.note(noteId)!.body)).toBe("AI が書き換えた文");
-    expect((await repository.noteVersions(noteId)).map((version) => [version.reason, version.plainText])).toEqual([["replace", "利用者が書いた文"]]);
+    expect((await repository.noteVersions(noteId)).map((version) => [version.reason, version.changedBy, version.plainText])).toEqual([["replace", "mcp", "利用者が書いた文"]]);
   });
 
-  it("追記は、今ある本文を残して末尾に足す", async () => {
+  it("追記は、今ある本文を残して末尾に足し、足す前の状態を MCP が変えたこととして履歴に残す", async () => {
     const { repository, run } = await toolsOver();
     const { noteId } = await run("create_note", { title: "買い物", markdown: "牛乳" });
     await run("append_to_note", { noteId, markdown: "- 卵\n- パン" });
     expect(bodyPlainText(repository.note(noteId)!.body)).toBe("牛乳\n卵\nパン");
-    expect(await repository.noteVersions(noteId)).toEqual([]);
+    expect((await repository.noteVersions(noteId)).map((version) => [version.reason, version.changedBy, version.plainText])).toEqual([["replace", "mcp", "牛乳"]]);
   });
 
   it("タイトル・ノートブック・ピン留めを変え、ゴミ箱へ入れて戻せる", async () => {

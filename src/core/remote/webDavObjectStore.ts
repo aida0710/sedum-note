@@ -19,6 +19,7 @@ import {
 } from "./objectStore";
 import type { WebDavRemoteConfig } from "./remoteConfig";
 import { parseMultistatus, type WebDavEntry } from "./webDavMultistatus";
+import { sameBytes } from "../crypto/sameBytes";
 
 // フォルダの直下だけを一覧する（PROPFIND の Depth）。下の階層は、フォルダごとに一覧し直す
 // （Depth: infinity は、断るサーバーが多い）。
@@ -31,10 +32,6 @@ const MISSING_FOLDER_STATUSES = new Set([409, 403, 404]);
 function basicAuthorization(username: string, password: string): string {
   const bytes = new TextEncoder().encode(`${username}:${password}`);
   return `Basic ${btoa(String.fromCharCode(...bytes))}`;
-}
-
-function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
-  return left.length === right.length && left.every((byte, index) => byte === right[index]);
 }
 
 export class WebDavObjectStore implements ObjectStore {

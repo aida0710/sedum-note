@@ -143,5 +143,5 @@ export function createChatNoteTools(repository: NoteRepository, knownBodies: AiK
     append_to_note: appendKeepsWhatWasRead,
     create_note: createKnowsBody,
   };
-  return createNoteTools(repository, { includesPermanentDelete: true }).map((tool) => rules[tool.name]?.(tool) ?? tool);
+  return createNoteTools(repository, { includesPermanentDelete: true, changedBy: "ai" }).map((tool) => rules[tool.name]?.(tool) ?? tool);
 }

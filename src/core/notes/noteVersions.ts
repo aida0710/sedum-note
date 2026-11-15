@@ -8,7 +8,8 @@
 
 import type * as Y from "yjs";
 import { newRandomId } from "../crypto/randomId";
-import type { LocalStore, LocalVersionEntry } from "../local/localStore";
+import { sameBytes } from "../crypto/sameBytes";
+import type { LocalStore, LocalVersionEntry, VersionChangedBy } from "../local/localStore";
 import { bodyAttachments, bodyPlainText } from "./bodyText";
 import { openRecordPayload } from "./recordCodec";
 import { latestFieldTime, readField, recordBody, recordDocumentFromState } from "./recordDocument";
@@ -18,13 +19,16 @@ import { versionsToRemove } from "./versionRetention";
 // メモを作ってから）これだけ空いたあとの編集で残す。
 export const EDIT_VERSION_INTERVAL_MILLISECONDS = 10 * 60 * 1000;
 
-// 本文を丸ごと書き換える理由。replace は MCP・プラグインの置き換え、restore は履歴の版への復元。
-export type OverwriteReason = Extract<LocalVersionEntry["reason"], "replace" | "restore">;
+// 本文を書き換える前に残す版の理由。replace は AI・MCP・プラグインの書き換えで、誰が書き換えるかを changedBy に持つ。
+// restore は履歴の版への復元。
+export type OverwriteCapture = { reason: "replace"; changedBy: VersionChangedBy } | { reason: "restore" };
 
 export type NoteVersion = {
   id: string;
   capturedAt: string;
   reason: LocalVersionEntry["reason"];
+  // replace の版で、そのあと本文を書き換えたもの。分からない（v0.8.3 までのアプリが残した）ときは無い。
+  changedBy?: VersionChangedBy;
   // その状態が最後に変えられた時刻。
   updatedAt: string;
   title: string;
@@ -42,6 +46,10 @@ export class NoteVersionHistory {
   // メモごとの、次の「編集の前」を残す間隔の起点（ミリ秒）。最後に「編集の前」か「書き換えの前」を残した時刻か、
   // まだ残していなければメモを作った時刻。まだ調べていないメモは入っていない。
   readonly #editCaptureBaselines = new Map<string, number>();
+  // AI・MCP・プラグインが本文を書き換えたメモの、書き換える前の暗号文。書き換えたあとの、利用者の最初の編集では、
+  // 間隔を待たずに書き換えた結果を残す（そうしないと、書き換えた結果と利用者の編集が 1 つの版に混ざり、どこまでが
+  // AI の変更か分からなくなる）。このウィンドウのメモリだけに持つので、読み込み直すと、ふだんの間隔に戻る。
+  readonly #sealedBeforeChangeByOthers = new Map<string, Uint8Array>();
 
   constructor(dependencies: NoteVersionHistoryDependencies) {
     this.#dependencies = dependencies;
@@ -49,6 +57,16 @@ export class NoteVersionHistory {
 
   // 本文の編集を保存する直前に呼ぶ。sealedBeforeEdit は、それまで手元に保存してあった暗号文。
   async captureBeforeEdit(recordId: string, sealedBeforeEdit: Uint8Array): Promise<void> {
+    const sealedBeforeChange = this.#sealedBeforeChangeByOthers.get(recordId);
+    if (sealedBeforeChange !== undefined) {
+      // 同じ暗号文なら、書き換えそのものの保存（書き換える前の状態は、もう残してある）。
+      if (sameBytes(sealedBeforeChange, sealedBeforeEdit)) {
+        return;
+      }
+      this.#sealedBeforeChangeByOthers.delete(recordId);
+      await this.#putAndRemoveOutdated(recordId, { reason: "edit" }, sealedBeforeEdit);
+      return;
+    }
     const now = this.#dependencies.now().getTime();
     const baseline = await this.#editCaptureBaseline(recordId);
     if (baseline !== null && now - baseline < EDIT_VERSION_INTERVAL_MILLISECONDS) {
@@ -74,17 +92,18 @@ export class NoteVersionHistory {
     } finally {
       doc.destroy();
     }
-    await this.#put(recordId, "edit", sealedBeforeEdit);
-    this.#editCaptureBaselines.set(recordId, now);
-    await this.#removeOutdatedVersions(recordId);
+    await this.#putAndRemoveOutdated(recordId, { reason: "edit" }, sealedBeforeEdit);
   }
 
   // 本文を丸ごと書き換える直前に呼ぶ。間隔を空けずに毎回残す（数は「編集の前」と合わせて上限まで）。
   // 書き換えたあとの保存でも「編集の前」を残そうとするが、残すのは同じ状態なので、ここを間隔の起点にして重ねない。
-  async captureBeforeOverwrite(recordId: string, sealedBeforeOverwrite: Uint8Array, reason: OverwriteReason): Promise<void> {
-    await this.#put(recordId, reason, sealedBeforeOverwrite);
-    this.#editCaptureBaselines.set(recordId, this.#dependencies.now().getTime());
-    await this.#removeOutdatedVersions(recordId);
+  async captureBeforeOverwrite(recordId: string, sealedBeforeOverwrite: Uint8Array, capture: OverwriteCapture): Promise<void> {
+    await this.#putAndRemoveOutdated(recordId, capture, sealedBeforeOverwrite);
+    if (capture.reason === "replace") {
+      this.#sealedBeforeChangeByOthers.set(recordId, sealedBeforeOverwrite);
+    } else {
+      this.#sealedBeforeChangeByOthers.delete(recordId);
+    }
   }
 
   // ほかのデバイスの変更を取り込む直前に呼ぶ。メモごとに、いちばん新しい 1 つだけを残す。
@@ -95,7 +114,7 @@ export class NoteVersionHistory {
         await localStore.deleteVersion(version.id);
       }
     }
-    await this.#put(recordId, "sync", sealedBeforeSync);
+    await this.#put(recordId, { reason: "sync" }, sealedBeforeSync);
   }
 
   // 新しい順。開けないもの（別のキーの暗号文など）は除く。
@@ -111,6 +130,7 @@ export class NoteVersionHistory {
         id: entry.id,
         capturedAt: entry.capturedAt,
         reason: entry.reason,
+        changedBy: entry.changedBy,
         updatedAt: latestFieldTime(doc),
         title: readField<string>(doc, "title") ?? "",
         plainText: bodyPlainText(recordBody(doc)),
@@ -129,13 +149,21 @@ export class NoteVersionHistory {
   // メモを完全に削除したときに呼ぶ。
   async forget(recordId: string): Promise<void> {
     this.#editCaptureBaselines.delete(recordId);
+    this.#sealedBeforeChangeByOthers.delete(recordId);
     await this.#dependencies.localStore.deleteVersionsOfRecord(recordId);
   }
 
-  async #put(recordId: string, reason: LocalVersionEntry["reason"], sealed: Uint8Array): Promise<void> {
+  async #put(recordId: string, capture: Pick<LocalVersionEntry, "reason" | "changedBy">, sealed: Uint8Array): Promise<void> {
     await this.#dependencies.localStore.putVersion({
-      id: newRandomId(), recordId, reason, sealed, capturedAt: this.#dependencies.now().toISOString(), uploaded: false,
+      id: newRandomId(), recordId, ...capture, sealed, capturedAt: this.#dependencies.now().toISOString(), uploaded: false,
     });
+  }
+
+  // 「編集の前」か「書き換えの前」を残し、そこを次の「編集の前」の間隔の起点にする。
+  async #putAndRemoveOutdated(recordId: string, capture: Pick<LocalVersionEntry, "reason" | "changedBy">, sealed: Uint8Array): Promise<void> {
+    await this.#put(recordId, capture, sealed);
+    this.#editCaptureBaselines.set(recordId, this.#dependencies.now().getTime());
+    await this.#removeOutdatedVersions(recordId);
   }
 
   // 手元の履歴から起点を決める。「編集の前」も「書き換えの前」も 1 つも無ければ null（起点は文書を開いて決める）。

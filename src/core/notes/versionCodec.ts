@@ -4,15 +4,18 @@
 // 同期先には見せない。binding に記録と版の ID を入れるので、別の名前のオブジェクトへ写しても開けない。
 
 import { open, seal } from "../crypto/sealedBox";
-import type { LocalVersionEntry } from "../local/localStore";
+import type { LocalVersionEntry, VersionChangedBy } from "../local/localStore";
 
 // sync（ほかのデバイスの変更を取り込む前）の版は、そのデバイスの控えなので同期先には置かない。
 type SyncedVersionReason = Exclude<LocalVersionEntry["reason"], "sync">;
 
 const SYNCED_VERSION_REASONS: ReadonlySet<unknown> = new Set<SyncedVersionReason>(["edit", "replace", "restore"]);
+const VERSION_CHANGERS: ReadonlySet<unknown> = new Set<VersionChangedBy>(["ai", "mcp", "plugin"]);
 
 export type VersionPayload = {
   reason: SyncedVersionReason;
+  // replace の版で、そのあと本文を書き換えたもの。v0.8.3 までのアプリは書かず、読んでも使わない。
+  changedBy?: VersionChangedBy;
   // ISO 8601。
   capturedAt: string;
   // 記録と同じ形の暗号文（recordCodec.ts）。
@@ -39,7 +42,7 @@ function versionBinding({ recordId, versionId }: VersionIdentity): string {
 }
 
 export async function sealVersionPayload(masterKey: CryptoKey, identity: VersionIdentity, payload: VersionPayload): Promise<Uint8Array> {
-  const header = textEncoder.encode(JSON.stringify({ reason: payload.reason, capturedAt: payload.capturedAt }));
+  const header = textEncoder.encode(JSON.stringify({ reason: payload.reason, changedBy: payload.changedBy, capturedAt: payload.capturedAt }));
   const plaintext = new Uint8Array(HEADER_LENGTH_BYTES + header.length + payload.sealedRecord.length);
   new DataView(plaintext.buffer).setUint32(0, header.length);
   plaintext.set(header, HEADER_LENGTH_BYTES);
@@ -54,7 +57,7 @@ export async function openVersionPayload(masterKey: CryptoKey, identity: Version
   }
   const headerLength = new DataView(plaintext.buffer, plaintext.byteOffset, plaintext.byteLength).getUint32(0);
   const headerEnd = HEADER_LENGTH_BYTES + headerLength;
-  let header: { reason?: unknown; capturedAt?: unknown };
+  let header: { reason?: unknown; changedBy?: unknown; capturedAt?: unknown };
   try {
     header = JSON.parse(textDecoder.decode(plaintext.subarray(HEADER_LENGTH_BYTES, headerEnd))) as typeof header;
   } catch {
@@ -63,5 +66,7 @@ export async function openVersionPayload(masterKey: CryptoKey, identity: Version
   if (headerEnd > plaintext.length || !SYNCED_VERSION_REASONS.has(header.reason) || typeof header.capturedAt !== "string" || Number.isNaN(Date.parse(header.capturedAt))) {
     throw new InvalidVersionError();
   }
-  return { reason: header.reason as SyncedVersionReason, capturedAt: header.capturedAt, sealedRecord: plaintext.slice(headerEnd) };
+  // 知らない値（これより新しいアプリが足した値）は、誰が書き換えたか分からない版として読む。版ごと捨てない。
+  const changedBy = VERSION_CHANGERS.has(header.changedBy) ? header.changedBy as VersionChangedBy : undefined;
+  return { reason: header.reason as SyncedVersionReason, changedBy, capturedAt: header.capturedAt, sealedRecord: plaintext.slice(headerEnd) };
 }

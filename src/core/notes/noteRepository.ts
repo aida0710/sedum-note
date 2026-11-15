@@ -9,7 +9,8 @@
 import * as Y from "yjs";
 import { newRandomId } from "../crypto/randomId";
 import { open, seal } from "../crypto/sealedBox";
-import type { LocalRecordEntry, LocalStore } from "../local/localStore";
+import { sameBytes } from "../crypto/sameBytes";
+import type { LocalRecordEntry, LocalStore, VersionChangedBy } from "../local/localStore";
 import type { WriteQueue } from "../local/serialQueue";
 import { blobBinding } from "../sync/remoteLayout";
 import { changesBodyContent } from "./bodyContentChange";
@@ -20,7 +21,7 @@ import { isDueTime } from "./dueTimes";
 import { isNotebookWithin } from "./noteQueries";
 import { PROPERTY_DEFINITION_FIELD_PREFIX, PROPERTY_VALUE_FIELD_PREFIX, type PropertyDefinition, propertyDefinitionFromField, type PropertyValue } from "./noteProperties";
 import { type AttachmentReference, type LiveNote, type LiveNotebook, type LiveRecord, type LiveSavedSearch, type NotebookContent, PAGE_ALIGNMENTS, type PageAlignment, type SavedSearchContent } from "./noteRecords";
-import { type NoteVersion, NoteVersionHistory, type OverwriteReason } from "./noteVersions";
+import { type NoteVersion, NoteVersionHistory, type OverwriteCapture } from "./noteVersions";
 import type { RecordChangeChannel } from "./recordChangeChannel";
 import { type RepositoryChangeOrigin, RepositoryChangeNotifier } from "./repositoryChangeNotifier";
 import { openRecordPayload, type RecordPayload, sealRecordPayload } from "./recordCodec";
@@ -240,9 +241,10 @@ export class NoteRepository {
     return this.#versionHistory.list(noteId);
   }
 
-  // 本文を丸ごと置き換える前（MCP・プラグイン）に呼ぶ。間隔に関わらず、今の状態を履歴に残す（置き換えを取り消せるように）。
-  async captureVersionBeforeReplace(noteId: string): Promise<void> {
-    await this.#captureVersionBeforeOverwrite(noteId, "replace");
+  // AI・MCP・プラグインが本文を書き換える前に呼ぶ。間隔に関わらず、今の状態を、誰が書き換えるかと一緒に履歴に残す
+  // （書き換えを取り消せるように、また、どの変更が利用者のものでないかを履歴で見分けられるように）。
+  async captureVersionBeforeReplace(noteId: string, changedBy: VersionChangedBy): Promise<void> {
+    await this.#captureVersionBeforeOverwrite(noteId, { reason: "replace", changedBy });
   }
 
   // メモを、履歴の版の中身に戻す。別のメモは作らず、このメモを書き換える。戻す前の状態は「復元の前」として履歴に残す。
@@ -259,7 +261,7 @@ export class NoteRepository {
       throw new RecordNotFoundError(input.versionId);
     }
     try {
-      await this.#captureVersionBeforeOverwrite(input.noteId, "restore");
+      await this.#captureVersionBeforeOverwrite(input.noteId, { reason: "restore" });
       // 履歴を残す間に、ほかのウィンドウや同期が文書を入れ替えていることがあるので、取り直す。
       const doc = this.#liveDocument(input.noteId, "note");
       replaceBodyWithCopyOf(recordBody(doc), recordBody(versionDocument));
@@ -528,11 +530,11 @@ export class NoteRepository {
   // ── 内部 ──────────────────────────────────────────
 
   // 本文を丸ごと書き換える前に、今の状態を履歴に残す。まだ保存していない入力を先に保存し、それも含めて残す。
-  async #captureVersionBeforeOverwrite(noteId: string, reason: OverwriteReason): Promise<void> {
+  async #captureVersionBeforeOverwrite(noteId: string, capture: OverwriteCapture): Promise<void> {
     await this.flush();
     const stored = await this.#dependencies.localStore.getRecordEntry(noteId);
     if (stored && this.#view(noteId)?.kind === "note") {
-      await this.#versionHistory.captureBeforeOverwrite(noteId, stored.sealed, reason);
+      await this.#versionHistory.captureBeforeOverwrite(noteId, stored.sealed, capture);
     }
   }
 
@@ -904,8 +906,4 @@ function dueAtOf(doc: Y.Doc): string | null {
 function pageAlignmentOf(doc: Y.Doc): PageAlignment | null {
   const stored = readField<unknown>(doc, "pageAlignment");
   return PAGE_ALIGNMENTS.find((alignment) => alignment === stored) ?? null;
-}
-
-function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
-  return left.length === right.length && left.every((byte, index) => byte === right[index]);
 }

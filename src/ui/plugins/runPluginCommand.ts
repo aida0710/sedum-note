@@ -55,9 +55,11 @@ function textAsContent(text: string): JSONContent | JSONContent[] {
 
 async function applyPluginResult(result: PluginResult, { note, editor, repository }: Pick<PluginCommandInput, "note" | "editor" | "repository">): Promise<void> {
   const context = importContextOf(repository);
+  // 本文を変える前の状態を、プラグインが変えたこととして履歴に残す（取り消しと別に、あとからでも戻せ、利用者の編集と見分けられる）。
+  if (result.replaceBody !== undefined || result.replaceSelection !== undefined || result.append !== undefined) {
+    await repository.captureVersionBeforeReplace(note.id, "plugin");
+  }
   if (result.replaceBody !== undefined) {
-    // 本文の全部を置き換える前の状態を、履歴に残す（取り消しと別に、あとからでも戻せる）。
-    await repository.captureVersionBeforeReplace(note.id);
     await writeMarkdownToBody(result.replaceBody, note.body, context);
   }
   if (result.replaceSelection !== undefined) {

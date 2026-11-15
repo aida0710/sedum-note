@@ -22,6 +22,10 @@ export type LocalBlobEntry = {
   uploaded: boolean;
 };
 
+// replace の版で、本文を書き換えたもの。ai はアプリの中の AI のチャット、mcp は MCP でつないだ AI、plugin はプラグイン。
+// v0.8.3 までのアプリが残した replace の版には無い（誰が書き換えたかは分からない）。
+export type VersionChangedBy = "ai" | "mcp" | "plugin";
+
 // メモの過去の状態（履歴）。同期先にも置く（sync/versionSync.ts）。バックアップには入れない。
 export type LocalVersionEntry = {
   id: string;
@@ -29,16 +33,19 @@ export type LocalVersionEntry = {
   // ISO 8601。この状態を残した時刻。
   capturedAt: string;
   // edit は編集を始める前の状態、sync はほかのデバイスの変更を取り込む前の状態、
-  // replace は本文を丸ごと置き換える前（MCP・プラグインの書き換え）の状態、restore は履歴の版へ戻す前の状態。
+  // replace は本文を書き換える前（AI・MCP・プラグインの書き換え）の状態、restore は履歴の版へ戻す前の状態。
+  // 理由の値は増やさない。v0.8.3 までのアプリは、知らない理由の版を同期先から取り込まずに捨てる。
   reason: "edit" | "sync" | "replace" | "restore";
+  // replace の版で、そのあと本文を書き換えたもの。
+  changedBy?: VersionChangedBy;
   // 記録と同じ形の暗号文（recordCodec.ts）。記録の ID に結び付いている。
   sealed: Uint8Array;
   // 同期先へ送り終えたか（同期先から取ってきたものも true）。sync の版は、そのデバイスの控えなので送らない。
   uploaded: boolean;
 };
 
-// 履歴の、同期に使う状態だけ（暗号文を除いたもの）。同期のたびに全件を見るので、暗号文を読まずに引けるようにする。
-export type LocalVersionState = Omit<LocalVersionEntry, "sealed">;
+// 履歴の、同期に使う状態だけ（暗号文と、画面にだけ出す changedBy を除いたもの）。同期のたびに全件を見るので、暗号文を読まずに引けるようにする。
+export type LocalVersionState = Omit<LocalVersionEntry, "sealed" | "changedBy">;
 
 // remoteVersionsSweptAt は、同期先の古い履歴をまとめて消した時刻（ISO 8601）。
 export type LocalSettingName = "vault" | "deviceId" | "sealedRemoteConfig" | "sealedMcpSettings" | "sealedAiSettings" | "sealedPlugins" | "sealedAiChats" | "sealedWorkspaceLayout" | "remoteVersionsSweptAt";

@@ -34,7 +34,7 @@ function mcpToolOf(tool: NoteTool): McpTool {
 }
 
 export function createMcpNoteTools(repository: NoteRepository, options: McpNoteToolOptions): McpTool[] {
-  return createNoteTools(repository, { includesPermanentDelete: options.allowPermanentDelete }).map(mcpToolOf);
+  return createNoteTools(repository, { includesPermanentDelete: options.allowPermanentDelete, changedBy: "mcp" }).map(mcpToolOf);
 }
 
 // クライアント（AI）に渡す、このサーバーの使い方。

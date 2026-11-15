@@ -12,6 +12,14 @@ import { useToast } from "../shared/ToastProvider";
 import { ProgressStatus } from "../shared/ProgressStatus";
 import { useAsyncAction } from "../shared/useAsyncAction";
 
+// 版を残した理由。AI・MCP・プラグインの書き換えの前の版は、誰が書き換えたかを出す（分からない古い版は、まとめた名前）。
+function versionReasonLabel(version: NoteVersion): string {
+  if (version.reason === "replace" && version.changedBy !== undefined) {
+    return translate(`history.reason.replace.${version.changedBy}`);
+  }
+  return translate(`history.reason.${version.reason}`);
+}
+
 type NoteHistoryDialogProps = {
   note: LiveNote;
   repository: NoteRepository;
@@ -36,8 +44,10 @@ export function NoteHistoryDialog({ note, repository, onClose }: NoteHistoryDial
         setSelectedId((current) => (loaded.some((version) => version.id === current) ? current : loaded[0]?.id ?? null));
       }
     };
-    // まず手元にある分を出し、同期先の分が届いたら出し直す。
-    void showVersions()
+    // まず手元にある分を出し、同期先の分が届いたら出し直す。版は保存のときに残すので、まだ保存していない入力を先に保存する
+    // （直前の編集の前の状態も一覧に出す）。
+    void repository.flush()
+      .then(showVersions)
       .then(() => repository.downloadNoteVersions(note.id))
       .then(showVersions, () => !closed && setRemoteUnavailable(true))
       .finally(() => !closed && setDownloading(false));
@@ -66,7 +76,7 @@ export function NoteHistoryDialog({ note, repository, onClose }: NoteHistoryDial
                   className={`menu-item${version.id === selectedId ? " on" : ""}`} onClick={() => setSelectedId(version.id)} onFocus={() => setSelectedId(version.id)}>
                   <span>
                     {formatDateTime(version.updatedAt)}
-                    <span className="hint">{translate(`history.reason.${version.reason}`)}</span>
+                    <span className="hint">{versionReasonLabel(version)}</span>
                   </span>
                 </button>
               ))}
