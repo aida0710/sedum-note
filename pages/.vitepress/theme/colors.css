@@ -1,4 +1,4 @@
-/* Sedum Note の色。作りは docs-template が持ち、ここでは色だけを決める。
+/* Sedum Note の色。作りは @aida0710/app-docs-theme が持ち、ここでは色だけを決める。
    色はアプリのテーマ「セダム」「セダム（ダーク）」に合わせる（src/ui/theme/builtInThemes.ts）。 */
 :root {
   --vp-c-brand-1: #2f7d54;
