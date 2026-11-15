@@ -38,7 +38,7 @@ export async function fillDocsSampleWorkspace(page) {
   for (const note of NOTES) {
     await exposeApp(page);
     const noteId = await page.evaluate(async ({ title, notebook }) => {
-      const created = await window.__visualAudit.repository.createNote({ title, notebookIds: [window.__docsNotebookIds[notebook]] });
+      const created = await window.__visualAudit.repository.createNote({ title, notebookId: window.__docsNotebookIds[notebook] });
       return created.id;
     }, note);
     await navigate(page, "openNote", noteId);
@@ -72,20 +72,18 @@ export async function fillDocsSampleWorkspace(page) {
   }, WORK_PROPERTY_VALUES);
 }
 
-// PC の画面で、前に開いたタブを全部閉じる（画像に写すタブは、撮る側が選んで開く）。navigation は描画のたびに作り直されるので、
-// 1 つ閉じるごとに取り直し、閉じたことが描画に届くまで待つ。
-export async function closeAllTabs(page) {
-  for (let remaining = await openTabCount(page); remaining > 0; remaining -= 1) {
-    await page.evaluate(() => window.__visualAudit.navigation.closeTab(window.__visualAudit.navigation.openTabs[0]));
-    while (await openTabCount(page) >= remaining) {
-      await page.waitForTimeout(50);
-    }
-  }
-}
+// タブの × を押してから、タブが画面から消えるまでの上限。ふつうは 1 回の描画で済む。
+const TAB_CLOSE_TIMEOUT_MILLISECONDS = 5000;
+const TAB_SELECTOR = ".tabs [role=tab]";
 
-async function openTabCount(page) {
-  await exposeApp(page);
-  return page.evaluate(() => window.__visualAudit.navigation.openTabs.length);
+// PC の画面で、前に開いたタブを左から順に × で全部閉じる（画像に写すタブは、撮る側が選んで開く）。数は画面のタブで数える
+// （exposeApp で取る navigation は、描き直しのあとも古い写しのままのことがあり、閉じたタブを一覧に残して返す）。
+export async function closeAllTabs(page) {
+  for (let remaining = await page.locator(TAB_SELECTOR).count(); remaining > 0; remaining -= 1) {
+    await page.locator(TAB_SELECTOR).first().locator(".tab-close").evaluate((button) => button.click());
+    await page.waitForFunction(({ selector, count }) => document.querySelectorAll(selector).length < count,
+      { selector: TAB_SELECTOR, count: remaining }, { timeout: TAB_CLOSE_TIMEOUT_MILLISECONDS });
+  }
 }
 
 async function noteIdOf(page, title) {
