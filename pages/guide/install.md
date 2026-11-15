@@ -5,7 +5,7 @@ description: Windows・macOS・Linux・Androidのアプリの入れ方と、Web�
 
 # インストール
 
-アプリは[GitHub Releases](https://github.com/aida0710/sedum-note/releases/latest)からダウンロードします。ファイル名の`<バージョン>`には、`0.8.3`のようなバージョンが入ります。
+アプリは[GitHub Releases](https://github.com/aida0710/sedum-note/releases/latest)からダウンロードします。ファイル名の`<バージョン>`には、`0.9.0`のようなバージョンが入ります。
 
 | OS | ファイル |
 | --- | --- |
