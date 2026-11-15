@@ -43,7 +43,9 @@ import { replaceTemplateVariablesInBody, replaceTemplateVariablesInText, type Te
 // 非同期なので、アプリを閉じる瞬間には書き切れない。打ってすぐ閉じても失うのがこの時間の分で
 // 済むよう短くしつつ、毎打鍵の暗号化は避ける。
 const PERSIST_DELAY_MILLISECONDS = 150;
-// ノートブックへの所属の項目名の先頭。後ろにノートブックの ID が続く。
+// ノートブックへの所属の項目名の先頭。後ろにノートブックの ID が続き、値は入れているか（真偽値）。
+// メモは 1 つのノートブックにだけ入るが、項目はノートブックごとに分けたまま持つ（v0.8.3 までの版と同じ形）。
+// 2 台で別のノートブックへ同時に移すと 2 つが「入れている」になるので、読むときに 1 つに決める（notebookIdOf）。
 const NOTEBOOK_MEMBERSHIP_PREFIX = "notebook:";
 
 export type NoteRepositoryDependencies = {
@@ -62,7 +64,7 @@ export type NoteRepositoryDependencies = {
 
 export type NoteChanges = Partial<{
   title: string;
-  notebookIds: string[];
+  notebookId: string | null;
   pinned: boolean;
   bookmarked: boolean;
   trashedAt: string | null;
@@ -202,7 +204,7 @@ export class NoteRepository {
     // 本文には最初から空の段落を 1 つ入れておく。空のままだと、開いたデバイスごとにエディタが
     // 段落を足し、マージしたときに空の段落が重なる。
     recordBody(doc).insert(0, [new Y.XmlElement("paragraph")]);
-    this.#writeNoteChanges(doc, { title: "", pinned: false, bookmarked: false, trashedAt: null, notebookIds: [], ...initial });
+    this.#writeNoteChanges(doc, { title: "", pinned: false, bookmarked: false, trashedAt: null, notebookId: null, ...initial });
     await this.flush();
     return this.note(id)!;
   }
@@ -304,7 +306,7 @@ export class NoteRepository {
     if (!source) {
       throw new RecordNotFoundError(noteId);
     }
-    return this.#createNoteWithBodyOf(source.body, { title, notebookIds: source.content.notebookIds, isTemplate: false, pageAlignment: source.content.pageAlignment });
+    return this.#createNoteWithBodyOf(source.body, { title, notebookId: source.content.notebookId, isTemplate: false, pageAlignment: source.content.pageAlignment });
   }
 
   // ほかのメモを、このメモに結合する。相手のタイトルを見出しにして本文を末尾に足し、相手はゴミ箱に入れる。
@@ -330,7 +332,7 @@ export class NoteRepository {
     if (variableValues !== null) {
       replaceTemplateVariablesInBody(recordBody(doc), variableValues);
     }
-    this.#writeNoteChanges(doc, { title: "", pinned: false, bookmarked: false, trashedAt: null, notebookIds: [], ...changes });
+    this.#writeNoteChanges(doc, { title: "", pinned: false, bookmarked: false, trashedAt: null, notebookId: null, ...changes });
     await this.flush();
     return this.note(id)!;
   }
@@ -374,16 +376,29 @@ export class NoteRepository {
     await this.updateNotebook(id, { parentId });
   }
 
-  // ノートブックを消す。中のメモは消さず、そのノートブックから外すだけにする。
+  // ノートブックを消す。中のメモと子のノートブックは消さず、1 つ上のノートブック（最上位なら、メモは「未指定」）へ移す。
   async removeNotebook(id: string): Promise<void> {
     const parentId = readField<string | null>(this.#liveDocument(id, "notebook"), "parentId") ?? null;
-    for (const note of this.notes().filter((candidate) => candidate.content.notebookIds.includes(id))) {
-      await this.updateNote(note.id, { notebookIds: note.content.notebookIds.filter((notebookId) => notebookId !== id) });
-    }
+    this.#moveNotesOutOfNotebook(id, parentId);
     for (const child of this.notebooks().filter((candidate) => candidate.content.parentId === id)) {
       await this.updateNotebook(child.id, { parentId });
     }
     await this.#removeRecord(id, []);
+  }
+
+  // ほかのデバイスで、消えたノートブックへ入れられたメモを「未指定」へ移す（ノートブックを消したのと同時に入れたとき）。
+  // 消したデバイスは、中のメモを 1 つ上へ移してから消すので、ふつうは起きない。
+  #moveNoteOutOfRemovedNotebook(noteId: string): void {
+    const notebookId = this.note(noteId)?.content.notebookId ?? null;
+    if (notebookId !== null && this.#holders.get(notebookId)?.state === "removed") {
+      this.#writeNoteChanges(this.#liveDocument(noteId, "note"), { notebookId: null });
+    }
+  }
+
+  #moveNotesOutOfNotebook(notebookId: string, destinationId: string | null): void {
+    for (const note of this.notes().filter((candidate) => candidate.content.notebookId === notebookId)) {
+      this.#writeNoteChanges(this.#liveDocument(note.id, "note"), { notebookId: destinationId });
+    }
   }
 
   // ── 保存した検索 ──────────────────────────────
@@ -487,6 +502,7 @@ export class NoteRepository {
           await this.#versionHistory.captureBeforeSync(id, entry.sealed);
         }
         this.#touch(holder);
+        this.#moveNoteOutOfRemovedNotebook(id);
         await this.#persistLive(id, { remoteEtag, waitingForPush: hasLocalChanges });
         return;
       }
@@ -498,11 +514,19 @@ export class NoteRepository {
         return;
       }
       // 手元に無い記録、手元で消した記録への編集、または削除の受け入れ。同期先の中身をそのまま採る。
+      const removedNotebookParentId = payload.kind === "removed" && holder?.state === "live" && readField<RecordKind>(holder.doc, "kind") === "notebook"
+        ? readField<string | null>(holder.doc, "parentId") ?? null : undefined;
       if (holder?.state === "live") {
         holder.doc.destroy();
       }
       this.#unsavedIds.delete(id);
       this.#hold(id, payload, sealed);
+      if (removedNotebookParentId !== undefined) {
+        // 消したデバイスが中のメモを移す前に、このデバイスでそのノートブックへメモを入れていたとき。
+        this.#moveNotesOutOfNotebook(id, this.#holders.get(removedNotebookParentId ?? "")?.state === "live" ? removedNotebookParentId : null);
+      } else if (payload.kind === "state") {
+        this.#moveNoteOutOfRemovedNotebook(id);
+      }
       if (payload.kind === "removed") {
         await this.#deleteLocalBlobs(payload.attachmentIds);
         await this.#versionHistory.forget(id);
@@ -663,14 +687,15 @@ export class NoteRepository {
   }
 
   #writeNoteChanges(doc: Y.Doc, changes: NoteChanges): void {
-    const { notebookIds, ...fields } = changes;
+    const { notebookId, ...fields } = changes;
     const membership: Record<string, boolean> = {};
-    if (notebookIds !== undefined) {
-      // ノートブックごとに別の項目にする。1 つの配列だと、2 台で別のノートブックへ入れたときに片方が消える。
-      for (const current of notebookIdsOf(doc)) {
+    if (notebookId !== undefined) {
+      // 「入れている」の項目を、移す先の 1 つだけにする。読むときに 1 つに決めた残り（同時に移したときや、
+      // 複数のノートブックに入れられた版で入れたもの）も外す。外さないと、あとで移した先が消えたときに出てくる。
+      for (const current of memberNotebookIdsOf(doc)) {
         membership[NOTEBOOK_MEMBERSHIP_PREFIX + current] = false;
       }
-      for (const notebookId of notebookIds) {
+      if (notebookId !== null) {
         membership[NOTEBOOK_MEMBERSHIP_PREFIX + notebookId] = true;
       }
       for (const name of Object.keys(membership)) {
@@ -815,10 +840,24 @@ function restoredNoteChanges({ current, version }: { current: Y.Doc; version: Y.
   return changes;
 }
 
-function notebookIdsOf(doc: Y.Doc): string[] {
+// 「入れている」になっているノートブック。ふつうは 0 か 1 つ。
+function memberNotebookIdsOf(doc: Y.Doc): string[] {
   return [...fieldNames(doc)]
     .filter((name) => name.startsWith(NOTEBOOK_MEMBERSHIP_PREFIX) && readField<boolean>(doc, name) === true)
     .map((name) => name.slice(NOTEBOOK_MEMBERSHIP_PREFIX.length));
+}
+
+// メモを入れたノートブック。「入れている」が 2 つ以上あれば、いちばんあとに入れた方（同じ時刻なら ID の大きい方。
+// どのデバイスでも同じ結果になればよい）。
+function notebookIdOf(doc: Y.Doc): string | null {
+  let latest: { notebookId: string; at: string } | null = null;
+  for (const notebookId of memberNotebookIdsOf(doc)) {
+    const at = latestFieldTime(doc, (name) => name === NOTEBOOK_MEMBERSHIP_PREFIX + notebookId);
+    if (latest === null || at > latest.at || (at === latest.at && notebookId > latest.notebookId)) {
+      latest = { notebookId, at };
+    }
+  }
+  return latest?.notebookId ?? null;
 }
 
 function fieldsWithPrefix(doc: Y.Doc, prefix: string): Array<{ id: string; value: unknown }> {
@@ -897,7 +936,7 @@ function buildView(id: string, holder: LiveHolder): LiveRecord | null {
     body,
     content: {
       title: readField<string>(doc, "title") ?? "",
-      notebookIds: notebookIdsOf(doc),
+      notebookId: notebookIdOf(doc),
       pinned: readField<boolean>(doc, "pinned") ?? false,
       bookmarked: readField<boolean>(doc, "bookmarked") ?? false,
       trashedAt: readField<string | null>(doc, "trashedAt") ?? null,

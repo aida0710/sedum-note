@@ -155,7 +155,7 @@ describe("メモの履歴", () => {
     const body = repository.note(note.id)!.body;
     body.delete(0, body.length);
     await writeLine(note.id, "書き直した文");
-    await repository.updateNote(note.id, { title: "議事録（改）", notebookIds: [work.id], pinned: true, bookmarked: true });
+    await repository.updateNote(note.id, { title: "議事録（改）", notebookId: work.id, pinned: true, bookmarked: true });
     await repository.flush();
 
     const [version] = await repository.noteVersions(note.id);
@@ -167,7 +167,7 @@ describe("メモの履歴", () => {
     expect([restored.content.title, bodyPlainText(restored.body)]).toEqual(["議事録", "消す前の文"]);
     expect(restored.content.attachments.map((attachment) => attachment.id)).toEqual([photo.id]);
     expect(await repository.readAttachment(photo.id)).toEqual(new Uint8Array([1, 2, 3]));
-    expect(restored.content).toMatchObject({ notebookIds: [work.id], pinned: true, bookmarked: true });
+    expect(restored.content).toMatchObject({ notebookId: work.id, pinned: true, bookmarked: true });
   });
 
   it("版に戻す前の状態が「復元の前」として履歴に残り、そこからもう一度戻せる", async () => {

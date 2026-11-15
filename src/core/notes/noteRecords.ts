@@ -22,8 +22,9 @@ export type PageAlignment = (typeof PAGE_ALIGNMENTS)[number];
 
 export type NoteContent = {
   title: string;
-  // UpNote と同じく、1 つのメモを複数のノートブックに入れられる。
-  notebookIds: string[];
+  // メモを入れたノートブック。メモは 1 つのノートブックにだけ入る（入れ子なら、その親のノートブックにも含まれる）。
+  // null なら「未指定」（どのノートブックにも入れていない）。
+  notebookId: string | null;
   pinned: boolean;
   bookmarked: boolean;
   // ゴミ箱に入れた時刻。null ならゴミ箱の外。

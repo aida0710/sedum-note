@@ -86,7 +86,7 @@ export async function exportNotesAsFiles({ repository, notes, format, language, 
 
   for (const [index, note] of notes.entries()) {
     reportProgress?.({ done: index, total: notes.length });
-    const directory = note.content.notebookIds.map((notebookId) => notebookDirectories.get(notebookId)).find((path) => path !== undefined) ?? "";
+    const directory = (note.content.notebookId !== null && notebookDirectories.get(note.content.notebookId)) || "";
     const notePath = paths.claim(directory, safeFileName(note.content.title, untitledName), writer.extension);
     for (const attachment of writer.includesAttachments ? note.content.attachments : []) {
       if (attachmentPaths.has(attachment.id)) {

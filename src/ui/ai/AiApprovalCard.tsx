@@ -25,7 +25,7 @@ function ApprovalDetails({ item }: { item: AiApprovalItem }) {
   }
   switch (preview.kind) {
     case "createNote":
-      return <p className="hint">{translate("ai.approval.createNote", { count: preview.characterCount, notebooks: preview.notebookNames.join(", ") || translate("ai.approval.none") })}</p>;
+      return <p className="hint">{translate("ai.approval.createNote", { count: preview.characterCount, notebook: preview.notebookName })}</p>;
     case "updateNote":
       return (
         <ul className="ai-approval-changes">

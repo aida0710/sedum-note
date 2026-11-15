@@ -49,7 +49,7 @@ async function seedRecords(page) {
     }
     for (let index = 0; index < counts.notes; index += 1) {
       const title = index < counts.searchHits ? `検索テスト ${index + 1} 件目のメモ` : `メモ ${index + 1}`;
-      const note = await repository.createNote({ title, notebookIds: [ids.notebooks[index % ids.notebooks.length]], pinned: index % 97 === 0 });
+      const note = await repository.createNote({ title, notebookId: ids.notebooks[index % ids.notebooks.length], pinned: index % 97 === 0 });
       addParagraphs(note.id, [`${index + 1} 件目の本文。一覧の要約に出る文です。`]);
     }
     const special = async (key, changes, paragraphs = []) => {
@@ -57,17 +57,17 @@ async function seedRecords(page) {
       if (paragraphs.length) addParagraphs(note.id, paragraphs);
       ids.notes[key] = note.id;
     };
-    await special("longTitleJa", { title: text.longTitleJa, notebookIds: [ids.longNotebookJa] }, ["長い題のメモの本文。"]);
-    await special("longTitleAscii", { title: text.longTitleAscii, notebookIds: [ids.deepestNotebook] }, ["ASCII の長い題のメモ。"]);
-    await special("emojiTitle", { title: text.emojiTitle, notebookIds: [ids.deepestNotebook] }, ["絵文字の題。🍣"]);
-    await special("emptyTitle", { title: "", notebookIds: [ids.deepestNotebook] }, ["題が空のメモの本文です。"]);
+    await special("longTitleJa", { title: text.longTitleJa, notebookId: ids.longNotebookJa }, ["長い題のメモの本文。"]);
+    await special("longTitleAscii", { title: text.longTitleAscii, notebookId: ids.deepestNotebook }, ["ASCII の長い題のメモ。"]);
+    await special("emojiTitle", { title: text.emojiTitle, notebookId: ids.deepestNotebook }, ["絵文字の題。🍣"]);
+    await special("emptyTitle", { title: "", notebookId: ids.deepestNotebook }, ["題が空のメモの本文です。"]);
     const tags = [`#${text.longTagJa}`, `#${text.longTagAscii}`];
     for (let index = 1; tags.length < counts.tags; index += 1) tags.push(`#タグ${String(index).padStart(3, "0")}`);
-    await special("manyTags", { title: `タグ ${counts.tags} 個のメモ`, notebookIds: [ids.deepestNotebook] }, [tags.join(" ")]);
-    await special("headings", { title: `見出し ${counts.headings} 個（目次）`, notebookIds: [ids.deepestNotebook] });
-    await special("wideTable", { title: `列が ${counts.tableColumns} の表`, notebookIds: [ids.deepestNotebook] });
-    await special("longLines", { title: "長い URL・改行の無い行・長いコード", notebookIds: [ids.deepestNotebook] });
-    await special("properties", { title: "プロパティの多いメモ", notebookIds: [ids.propertyNotebook] }, [`プロパティを ${counts.properties} 個持つメモ。`]);
+    await special("manyTags", { title: `タグ ${counts.tags} 個のメモ`, notebookId: ids.deepestNotebook }, [tags.join(" ")]);
+    await special("headings", { title: `見出し ${counts.headings} 個（目次）`, notebookId: ids.deepestNotebook });
+    await special("wideTable", { title: `列が ${counts.tableColumns} の表`, notebookId: ids.deepestNotebook });
+    await special("longLines", { title: "長い URL・改行の無い行・長いコード", notebookId: ids.deepestNotebook });
+    await special("properties", { title: "プロパティの多いメモ", notebookId: ids.propertyNotebook }, [`プロパティを ${counts.properties} 個持つメモ。`]);
     for (const [index, definition] of definitions.entries()) {
       const value = { number: 1234567890, checkbox: true, date: "2026-11-13", select: "とても長い選択肢の名前を付けた場合" }[definition.type]
         ?? `とても長いプロパティの値を入れたときにどう折り返すかを見るための文 ${index}`;

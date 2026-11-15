@@ -1,6 +1,6 @@
 // 読むだけのツール（メモを探す・読む、ノートブックとタグの一覧）。
 
-import { buildNotebookTree, countTags, notebookNameLookup, selectNotes, summarizeNote, type NoteView } from "../../core/notes/noteQueries";
+import { buildNotebookTree, countTags, notebookNamesLookup, selectNotes, summarizeNote, type NoteView } from "../../core/notes/noteQueries";
 import { ATTACHMENT_HREF_PREFIX } from "../markdown/markdownDocument";
 import { ALWAYS_CURRENT, type NoteTool } from "./noteTool";
 import type { NoteToolContext } from "./noteToolContext";
@@ -40,7 +40,7 @@ export function noteReadTools(context: NoteToolContext): NoteTool[] {
           preview: { kind: "searchNotes", query: query === "" ? null : query, notebookName: notebookId === undefined ? null : notebookName(notebookId), tag: tag ?? null, inTrash },
           isCurrent: ALWAYS_CURRENT,
           run: async () => {
-            const found = selectNotes(repository.notes().map(summarizeNote), { view, searchText: query, notebookNameOf: notebookNameLookup(repository.notebooks()) });
+            const found = selectNotes(repository.notes().map(summarizeNote), { view, searchText: query, notebookNamesOf: notebookNamesLookup(repository.notebooks()) });
             return {
               totalCount: found.length,
               notes: found.slice(0, limit).map((summary) => ({ ...describeNote(summary.note), tags: summary.tags, excerpt: summary.plainText.slice(0, SNIPPET_LENGTH) })),
@@ -87,7 +87,7 @@ export function noteReadTools(context: NoteToolContext): NoteTool[] {
           const describe = (nodes: ReturnType<typeof buildNotebookTree>): DescribedNotebook[] => nodes.map((node) => ({
             notebookId: node.notebook.id,
             name: node.notebook.content.name,
-            noteCount: notes.filter((note) => note.content.notebookIds.includes(node.notebook.id)).length,
+            noteCount: notes.filter((note) => note.content.notebookId === node.notebook.id).length,
             children: describe(node.children),
           }));
           return { notebooks: describe(buildNotebookTree(repository.notebooks())) };

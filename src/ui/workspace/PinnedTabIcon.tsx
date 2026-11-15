@@ -23,8 +23,8 @@ function iconOfTab(tabId: string): LucideIcon {
 export function PinnedTabIcon({ tabId, repository }: { tabId: string; repository: NoteRepository }) {
   const Icon = iconOfTab(tabId);
   // どのノートブックにも入っていないメモと、メモ以外のタブは、タブの文字の色のまま。
-  const notebookId = repository.note(tabId)?.content.notebookIds[0];
-  const color = notebookId === undefined ? undefined : assignNotebookColors(repository.notebooks()).colorOf(notebookId);
+  const notebookId = repository.note(tabId)?.content.notebookId ?? null;
+  const color = notebookId === null ? undefined : assignNotebookColors(repository.notebooks()).colorOf(notebookId);
   return (
     <span className="tab-pinned-icon" style={color === undefined ? undefined : { color }}>
       <Icon size={ICON_SIZE.button} />

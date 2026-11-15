@@ -158,7 +158,7 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
         )}
         {databaseNotebook && (
           <NotebookDatabaseView notebook={databaseNotebook} repository={repository} onOpenNote={navigation.openNote}
-            notes={snapshot.notes.filter((note) => note.content.notebookIds.includes(databaseNotebook.id) && note.content.trashedAt === null && !note.content.isTemplate)} />
+            notes={snapshot.notes.filter((note) => note.content.notebookId === databaseNotebook.id && note.content.trashedAt === null && !note.content.isTemplate)} />
         )}
         {showsGraph && <NoteGraphView summaries={snapshot.summaries} onOpenNote={navigation.openNote} />}
         {showsReminders && <RemindersView summaries={snapshot.summaries} repository={repository} onOpenNote={navigation.openNote} />}

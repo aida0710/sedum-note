@@ -4,6 +4,8 @@
 import { NoteToolError, type ToolArguments } from "./noteTool";
 
 export const ID_SCHEMA = { type: "string", description: "32 hexadecimal characters" };
+// ID か null（「無し」を選ぶ引数）。
+export const NULLABLE_ID_SCHEMA = { type: ["string", "null"], description: "32 hexadecimal characters, or null" };
 export const NOTE_ID_PROPERTY = { noteId: { ...ID_SCHEMA, description: "The id of the note (32 hexadecimal characters)" } };
 
 export function objectSchema(properties: Record<string, unknown>, required: string[] = []): Record<string, unknown> {
@@ -28,17 +30,6 @@ export function optionalBoolean(toolArguments: ToolArguments, name: string): boo
     throw new NoteToolError(`${name} must be true or false`);
   }
   return value;
-}
-
-export function optionalStringList(toolArguments: ToolArguments, name: string): string[] | undefined {
-  const value = toolArguments[name];
-  if (value === undefined) {
-    return undefined;
-  }
-  if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) {
-    throw new NoteToolError(`${name} must be a list of strings`);
-  }
-  return value as string[];
 }
 
 // 整数の引数を、範囲の中に収めて読む。無ければ既定の値。

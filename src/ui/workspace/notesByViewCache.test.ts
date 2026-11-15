@@ -19,7 +19,7 @@ const TRASH = { kind: "trash" } as const;
 
 const first = [
   summary("a", { title: "a" }, "2026-11-01T00:00:00Z", "#todo"),
-  summary("b", { title: "b", notebookIds: ["n1"] }, "2026-11-02T00:00:00Z"),
+  summary("b", { title: "b", notebookId: "n1" }, "2026-11-02T00:00:00Z"),
   summary("c", { title: "c" }, "2026-11-03T00:00:00Z"),
 ];
 
@@ -49,8 +49,8 @@ describe("一覧ごとのメモの使い回し", () => {
     }
     // a をノートブックへ移してタグを外し、b をゴミ箱へ入れ、d を足した。
     const next = [
-      summary("a", { title: "a", notebookIds: ["n1"] }, "2026-11-05T00:00:00Z"),
-      summary("b", { title: "b", notebookIds: ["n1"], trashedAt: "2026-11-05T00:00:00Z" }, "2026-11-05T00:00:00Z"),
+      summary("a", { title: "a", notebookId: "n1" }, "2026-11-05T00:00:00Z"),
+      summary("b", { title: "b", notebookId: "n1", trashedAt: "2026-11-05T00:00:00Z" }, "2026-11-05T00:00:00Z"),
       first[2]!,
       summary("d", { title: "d" }, "2026-11-06T00:00:00Z", "#todo"),
     ];

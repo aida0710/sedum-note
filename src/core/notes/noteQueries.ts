@@ -9,6 +9,8 @@ export type NoteView =
   | { kind: "all" }
   | { kind: "bookmarked" }
   | { kind: "notebook"; notebookId: string }
+  // どのノートブックにも入れていないメモ。左の列では、ノートブックの並びの最後に「未指定」として出す。
+  | { kind: "unassigned" }
   | { kind: "tag"; tag: string }
   | { kind: "templates" }
   | { kind: "trash" };
@@ -56,7 +58,9 @@ function belongsToView(summary: NoteSummary, view: NoteView): boolean {
     case "bookmarked":
       return content.bookmarked;
     case "notebook":
-      return content.notebookIds.includes(view.notebookId);
+      return content.notebookId === view.notebookId;
+    case "unassigned":
+      return content.notebookId === null;
     case "tag":
       return summary.tags.includes(view.tag);
   }
@@ -95,14 +99,18 @@ export type NoteSelection = {
   // 検索の言葉。#タグ や notebook:名前 の絞り込みも書ける（noteSearchQuery.ts）。
   searchText?: string;
   sortOrder?: NoteSortOrder;
-  // notebook:名前 の絞り込みで、ノートブックの ID から名前を引く。渡さなければ、notebook: に当たるメモは無い。
-  notebookNameOf?: (notebookId: string) => string | undefined;
+  // notebook:名前 の絞り込みで、ノートブックの ID から、そのノートブックと親のノートブックの名前を引く。
+  // 渡さなければ、notebook: に当たるメモは無い。
+  notebookNamesOf?: (notebookId: string) => string[];
 };
 
-// ノートブックの一覧から、ID で名前を引く関数を作る（selectNotes の notebookNameOf に渡す）。
-export function notebookNameLookup(notebooks: Array<{ id: string; content: { name: string } }>): (notebookId: string) => string | undefined {
-  const names = new Map(notebooks.map((notebook) => [notebook.id, notebook.content.name]));
-  return (notebookId) => names.get(notebookId);
+// ノートブックの一覧から、ID でそのノートブックと親（何段上でも）の名前を引く関数を作る（selectNotes の notebookNamesOf に渡す）。
+// 入れ子のノートブックのメモは、親のノートブックにも含まれるので、親の名前でも見つかるようにする。
+export function notebookNamesLookup(notebooks: LiveNotebook[]): (notebookId: string) => string[] {
+  const notebooksById = new Map(notebooks.map((notebook) => [notebook.id, notebook]));
+  return (notebookId) => notebookAndAncestorIds(notebookId, notebooksById)
+    .map((id) => notebooksById.get(id)?.content.name)
+    .filter((name) => name !== undefined);
 }
 
 // ピン留めを先に、残りは選んだ並び順で返す。
@@ -113,16 +121,16 @@ const searchableNoteOfSummary = new WeakMap<NoteSummary, SearchableNote>();
 function searchableNoteOf(summary: NoteSummary): SearchableNote {
   let searchable = searchableNoteOfSummary.get(summary);
   if (searchable === undefined) {
-    searchable = { title: summary.note.content.title, plainText: summary.plainText, tags: summary.tags, notebookIds: summary.note.content.notebookIds };
+    searchable = { title: summary.note.content.title, plainText: summary.plainText, tags: summary.tags, notebookId: summary.note.content.notebookId };
     searchableNoteOfSummary.set(summary, searchable);
   }
   return searchable;
 }
 
-export function selectNotes(summaries: NoteSummary[], { view, searchText = "", sortOrder = "updatedAt", notebookNameOf = () => undefined }: NoteSelection): NoteSummary[] {
+export function selectNotes(summaries: NoteSummary[], { view, searchText = "", sortOrder = "updatedAt", notebookNamesOf = () => [] }: NoteSelection): NoteSummary[] {
   const query = parseNoteSearchQuery(searchText);
   return summaries
-    .filter((summary) => belongsToView(summary, view) && matchesNoteSearch(searchableNoteOf(summary), query, notebookNameOf))
+    .filter((summary) => belongsToView(summary, view) && matchesNoteSearch(searchableNoteOf(summary), query, notebookNamesOf))
     .sort((left, right) => {
       if (left.note.content.pinned !== right.note.content.pinned) {
         return left.note.content.pinned ? -1 : 1;
@@ -165,6 +173,11 @@ function isInParentCycle(notebook: LiveNotebook, notebooksById: ReadonlyMap<stri
   const topmost = ancestors[ancestors.length - 1];
   const parentOfTopmost = topmost === undefined ? notebook.content.parentId : notebooksById.get(topmost)!.content.parentId;
   return parentOfTopmost === notebook.id;
+}
+
+// そのノートブックと、親のノートブック（近い順）。
+export function notebookAndAncestorIds(notebookId: string, notebooksById: ReadonlyMap<string, LiveNotebook>): string[] {
+  return [notebookId, ...ancestorIdsOf(notebookId, notebooksById)];
 }
 
 // notebookId が containerId そのものか、その中（何段下でも）にあるか。ノートブックを、自分の中へは移せない。

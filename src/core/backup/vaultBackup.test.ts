@@ -32,7 +32,7 @@ async function deviceWithNoteAndFile() {
   const source = environment();
   const vault = await createLocalVault(source, PASSPHRASE);
   const notebook = await vault.repository.createNotebook("仕事");
-  const note = await vault.repository.createNote({ title: "議事録", notebookIds: [notebook.id], pinned: true });
+  const note = await vault.repository.createNote({ title: "議事録", notebookId: notebook.id, pinned: true });
   appendParagraph(note.body, "決まったこと");
   const fileBytes = Uint8Array.from({ length: 50_000 }, (_, index) => index % 251);
   const attachment = await vault.repository.storeAttachment({ bytes: fileBytes, mimeType: "application/pdf", fileName: "資料.pdf" });

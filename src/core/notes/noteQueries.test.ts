@@ -4,7 +4,7 @@ import { appendParagraph } from "./bodyFixtures";
 import { bodyPlainText, FOOTNOTE_NODE, plainTextHashtags } from "./bodyText";
 import { noteContentFixture } from "./noteFixtures";
 import type { LiveNote, LiveNotebook } from "./noteRecords";
-import { buildNotebookTree, countTags, isNotebookWithin, type NoteSortOrder, type NotebookTreeNode, selectNotes, summarizeNote } from "./noteQueries";
+import { buildNotebookTree, countTags, isNotebookWithin, notebookNamesLookup, type NoteSortOrder, type NotebookTreeNode, selectNotes, summarizeNote } from "./noteQueries";
 import { DEFAULT_DATABASE_VIEW } from "./databaseView";
 
 function bodyWith(...paragraphs: string[]): Y.XmlFragment {
@@ -40,10 +40,14 @@ describe("plainTextHashtags", () => {
 describe("selectNotes", () => {
   const summaries = [
     note("a", { title: "古いメモ" }, "2026-11-01T00:00:00Z", bodyWith("#todo 牛乳")),
-    note("b", { title: "新しいメモ", notebookIds: ["n1"] }, "2026-11-09T00:00:00Z"),
+    note("b", { title: "新しいメモ", notebookId: "n1" }, "2026-11-09T00:00:00Z"),
     note("c", { title: "ピン留め", pinned: true }, "2026-10-01T00:00:00Z"),
     note("d", { title: "捨てたメモ", trashedAt: "2026-11-09T00:00:00Z" }, "2026-11-09T00:00:00Z"),
   ].map(summarizeNote);
+
+  it("「未指定」には、どのノートブックにも入れていないメモだけが並ぶ（ゴミ箱のものは入れない）", () => {
+    expect(selectNotes(summaries, { view: { kind: "unassigned" } }).map((item) => item.note.id)).toEqual(["c", "a"]);
+  });
 
   it("すべてのメモはピン留めを先に、新しい順に並べ、ゴミ箱のものは入れない", () => {
     expect(selectNotes(summaries, { view: { kind: "all" } }).map((item) => item.note.id)).toEqual(["c", "b", "a"]);
@@ -77,7 +81,7 @@ describe("selectNotes", () => {
 describe("テンプレート", () => {
   const summaries = [
     note("plain", { title: "ふつうのメモ" }, "2026-11-01T00:00:00Z", bodyWith("#todo")),
-    note("template", { title: "議事録の型", isTemplate: true, notebookIds: ["n1"] }, "2026-11-02T00:00:00Z", bodyWith("#型")),
+    note("template", { title: "議事録の型", isTemplate: true, notebookId: "n1" }, "2026-11-02T00:00:00Z", bodyWith("#型")),
   ].map(summarizeNote);
 
   it("テンプレートは「テンプレート」にだけ並び、ほかの一覧・ノートブック・タグには出ない", () => {
@@ -126,6 +130,14 @@ describe("buildNotebookTree", () => {
     id, kind: "notebook", updatedAt: "", revision: 0, content: { name, parentId, colorName: null, iconName: null, properties: [], databaseView: DEFAULT_DATABASE_VIEW, createdAt: "" },
   });
   const namesOf = (nodes: NotebookTreeNode[]): unknown[] => nodes.map((node) => (node.children.length === 0 ? node.notebook.content.name : [node.notebook.content.name, namesOf(node.children)]));
+
+  it("notebook:名前 の検索は、入れ子のノートブックのメモを、親のノートブックの名前でも見つける", () => {
+    const notebooks = [notebook("w", "仕事", null), notebook("m", "議事録", "w")];
+    const summaries = [note("x", { title: "週次", notebookId: "m" }, "2026-11-01T00:00:00Z"), note("y", { title: "旅程" }, "2026-11-02T00:00:00Z")].map(summarizeNote);
+    const found = (searchText: string) => selectNotes(summaries, { view: { kind: "all" }, searchText, notebookNamesOf: notebookNamesLookup(notebooks) }).map((item) => item.note.id);
+    expect(found("notebook:仕事")).toEqual(["x"]);
+    expect(found("notebook:議事録")).toEqual(["x"]);
+  });
 
   it("2 台で逆向きに移して親子が輪になっても、輪の中のノートブックを最上位に出し、その下のノートブックは残す", () => {
     const tree = buildNotebookTree([notebook("a", "A", "b"), notebook("b", "B", "a"), notebook("c", "C", "a"), notebook("s", "自分が親", "s")]);

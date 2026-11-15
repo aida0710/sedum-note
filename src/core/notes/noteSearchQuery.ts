@@ -1,6 +1,6 @@
 // メモ全体の検索の言葉の読み方。空白で区切った言葉（題か本文にすべて含むメモ）のほかに、絞り込みの書き方がある。
 //   #タグ、tag:タグ: そのタグのメモ
-//   notebook:名前、ノートブック:名前: 名前にその文字を含むノートブックに入っているメモ
+//   notebook:名前、ノートブック:名前: 名前にその文字を含むノートブック（その中の入れ子のノートブックを含む）に入っているメモ
 //   "空白を含む 言葉": 引用符で囲むと、空白ごと 1 つの言葉として探す（notebook:"旅行 計画" のようにも使える）
 // 全角と半角、大文字と小文字は区別しない（searchTextFolding.ts）。
 
@@ -51,10 +51,11 @@ export type SearchableNote = {
   title: string;
   plainText: string;
   tags: string[];
-  notebookIds: string[];
+  // メモを入れたノートブック。null なら「未指定」。
+  notebookId: string | null;
 };
 
-// notebookNameOf は、ノートブックの ID から名前を引く（無ければ undefined）。
+// notebookNamesOf は、ノートブックの ID から、そのノートブックと親のノートブックの名前を引く。
 // 題と本文をそろえた形は、同じ SearchableNote なら覚えておく（検索している間は、保存のたびに全部のメモを比べ直すため）。
 const foldedTextOfNote = new WeakMap<SearchableNote, string>();
 
@@ -69,7 +70,7 @@ function foldedTextOf(note: SearchableNote): string {
 
 // 言葉・タグ・ノートブックのうち、検索に入っていないものは、そろえる手間をかけずに通す（検索していないときも、
 // 左の列の一覧を作るたびにここを通るので、長いメモの本文を毎回そろえると重い）。
-export function matchesNoteSearch(note: SearchableNote, query: NoteSearchQuery, notebookNameOf: (notebookId: string) => string | undefined): boolean {
+export function matchesNoteSearch(note: SearchableNote, query: NoteSearchQuery, notebookNamesOf: (notebookId: string) => string[]): boolean {
   if (query.words.length > 0) {
     const haystack = foldedTextOf(note);
     if (!query.words.every((word) => haystack.includes(word))) {
@@ -85,6 +86,6 @@ export function matchesNoteSearch(note: SearchableNote, query: NoteSearchQuery, 
   if (query.notebookNames.length === 0) {
     return true;
   }
-  const notebookNames = note.notebookIds.map((notebookId) => foldForSearch(notebookNameOf(notebookId) ?? ""));
+  const notebookNames = note.notebookId === null ? [] : notebookNamesOf(note.notebookId).map(foldForSearch);
   return query.notebookNames.every((name) => notebookNames.some((notebookName) => notebookName.includes(name)));
 }

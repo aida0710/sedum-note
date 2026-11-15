@@ -5,7 +5,8 @@ import type { NoteRepository } from "../../core/notes/noteRepository";
 import { bodyToMarkdown } from "../markdown/markdownDocument";
 import { markdownExportContextOf, markdownImportContextOf } from "../markdown/repositoryMarkdownContext";
 import { NoteToolError, type ToolArguments } from "./noteTool";
-import { optionalStringList, requiredString } from "./toolArguments";
+import { translate } from "../i18n/translate";
+import { optionalString, requiredString } from "./toolArguments";
 
 export function createNoteToolContext(repository: NoteRepository) {
   const exportContext = markdownExportContextOf(repository);
@@ -23,21 +24,26 @@ export function createNoteToolContext(repository: NoteRepository) {
     }
     return notebook;
   };
-  // 引数のノートブックの ID の一覧。無い ID があれば NoteToolError。
-  const existingNotebookIds = (toolArguments: ToolArguments): string[] | undefined => {
-    const notebookIds = optionalStringList(toolArguments, "notebookIds");
-    const known = new Set(repository.notebooks().map((notebook) => notebook.id));
-    const unknown = notebookIds?.find((notebookId) => !known.has(notebookId));
-    if (unknown !== undefined) {
-      throw new NoteToolError(`there is no notebook with the id ${unknown}`);
+  // 引数の、メモを入れるノートブック（notebookId）。null は「未指定」（どのノートブックにも入れない）、渡されていなければ undefined。
+  // 無い ID なら NoteToolError。
+  const notebookIdArgument = (toolArguments: ToolArguments): string | null | undefined => {
+    if (toolArguments.notebookId === null) {
+      return null;
     }
-    return notebookIds;
+    const notebookId = optionalString(toolArguments, "notebookId");
+    if (notebookId !== undefined && !repository.notebooks().some((notebook) => notebook.id === notebookId)) {
+      throw new NoteToolError(`there is no notebook with the id ${notebookId}`);
+    }
+    return notebookId;
   };
-  const notebookName = (notebookId: string): string => repository.notebooks().find((notebook) => notebook.id === notebookId)?.content.name ?? notebookId;
+  // 承認のカードに出す、ノートブックの名前。null は「未指定」。
+  const notebookName = (notebookId: string | null): string => notebookId === null
+    ? translate("sidebar.unassigned")
+    : repository.notebooks().find((notebook) => notebook.id === notebookId)?.content.name ?? notebookId;
   const describeNote = (note: LiveNote) => ({
     noteId: note.id,
     title: note.content.title,
-    notebookIds: note.content.notebookIds,
+    notebookId: note.content.notebookId,
     pinned: note.content.pinned,
     bookmarked: note.content.bookmarked,
     inTrash: note.content.trashedAt !== null,
@@ -51,7 +57,7 @@ export function createNoteToolContext(repository: NoteRepository) {
     repository,
     noteOf,
     notebookOf,
-    existingNotebookIds,
+    notebookIdArgument,
     notebookName,
     describeNote,
     describeNoteAfterChange,

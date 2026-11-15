@@ -158,7 +158,7 @@ test("ダイアログの幅は、ダイアログごとの幅（履歴は 760px�
   expect((await page.getByRole("dialog", { name: "メモの期限" }).boundingBox())!.width).toBeCloseTo(420, 0);
 });
 
-test("ノートブックを選ぶ一覧では、子のチェックボックスが親のノートブックの印の真下に来る", async ({ page }) => {
+test("ノートブックを選ぶ一覧では、子の印の欄が親のノートブックの印の真下に来る", async ({ page }) => {
   await startLocalVault(page);
   await addNotebookOnDesktop(page, "仕事");
   const parentRow = page.locator(".nav-row", { has: page.locator(".nav", { hasText: "仕事" }) });
@@ -168,11 +168,11 @@ test("ノートブックを選ぶ一覧では、子のチェックボックス�
   await page.getByPlaceholder("ノートブックの名前").press("Enter");
   await createNoteOnDesktop(page, "会議");
   await page.locator(".pane:not(.split-pane)").getByRole("button", { name: "その他の操作" }).click();
-  await page.getByRole("menuitem", { name: "ノートブックを選択" }).click();
+  await page.getByRole("menuitem", { name: "ノートブックへ移動" }).click();
   const dialog = page.getByRole("dialog");
   const parentMark = (await dialog.locator(".notebook-choice", { hasText: "仕事" }).locator(".dot, .notebook-icon").boundingBox())!;
-  const childCheckbox = (await dialog.locator(".notebook-choice", { hasText: "議事録" }).locator("input").boundingBox())!;
-  expect(Math.abs(childCheckbox.x - parentMark.x)).toBeLessThanOrEqual(1);
+  const childCheck = (await dialog.locator(".notebook-choice", { hasText: "議事録" }).locator(".notebook-choice-check").boundingBox())!;
+  expect(Math.abs(childCheck.x - parentMark.x)).toBeLessThanOrEqual(1);
 });
 
 test("同期先の種類は、矢印ではフォーカスだけが移り、入れた値を消さない。Space で選ぶ", async ({ page }) => {

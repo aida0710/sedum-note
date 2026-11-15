@@ -101,7 +101,7 @@ class MarkdownNoteImporter {
     const notebookId = await this.#notebooks.ensure(segments);
     const note = await repository.createNote({
       title: frontMatter.title ?? fileName.replace(MARKDOWN_FILE_PATTERN, ""),
-      notebookIds: notebookId === null ? [] : [notebookId],
+      notebookId,
     });
     if (notebookId !== null) {
       await importProperties(repository, { noteId: note.id, notebookId, valuesByName: frontMatter.properties ?? {} });

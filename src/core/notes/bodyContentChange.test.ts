@@ -113,13 +113,13 @@ describe("中身を変えない項目の変更", () => {
     const { repository, note, updatedAt } = await writtenNote();
     const notebook = await repository.createNotebook("仕事");
 
-    await repository.updateNote(note.id, { notebookIds: [notebook.id] });
+    await repository.updateNote(note.id, { notebookId: notebook.id });
     await repository.updateNote(note.id, { pinned: true, bookmarked: true });
     await repository.moveNoteToTrash(note.id);
     await repository.restoreNoteFromTrash(note.id);
     await repository.flush();
 
-    expect(repository.note(note.id)!.content.notebookIds).toEqual([notebook.id]);
+    expect(repository.note(note.id)!.content.notebookId).toBe(notebook.id);
     expect(repository.note(note.id)!.updatedAt).toBe(updatedAt);
   });
 

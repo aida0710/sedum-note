@@ -141,7 +141,7 @@ export function NotebookPropertiesDialog({ notebook, repository, autoFocusAddBut
   const renameOption = async (property: PropertyDefinition, option: string, newName: string) => {
     await save(property, { options: property.options.map((candidate) => (candidate === option ? newName : candidate)) });
     for (const note of repository.notes()) {
-      if (note.content.notebookIds.includes(notebook.id) && note.content.propertyValues[property.id] === option) {
+      if (note.content.notebookId === notebook.id && note.content.propertyValues[property.id] === option) {
         await repository.setNotePropertyValue(note.id, property.id, newName);
       }
     }

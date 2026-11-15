@@ -5,8 +5,8 @@
 import { useSyncExternalStore } from "react";
 
 export type SidebarDragged =
-  // fromViewKey はドラッグを始めた一覧（viewKey）、fromNotebookId はそれがノートブックならその ID。
-  | { kind: "notes"; noteIds: string[]; fromViewKey: string; fromNotebookId: string | null }
+  // fromViewKey はドラッグを始めた一覧（viewKey）。
+  | { kind: "notes"; noteIds: string[]; fromViewKey: string }
   | { kind: "notebook"; notebookId: string };
 
 export type SidebarDragState = {

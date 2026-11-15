@@ -22,7 +22,7 @@ describe("Markdown の書き出しと取り込み", () => {
     const repository = await newRepository();
     const work = await repository.createNotebook("仕事");
     const minutes = await repository.createNotebook("議事録", work.id);
-    const note = await repository.createNote({ title: "週次: 11/10", notebookIds: [minutes.id] });
+    const note = await repository.createNote({ title: "週次: 11/10", notebookId: minutes.id });
     appendParagraph(note.body, "決まったこと");
     appendAttachmentImage(note.body, await repository.storeAttachment({ bytes: new Uint8Array([1, 2, 3]), mimeType: "image/png", fileName: "board.png" }));
     await repository.createNote({ title: "" });
@@ -40,7 +40,7 @@ describe("Markdown の書き出しと取り込み", () => {
   it("書き出した zip を別のメモ帳に取り込むと、ノートブック・タイトル・本文・添付が戻る", async () => {
     const source = await newRepository();
     const trip = await source.createNotebook("旅行");
-    const note = await source.createNote({ title: "沖縄", notebookIds: [trip.id] });
+    const note = await source.createNote({ title: "沖縄", notebookId: trip.id });
     appendParagraph(note.body, "2日目はシュノーケル");
     appendAttachmentImage(note.body, await source.storeAttachment({ bytes: new Uint8Array([9, 8, 7]), mimeType: "image/png", fileName: "beach.png" }));
     await source.flush();
@@ -49,7 +49,7 @@ describe("Markdown の書き出しと取り込み", () => {
     expect(await importMarkdownNotes(target, unzipToSources((await exportAll(source)).bytes))).toEqual({ noteCount: 1 });
     const [imported] = target.notes();
     expect(target.notebooks().map((notebook) => notebook.content.name)).toEqual(["旅行"]);
-    expect([imported!.content.title, imported!.content.notebookIds, bodyPlainText(imported!.body)]).toEqual(["沖縄", [target.notebooks()[0]!.id], "2日目はシュノーケル"]);
+    expect([imported!.content.title, imported!.content.notebookId, bodyPlainText(imported!.body)]).toEqual(["沖縄", target.notebooks()[0]!.id, "2日目はシュノーケル"]);
     expect(imported!.content.attachments.map((attachment) => [attachment.fileName, attachment.mimeType])).toEqual([["beach.png", "image/png"]]);
     expect(await target.readAttachment(imported!.content.attachments[0]!.id)).toEqual(new Uint8Array([9, 8, 7]));
   });
@@ -59,7 +59,7 @@ describe("Markdown の書き出しと取り込み", () => {
     const books = await source.createNotebook("読書");
     const status = await source.saveNotebookProperty(books.id, { name: "状態", type: "select", options: ["未読", "読了"], order: 1 });
     const pages = await source.saveNotebookProperty(books.id, { name: "ページ数", type: "number", options: [], order: 2 });
-    const note = await source.createNote({ title: "吾輩は猫である", notebookIds: [books.id] });
+    const note = await source.createNote({ title: "吾輩は猫である", notebookId: books.id });
     await source.setNotePropertyValue(note.id, status.id, "読了");
     await source.setNotePropertyValue(note.id, pages.id, 512);
     await source.createNote({ title: "添付なしで 2 件にして zip にする" });

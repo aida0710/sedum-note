@@ -1,4 +1,4 @@
-// 左の列で、メモをドラッグして別の一覧（ノートブック・お気に入り・ゴミ箱）へ落とす操作。
+// 左の列で、メモをドラッグして別の一覧（ノートブック・未指定・お気に入り・ゴミ箱）へ落とす操作。
 // ドラッグしているメモは、ブラウザのドラッグのデータ（dataTransfer）に入れて運ぶ。画面の状態（sidebarDragState.ts）にも入れ、
 // 落とし先を光らせるのに使う。選んだメモ（noteSelection.ts）の 1 つをドラッグしたら、選んだメモをまとめて運ぶ。
 
@@ -22,7 +22,7 @@ export function startNoteDrag(event: React.DragEvent, { noteId, title, fromView 
   const selectedIds = readNoteSelection().noteIds;
   // 選んでいないメモをドラッグしたら、そのメモだけを運ぶ。
   const noteIds = selectedIds.includes(noteId) ? selectedIds : [noteId];
-  const dragged: DraggedNotes = { noteIds, fromNotebookId: fromView.kind === "notebook" ? fromView.notebookId : null };
+  const dragged: DraggedNotes = { noteIds };
   writeDraggedNotes(event.dataTransfer, dragged);
   showDragPreview(event, noteIds.length === 1 ? title : translate("sidebar.draggedNotes", { count: noteIds.length }));
   beginSidebarDrag({ kind: "notes", ...dragged, fromViewKey: viewKey(fromView) });
@@ -38,8 +38,12 @@ export function acceptsNoteDrop(view: NoteView): boolean {
 }
 
 // いまドラッグしているメモを、この一覧へ落とせるか。始めた一覧そのものへ落としても何も変わらないので、落とし先にしない。
+// 「すべてのメモ」へは、ゴミ箱から戻すときだけ落とせる（ノートブックの外へ出すのは「未指定」へ落とす）。
 export function canDropDraggedNote(view: NoteView, dragState: SidebarDragState | null): boolean {
-  return dragState?.dragged.kind === "notes" && acceptsNoteDrop(view) && dragState.dragged.fromViewKey !== viewKey(view);
+  if (dragState?.dragged.kind !== "notes" || !acceptsNoteDrop(view) || dragState.dragged.fromViewKey === viewKey(view)) {
+    return false;
+  }
+  return view.kind !== "all" || dragState.dragged.fromViewKey === viewKey({ kind: "trash" });
 }
 
 // ゴミ箱のほかの一覧。落とすと、メモの項目（ノートブック、お気に入り、テンプレート）が変わる。
@@ -49,8 +53,6 @@ export type NoteMoveDestination = Exclude<NoteView, { kind: "trash" }>;
 export type MovedNotes = {
   noteIds: string[];
   destination: NoteMoveDestination;
-  // ノートブックの中から落としたか（そのノートブックからは外れる）。
-  fromNotebook: boolean;
   // 落とす前の状態に戻す。
   undo: () => Promise<void>;
 };
@@ -82,7 +84,7 @@ export async function dropNoteOnView(event: React.DragEvent, view: NoteView, { r
       const note = repository.note(noteId);
       if (note) {
         const before = movedFieldsOf(note);
-        await moveNoteToView(repository, note, { view, fromNotebookId: dragged.fromNotebookId });
+        await moveNoteToView(repository, note.id, view);
         undoSteps.push(() => repository.updateNote(noteId, before));
       }
     }
@@ -91,7 +93,7 @@ export async function dropNoteOnView(event: React.DragEvent, view: NoteView, { r
     return;
   }
   onMoved({
-    noteIds: dragged.noteIds, destination: view, fromNotebook: dragged.fromNotebookId !== null,
+    noteIds: dragged.noteIds, destination: view,
     undo: () => repository.holdChangeNotifications(async () => {
       for (const undoStep of undoSteps) {
         await undoStep();
@@ -101,23 +103,21 @@ export async function dropNoteOnView(event: React.DragEvent, view: NoteView, { r
 }
 
 // moveNoteToView が変える項目。「元に戻す」で、落とす前の値に戻す。
-function movedFieldsOf({ content }: LiveNote): Pick<LiveNote["content"], "trashedAt" | "notebookIds" | "bookmarked" | "isTemplate" | "pinned"> {
-  return { trashedAt: content.trashedAt, notebookIds: content.notebookIds, bookmarked: content.bookmarked, isTemplate: content.isTemplate, pinned: content.pinned };
+function movedFieldsOf({ content }: LiveNote): Pick<LiveNote["content"], "trashedAt" | "notebookId" | "bookmarked" | "isTemplate" | "pinned"> {
+  return { trashedAt: content.trashedAt, notebookId: content.notebookId, bookmarked: content.bookmarked, isTemplate: content.isTemplate, pinned: content.pinned };
 }
 
-type NoteMove = { view: NoteMoveDestination; fromNotebookId: string | null };
-
-async function moveNoteToView(repository: NoteRepository, note: LiveNote, { view, fromNotebookId }: NoteMove): Promise<void> {
-  const noteId = note.id;
-  const otherNotebookIds = note.content.notebookIds.filter((notebookId) => notebookId !== fromNotebookId);
+async function moveNoteToView(repository: NoteRepository, noteId: string, view: NoteMoveDestination): Promise<void> {
   switch (view.kind) {
+    // メモは 1 つのノートブックにだけ入るので、ノートブックと「未指定」へは、元のノートブックから移す。
     case "notebook":
-      // ノートブックから別のノートブックへは「移す」。ノートブックの外から落としたら「入れる」。
-      await repository.updateNote(noteId, { trashedAt: null, notebookIds: [...new Set([...otherNotebookIds, view.notebookId])] });
+      await repository.updateNote(noteId, { trashedAt: null, notebookId: view.notebookId });
+      break;
+    case "unassigned":
+      await repository.updateNote(noteId, { trashedAt: null, notebookId: null });
       break;
     case "all":
-      // ノートブックから「すべてのメモ」へ落としたら、そのノートブックから外す。
-      await repository.updateNote(noteId, { trashedAt: null, notebookIds: otherNotebookIds });
+      await repository.updateNote(noteId, { trashedAt: null });
       break;
     case "bookmarked":
       await repository.updateNote(noteId, { trashedAt: null, bookmarked: true });

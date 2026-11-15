@@ -14,11 +14,16 @@ function notebookRow(page: Page, name: string) {
   return page.locator(".nav-row", { has: page.locator(".nav", { hasText: name }) });
 }
 
-// 開いているメモの「…」から、入れるノートブックを選ぶダイアログを開く（PC は上のバー、スマホは上の行の「…」）。
+// 開いているメモの「…」から、移すノートブックを選ぶダイアログを開く（PC は上のバー、スマホは上の行の「…」）。
 async function openNotebookPicker(page: Page) {
   await page.locator(".editor-bar, .phone-top").getByRole("button", { name: "その他の操作" }).click();
-  await page.getByRole("menuitem", { name: "ノートブックを選択" }).click();
-  return page.getByRole("dialog", { name: "追加するノートブックを選択" });
+  await page.getByRole("menuitem", { name: "ノートブックへ移動" }).click();
+  return page.getByRole("dialog", { name: "移動先のノートブックを選択" });
+}
+
+// ダイアログの、ノートブック（または「未指定」）の行。
+function notebookChoice(dialog: Locator, name: string) {
+  return dialog.locator(".notebook-choice", { has: dialog.page().locator(".nav-label", { hasText: new RegExp(`^${name}$`) }) });
 }
 
 // メモの上に並ぶ、入っているノートブックの印（タグなどのチップは除く）。
@@ -368,7 +373,7 @@ test("データベース表示のボードでは、列の下の「新しいメ�
   await expect(notebookChipsOfNote(page)).toHaveText(["読書"]);
 });
 
-test("メモの「…」の「ノートブックを選択」では、入っているノートブックに印が付いた一覧が入れ子の字下げつきで開き、複数に入れたり全部外したりできる", async ({ page }) => {
+test("メモの「…」の「ノートブックへ移動」では、入っているノートブックに印が付いた一覧が入れ子の字下げつきで開き、選ぶと 1 つのノートブックへ移る", async ({ page }) => {
   await startLocalVault(page);
   await addNotebookOnDesktop(page, "仕事");
   await addNotebookOnDesktop(page, "旅行");
@@ -384,44 +389,38 @@ test("メモの「…」の「ノートブックを選択」では、入って�
   await expect(chips).toHaveText(["旅行"]);
 
   const dialog = await openNotebookPicker(page);
-  const checkboxOf = (name: string) => dialog.getByRole("checkbox", { name, exact: true });
-  await expect(dialog.locator(".notebook-choice")).toHaveText(["仕事", "会議", "旅行"]);
-  await expect(checkboxOf("旅行")).toBeChecked();
-  await expect(checkboxOf("仕事")).not.toBeChecked();
-  await expect(checkboxOf("会議")).not.toBeChecked();
+  // 最後に、どのノートブックにも入れない「未指定」を出す。
+  await expect(dialog.locator(".notebook-choice .nav-label")).toHaveText(["仕事", "会議", "旅行", "未指定"]);
+  await expect(notebookChoice(dialog, "旅行")).toHaveAttribute("aria-current", "true");
+  await expect(dialog.locator(".notebook-choice[aria-current]")).toHaveCount(1);
   // 子は親より右に字下げする。
-  const parentLeft = (await checkboxOf("仕事").boundingBox())!.x;
-  const childLeft = (await checkboxOf("会議").boundingBox())!.x;
+  const parentLeft = (await notebookChoice(dialog, "仕事").locator(".nav-label").boundingBox())!.x;
+  const childLeft = (await notebookChoice(dialog, "会議").locator(".nav-label").boundingBox())!.x;
   expect(childLeft).toBeGreaterThan(parentLeft);
 
-  // 押すとその場で入り、メモの上の印も変わる。
-  await checkboxOf("会議").check();
-  await checkboxOf("仕事").check();
-  await expect.poll(() => sortedTexts(chips)).toEqual(["仕事", "会議", "旅行"].sort());
-
-  // 名前で絞り込むと、当たった子の親も残す。
+  // 名前で絞り込むと、当たった子の親も残す。絞り込んでいる間は「未指定」を出さない。
   const search = dialog.getByPlaceholder("ノートブックを名前で絞り込む");
   await search.fill("会議");
-  await expect(dialog.locator(".notebook-choice")).toHaveText(["仕事", "会議"]);
+  await expect(dialog.locator(".notebook-choice .nav-label")).toHaveText(["仕事", "会議"]);
   await search.fill("無い名前");
   await expect(dialog.getByText("一致するノートブックがありません")).toBeVisible();
   await search.fill("");
 
-  // 全部外すと、どのノートブックにも入っていないメモになる。
-  for (const name of ["仕事", "会議", "旅行"]) {
-    await checkboxOf(name).uncheck();
-  }
-  await expect(chips).toHaveCount(0);
-  await dialog.getByRole("button", { name: "閉じる" }).click();
+  // 選ぶと、そのノートブックへ移して閉じる（元の「旅行」からは出る）。
+  await notebookChoice(dialog, "会議").click();
   await expect(dialog).toHaveCount(0);
+  await expect(chips).toHaveText(["会議"]);
   await expect(notebookRow(page, "旅行").locator(".count")).toHaveCount(0);
 
-  // 開き直すと、今の状態（どこにも入っていない）で開く。
+  // 「未指定」を選ぶと、どのノートブックにも入っていないメモになる。
   const reopened = await openNotebookPicker(page);
-  await expect(reopened.getByRole("checkbox", { checked: true })).toHaveCount(0);
+  await expect(notebookChoice(reopened, "会議")).toHaveAttribute("aria-current", "true");
+  await notebookChoice(reopened, "未指定").click();
+  await expect(chips).toHaveCount(0);
+  await expect(notebookRow(page, "未指定").locator(".count")).toHaveText("1");
 });
 
-test("ノートブックを選ぶダイアログは、キーボードだけで絞り込み・付け外し・閉じるができる", async ({ page }) => {
+test("ノートブックを選ぶダイアログは、キーボードだけで絞り込み・移動・閉じるができる", async ({ page }) => {
   await startLocalVault(page);
   await addNotebookOnDesktop(page, "仕事");
   await addNotebookOnDesktop(page, "旅行");
@@ -430,36 +429,28 @@ test("ノートブックを選ぶダイアログは、キーボードだけで�
 
   const dialog = await openNotebookPicker(page);
   const search = dialog.getByPlaceholder("ノートブックを名前で絞り込む");
-  const travel = dialog.getByRole("checkbox", { name: "旅行", exact: true });
   await expect(search).toBeFocused();
   await page.keyboard.type("旅");
   await page.keyboard.press("Tab");
-  await expect(travel).toBeFocused();
-  // Enter でも Space でも付け外しする。
+  await expect(notebookChoice(dialog, "旅行")).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(travel).toBeChecked();
-  await page.keyboard.press("Space");
-  await expect(travel).not.toBeChecked();
-  await page.keyboard.press("Enter");
-  await expect(travel).toBeChecked();
-
-  // 絞り込みを消すと、全部のノートブックを Tab で順にたどり、最後に「閉じる」へ移る。
-  await page.keyboard.press("Shift+Tab");
-  await expect(search).toBeFocused();
-  await page.keyboard.press("Control+A");
-  await page.keyboard.press("Backspace");
-  await page.keyboard.press("Tab");
-  await expect(dialog.getByRole("checkbox", { name: "仕事", exact: true })).toBeFocused();
-  await page.keyboard.press("Tab");
-  await expect(travel).toBeFocused();
-  await page.keyboard.press("Tab");
-  await expect(dialog.getByRole("button", { name: "閉じる" })).toBeFocused();
-  await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
+  await expect(notebookChipsOfNote(page)).toHaveText(["旅行"]);
+
+  // 全部のノートブックと「未指定」を Tab で順にたどり、最後に「閉じる」へ移る。Escape では移さずに閉じる。
+  const reopened = await openNotebookPicker(page);
+  for (const name of ["仕事", "旅行", "未指定"]) {
+    await page.keyboard.press("Tab");
+    await expect(notebookChoice(reopened, name)).toBeFocused();
+  }
+  await page.keyboard.press("Tab");
+  await expect(reopened.getByRole("button", { name: "閉じる" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(reopened).toHaveCount(0);
   await expect(notebookChipsOfNote(page)).toHaveText(["旅行"]);
 });
 
-test("ノートブックを選ぶダイアログでは、↓ で一覧へ移って ↑↓ で移れ、一覧に無い名前を打てば作成して追加できる", async ({ page }) => {
+test("ノートブックを選ぶダイアログでは、↓ で一覧へ移って ↑↓ で移れ、一覧に無い名前を打てば作成して移動できる", async ({ page }) => {
   await startLocalVault(page);
   await addNotebookOnDesktop(page, "仕事");
   await addNotebookOnDesktop(page, "旅行");
@@ -467,24 +458,22 @@ test("ノートブックを選ぶダイアログでは、↓ で一覧へ移っ�
   await createNoteOnDesktop(page, "持ち物");
 
   const dialog = await openNotebookPicker(page);
-  const checkboxOf = (name: string) => dialog.getByRole("checkbox", { name, exact: true });
   await page.keyboard.press("ArrowDown");
-  await expect(checkboxOf("仕事")).toBeFocused();
+  await expect(notebookChoice(dialog, "仕事")).toBeFocused();
   await page.keyboard.press("ArrowDown");
-  await expect(checkboxOf("旅行")).toBeFocused();
+  await expect(notebookChoice(dialog, "旅行")).toBeFocused();
   await page.keyboard.press("Home");
-  await expect(checkboxOf("仕事")).toBeFocused();
+  await expect(notebookChoice(dialog, "仕事")).toBeFocused();
 
-  // 一覧に無い名前を打つと、その名前で作って、このメモを入れる行が出る。
+  // 一覧に無い名前を打つと、その名前で作って、このメモを移す行が出る。
   await dialog.getByPlaceholder("ノートブックを名前で絞り込む").focus();
   await page.keyboard.type("買い物");
   await expect(dialog.getByText("一致するノートブックがありません")).toBeVisible();
   await page.keyboard.press("ArrowDown");
-  const create = dialog.getByRole("button", { name: "「買い物」を作成して追加" });
+  const create = dialog.getByRole("button", { name: "「買い物」を作成して移動" });
   await expect(create).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(checkboxOf("買い物")).toBeChecked();
-  await expect(create).toHaveCount(0);
+  await expect(dialog).toHaveCount(0);
   await expect(notebookChipsOfNote(page)).toHaveText(["買い物"]);
   await expect(notebookRow(page, "買い物")).toBeVisible();
 });
@@ -520,13 +509,12 @@ test("ノートブックが多くても、選ぶダイアログは画面の中�
 
   const desktopDialog = await expectDialogFitsViewport();
   // 一覧の下の方のノートブックも、送って選べる。
-  await desktopDialog.getByRole("checkbox", { name: "ノート 30", exact: true }).check();
+  await notebookChoice(desktopDialog, "ノート 30").click();
   await expect(notebookChipsOfNote(page)).toHaveText(["ノート 30"]);
-  await page.keyboard.press("Escape");
 
   await page.setViewportSize(PHONE_VIEWPORT);
   const phoneDialog = await expectDialogFitsViewport();
-  await expect(phoneDialog.getByRole("checkbox", { name: "ノート 30", exact: true })).toBeChecked();
+  await expect(notebookChoice(phoneDialog, "ノート 30")).toHaveAttribute("aria-current", "true");
 });
 
 test("ゴミ箱の行のメニューから、件数を確かめてゴミ箱を空にできる", async ({ page }) => {

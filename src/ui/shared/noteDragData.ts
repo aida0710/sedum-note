@@ -7,8 +7,6 @@ const NOTE_DRAG_TYPE = "application/x-sedum-note";
 
 export type DraggedNotes = {
   noteIds: string[];
-  // ドラッグを始めた一覧がノートブックなら、その ID。落とした先へ「移す」のに使う。
-  fromNotebookId: string | null;
 };
 
 export function writeDraggedNotes(dataTransfer: DataTransfer, dragged: DraggedNotes): void {
@@ -29,7 +27,7 @@ export function readDraggedNotes(dataTransfer: DataTransfer | null): DraggedNote
   }
   try {
     const dragged = JSON.parse(data) as Partial<DraggedNotes>;
-    return Array.isArray(dragged.noteIds) ? { noteIds: dragged.noteIds, fromNotebookId: dragged.fromNotebookId ?? null } : null;
+    return Array.isArray(dragged.noteIds) ? { noteIds: dragged.noteIds } : null;
   } catch {
     return null;
   }

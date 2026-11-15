@@ -167,7 +167,7 @@ export function WORST_CASE_DESKTOP_SCREENS() {
       open: async (page) => {
         await openNote(page, seeded.ids.notes.properties);
         await openEditorMoreMenu(page);
-        await page.getByRole("menuitem", { name: translate("editor.chooseNotebooks") }).click();
+        await page.getByRole("menuitem", { name: translate("editor.moveToNotebook") }).click();
         await page.getByRole("dialog").waitFor();
       },
     },
@@ -289,7 +289,7 @@ export function WORST_CASE_PHONE_SCREENS({ baseUrl, passphrase, phoneViewport })
       open: async (page) => {
         await openPhoneNote(page, "properties");
         await openEditorMoreMenu(page);
-        await page.getByRole("menuitem", { name: translate("editor.chooseNotebooks") }).click();
+        await page.getByRole("menuitem", { name: translate("editor.moveToNotebook") }).click();
         await page.getByRole("dialog").waitFor();
       },
       close: backToList,

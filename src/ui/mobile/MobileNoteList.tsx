@@ -27,7 +27,7 @@ export function listTitle(view: NoteView, notebooks: WorkspaceProps["snapshot"][
   if (view.kind === "tag") {
     return `#${view.tag}`;
   }
-  const titles = { bookmarked: "sidebar.bookmarked", trash: "sidebar.trash", templates: "sidebar.templates", all: "sidebar.allNotes" } as const;
+  const titles = { bookmarked: "sidebar.bookmarked", trash: "sidebar.trash", templates: "sidebar.templates", all: "sidebar.allNotes", unassigned: "sidebar.unassigned" } as const;
   return translate(titles[view.kind]);
 }
 
@@ -121,7 +121,7 @@ function NoteListItem({ summary, notebooks, notebookColors, repository, onOpen }
   });
   const firstImage = note.content.attachments.find((attachment) => attachment.mimeType.startsWith("image/")) ?? null;
   const thumbnail = useAttachmentUrl(firstImage?.id ?? null, firstImage?.mimeType);
-  const noteNotebooks = notebooks.filter((notebook) => note.content.notebookIds.includes(notebook.id));
+  const noteNotebooks = notebooks.filter((notebook) => notebook.id === note.content.notebookId);
   return (
     <div ref={swipe.rowRef} className="note-item-row" {...{ [LIST_ROW_NOTE_ID_ATTRIBUTE]: note.id }}>
       <span className="swipe-action swipe-action-right" aria-hidden="true">

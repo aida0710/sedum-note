@@ -920,14 +920,12 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .note-picker-list { overflow-y: auto; min-height: 80px; display: flex; flex-direction: column; }
 /* 選ぶ一覧（パレット、リンクするメモ、ノートブックを選ぶ）の名前は 1 行に収め、長い名前は「…」で切る（左の列の行と同じ）。 */
 .note-picker-list .nav-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* ノートブックを選ぶダイアログの行（editor/NoteNotebooksDialog.tsx）。行のどこを押しても付け外しする。 */
-/* 階層の段（--depth）ごとに、子のチェックボックスが親のノートブックの印の真下に来る幅（チェックボックスと、.menu-item の間）だけ字下げする。 */
+/* ノートブックを選んで移すダイアログの行（editor/MoveNoteToNotebookDialog.tsx）。いま入っている行に印を付ける。 */
+/* 階層の段（--depth）ごとに、子の印の欄が親のノートブックの印の真下に来る幅（印の欄と、.menu-item の間）だけ字下げする。 */
 .menu-item.notebook-choice { cursor: pointer; padding-left: calc(10px + var(--depth, 0) * (var(--checkbox-size) + 10px)); }
+.notebook-choice-check { display: inline-flex; align-items: center; justify-content: center; width: var(--checkbox-size); flex-shrink: 0; color: var(--accent); }
 /* 絞り込みで、名前に当たった子の親として残しただけの行。 */
 .notebook-choice.ancestor-only { color: var(--muted); }
-/* フォーカスの枠は、小さなチェックボックスではなく行に出す（一覧のどこにいるかを見やすくするため）。 */
-.notebook-choice input:focus-visible { outline: none; }
-.notebook-choice:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
 .dialog.note-history { --dialog-width: 760px; max-height: min(620px, 92%); }
 .note-history-body { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 12px; min-height: 0; flex: 1; }
 .note-history-list { overflow-y: auto; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius-control); padding: 4px; }

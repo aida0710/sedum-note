@@ -1,9 +1,9 @@
 // 案C の左の列: 一覧（すべて・お気に入り・ノートブック・タグ・ゴミ箱）を木にして、
 // 開いた所にメモを並べる。
 
-import { AlarmClock, Bookmark, FileText, Hash, LayoutTemplate, Maximize2, MoreHorizontal, Plus, Search, Star, Trash2, Waypoints, X } from "lucide-react";
+import { AlarmClock, Bookmark, FileText, Hash, Inbox, LayoutTemplate, Maximize2, MoreHorizontal, Plus, Search, Star, Trash2, Waypoints, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { buildNotebookTree, countTags, notebookNameLookup, type NoteView, selectNotes } from "../../core/notes/noteQueries";
+import { buildNotebookTree, countTags, notebookNamesLookup, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
@@ -150,7 +150,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
               <SearchScopeSwitch scopeName={scopeName} searchesEverywhere={searchEverywhere} onChange={setSearchEverywhere} />
             )}
             <button className="search-scope" onClick={() => void saveSearch()}><Bookmark size={ICON_SIZE.chip} />{translate("sidebar.saveSearch")}</button>
-            <SearchResults summaries={selectNotes(summaries, { view: searchView, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNameOf: notebookNameLookup(snapshot.notebooks) })}
+            <SearchResults summaries={selectNotes(summaries, { view: searchView, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNamesOf: notebookNamesLookup(snapshot.notebooks) })}
               view={searchView} navigation={navigation} repository={repository} />
           </>
         ) : (
@@ -192,6 +192,9 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
             {notebookTree.map((node) => (
               <NotebookBranch key={node.notebook.id} node={node} depth={0} notesInView={notesInView} repository={repository} navigation={navigation} notebookColors={notebookColors} />
             ))}
+            {/* どのノートブックにも入れていないメモ。ノートブックと同じく、メモを落とすとノートブックから出す。 */}
+            <ViewGroup view={{ kind: "unassigned" }} icon={<Inbox size={ICON_SIZE.row} />} label={translate("sidebar.unassigned")} notesInView={notesInView} navigation={navigation} repository={repository}
+              dropsOnWholeGroup />
             {snapshot.savedSearches.length > 0 && <div className="section-title">{translate("sidebar.savedSearches")}</div>}
             {snapshot.savedSearches.map((savedSearch) => (
               <div key={savedSearch.id} className="nav-row saved-search-row">

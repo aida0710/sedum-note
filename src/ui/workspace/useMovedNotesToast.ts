@@ -14,6 +14,8 @@ function destinationNameOf(repository: NoteRepository, destination: NoteMoveDest
       return `#${destination.tag}`;
     case "all":
       return translate("sidebar.allNotes");
+    case "unassigned":
+      return translate("sidebar.unassigned");
     case "bookmarked":
       return translate("sidebar.bookmarked");
     case "templates":
@@ -21,10 +23,10 @@ function destinationNameOf(repository: NoteRepository, destination: NoteMoveDest
   }
 }
 
-// ノートブックからノートブックへ、ノートブックから「すべてのメモ」へは「移動」。ほか（お気に入り、テンプレート、
-// ノートブックの外から中へ）は、元の一覧にも残るので「追加」。
-function isMoveBetweenLists({ destination, fromNotebook }: MovedNotes): boolean {
-  return destination.kind === "all" || (destination.kind === "notebook" && fromNotebook);
+// ノートブックと「未指定」へは「移動」（メモは 1 つのノートブックにだけ入る）。ほか（お気に入り、テンプレート、ゴミ箱から
+//「すべてのメモ」へ）は、元の一覧にも残るか元の一覧が無いので「追加」。
+function isMoveBetweenLists({ destination }: MovedNotes): boolean {
+  return destination.kind === "notebook" || destination.kind === "unassigned";
 }
 
 export function useMovedNotesToast(repository: NoteRepository): (moved: MovedNotes) => void {

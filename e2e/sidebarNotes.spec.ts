@@ -18,6 +18,23 @@ test("メモをノートブックへドラッグすると、そのノートブ�
   await viewRow(page, "すべてのメモ").locator(".nav").click();
   await noteRow(page, "買い物").locator(".tree-note").dragTo(viewRow(page, "旅行"));
   await expect(viewRow(page, "旅行").locator(".count")).toHaveText("1");
+  await expect(viewRow(page, "未指定").locator(".count")).toHaveCount(0);
+});
+
+test("ノートブックのメモを「未指定」へドラッグすると、ノートブックから出る。「すべてのメモ」へは落とせない", async ({ page }) => {
+  await startLocalVault(page);
+  await addNotebookOnDesktop(page, "旅行");
+  await viewRow(page, "旅行").locator(".nav").click();
+  await createNoteOnDesktop(page, "持ち物");
+  await expect(viewRow(page, "旅行").locator(".count")).toHaveText("1");
+
+  await noteRow(page, "持ち物").locator(".tree-note").dragTo(viewRow(page, "すべてのメモ"));
+  await expect(viewRow(page, "旅行").locator(".count")).toHaveText("1");
+
+  await noteRow(page, "持ち物").locator(".tree-note").dragTo(viewRow(page, "未指定"));
+  await expect(viewRow(page, "旅行").locator(".count")).toHaveCount(0);
+  await expect(viewRow(page, "未指定").locator(".count")).toHaveText("1");
+  await expect(page.getByRole("status").filter({ hasText: "「持ち物」を「未指定」に移動しました" })).toBeVisible();
 });
 
 test("メモを別のノートブックの中のメモの上へ落としても、そのノートブックへ移る。ドラッグ中は、元の行が薄くなり、ノートブックの範囲全体が光る", async ({ page }) => {

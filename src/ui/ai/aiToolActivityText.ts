@@ -8,7 +8,7 @@ const titleText = (title: string): string => title || translate("sidebar.untitle
 
 const UPDATED_FIELD_KEYS = {
   title: "ai.tool.field.title",
-  notebooks: "ai.tool.field.notebooks",
+  notebook: "ai.tool.field.notebook",
   pinned: "ai.tool.field.pinned",
   bookmarked: "ai.tool.field.bookmarked",
 } as const;

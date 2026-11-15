@@ -29,7 +29,7 @@ type NoteActionsMenuProps = {
   note: LiveNote;
   repository: NoteRepository;
   // 入れるノートブックを選ぶダイアログを開く。ノートブックが 1 つも無ければ undefined。
-  onChooseNotebooks: (() => void) | undefined;
+  onMoveToNotebook: (() => void) | undefined;
   onFind: () => void;
   onPrint: () => void;
   onDuplicate: () => Promise<unknown>;
@@ -84,7 +84,7 @@ function MenuGroup({ children }: { children: ReactNode }) {
   return <div className="menu-group" role="group">{children}</div>;
 }
 
-export function NoteActionsMenu({ anchor, note, repository, onChooseNotebooks, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onFoldAll, onUnfoldAll, zoomTarget, onZoomIn, onSetNoteDue, onSetTaskDue, pluginCommands, onOpenInSplit, onOpenInNewWindow, onShowHistory, onExport, canChoosePageAlignment, shortcutKeys, onClose }: NoteActionsMenuProps) {
+export function NoteActionsMenu({ anchor, note, repository, onMoveToNotebook, onFind, onPrint, onDuplicate, onMergeNote, onOpenAiAssistant, onFoldAll, onUnfoldAll, zoomTarget, onZoomIn, onSetNoteDue, onSetTaskDue, pluginCommands, onOpenInSplit, onOpenInNewWindow, onShowHistory, onExport, canChoosePageAlignment, shortcutKeys, onClose }: NoteActionsMenuProps) {
   const { content } = note;
   const inTrash = content.trashedAt !== null;
   const moveToTrash = useTrashWithUndo(repository);
@@ -99,7 +99,7 @@ export function NoteActionsMenu({ anchor, note, repository, onChooseNotebooks, o
       <MenuGroup>
         <MenuAction icon={content.pinned ? PinOff : Pin} label={translate(content.pinned ? "editor.unpin" : "editor.pin")}
           onSelect={closeAndRun(() => repository.updateNote(note.id, { pinned: !content.pinned }))} />
-        {onChooseNotebooks && <MenuAction icon={FolderInput} label={translate("editor.chooseNotebooks")} onSelect={closeAndRun(onChooseNotebooks)} />}
+        {onMoveToNotebook && <MenuAction icon={FolderInput} label={translate("editor.moveToNotebook")} onSelect={closeAndRun(onMoveToNotebook)} />}
         {!inTrash && <MenuAction icon={AlarmClock} label={translate("due.setForNote")} onSelect={closeAndRun(onSetNoteDue)} />}
         {onSetTaskDue && <MenuAction icon={AlarmClock} label={translate("due.setForTask")} onSelect={closeAndRun(onSetTaskDue)} />}
       </MenuGroup>

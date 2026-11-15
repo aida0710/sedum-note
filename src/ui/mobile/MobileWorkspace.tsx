@@ -2,7 +2,7 @@
 
 import { FileText, FolderOpen, Plus, Settings, Star } from "lucide-react";
 import { useState } from "react";
-import { notebookNameLookup, selectNotes, type NoteView } from "../../core/notes/noteQueries";
+import { notebookNamesLookup, selectNotes, type NoteView } from "../../core/notes/noteQueries";
 import type { LiveSavedSearch } from "../../core/notes/noteRecords";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import { NoteEditor } from "../editor/NoteEditor";
@@ -167,7 +167,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
       )}
       {tab !== "settings" && <UpdateChip onOpenSettings={() => openSettingsPage("update")} />}
       {view && searchedView && (
-        <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, { view: searchedView, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNameOf: notebookNameLookup(snapshot.notebooks) })}
+        <NoteList title={listTitle(view, snapshot.notebooks)} summaries={selectNotes(snapshot.summaries, { view: searchedView, searchText: navigation.searchText, sortOrder: noteSortOrder, notebookNamesOf: notebookNamesLookup(snapshot.notebooks) })}
           notebooks={snapshot.notebooks} view={view} listKey={`${tab}:${viewKey(view)}`} showChips={tab === "notes"}
           headerEnd={<SyncStatusLine status={session.syncStatus} onOpenSyncSettings={() => openSettingsPage("sync")} />}
           searchScope={isScopedSearch ? { searchesEverywhere, onChange: setSearchesEverywhere } : null}

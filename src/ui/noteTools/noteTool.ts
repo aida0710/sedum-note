@@ -26,8 +26,8 @@ export type NoteToolPreview =
   | { kind: "readNote"; noteId: string; title: string }
   | { kind: "listNotebooks" }
   | { kind: "listTags" }
-  | { kind: "createNote"; title: string; notebookNames: string[]; characterCount: number }
-  | { kind: "updateNote"; noteId: string; title: string; changes: Array<{ field: "title" | "notebooks" | "pinned" | "bookmarked"; before: string; after: string }> }
+  | { kind: "createNote"; title: string; notebookName: string; characterCount: number }
+  | { kind: "updateNote"; noteId: string; title: string; changes: Array<{ field: "title" | "notebook" | "pinned" | "bookmarked"; before: string; after: string }> }
   | { kind: "appendToNote"; noteId: string; title: string; characterCount: number }
   | { kind: "replaceNoteBody"; noteId: string; title: string }
   | { kind: "moveNoteToTrash" | "restoreNoteFromTrash" | "deleteNotePermanently"; noteId: string; title: string }

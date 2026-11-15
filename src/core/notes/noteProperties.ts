@@ -1,5 +1,5 @@
 // メモのプロパティ（日付、状態、数などの項目）。プロパティの定義はノートブックが持ち、
-// そのノートブックに入っているメモに値を付けられる。複数のノートブックに入っているメモは、それぞれの定義を合わせて持つ。
+// そのノートブックに入っているメモに値を付けられる。
 
 import type { LiveNote, LiveNotebook } from "./noteRecords";
 
@@ -39,9 +39,9 @@ export function propertyDefinitionFromField(id: string, stored: unknown): Proper
   return { id, name, type, options: Array.isArray(options) ? options.filter((option) => typeof option === "string") : [], order: typeof order === "number" ? order : 0 };
 }
 
-// メモに付けられるプロパティ。入っているノートブックの定義を、ノートブックの並びのまま合わせる。
+// メモに付けられるプロパティ。入っているノートブックの定義。
 export function propertiesOfNote(note: LiveNote, notebooks: LiveNotebook[]): PropertyDefinition[] {
-  return notebooks.filter((notebook) => note.content.notebookIds.includes(notebook.id)).flatMap((notebook) => notebook.content.properties);
+  return notebooks.find((notebook) => notebook.id === note.content.notebookId)?.content.properties ?? [];
 }
 
 // 値を、プロパティの種類に合う形にする。合わない値は null。

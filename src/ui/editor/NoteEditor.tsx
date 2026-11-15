@@ -41,7 +41,7 @@ import { NoteActionsMenu } from "./NoteActionsMenu";
 import { NoteExportDialog } from "./NoteExportDialog";
 import { noteMenuShortcutKeys } from "./noteMenuShortcutKeys";
 import { NoteHistoryDialog } from "./NoteHistoryDialog";
-import { NoteNotebooksDialog } from "./NoteNotebooksDialog";
+import { MoveNoteToNotebookDialog } from "./MoveNoteToNotebookDialog";
 import { NotePicker } from "./NotePicker";
 import { BlockPicker } from "./BlockPicker";
 import { deleteCapturedPhotos } from "../platform/capturedPhotos";
@@ -115,7 +115,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
   // ブロックを選んでいる途中なら、選んだあとに入れるもの（リンクか埋め込み）。
   const [pickingBlockFor, setPickingBlockFor] = useState<"link" | "embed" | null>(null);
   const [pickingNoteToMerge, setPickingNoteToMerge] = useState(false);
-  const [choosingNotebooks, setChoosingNotebooks] = useState(false);
+  const [movingToNotebook, setMovingToNotebook] = useState(false);
   const [showingHistory, setShowingHistory] = useState(false);
   const [choosingExportFormat, setChoosingExportFormat] = useState(false);
   // 目次。PC では本文の横に出したままにでき（設定に覚える）、スマホではメニューで出す。
@@ -278,7 +278,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
   // note は本文が変わるたびに作り直されるので、タグもそのたびに取り直す。
   const tags = useMemo(() => plainTextHashtags(bodyPlainText(note.body)), [note]);
   const notebookColors = assignNotebookColors(notebooks);
-  const noteNotebooks = notebooks.filter((notebook) => note.content.notebookIds.includes(notebook.id));
+  const noteNotebooks = notebooks.filter((notebook) => notebook.id === note.content.notebookId);
 
   const trailing = (
     <>
@@ -488,7 +488,7 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
       )}
       {menuAnchor && (
         <NoteActionsMenu anchor={menuAnchor} note={note} repository={repository}
-          onChooseNotebooks={notebooks.length > 0 ? () => setChoosingNotebooks(true) : undefined}
+          onMoveToNotebook={notebooks.length > 0 ? () => setMovingToNotebook(true) : undefined}
           onFind={() => setFindBarOpen(true)}
           onPrint={() => void print.run(undefined)}
           onDuplicate={async () => openNote((await repository.duplicateNote(noteId, translate("editor.duplicateTitle", { title: note.content.title || translate("sidebar.untitled") }))).id)}
@@ -508,8 +508,8 @@ export function NoteEditor({ note, notebooks, backlinks, repository, isMobile, o
         <NoteExportDialog onClose={() => setChoosingExportFormat(false)}
           onExport={(format) => { setChoosingExportFormat(false); void exportNote.run({ notes: [note], format }); }} />
       )}
-      {choosingNotebooks && (
-        <NoteNotebooksDialog note={note} notebooks={notebooks} repository={repository} onClose={() => setChoosingNotebooks(false)} />
+      {movingToNotebook && (
+        <MoveNoteToNotebookDialog note={note} notebooks={notebooks} repository={repository} onClose={() => setMovingToNotebook(false)} />
       )}
       {dueTarget === "note" && (
         <DueDateDialog title={translate("due.dialogTitleNote")} dueAt={note.content.dueAt} onClose={() => setDueTarget(null)}

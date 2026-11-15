@@ -28,7 +28,7 @@ describe("MCP のメモのツール", () => {
   it("メモを作り、検索して、Markdown で読める", async () => {
     const { run } = await toolsOver();
     const { notebookId } = await run("create_notebook", { name: "旅行" });
-    const created = await run("create_note", { title: "沖縄", markdown: "## 持ち物\n\n- [ ] 日焼け止め #todo\n", notebookIds: [notebookId] });
+    const created = await run("create_note", { title: "沖縄", markdown: "## 持ち物\n\n- [ ] 日焼け止め #todo\n", notebookId });
     const found = await run("search_notes", { query: "日焼け止め" });
     expect(found.notes.map((note: { noteId: string; title: string; tags: string[] }) => [note.noteId, note.title, note.tags])).toEqual([[created.noteId, "沖縄", ["todo"]]]);
     expect((await run("search_notes", { notebookId })).totalCount).toBe(1);
@@ -82,22 +82,22 @@ describe("MCP のメモのツール", () => {
     const { run } = await toolsOver();
     const { notebookId } = await run("create_notebook", { name: "仕事" });
     const { noteId } = await run("create_note", { title: "古い名前" });
-    expect(await run("update_note", { noteId, title: "新しい名前", notebookIds: [notebookId], pinned: true }))
-      .toMatchObject({ title: "新しい名前", notebookIds: [notebookId], pinned: true, bookmarked: false });
+    expect(await run("update_note", { noteId, title: "新しい名前", notebookId, pinned: true }))
+      .toMatchObject({ title: "新しい名前", notebookId, pinned: true, bookmarked: false });
     expect((await run("move_note_to_trash", { noteId })).inTrash).toBe(true);
     expect((await run("search_notes", {})).totalCount).toBe(0);
     expect((await run("search_notes", { inTrash: true })).totalCount).toBe(1);
     expect((await run("restore_note_from_trash", { noteId })).inTrash).toBe(false);
     await run("rename_notebook", { notebookId, name: "しごと" });
     await run("delete_notebook", { notebookId });
-    expect((await run("get_note", { noteId })).notebookIds).toEqual([]);
+    expect((await run("get_note", { noteId })).notebookId).toBeNull();
   });
 
   it("無い ID・形の違う引数は、理由を伝えて断る", async () => {
     const { run } = await toolsOver();
     await expect(run("get_note", { noteId: "0".repeat(32) })).rejects.toThrow("there is no note with that id");
     await expect(run("create_note", { title: 1 })).rejects.toThrow("title must be a string");
-    await expect(run("create_note", { title: "a", notebookIds: ["f".repeat(32)] })).rejects.toThrow("there is no notebook");
+    await expect(run("create_note", { title: "a", notebookId: "f".repeat(32) })).rejects.toThrow("there is no notebook");
   });
 
   it("完全な削除のツールは、許したときだけあり、ゴミ箱のメモだけを消す", async () => {

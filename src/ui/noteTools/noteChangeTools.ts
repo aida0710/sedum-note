@@ -9,7 +9,7 @@ import { ATTACHMENT_HREF_PREFIX, writeMarkdownToBody } from "../markdown/markdow
 import { applyBodyChange, createBodyChangeProposal, isBodyChangeCurrent } from "./noteBodyChange";
 import { ALWAYS_CURRENT, type NoteTool, NoteToolError } from "./noteTool";
 import type { NoteToolContext } from "./noteToolContext";
-import { ID_SCHEMA, NOTE_ID_PROPERTY, objectSchema, optionalBoolean, optionalString, requiredString } from "./toolArguments";
+import { ID_SCHEMA, NOTE_ID_PROPERTY, NULLABLE_ID_SCHEMA, objectSchema, optionalBoolean, optionalString, requiredString } from "./toolArguments";
 
 const yesNo = (value: boolean): string => (value ? "yes" : "no");
 
@@ -17,28 +17,28 @@ const yesNo = (value: boolean): string => (value ? "yes" : "no");
 const STALE_BODY_MESSAGE = "the note changed after this call was prepared; read it again with get_note and retry";
 
 export function noteChangeTools(context: NoteToolContext, changedBy: VersionChangedBy): NoteTool[] {
-  const { repository, noteOf, notebookOf, existingNotebookIds, notebookName, describeNoteAfterChange, exportContext, importContext } = context;
+  const { repository, noteOf, notebookOf, notebookIdArgument, notebookName, describeNoteAfterChange, exportContext, importContext } = context;
   return [
     {
       name: "create_note",
       title: "Create a note",
-      description: "Creates a note from a title and a Markdown body, optionally inside notebooks.",
+      description: "Creates a note from a title and a Markdown body, optionally inside a notebook.",
       category: "edit",
       destructiveHint: false,
       inputSchema: objectSchema({
         title: { type: "string" },
         markdown: { type: "string", description: "The body as Markdown" },
-        notebookIds: { type: "array", items: ID_SCHEMA, description: "Notebooks to put the note in" },
+        notebookId: { ...NULLABLE_ID_SCHEMA, description: "The notebook to put the note in. Omit it or pass null to leave the note outside every notebook" },
       }, ["title"]),
       prepare: async (toolArguments) => {
         const title = requiredString(toolArguments, "title");
         const markdown = optionalString(toolArguments, "markdown") ?? "";
-        const notebookIds = existingNotebookIds(toolArguments) ?? [];
+        const notebookId = notebookIdArgument(toolArguments) ?? null;
         return {
-          preview: { kind: "createNote", title, notebookNames: notebookIds.map(notebookName), characterCount: markdown.length },
+          preview: { kind: "createNote", title, notebookName: notebookName(notebookId), characterCount: markdown.length },
           isCurrent: ALWAYS_CURRENT,
           run: async () => {
-            const note = await repository.createNote({ title, notebookIds });
+            const note = await repository.createNote({ title, notebookId });
             await writeMarkdownToBody(markdown, note.body, importContext);
             await repository.flush();
             return describeNoteAfterChange(note);
@@ -48,32 +48,32 @@ export function noteChangeTools(context: NoteToolContext, changedBy: VersionChan
     },
     {
       name: "update_note",
-      title: "Change a note's title, notebooks, pin or bookmark",
+      title: "Change a note's title, notebook, pin or bookmark",
       description: "Changes the fields that are given and leaves the others as they are. Does not touch the body.",
       category: "edit",
       destructiveHint: false,
       inputSchema: objectSchema({
         ...NOTE_ID_PROPERTY,
         title: { type: "string" },
-        notebookIds: { type: "array", items: ID_SCHEMA, description: "The complete list of notebooks the note should be in" },
+        notebookId: { ...NULLABLE_ID_SCHEMA, description: "The notebook to move the note to (a note is in one notebook at most). null moves it out of every notebook" },
         pinned: { type: "boolean" },
         bookmarked: { type: "boolean" },
       }, ["noteId"]),
       prepare: async (toolArguments) => {
         const note = noteOf(toolArguments);
         const changes: NoteChanges = {};
-        const shown: Array<{ field: "title" | "notebooks" | "pinned" | "bookmarked"; before: string; after: string }> = [];
+        const shown: Array<{ field: "title" | "notebook" | "pinned" | "bookmarked"; before: string; after: string }> = [];
         const title = optionalString(toolArguments, "title");
-        const notebookIds = existingNotebookIds(toolArguments);
+        const notebookId = notebookIdArgument(toolArguments);
         const pinned = optionalBoolean(toolArguments, "pinned");
         const bookmarked = optionalBoolean(toolArguments, "bookmarked");
         if (title !== undefined) {
           changes.title = title;
           shown.push({ field: "title", before: note.content.title, after: title });
         }
-        if (notebookIds !== undefined) {
-          changes.notebookIds = notebookIds;
-          shown.push({ field: "notebooks", before: note.content.notebookIds.map(notebookName).join(", "), after: notebookIds.map(notebookName).join(", ") });
+        if (notebookId !== undefined) {
+          changes.notebookId = notebookId;
+          shown.push({ field: "notebook", before: notebookName(note.content.notebookId), after: notebookName(notebookId) });
         }
         if (pinned !== undefined) {
           changes.pinned = pinned;
@@ -236,13 +236,13 @@ export function noteChangeTools(context: NoteToolContext, changedBy: VersionChan
     {
       name: "delete_notebook",
       title: "Delete a notebook",
-      description: "Deletes a notebook. Its notes are not deleted; they are only removed from the notebook. Notebooks inside it move up one level.",
+      description: "Deletes a notebook. Its notes and the notebooks inside it are not deleted; they move up one level (notes in a top-level notebook end up outside every notebook).",
       category: "trash",
       destructiveHint: true,
       inputSchema: objectSchema({ notebookId: ID_SCHEMA }, ["notebookId"]),
       prepare: async (toolArguments) => {
         const notebook = notebookOf(toolArguments);
-        const noteCount = repository.notes().filter((note) => note.content.notebookIds.includes(notebook.id)).length;
+        const noteCount = repository.notes().filter((note) => note.content.notebookId === notebook.id).length;
         const childCount = repository.notebooks().filter((candidate) => candidate.content.parentId === notebook.id).length;
         return {
           preview: { kind: "deleteNotebook", notebookId: notebook.id, name: notebook.content.name, noteCount, childCount },

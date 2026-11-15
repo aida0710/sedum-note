@@ -34,11 +34,11 @@ describe("SyncEngine", () => {
   it("1 台で書いたメモとノートブックが、もう 1 台に届く", async () => {
     const { laptop, phone } = await twoDevices();
     const notebook = await laptop.repository.createNotebook("旅行");
-    const note = await laptop.repository.createNote({ title: "持ち物", notebookIds: [notebook.id] });
+    const note = await laptop.repository.createNote({ title: "持ち物", notebookId: notebook.id });
     appendParagraph(note.body, "日焼け止め");
     await sync(laptop);
     await sync(phone);
-    expect(phone.repository.notes().map((item) => [item.content.title, item.content.notebookIds])).toEqual([["持ち物", [notebook.id]]]);
+    expect(phone.repository.notes().map((item) => [item.content.title, item.content.notebookId])).toEqual([["持ち物", notebook.id]]);
     expect(bodyOf(phone, note.id)).toBe("日焼け止め");
     expect(phone.repository.notebooks().map((item) => item.content.name)).toEqual(["旅行"]);
   });
@@ -147,19 +147,36 @@ describe("SyncEngine", () => {
     expect(bodyOf(laptop, note.id)).toBe(bodyOf(phone, note.id));
   });
 
-  it("2 台で別々のノートブックに入れたら、両方に入る", async () => {
+  it("2 台で別々のノートブックへ同時に移したら、どちらの端末でも同じ 1 つのノートブックに入る", async () => {
     const { laptop, phone } = await twoDevices();
     const work = await laptop.repository.createNotebook("仕事");
     const travel = await laptop.repository.createNotebook("旅行");
     const note = await laptop.repository.createNote({ title: "メモ" });
     await sync(laptop);
     await sync(phone);
-    await laptop.repository.updateNote(note.id, { notebookIds: [work.id] });
-    await phone.repository.updateNote(note.id, { notebookIds: [travel.id] });
+    await laptop.repository.updateNote(note.id, { notebookId: work.id });
+    await phone.repository.updateNote(note.id, { notebookId: travel.id });
     await sync(laptop);
     await sync(phone);
     await sync(laptop);
-    expect(laptop.repository.note(note.id)!.content.notebookIds.sort()).toEqual([work.id, travel.id].sort());
+    const notebookOnLaptop = laptop.repository.note(note.id)!.content.notebookId;
+    expect([work.id, travel.id]).toContain(notebookOnLaptop);
+    expect(phone.repository.note(note.id)!.content.notebookId).toBe(notebookOnLaptop);
+  });
+
+  it("1 台でノートブックを消すのと同時に、もう 1 台でそのノートブックへメモを移したら、メモは「未指定」に入る", async () => {
+    const { laptop, phone } = await twoDevices();
+    const work = await laptop.repository.createNotebook("仕事");
+    const note = await laptop.repository.createNote({ title: "メモ" });
+    await sync(laptop);
+    await sync(phone);
+    await laptop.repository.removeNotebook(work.id);
+    await phone.repository.updateNote(note.id, { notebookId: work.id });
+    await sync(laptop);
+    await sync(phone);
+    await sync(laptop);
+    expect(phone.repository.note(note.id)!.content.notebookId).toBeNull();
+    expect(laptop.repository.note(note.id)!.content.notebookId).toBeNull();
   });
 
   it("完全に削除したメモは、もう 1 台からも消え、同期先の写真も消える", async () => {

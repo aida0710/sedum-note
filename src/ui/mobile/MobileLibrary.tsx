@@ -1,4 +1,4 @@
-import { AlarmClock, Bookmark, FolderPlus, Hash, Trash2, LayoutTemplate } from "lucide-react";
+import { AlarmClock, Bookmark, FolderPlus, Hash, Inbox, Trash2, LayoutTemplate } from "lucide-react";
 import { dueItemsOf } from "../../core/notes/dueItems";
 import { countTags, type NoteView, selectNotes } from "../../core/notes/noteQueries";
 import type { LiveSavedSearch } from "../../core/notes/noteRecords";
@@ -19,7 +19,7 @@ type MobileLibraryProps = {
   onOpenReminders: () => void;
 };
 
-// スマホの「ノートブック」タブ: ノートブック・タグ・ゴミ箱を選ぶと、その一覧を開く。期限の一覧もここから開く。
+// スマホの「ノートブック」タブ: ノートブック（最後に、どのノートブックにも入れていないメモの「未指定」）・タグ・ゴミ箱を選ぶと、その一覧を開く。期限の一覧もここから開く。
 // ノートブックは、PC の左の列と同じ順（親の下に子、同じ階層は名前の順）で、子を字下げして並べる。
 export function MobileLibrary({ snapshot, repository, onPick, onOpenSavedSearch, onOpenNote, onOpenReminders }: MobileLibraryProps) {
   const dialogs = useDialogs();
@@ -45,6 +45,10 @@ export function MobileLibrary({ snapshot, repository, onPick, onOpenSavedSearch,
             noteCount={selectNotes(snapshot.summaries, { view: { kind: "notebook", notebookId: notebook.id } }).length}
             onOpen={() => onPick({ kind: "notebook", notebookId: notebook.id })} onOpenNote={onOpenNote} />
         ))}
+        <button className="library-row" onClick={() => onPick({ kind: "unassigned" })}>
+          <Inbox size={ICON_SIZE.row} /><span className="library-row-label">{translate("sidebar.unassigned")}</span>
+          <span className="count">{selectNotes(snapshot.summaries, { view: { kind: "unassigned" } }).length}</span>
+        </button>
         {tags.length > 0 && <div className="section-title">{translate("sidebar.tags")}</div>}
         {tags.map(({ tag, count }) => (
           <button key={tag} className="library-row" onClick={() => onPick({ kind: "tag", tag })}>
