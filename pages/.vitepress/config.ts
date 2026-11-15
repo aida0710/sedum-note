@@ -1,4 +1,4 @@
-import { defineDocsConfig } from "./docs-template/config";
+import { defineDocsConfig } from "@aida0710/app-docs-theme/config";
 
 const repository = "https://github.com/aida0710/sedum-note";
 // Web 版のアプリが GitHub Pages の /sedum-note/ にあるので、ドキュメントはその下の /sedum-note/docs/ に置く。
