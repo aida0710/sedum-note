@@ -176,7 +176,8 @@ test("Claude の API をつなぎ先にして会話を続けられ、答えを�
 
   await chat(page).getByRole("button", { name: "要約する" }).click();
   const answers = chat(page).locator(".ai-message.assistant .ai-message-text");
-  await expect(answers).toHaveText(["- 牛乳を買う\n- 卵を買う"]);
+  // 答えの Markdown は、箇条書きとして出す。
+  await expect(answers.first().locator("li")).toHaveText(["牛乳を買う", "卵を買う"]);
   // API キーをどのヘッダーに入れるかは SDK が決める。入れたキーが送られていることだけを確かめる。
   expect(Object.values(requests[0]!.headers).some((value) => value.includes("test-key"))).toBe(true);
   expect(requests[0]!.body).toMatchObject({ model: "claude-opus-5-5", stream: true, fallbacks: "default" });
@@ -186,7 +187,7 @@ test("Claude の API をつなぎ先にして会話を続けられ、答えを�
   // 続けて聞くと、前のやり取りも一緒に送る。
   await chat(page).getByRole("textbox", { name: "AIへのメッセージ" }).fill("卵は何個？");
   await page.keyboard.press("Enter");
-  await expect(answers).toHaveText(["- 牛乳を買う\n- 卵を買う", "卵は 6 個入りです。"]);
+  await expect(answers).toHaveText(["牛乳を買う卵を買う", "卵は 6 個入りです。"]);
   expect(requests[1]!.body.messages.map((message) => message.role)).toEqual(["user", "assistant", "user"]);
   expect(sentText(requests[1]!.body.messages[1]!.content)).toBe("- 牛乳を買う\n- 卵を買う");
   expect(sentText(requests[1]!.body.messages[2]!.content)).toContain("卵は何個？");
@@ -545,13 +546,71 @@ test("開いているメモの直しを頼むと、差分を承認してから�
   // 直す前の状態は、メモの履歴に残る。
   await page.getByRole("button", { name: "その他の操作" }).last().click();
   await page.getByRole("menuitem", { name: "履歴" }).click();
-  await expect(page.getByRole("dialog", { name: "履歴" }).getByRole("option").first()).toContainText("置き換え前（AI・MCP・プラグイン）");
+  await expect(page.getByRole("dialog", { name: "履歴" }).getByRole("option")).toHaveText([/編集前（AIチャット）/]);
   await page.keyboard.press("Escape");
 
   // AI の直しは、エディタの取り消しで 1 回で戻せる。
   await page.locator(".ProseMirror p").first().click();
   await page.keyboard.press("ControlOrMeta+z");
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかん"]);
+
+  // 取り消しは自分の編集なので、AI が直した結果が「編集前（自分）」として、間隔を待たずに残る。
+  await page.getByRole("button", { name: "その他の操作" }).last().click();
+  await page.getByRole("menuitem", { name: "履歴" }).click();
+  const history = page.getByRole("dialog", { name: "履歴" });
+  await expect(history.getByRole("option")).toHaveText([/編集前（自分）/, /編集前（AIチャット）/]);
+  await expect(history.locator(".note-history-preview pre")).toHaveText("りんご\nバナナ\nみかん\nぶどう");
+});
+
+test("AI の答えの Markdown を、見出し・太字・コード・表・リンクで出す。HTML は文字のまま出し、画像は読み込まない", async ({ page }) => {
+  const answer = [
+    "## 手順",
+    "",
+    "**大事**なのは `npm ci` です。",
+    "",
+    "```sh",
+    "npm ci",
+    "```",
+    "",
+    "| 名前 | 数 |",
+    "|---|---|",
+    "| 卵 | 6 |",
+    "",
+    "- [x] 済んだ",
+    "- [ ] まだ",
+    "",
+    "[説明](https://example.com/guide) と <b>太字の HTML</b> と ![図](https://example.com/figure.png)",
+  ].join("\n");
+  await mockClaudeApi(page, [answer]);
+  const imageRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().startsWith("https://example.com/")) {
+      imageRequests.push(request.url());
+    }
+  });
+  await startLocalVault(page);
+  await createNoteOnDesktop(page, "メモ");
+  await enableAi(page);
+  await page.getByLabel("APIキー").fill("test-key");
+  await saveAiSettingsAndOpenChat(page, "メモ");
+  await chat(page).getByRole("textbox", { name: "AIへのメッセージ" }).fill("手順を教えて");
+  await page.keyboard.press("Enter");
+
+  const shown = chat(page).locator(".ai-message.assistant .ai-markdown");
+  await expect(shown.locator("h2")).toHaveText("手順");
+  await expect(shown.locator("strong")).toHaveText("大事");
+  await expect(shown.locator("p code")).toHaveText("npm ci");
+  await expect(shown.locator("pre")).toHaveText("npm ci");
+  await expect(shown.locator("th")).toHaveText(["名前", "数"]);
+  await expect(shown.locator("td")).toHaveText(["卵", "6"]);
+  await expect(shown.getByRole("checkbox")).toHaveCount(2);
+  await expect(shown.getByRole("checkbox").first()).toBeChecked();
+  await expect(shown.getByRole("link", { name: "説明" })).toHaveAttribute("href", "https://example.com/guide");
+  // HTML の札は要素にせず、そのままの文字で出す。画像は、説明の文のリンクにして読み込まない。
+  await expect(shown).toContainText("<b>太字の HTML</b>");
+  await expect(shown.locator("b, img")).toHaveCount(0);
+  await expect(shown.getByRole("link", { name: "図" })).toHaveAttribute("href", "https://example.com/figure.png");
+  expect(imageRequests).toEqual([]);
 });
 
 test("承認を待つ間にメモを書き換えると、その変更は行わない。その会話で作る・直すを聞かずに行うようにしても、ゴミ箱に入れるときは聞く", async ({ page }) => {

@@ -309,6 +309,22 @@ svg.lucide { stroke-width: 1.75; }
 .ai-message { display: flex; flex-direction: column; gap: 4px; }
 .ai-message.user { align-self: flex-end; max-width: 92%; background: var(--accent-soft); border-radius: var(--radius-panel); padding: 8px 10px; }
 .ai-message-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+/* AI の答えの Markdown（AiMarkdown.tsx）。改行は要素で表すので、文字の改行はそのまま出さない。狭い欄でも、コードと表は横に送る。 */
+.ai-markdown { white-space: normal; display: flex; flex-direction: column; gap: 6px; }
+.ai-markdown > *, .ai-markdown li > * { margin: 0; }
+.ai-markdown :is(h1, h2, h3, h4, h5, h6) { font-size: 1em; font-weight: 600; margin-top: 4px; }
+.ai-markdown :is(h1, h2) { font-size: 1.08em; }
+.ai-markdown :is(ul, ol) { padding-left: 1.4em; display: flex; flex-direction: column; gap: 2px; }
+.ai-markdown li.ai-markdown-task { list-style: none; margin-left: -1.4em; display: flex; gap: 6px; align-items: baseline; }
+.ai-markdown code { font-family: var(--font-mono); background: var(--tag); border-radius: var(--radius-inline); padding: 1px 5px; font-size: .86em; }
+.ai-markdown pre { font-family: var(--font-mono); background: var(--tag); border-radius: var(--radius-control); padding: 8px 10px; overflow-x: auto; white-space: pre; font-size: .86em; line-height: 1.5; }
+.ai-markdown pre code { background: none; padding: 0; font-size: inherit; }
+.ai-markdown blockquote { border-left: 2px solid var(--line); padding: 0 0 0 10px; color: var(--muted); }
+.ai-markdown hr { border: none; border-top: 1px solid var(--line); width: 100%; }
+.ai-markdown-table { overflow-x: auto; }
+.ai-markdown table { border-collapse: collapse; }
+.ai-markdown :is(th, td) { border: 1px solid var(--line); padding: 3px 8px; text-align: left; vertical-align: top; }
+.ai-markdown th { background: var(--tag); font-weight: 600; }
 .ai-message-actions { display: flex; flex-wrap: wrap; gap: 2px; margin-left: -6px; }
 .ai-context { display: flex; flex-wrap: wrap; gap: 4px; }
 .ai-context .chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; }

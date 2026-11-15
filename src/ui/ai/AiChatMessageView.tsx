@@ -1,9 +1,11 @@
-// チャットの 1 つの発言。利用者の発言は、添えた文脈と文。AI の答えは、文とツールの呼び出しの行が届いた順に並び、
-// 答え終えたら、文をコピーしたり、開いているメモに入れたりするボタンを出す。
+// チャットの 1 つの発言。利用者の発言は、添えた文脈と文（打ったままの文字）。AI の答えは、文（Markdown として表示する）と
+// ツールの呼び出しの行が届いた順に並び、答え終えたら、文をコピーしたり、開いているメモに入れたりするボタンを出す
+// （コピーして入れるのは、表示した形でなく Markdown の文）。
 
 import { FileText, TextSelect } from "lucide-react";
 import { translate } from "../i18n/translate";
 import { type AiAttachment, type AiChatMessage, answerTextOf } from "./aiConversation";
+import { AiMarkdown } from "./AiMarkdown";
 import { AiToolActivityLine } from "./AiToolActivityLine";
 import { ICON_SIZE } from "../shared/iconSizes";
 
@@ -54,7 +56,7 @@ export function AiChatMessageView({ message, isReceiving, answerActions, noteExi
     <div className="ai-message assistant">
       {message.parts.length === 0 && isReceiving && <div className="ai-message-text">{translate("ai.waiting")}</div>}
       {message.parts.map((part, index) => (part.kind === "text"
-        ? <div key={index} className="ai-message-text">{part.text}</div>
+        ? <AiMarkdown key={index} text={part.text} />
         : <AiToolActivityLine key={part.activity.toolCallId} activity={part.activity} noteExists={noteExists} onOpenNote={onOpenNote} onOpenAiSettings={onOpenAiSettings} />))}
       {message.answeredWithoutTools && <p className="hint">{translate("ai.answeredWithoutTools")}</p>}
       {answer !== "" && !isReceiving && (

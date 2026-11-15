@@ -7,7 +7,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { type MessageKey, translate } from "../i18n/translate";
 
-import { openableWebLinkUrl } from "./webLinks";
+import { openableWebLinkUrl } from "../shared/openableWebLinkUrl";
 import { ICON_SIZE } from "../shared/iconSizes";
 
 // カーソルの行と面の間（px）。
