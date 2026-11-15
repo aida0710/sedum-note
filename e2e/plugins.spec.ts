@@ -151,7 +151,8 @@ test("本文の全部を置き換えるコマンドのあとも、添付と、�
   await serveGitHub(page, { manifest: exampleManifest, module: exampleModule });
   await startLocalVault(page);
   await createNoteOnDesktop(page, "計画");
-  await page.keyboard.type("出発は朝");
+  // 行末の空白は、コマンドが消す（本文が変わるので、置き換えたあとの状態も履歴に残る）。
+  await page.keyboard.type("出発は朝  ");
   await page.keyboard.press("Enter");
   await page.keyboard.type("宿は駅前");
   await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "map.png", mimeType: "image/png", buffer: TINY_PNG });
@@ -175,8 +176,8 @@ test("本文の全部を置き換えるコマンドのあとも、添付と、�
   await expect(page.locator(".ProseMirror p").filter({ hasText: /\S/ })).toHaveText(["出発は朝", "宿は駅前"]);
   await page.getByRole("tab", { name: "メモ", exact: true }).click();
   await expect(blockLink).toHaveText("計画 › 宿は駅前");
-  // 置き換える前の状態が、履歴に残っている。
+  // 置き換える前の状態（自分の編集）と、置き換えたあとの状態（プラグインの編集）が、履歴に残っている。
   await page.getByRole("tab", { name: "計画" }).click();
   await runFromNoteMenu(page, "履歴");
-  await expect(page.getByRole("dialog", { name: "履歴" }).getByRole("option")).toHaveCount(1);
+  await expect(page.getByRole("dialog", { name: "履歴" }).getByRole("option")).toHaveText([/プラグインの編集/, /自分の編集/]);
 });

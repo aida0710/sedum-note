@@ -90,10 +90,13 @@ function flush(): void {
 }
 
 // 画面の popstate の受け手より先に登録して、アプリが自分で戻したものかを先に決める。
-window.addEventListener("popstate", () => {
-  isLastPopOwnTraversal = isWaitingForOwnTraversal;
-  if (isWaitingForOwnTraversal) {
-    isWaitingForOwnTraversal = false;
-    flush();
-  }
-});
+// window の無い所（Node で流す単体の試験が、このファイルを間接に読み込むとき）では登録しない。
+if (typeof window !== "undefined") {
+  window.addEventListener("popstate", () => {
+    isLastPopOwnTraversal = isWaitingForOwnTraversal;
+    if (isWaitingForOwnTraversal) {
+      isWaitingForOwnTraversal = false;
+      flush();
+    }
+  });
+}
