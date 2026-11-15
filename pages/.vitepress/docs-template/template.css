@@ -47,48 +47,44 @@
 }
 
 /* ── 角の丸めを 2 段にそろえる ───────────────────────────────
-   VitePress の部品の角は 2〜24px とばらばらで、表と、スマホの幅のコードは角が無い。
-   部品の scoped な指定（クラス＋属性）より強くするため、:root を前に付ける。 */
-:root .VPButton,
-:root .VPNavBarSearch .DocSearch-Button,
-:root .VPNavScreenAppearance,
-:root .VPMenu,
-:root .VPLocalNavOutlineDropdown .items,
-:root .VPLocalSearchBox .shell,
-:root .VPDocFooter .pager-link,
-:root .VPSkipLink,
-:root .NotFound .link,
-:root .vp-doc .custom-block,
-:root .vp-doc div[class*='language-'],
-:root .vp-doc .vp-block,
-:root .vp-doc li div[class*='language-'] {
-  border-radius: var(--docs-radius);
+   VitePress の部品の角は 2〜24px とばらばらで、表と、スマホの幅のコードは角が無い。部品の指定は scoped
+   （クラス＋属性。ボタンはクラス 2 つ＋属性）で、本番の組み立てでは読み込む順も決まらないので、!important で上書きする。 */
+.VPButton,
+.VPNavBarSearch .DocSearch-Button,
+.VPNavScreenAppearance,
+.VPMenu,
+.VPLocalNavOutlineDropdown .items,
+.VPLocalSearchBox .shell,
+.VPDocFooter .pager-link,
+.VPSkipLink,
+.NotFound .link,
+.VPSwitch,
+.vp-doc .custom-block,
+.vp-doc div[class*='language-'],
+.vp-doc .vp-block {
+  border-radius: var(--docs-radius) !important;
 }
 
-:root .VPBadge,
-:root .VPMenuLink .link,
-:root .VPLocalSearchBox .search-bar,
-:root .VPLocalSearchBox .result,
-:root .vp-doc :not(pre) > code,
-:root .vp-doc [class*='language-'] > button.copy {
-  border-radius: var(--docs-radius-inline);
+.VPBadge,
+.VPMenuLink .link,
+.VPLocalSearchBox .search-bar,
+.VPLocalSearchBox .result,
+.vp-doc :not(pre) > code,
+.vp-doc [class*='language-'] > button.copy {
+  border-radius: var(--docs-radius-inline) !important;
 }
 
-/* 表示の切り替え。つまみは枠の内側に 2px 空けて置くので、角も 2px 小さくする。 */
-:root .VPSwitch {
-  border-radius: var(--docs-radius);
-}
-
-:root .VPSwitch .check,
-:root .VPSwitch .icon {
-  border-radius: calc(var(--docs-radius) - 2px);
+/* 表示の切り替えのつまみは、枠の内側に 2px 空けて置くので、角も 2px 小さくする。 */
+.VPSwitch .check,
+.VPSwitch .icon {
+  border-radius: calc(var(--docs-radius) - 2px) !important;
 }
 
 /* スマホの幅でも、コードを本文の幅に収めて角を付ける（VitePress の既定は画面の端まで広げて角を消す）。 */
 @media (max-width: 639px) {
-  :root .vp-doc div[class*='language-'],
-  :root .vp-doc .vp-block {
-    margin: 16px 0;
+  .vp-doc div[class*='language-'],
+  .vp-doc .vp-block {
+    margin: 16px 0 !important;
   }
 }
 
