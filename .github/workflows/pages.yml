@@ -1,0 +1,64 @@
+name: Pages
+
+# ドキュメント（pages/）を直して main に push したとき、GitHub Pages を置き直す。
+# Pages は 1 回の配置でサイト全体が入れ替わるので、Web 版も一緒に置く。Web 版は最新のリリースのタグの画面のままにする
+# （main の画面を置かない理由は ci.yml の pages の job）。リリースのタグのときは ci.yml の pages の job が置く。
+on:
+  push:
+    branches: [main]
+    paths:
+      - pages/**
+      - scripts/ci/build-pages-site.sh
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  # npm 10 は、この依存の組み合わせで依存の木を作る途中に落ちる（ci.yml と同じ）。
+  NPM_VERSION: "11.6.2"
+
+jobs:
+  deploy:
+    name: Web and docs (GitHub Pages)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    # ci.yml の pages の job（リリースのタグ）の配置と重ならないように、同じまとまりで順に流す。
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # Web 版を組み立てるリリースのタグを作業ツリーに取り出すためと、ドキュメントの各ページの「最終更新」を
+          # git の履歴から出すため。
+          fetch-depth: 0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            pages/package-lock.json
+      - run: npm install -g npm@${{ env.NPM_VERSION }}
+      - name: Find the latest release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "tag=$(gh release view --json tagName --jq .tagName)" >> "$GITHUB_OUTPUT"
+      - run: scripts/ci/build-pages-site.sh "${{ steps.release.outputs.tag }}" site
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
