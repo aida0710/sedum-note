@@ -230,7 +230,8 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       close: async (page) => { await page.getByRole("button", { name: translate("split.close") }).click(); },
     },
     {
-      // 履歴に版が 2 つある状態。版は、本文を差し替える前に残す処理（repository.captureVersionBeforeReplace）で作る。
+      // 履歴に版が 2 つある状態。版は、AI などが本文を変える前後に残す処理（repository.captureVersionBeforeChange・
+      // captureVersionAfterChange）で作る。2 つ目は AI チャットが変えた版として残し、一覧に「AIチャットの編集」の札も出す。
       name: "note-history-versions",
       open: async (page) => {
         await openRichNote(page);
@@ -238,14 +239,14 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
         await page.evaluate(async (title) => {
           const { repository } = window.__visualAudit;
           const note = repository.notes().find((candidate) => candidate.content.title === title);
-          await repository.captureVersionBeforeReplace(note.id);
+          await repository.captureVersionBeforeChange(note.id);
         }, RICH_NOTE_TITLE);
         await placeCursorAtEnd(page);
         await page.keyboard.type("履歴の版を分けるために足した文。");
         await page.evaluate(async (title) => {
           const { repository } = window.__visualAudit;
           const note = repository.notes().find((candidate) => candidate.content.title === title);
-          await repository.captureVersionBeforeReplace(note.id);
+          await repository.captureVersionAfterChange(note.id, "ai");
         }, RICH_NOTE_TITLE);
         await openEditorMoreMenu(page);
         await page.getByRole("menuitem", { name: translate("editor.history") }).click();
