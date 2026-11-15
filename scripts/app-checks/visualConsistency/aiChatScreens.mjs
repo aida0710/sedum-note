@@ -9,6 +9,13 @@ const CORS_HEADERS = { "access-control-allow-origin": "*", "access-control-allow
 const FAKE_MODELS = [{ id: "claude-sonnet-5-5", name: "Claude Sonnet 5.5" }, { id: "claude-opus-5-5", name: "Claude Opus 5.5" }];
 // 答えが届いて描かれるまでの待ち時間の目安。
 const ANSWER_SETTLE_MILLISECONDS = 500;
+// 見た目の確認のメモ（auditScreens.mjs）に合わせた答え。
+const DEFAULT_FAKE_ANSWERS = {
+  summary: "このメモの要点は次のとおりです。\n\n- 書式とブロックの見本\n- 表・コード・数式・図を含む\n- 最後に脚注がある",
+  editText: "誤字を直し、最後に 1 行足します。",
+  editedMarkdown: "## 見出し 2 の行\n\n見出しのあとの段落。長い文が折り返したときの行間を確かめます。\n\n最後に足した行。",
+  editDoneText: "直しました。",
+};
 
 // Claude の Messages API の、流して返す形（server-sent events）の答え。
 function claudeStream({ text, toolCalls = [] }) {
@@ -27,8 +34,18 @@ function claudeStream({ text, toolCalls = [] }) {
   return events.map(([name, payload]) => `event: ${name}\ndata: ${JSON.stringify(payload)}\n\n`).join("");
 }
 
-// 1 回目の発言には要約を、2 回目には本文の差し替え（承認のカードが出る）を返す。
-async function routeFakeClaude(page) {
+// 発言に添えたメモ（src/ui/ai/aiConversation.ts の <note> の形）の ID と本文。
+function attachedNote(messages) {
+  const texts = messages.flatMap((message) => (typeof message.content === "string" ? [message.content] : message.content.filter((block) => block.type === "text").map((block) => block.text)));
+  const match = /<note id="([0-9a-f]{32})"[^>]*>\n([\s\S]*?)\n<\/note>/.exec(texts.join("\n"));
+  return match ? { id: match[1], markdown: match[2] } : null;
+}
+
+// 1 回目の発言には要約を、2 回目には本文の差し替え（承認のカードが出る）を返す。差し替えを許可したあと、結果を受け取った
+// 3 回目からは、差し替えの報告だけを返す（もう一度差し替えを頼まない）。答えの中身は answers で差し替えられる
+// （ドキュメントの画像の道具が、見本のメモに合った答えを渡す。scripts/docs-images/）。editedMarkdown は、添えたメモの本文を受け取って
+// 差し替えたあとの本文を返す関数でもよい。
+export async function routeFakeClaude(page, answers = DEFAULT_FAKE_ANSWERS) {
   await page.route(`${CLAUDE_API}/models**`, async (route) => {
     if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: CORS_HEADERS });
     const data = FAKE_MODELS.map((model) => ({ type: "model", id: model.id, display_name: model.name, created_at: "2026-11-01T00:00:00Z", max_input_tokens: 1000000, max_tokens: 32000 }));
@@ -38,10 +55,11 @@ async function routeFakeClaude(page) {
   await page.route(`${CLAUDE_API}/messages**`, async (route) => {
     if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: CORS_HEADERS });
     answered += 1;
-    const noteId = /<note id=\\?"([0-9a-f]{32})/.exec(JSON.stringify(route.request().postDataJSON().messages))?.[1];
-    const answer = answered === 1
-      ? { text: "このメモの要点は次のとおりです。\n\n- 書式とブロックの見本\n- 表・コード・数式・図を含む\n- 最後に脚注がある" }
-      : { text: "誤字を直し、最後に 1 行足します。", toolCalls: [{ id: "toolu_edit", name: "replace_note_body", input: { noteId, markdown: "## 見出し 2 の行\n\n見出しのあとの段落。長い文が折り返したときの行間を確かめます。\n\n最後に足した行。" } }] };
+    const note = attachedNote(route.request().postDataJSON().messages);
+    const editedMarkdown = typeof answers.editedMarkdown === "function" ? answers.editedMarkdown(note?.markdown ?? "") : answers.editedMarkdown;
+    const answer = answered === 1 ? { text: answers.summary }
+      : answered === 2 ? { text: answers.editText, toolCalls: [{ id: "toolu_edit", name: "replace_note_body", input: { noteId: note?.id, markdown: editedMarkdown } }] }
+      : { text: answers.editDoneText };
     return route.fulfill({ contentType: "text/event-stream", headers: CORS_HEADERS, body: claudeStream(answer) });
   });
 }
