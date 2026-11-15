@@ -31,10 +31,6 @@ function notebookChipsOfNote(page: Page) {
   return page.locator(".document-meta .chip", { has: page.locator(".dot, .notebook-icon") });
 }
 
-async function sortedTexts(chips: ReturnType<typeof notebookChipsOfNote>) {
-  return (await chips.allTextContents()).sort();
-}
-
 test("ノートブックの色とアイコンを選ぶと、左の列の印が変わり、開き直しても保たれる", async ({ page }) => {
   await startLocalVault(page);
   await addNotebookOnDesktop(page, "旅行");
