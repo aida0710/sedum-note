@@ -1,0 +1,43 @@
+/* Sedum Note の色。作りは docs-template が持ち、ここでは色だけを決める。
+   色はアプリのテーマ「セダム」「セダム（ダーク）」に合わせる（src/ui/theme/builtInThemes.ts）。 */
+:root {
+  --vp-c-brand-1: #2f7d54;
+  --vp-c-brand-2: #3a8d62;
+  --vp-c-brand-3: #2f7d54;
+  --vp-c-brand-soft: rgba(47, 125, 84, 0.12);
+  --vp-c-bg-alt: #f6f7f3;
+  --vp-c-bg-soft: #eef1ea;
+  --vp-c-divider: #dfe4d8;
+  --vp-button-brand-border: #2f7d54;
+  --vp-button-brand-text: #ffffff;
+  --vp-button-brand-bg: #2f7d54;
+  --vp-button-brand-hover-border: #3a8d62;
+  --vp-button-brand-hover-text: #ffffff;
+  --vp-button-brand-hover-bg: #3a8d62;
+  --vp-button-alt-border: #dfe4d8;
+  --vp-button-alt-bg: #eef1ea;
+  --vp-button-alt-hover-border: #c6cfbd;
+  --vp-button-alt-hover-bg: #e5eadf;
+}
+
+.dark {
+  --vp-c-brand-1: #6cc491;
+  --vp-c-brand-2: #82d2a3;
+  --vp-c-brand-3: #4fa877;
+  --vp-c-brand-soft: rgba(108, 196, 145, 0.16);
+  --vp-c-bg: #141a16;
+  --vp-c-bg-alt: #161c18;
+  --vp-c-bg-elv: #1a211c;
+  --vp-c-bg-soft: #1a211c;
+  --vp-c-divider: #2a342c;
+  --vp-button-brand-border: #6cc491;
+  --vp-button-brand-text: #10170f;
+  --vp-button-brand-bg: #6cc491;
+  --vp-button-brand-hover-border: #82d2a3;
+  --vp-button-brand-hover-text: #10170f;
+  --vp-button-brand-hover-bg: #82d2a3;
+  --vp-button-alt-border: #2a342c;
+  --vp-button-alt-bg: #1a211c;
+  --vp-button-alt-hover-border: #3b483e;
+  --vp-button-alt-hover-bg: #212a24;
+}

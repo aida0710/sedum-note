@@ -1,9 +1,4 @@
-import DefaultTheme from "vitepress/theme";
-import type { Theme } from "vitepress";
-import "./style.css";
+import docsTheme from "../docs-template/theme";
+import "./colors.css";
 
-const theme: Theme = {
-  extends: DefaultTheme,
-};
-
-export default theme;
+export default docsTheme;

@@ -33,6 +33,8 @@ npm run dev            # http://127.0.0.1:5173/sedum-note/docs/
 npm run build          # リンク切れがあると失敗する
 ```
 
+見た目は、sshc と同じ作りにするテンプレート（`pages/.vitepress/docs-template/`）が持ちます。Sedum Note の側で決めるのは、色（`pages/.vitepress/theme/colors.css`）と、トップの中身（`pages/index.md`の frontmatter）と、目次（`pages/.vitepress/config.ts`）だけです。使い方は`pages/.vitepress/docs-template/README.md`にあります。
+
 ドキュメントの画像（`pages/public/images/`）は、`scripts/docs-images/captureDocsImages.mjs`で撮り直します。見本のデータは`scripts/docs-images/docsSampleNotes.mjs`にあり、架空の内容だけを入れます。画面を変えたら撮り直してください。
 
 ```sh

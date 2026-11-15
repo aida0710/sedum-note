@@ -1,4 +1,4 @@
-import { defineConfig } from "vitepress";
+import { defineDocsConfig } from "./docs-template/config";
 
 const repository = "https://github.com/aida0710/sedum-note";
 // Web 版のアプリが GitHub Pages の /sedum-note/ にあるので、ドキュメントはその下の /sedum-note/docs/ に置く。
@@ -61,68 +61,25 @@ const sidebar = [
   ] },
 ];
 
-export default defineConfig({
-  title: "Sedum Note",
+export default defineDocsConfig({
+  name: "Sedum Note",
   description,
-  lang: "ja",
+  repository,
   base,
-  cleanUrls: true,
-  lastUpdated: true,
-  sitemap: { hostname: siteUrl },
-  head: [
-    ["meta", { name: "theme-color", content: "#2f7d54" }],
-    ["meta", { property: "og:type", content: "website" }],
-    ["meta", { property: "og:title", content: "Sedum Note" }],
-    ["meta", { property: "og:description", content: description }],
-    ["meta", { property: "og:image", content: `${siteUrl}images/workspace.webp` }],
-    ["meta", { name: "twitter:card", content: "summary_large_image" }],
-    ["link", { rel: "icon", href: `${base}app-icon.png`, type: "image/png" }],
+  siteUrl,
+  ogImage: "/images/workspace.webp",
+  logo: "/app-icon.png",
+  favicon: { path: "/app-icon.png", type: "image/png" },
+  themeColor: "#2f7d54",
+  nav: [
+    { text: "はじめる", link: "/guide/introduction" },
+    { text: "機能", link: "/editor/basics" },
+    { text: "Web版", link: webAppUrl },
+    { text: "ダウンロード", link: `${repository}/releases/latest` },
   ],
-  // 英語版を足すときは、locales に en を足し、同じ構成の en/ を置く。
-  locales: {
-    root: {
-      label: "日本語",
-      lang: "ja",
-      themeConfig: {
-        nav: [
-          { text: "はじめる", link: "/guide/introduction" },
-          { text: "機能", link: "/editor/basics" },
-          { text: "Web版", link: webAppUrl },
-          { text: "ダウンロード", link: `${repository}/releases/latest` },
-        ],
-        sidebar,
-        editLink: { pattern: `${repository}/edit/main/pages/:path`, text: "このページを編集" },
-        outlineTitle: "このページの内容",
-        lastUpdatedText: "最終更新",
-        docFooter: { prev: "前のページ", next: "次のページ" },
-        darkModeSwitchLabel: "表示",
-        sidebarMenuLabel: "メニュー",
-        returnToTopLabel: "ページの先頭へ",
-      },
-    },
-  },
-  themeConfig: {
-    logo: "/app-icon.png",
-    siteTitle: "Sedum Note",
-    search: {
-      provider: "local",
-      options: {
-        translations: {
-          button: { buttonText: "検索", buttonAriaLabel: "検索" },
-          modal: {
-            displayDetails: "詳しく表示",
-            resetButtonTitle: "検索をクリア",
-            backButtonTitle: "検索を閉じる",
-            noResultsText: "見つかりませんでした",
-            footer: { selectText: "選ぶ", navigateText: "移動", closeText: "閉じる" },
-          },
-        },
-      },
-    },
-    socialLinks: [{ icon: "github", link: repository }],
-    footer: {
-      message: "Apache License 2.0",
-      copyright: "Copyright © aida0710",
-    },
+  sidebar,
+  footer: {
+    message: "Apache License 2.0",
+    copyright: "Copyright © aida0710",
   },
 });
