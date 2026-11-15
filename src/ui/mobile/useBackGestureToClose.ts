@@ -4,7 +4,7 @@
 // 下の画面は、上の画面が閉じて戻ってきたときに積み直す。こうすると、使われない履歴が残って「戻る」が空振りすることがない。
 
 import { useEffect, useRef } from "react";
-import { isBackEntryOnTop, pushBackEntry } from "../shared/backHistory";
+import { isBackEntryOnTop, isOwnHistoryTraversal, pushBackEntry, removeBackEntry } from "../shared/backHistory";
 
 const SCREEN_BACK_ENTRY_OWNER = "sedum-note-open-note";
 
@@ -18,8 +18,8 @@ export function useBackGestureToClose(isOpen: boolean, close: () => void): () =>
     }
     pushBackEntry(SCREEN_BACK_ENTRY_OWNER);
     const closeOnBack = () => {
-      // 外れたのが上に重ねたダイアログの履歴なら、この画面は閉じない。
-      if (!isBackEntryOnTop(SCREEN_BACK_ENTRY_OWNER)) {
+      // 外れたのが上に重ねたダイアログの履歴か、アプリが履歴を片付けるために戻したのなら、この画面は閉じない。
+      if (!isOwnHistoryTraversal() && !isBackEntryOnTop(SCREEN_BACK_ENTRY_OWNER)) {
         closeRef.current();
       }
     };
@@ -27,12 +27,9 @@ export function useBackGestureToClose(isOpen: boolean, close: () => void): () =>
     return () => window.removeEventListener("popstate", closeOnBack);
   }, [isOpen]);
 
-  // 画面の「戻る」も履歴を外す形にそろえ、積んだ履歴を残さない。
+  // 画面の「戻る」で閉じたときは、積んだ履歴も外す（上にダイアログやメニューの履歴があれば、それも一緒に閉じるので外れる）。
   return () => {
-    if (isBackEntryOnTop(SCREEN_BACK_ENTRY_OWNER)) {
-      window.history.back();
-    } else {
-      closeRef.current();
-    }
+    removeBackEntry(SCREEN_BACK_ENTRY_OWNER);
+    closeRef.current();
   };
 }

@@ -165,6 +165,22 @@ test("スマホでも、AI チャットの案内のボタンでメモを閉じ�
   await expect(page.getByRole("button", { name: "AI", exact: true })).toBeVisible();
 });
 
+test("スマホで AI チャットを開いたまま端末の「戻る」を押すと、チャットだけが閉じ、メモは開いたまま", async ({ browser }) => {
+  const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
+  await startLocalVault(page);
+  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await page.getByPlaceholder("タイトル").fill("買い物");
+  await page.getByRole("button", { name: "その他の操作" }).click();
+  await page.getByRole("menuitem", { name: "AIチャット" }).click();
+  await expect(page.getByRole("dialog", { name: "AIチャット" })).toBeVisible();
+
+  await page.goBack();
+  await expect(page.getByRole("dialog", { name: "AIチャット" })).toHaveCount(0);
+  await expect(page.getByPlaceholder("タイトル")).toHaveValue("買い物");
+  await page.goBack();
+  await expect(page.getByPlaceholder("タイトル")).toHaveCount(0);
+});
+
 test("Claude の API をつなぎ先にして会話を続けられ、答えをメモのカーソルの位置に入れられる", async ({ page }) => {
   const requests = await mockClaudeApi(page, ["- 牛乳を買う\n- 卵を買う", "卵は 6 個入りです。"]);
   await startLocalVault(page);

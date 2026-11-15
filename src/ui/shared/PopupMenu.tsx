@@ -1,4 +1,4 @@
-// ボタンの下に開くメニュー。外を押すか Escape で閉じる。
+// ボタンの下に開くメニュー。外を押すか Escape で閉じる。スマホの組み方では、端末の「戻る」でも閉じる（下の画面を閉じない）。
 // 開くとフォーカスがメニューへ移り、↑↓・Home・End と、項目の名前の頭の文字で項目を選べる。閉じると、開いたボタンへフォーカスを戻す。
 // 本文の選択を保つメニュー（takesFocus が false）は、フォーカスを本文に残したまま ↑↓ と Enter を受け、選んでいる項目を
 // aria-activedescendant で示す。
@@ -8,6 +8,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } f
 import { foldForSearch } from "../../core/notes/searchTextFolding";
 import { returnFocusTo } from "./focusReturn";
 import { isImeKeyEvent } from "./imeKeyEvent";
+import { useCloseOnBack } from "./useCloseOnBack";
 
 type PopupMenuProps = {
   anchor: HTMLElement;
@@ -59,6 +60,7 @@ export function PopupMenu({ anchor, onClose, children, align = "end", takesFocus
   const menuId = useId();
   const [placement, setPlacement] = useState<MenuPlacement | null>(null);
   const isPlaced = placement !== null;
+  useCloseOnBack({ elementRef: menuRef, onClose });
 
   // 開いているかを、開いたボタンの aria-expanded で読み上げに伝える。右クリックで開いた行など、メニューのボタンでないものには付けない。
   useEffect(() => {

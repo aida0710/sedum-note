@@ -9,7 +9,7 @@ import { useExitAnimation } from "./exitAnimation";
 import { returnFocusTo } from "./focusReturn";
 import { isImeKeyEvent } from "./imeKeyEvent";
 import { menuAnchorOf } from "./PopupMenu";
-import { useCloseDialogOnBack } from "./useCloseDialogOnBack";
+import { useCloseOnBack } from "./useCloseOnBack";
 
 const FOCUSABLE_SELECTOR = 'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
 
@@ -50,7 +50,7 @@ export function ModalDialog({ label, title, description, className = "", onClose
   // 開く前にフォーカスがあった要素（開いたボタンなど）。閉じたらそこへ戻す。
   // メニューの項目から開いたときは、項目がメニューごと消えるので、メニューを開いたボタンへ戻す。
   const openerRef = useRef<Element | null>(menuAnchorOf(document.activeElement) ?? document.activeElement);
-  useCloseDialogOnBack({ dialogRef, onClose });
+  useCloseOnBack({ elementRef: dialogRef, onClose });
   useEffect(() => {
     // 中の入力欄が autoFocus でフォーカスを取っていなければ、枠にフォーカスを移す。
     // 移さないと、メニューから開いたときに Escape が枠に届かず、閉じられない。

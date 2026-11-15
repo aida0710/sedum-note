@@ -188,6 +188,33 @@ test.describe("スマホの幅", () => {
     await expect(page.locator(".note-item", { hasText: "会議" })).toBeVisible();
   });
 
+  test("メニューを開いたまま端末の「戻る」を押すと、メニューだけが閉じ、下のメモは開いたまま。もう一度で一覧へ戻る", async ({ page }) => {
+    await startLocalVault(page);
+    await page.locator(".fab").click();
+    await page.getByPlaceholder("タイトル").fill("会議");
+    await page.getByRole("button", { name: "その他の操作" }).click();
+    await expect(page.getByRole("menu")).toBeVisible();
+
+    await page.goBack();
+    await expect(page.getByRole("menu")).toHaveCount(0);
+    await expect(page.getByPlaceholder("タイトル")).toHaveValue("会議");
+
+    await page.goBack();
+    await expect(page.locator(".note-item", { hasText: "会議" })).toBeVisible();
+  });
+
+  test("メニューの項目でメニューを閉じたあとの端末の「戻る」は、空振りせずにメモを閉じる", async ({ page }) => {
+    await startLocalVault(page);
+    await page.locator(".fab").click();
+    await page.getByPlaceholder("タイトル").fill("会議");
+    await page.getByRole("button", { name: "その他の操作" }).click();
+    await page.getByRole("menuitem", { name: "ピン留め" }).click();
+    await expect(page.getByRole("menu")).toHaveCount(0);
+
+    await page.goBack();
+    await expect(page.locator(".note-item", { hasText: "会議" })).toBeVisible();
+  });
+
   test("ダイアログを「閉じる」で閉じたあとの端末の「戻る」は、空振りせずにメモを閉じる", async ({ page }) => {
     await startLocalVault(page);
     await page.locator(".fab").click();
