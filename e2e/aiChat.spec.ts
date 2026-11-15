@@ -543,23 +543,20 @@ test("開いているメモの直しを頼むと、差分を承認してから�
   expect(followUp[1]!.content).toContainEqual(expect.objectContaining({ type: "tool_use", id: "toolu_fruit", name: "replace_note_body" }));
   expect(lastToolResults(requests[1]!.body)).toEqual([expect.objectContaining({ type: "tool_result", tool_use_id: "toolu_fruit", is_error: false })]);
 
-  // 直す前の状態は、メモの履歴に残る。
+  // 直す前の自分の状態と、AI が直した結果が、別々にメモの履歴に残る。
   await page.getByRole("button", { name: "その他の操作" }).last().click();
   await page.getByRole("menuitem", { name: "履歴" }).click();
-  await expect(page.getByRole("dialog", { name: "履歴" }).getByRole("option")).toHaveText([/編集前（AIチャット）/]);
+  const history = page.getByRole("dialog", { name: "履歴" });
+  await expect(history.getByRole("option")).toHaveText([/AIチャットの編集/, /自分の編集/]);
+  await expect(history.locator(".note-history-preview pre")).toHaveText("りんご\nバナナ\nみかん\nぶどう");
+  await history.getByRole("option").nth(1).click();
+  await expect(history.locator(".note-history-preview pre")).toHaveText("りんご\nばなな\nみかん");
   await page.keyboard.press("Escape");
 
   // AI の直しは、エディタの取り消しで 1 回で戻せる。
   await page.locator(".ProseMirror p").first().click();
   await page.keyboard.press("ControlOrMeta+z");
   await expect(page.locator(".ProseMirror p")).toHaveText(["りんご", "ばなな", "みかん"]);
-
-  // 取り消しは自分の編集なので、AI が直した結果が「編集前（自分）」として、間隔を待たずに残る。
-  await page.getByRole("button", { name: "その他の操作" }).last().click();
-  await page.getByRole("menuitem", { name: "履歴" }).click();
-  const history = page.getByRole("dialog", { name: "履歴" });
-  await expect(history.getByRole("option")).toHaveText([/編集前（自分）/, /編集前（AIチャット）/]);
-  await expect(history.locator(".note-history-preview pre")).toHaveText("りんご\nバナナ\nみかん\nぶどう");
 });
 
 test("AI の答えの Markdown を、見出し・太字・コード・表・リンクで出す。HTML は文字のまま出し、画像は読み込まない", async ({ page }) => {

@@ -4,7 +4,7 @@ import * as Y from "yjs";
 import { BLOCK_ID_ATTRIBUTE, ensureBlockId } from "./bodyBlocks";
 import { FOLDED_ATTRIBUTE } from "./bodyContentChange";
 import { appendParagraph } from "./bodyFixtures";
-import { EDIT_VERSION_INTERVAL_MILLISECONDS } from "./noteVersions";
+import { EDIT_PAUSE_MILLISECONDS } from "./noteVersions";
 import { newTestRepository } from "./repositoryFixtures";
 
 const MINUTE = 60_000;
@@ -27,7 +27,7 @@ async function writtenNote() {
   const heading = appendHeading(note.body, "決まったこと");
   appendParagraph(note.body, "来週までに見積もりを出す");
   await repository.flush();
-  clock.now = new Date(clock.now.getTime() + EDIT_VERSION_INTERVAL_MILLISECONDS + MINUTE);
+  clock.now = new Date(clock.now.getTime() + EDIT_PAUSE_MILLISECONDS + MINUTE);
   const updatedAt = repository.note(note.id)!.updatedAt;
   const changeBody = async (change: () => void) => {
     note.body.doc!.transact(change, EDITOR_ORIGIN);

@@ -1,6 +1,6 @@
 // メモとノートブックを変えるツール（作る、題やノートブックを変える、本文に足す・差し替える、ゴミ箱、ノートブックの作成・名前の変更・削除、
-// 完全な削除）。本文の差し替えは、変わったブロックだけを入れ替える（noteBodyChange.ts）。本文に足す・差し替える前には、
-// 今の状態を、誰が変えるか（changedBy）と一緒に履歴に残す（メモの「…」の履歴から戻せ、利用者の編集と見分けられる）。
+// 完全な削除）。本文の差し替えは、変わったブロックだけを入れ替える（noteBodyChange.ts）。本文に足す・差し替える前と後に、
+// その状態を履歴に残す。後の状態には誰が変えたか（changedBy）を付ける（メモの「…」の履歴から戻せ、利用者の編集と見分けられる）。
 
 import type { VersionChangedBy } from "../../core/local/localStore";
 import type { NoteChanges } from "../../core/notes/noteRepository";
@@ -108,9 +108,9 @@ export function noteChangeTools(context: NoteToolContext, changedBy: VersionChan
           preview: { kind: "appendToNote", noteId: note.id, title: note.content.title, characterCount: markdown.length },
           isCurrent: ALWAYS_CURRENT,
           run: async () => {
-            await repository.captureVersionBeforeReplace(note.id, changedBy);
+            await repository.captureVersionBeforeChange(note.id);
             await appendMarkdownToBody(markdown, note.body, importContext);
-            await repository.flush();
+            await repository.captureVersionAfterChange(note.id, changedBy);
             return describeNoteAfterChange(note);
           },
         };
@@ -143,10 +143,10 @@ export function noteChangeTools(context: NoteToolContext, changedBy: VersionChan
             }
             // 履歴に残すのを待つ間に、本文が変わることがある（エディタで書いている、ほかのデバイスから届く）。前と後で確かめる。
             ensureCurrent();
-            await repository.captureVersionBeforeReplace(note.id, changedBy);
+            await repository.captureVersionBeforeChange(note.id);
             ensureCurrent();
             applyBodyChange(note.body, bodyChange, exportContext);
-            await repository.flush();
+            await repository.captureVersionAfterChange(note.id, changedBy);
             return describeNoteAfterChange(note);
           },
         };

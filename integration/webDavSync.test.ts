@@ -4,7 +4,7 @@ import { newRandomId } from "../src/core/crypto/randomId";
 import { IndexedDbLocalStore } from "../src/core/local/indexedDbLocalStore";
 import { appendAttachmentImage, appendParagraph } from "../src/core/notes/bodyFixtures";
 import { bodyPlainText } from "../src/core/notes/bodyText";
-import { EDIT_VERSION_INTERVAL_MILLISECONDS } from "../src/core/notes/noteVersions";
+import { EDIT_PAUSE_MILLISECONDS } from "../src/core/notes/noteVersions";
 import { ensureConditionalWrites } from "../src/core/remote/conditionalWriteCheck";
 import { createObjectStore } from "../src/core/remote/createObjectStore";
 import { PreconditionFailedError, sendWithFetch } from "../src/core/remote/objectStore";
@@ -45,7 +45,7 @@ describe("WebDavObjectStore（本物の WebDAV サーバー）", () => {
     await phone.syncEngine!.syncOnce();
     expect(await phone.repository.readAttachment(attachment.id)).toEqual(photo);
 
-    clock.now = new Date(clock.now.getTime() + EDIT_VERSION_INTERVAL_MILLISECONDS);
+    clock.now = new Date(clock.now.getTime() + EDIT_PAUSE_MILLISECONDS);
     appendParagraph(laptop.repository.note(note.id)!.body, "PC");
     appendParagraph(phone.repository.note(note.id)!.body, "スマホ");
     await laptop.syncEngine!.syncOnce();

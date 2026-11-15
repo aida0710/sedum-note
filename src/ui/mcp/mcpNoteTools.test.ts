@@ -62,20 +62,20 @@ describe("MCP のメモのツール", () => {
     expect(blockLineText(findBlock(repository.note(note.id)!.body, blockId)!)).toBe("決まったこと");
   });
 
-  it("本文を置き換える前の状態が、作ってすぐのメモでも履歴に残る", async () => {
+  it("本文を置き換える前の状態が作ってすぐのメモでも履歴に残り、置き換えた結果が MCP の編集として残る", async () => {
     const { repository, run } = await toolsOver();
     const { noteId } = await run("create_note", { title: "下書き", markdown: "利用者が書いた文" });
     await run("replace_note_body", { noteId, markdown: "AI が書き換えた文" });
     expect(bodyPlainText(repository.note(noteId)!.body)).toBe("AI が書き換えた文");
-    expect((await repository.noteVersions(noteId)).map((version) => [version.reason, version.changedBy, version.plainText])).toEqual([["replace", "mcp", "利用者が書いた文"]]);
+    expect((await repository.noteVersions(noteId)).map((version) => [version.changedBy, version.plainText])).toEqual([["mcp", "AI が書き換えた文"], [undefined, "利用者が書いた文"]]);
   });
 
-  it("追記は、今ある本文を残して末尾に足し、足す前の状態を MCP が変えたこととして履歴に残す", async () => {
+  it("追記は、今ある本文を残して末尾に足し、足す前と後の状態を履歴に残す", async () => {
     const { repository, run } = await toolsOver();
     const { noteId } = await run("create_note", { title: "買い物", markdown: "牛乳" });
     await run("append_to_note", { noteId, markdown: "- 卵\n- パン" });
     expect(bodyPlainText(repository.note(noteId)!.body)).toBe("牛乳\n卵\nパン");
-    expect((await repository.noteVersions(noteId)).map((version) => [version.reason, version.changedBy, version.plainText])).toEqual([["replace", "mcp", "牛乳"]]);
+    expect((await repository.noteVersions(noteId)).map((version) => [version.changedBy, version.plainText])).toEqual([["mcp", "牛乳\n卵\nパン"], [undefined, "牛乳"]]);
   });
 
   it("タイトル・ノートブック・ピン留めを変え、ゴミ箱へ入れて戻せる", async () => {
@@ -135,8 +135,8 @@ describe("MCP で本文を読んで書き戻したときに残るもの", () => 
       expect(body).toContain(kept);
     }
     expect((await run("get_note", { noteId: note.id })).attachments).toEqual([report]);
-    // 書き換える前の本文は履歴にある。
-    expect((await repository.noteVersions(note.id)).map((version) => version.reason)).toEqual(["replace"]);
+    // 書き換える前と後の本文が履歴にある。
+    expect((await repository.noteVersions(note.id)).map((version) => version.changedBy)).toEqual(["mcp", undefined]);
   });
 
   it("本文の差し替えは、直していないブロックの文字色を残す", async () => {

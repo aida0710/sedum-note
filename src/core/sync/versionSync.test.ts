@@ -4,7 +4,7 @@ import { newRandomId } from "../crypto/randomId";
 import { IndexedDbLocalStore } from "../local/indexedDbLocalStore";
 import { appendParagraph } from "../notes/bodyFixtures";
 import { bodyPlainText } from "../notes/bodyText";
-import { EDIT_VERSION_INTERVAL_MILLISECONDS } from "../notes/noteVersions";
+import { EDIT_PAUSE_MILLISECONDS } from "../notes/noteVersions";
 import { MAX_VERSIONS_PER_NOTE, VERSION_RETENTION_DAYS } from "../notes/versionRetention";
 import { MemoryObjectStore } from "../remote/memoryObjectStore";
 import type { RemoteConfig } from "../remote/remoteConfig";
@@ -34,7 +34,7 @@ async function twoDevices() {
   };
   // 間隔をあけて本文に 1 行足す。足す前の状態が、履歴に 1 つ残る。
   const writeLineAfterInterval = async (device: UnlockedVault, noteId: string, text: string) => {
-    advance(EDIT_VERSION_INTERVAL_MILLISECONDS);
+    advance(EDIT_PAUSE_MILLISECONDS);
     appendParagraph(device.repository.note(noteId)!.body, text);
     await device.repository.flush();
   };
@@ -69,19 +69,20 @@ describe("履歴の同期", () => {
     expect(await remoteVersionCount(store)).toBe(2);
   });
 
-  it("AI が変える前の版を同期先から取ってきても、AI が変えたことが分かる", async () => {
+  it("AI が変えた版を同期先から取ってきても、AI が変えたことが分かる", async () => {
     const { laptop, phone } = await twoDevices();
     const note = await laptop.repository.createNote({ title: "議事録" });
     appendParagraph(note.body, "1 行目");
     await laptop.repository.flush();
-    await laptop.repository.captureVersionBeforeReplace(note.id, "ai");
+    await laptop.repository.captureVersionBeforeChange(note.id);
     appendParagraph(note.body, "AI の行");
-    await laptop.repository.flush();
+    await laptop.repository.captureVersionAfterChange(note.id, "ai");
     await sync(laptop);
     await sync(phone);
     await phone.repository.downloadNoteVersions(note.id);
     expect((await phone.repository.noteVersions(note.id)).filter((version) => version.reason !== "sync").map((version) => [version.reason, version.changedBy, version.plainText])).toEqual([
-      ["replace", "ai", "1 行目"],
+      ["edit", "ai", "1 行目\nAI の行"],
+      ["edit", undefined, "1 行目"],
     ]);
   });
 
@@ -213,7 +214,10 @@ describe("履歴の同期", () => {
     for (let line = 2; line <= MAX_VERSIONS_PER_NOTE + 1; line += 1) {
       await writeLineAfterInterval(laptop, note.id, `${line} 行目`);
     }
-    await sync(laptop);
+    // 1 回の同期で送る数には上限があるので、送り終えるまで同期する。
+    for (let round = 0; round < Math.ceil(MAX_VERSIONS_PER_NOTE / MAX_VERSION_UPLOADS_PER_SYNC); round += 1) {
+      await sync(laptop);
+    }
     expect(await remoteVersionCount(store)).toBe(MAX_VERSIONS_PER_NOTE);
     const phoneHistory = await historyTexts(phone, note.id);
     expect(phoneHistory).toHaveLength(MAX_VERSIONS_PER_NOTE);

@@ -55,9 +55,11 @@ function textAsContent(text: string): JSONContent | JSONContent[] {
 
 async function applyPluginResult(result: PluginResult, { note, editor, repository }: Pick<PluginCommandInput, "note" | "editor" | "repository">): Promise<void> {
   const context = importContextOf(repository);
-  // 本文を変える前の状態を、プラグインが変えたこととして履歴に残す（取り消しと別に、あとからでも戻せ、利用者の編集と見分けられる）。
-  if (result.replaceBody !== undefined || result.replaceSelection !== undefined || result.append !== undefined) {
-    await repository.captureVersionBeforeReplace(note.id, "plugin");
+  // 本文を変える前と後の状態を履歴に残す。後の状態は、プラグインが変えたものとして残す（取り消しと別に、あとからでも戻せ、
+  // 利用者の編集と見分けられる）。
+  const changesBody = result.replaceBody !== undefined || result.replaceSelection !== undefined || result.append !== undefined;
+  if (changesBody) {
+    await repository.captureVersionBeforeChange(note.id);
   }
   if (result.replaceBody !== undefined) {
     await writeMarkdownToBody(result.replaceBody, note.body, context);
@@ -70,6 +72,9 @@ async function applyPluginResult(result: PluginResult, { note, editor, repositor
   }
   if (result.append !== undefined) {
     await appendMarkdownToBody(result.append, note.body, context);
+  }
+  if (changesBody) {
+    await repository.captureVersionAfterChange(note.id, "plugin");
   }
   if (result.setTitle !== undefined) {
     await repository.updateNote(note.id, { title: result.setTitle });

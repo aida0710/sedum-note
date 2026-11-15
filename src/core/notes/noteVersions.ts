@@ -1,5 +1,5 @@
-// メモの履歴。本文を編集し始める前の状態、本文を丸ごと書き換える前（置き換えと、履歴の版への復元）の状態、
-// ほかのデバイスの変更を取り込む前の状態を残す。
+// メモの履歴。書いている途中の区切り（書くのを止めて、また書き始めた所）の状態、AI・MCP・プラグインが本文を変える前と後の
+// 状態、履歴の版へ戻す前の状態、ほかのデバイスの変更を取り込む前の状態を残す。
 // 取り込みの前の状態のほかは、同期先にも置く（sync/versionSync.ts）。バックアップには入れない。
 // 残す数と期間の決まりは versionRetention.ts。
 //
@@ -8,26 +8,21 @@
 
 import type * as Y from "yjs";
 import { newRandomId } from "../crypto/randomId";
-import { sameBytes } from "../crypto/sameBytes";
 import type { LocalStore, LocalVersionEntry, VersionChangedBy } from "../local/localStore";
 import { bodyAttachments, bodyPlainText } from "./bodyText";
 import { openRecordPayload } from "./recordCodec";
 import { latestFieldTime, readField, recordBody, recordDocumentFromState } from "./recordDocument";
 import { versionsToRemove } from "./versionRetention";
 
-// 編集の前の状態を残す間隔。打つたびに残すと増えすぎるので、前に残してから（まだ残していなければ、
-// メモを作ってから）これだけ空いたあとの編集で残す。
-export const EDIT_VERSION_INTERVAL_MILLISECONDS = 10 * 60 * 1000;
-
-// 本文を書き換える前に残す版の理由。replace は AI・MCP・プラグインの書き換えで、誰が書き換えるかを changedBy に持つ。
-// restore は履歴の版への復元。
-export type OverwriteCapture = { reason: "replace"; changedBy: VersionChangedBy } | { reason: "restore" };
+// 書くのをこれだけ止めたら、ひとまとまりの編集が終わったとみなす。止めたあとにまた書き始めたとき、止める前の状態を
+// 「自分の編集」として残す（打つたびには残さない。続けて書いている間は 1 つの版にまとまる）。Notion の「やめて約 2 分後」に近い長さ。
+export const EDIT_PAUSE_MILLISECONDS = 3 * 60 * 1000;
 
 export type NoteVersion = {
   id: string;
   capturedAt: string;
   reason: LocalVersionEntry["reason"];
-  // replace の版で、そのあと本文を書き換えたもの。分からない（v0.8.3 までのアプリが残した）ときは無い。
+  // その状態を作ったもの（AI・MCP・プラグイン）。edit の版で無ければ、利用者が書いた状態。
   changedBy?: VersionChangedBy;
   // その状態が最後に変えられた時刻。
   updatedAt: string;
@@ -43,67 +38,42 @@ export type NoteVersionHistoryDependencies = {
 
 export class NoteVersionHistory {
   readonly #dependencies: NoteVersionHistoryDependencies;
-  // メモごとの、次の「編集の前」を残す間隔の起点（ミリ秒）。最後に「編集の前」か「書き換えの前」を残した時刻か、
-  // まだ残していなければメモを作った時刻。まだ調べていないメモは入っていない。
-  readonly #editCaptureBaselines = new Map<string, number>();
-  // AI・MCP・プラグインが本文を書き換えたメモの、書き換える前の暗号文。書き換えたあとの、利用者の最初の編集では、
-  // 間隔を待たずに書き換えた結果を残す（そうしないと、書き換えた結果と利用者の編集が 1 つの版に混ざり、どこまでが
-  // AI の変更か分からなくなる）。このウィンドウのメモリだけに持つので、読み込み直すと、ふだんの間隔に戻る。
-  readonly #sealedBeforeChangeByOthers = new Map<string, Uint8Array>();
 
   constructor(dependencies: NoteVersionHistoryDependencies) {
     this.#dependencies = dependencies;
   }
 
-  // 本文の編集を保存する直前に呼ぶ。sealedBeforeEdit は、それまで手元に保存してあった暗号文。
-  async captureBeforeEdit(recordId: string, sealedBeforeEdit: Uint8Array): Promise<void> {
-    const sealedBeforeChange = this.#sealedBeforeChangeByOthers.get(recordId);
-    if (sealedBeforeChange !== undefined) {
-      // 同じ暗号文なら、書き換えそのものの保存（書き換える前の状態は、もう残してある）。
-      if (sameBytes(sealedBeforeChange, sealedBeforeEdit)) {
-        return;
-      }
-      this.#sealedBeforeChangeByOthers.delete(recordId);
-      await this.#putAndRemoveOutdated(recordId, { reason: "edit" }, sealedBeforeEdit);
+  // 本文の編集を保存する直前に呼ぶ。sealedBeforeEdit は、それまで手元に保存してあった暗号文、lastEditedAt はその状態を
+  // 最後に編集した時刻（ミリ秒。まだ編集していなければ null）。書くのを EDIT_PAUSE_MILLISECONDS 以上止めていたら、
+  // 止める前の状態を「自分の編集」として残す。続けて書いている間は、暗号文を開かずに返す（保存のたびに呼ばれるため）。
+  async captureAfterPause(recordId: string, sealedBeforeEdit: Uint8Array, lastEditedAt: number | null): Promise<void> {
+    if (lastEditedAt !== null && this.#dependencies.now().getTime() - lastEditedAt < EDIT_PAUSE_MILLISECONDS) {
       return;
     }
-    const now = this.#dependencies.now().getTime();
-    const baseline = await this.#editCaptureBaseline(recordId);
-    if (baseline !== null && now - baseline < EDIT_VERSION_INTERVAL_MILLISECONDS) {
-      return;
-    }
-    const doc = await this.#openDocument(recordId, sealedBeforeEdit);
+    await this.captureState(recordId, sealedBeforeEdit);
+  }
+
+  // 今の状態を、間隔に関わらず残す。changedBy は、その状態を作ったもの（AI・MCP・プラグインが変えた直後）。
+  // 無ければ利用者が書いた状態（AI などが変える直前の、利用者の書きかけ）。何も書いていない状態と、いちばん新しい版と
+  // 同じ状態は残さない。
+  async captureState(recordId: string, sealed: Uint8Array, changedBy?: VersionChangedBy): Promise<void> {
+    const doc = await this.#openDocument(recordId, sealed);
     if (doc === null) {
       return;
     }
     try {
-      if (baseline === null) {
-        // まだ 1 つも残していないメモは、作った時刻を起点にする（作ってすぐの書きかけは残さない）。
-        const createdAt = new Date(readField<string>(doc, "createdAt") ?? 0).getTime();
-        if (now - createdAt < EDIT_VERSION_INTERVAL_MILLISECONDS) {
-          this.#editCaptureBaselines.set(recordId, createdAt);
-          return;
-        }
-      }
-      // 何も書いていない状態は、残しても戻す中身が無い。
-      if (bodyPlainText(recordBody(doc)) === "" && bodyAttachments(recordBody(doc)).length === 0) {
+      if (isEmptyBody(doc) || await this.#hasSameContentAsNewestVersion(recordId, doc)) {
         return;
       }
     } finally {
       doc.destroy();
     }
-    await this.#putAndRemoveOutdated(recordId, { reason: "edit" }, sealedBeforeEdit);
+    await this.#putAndRemoveOutdated(recordId, { reason: "edit", changedBy }, sealed);
   }
 
-  // 本文を丸ごと書き換える直前に呼ぶ。間隔を空けずに毎回残す（数は「編集の前」と合わせて上限まで）。
-  // 書き換えたあとの保存でも「編集の前」を残そうとするが、残すのは同じ状態なので、ここを間隔の起点にして重ねない。
-  async captureBeforeOverwrite(recordId: string, sealedBeforeOverwrite: Uint8Array, capture: OverwriteCapture): Promise<void> {
-    await this.#putAndRemoveOutdated(recordId, capture, sealedBeforeOverwrite);
-    if (capture.reason === "replace") {
-      this.#sealedBeforeChangeByOthers.set(recordId, sealedBeforeOverwrite);
-    } else {
-      this.#sealedBeforeChangeByOthers.delete(recordId);
-    }
+  // 履歴の版へ戻す直前に呼ぶ。戻す前の状態を、間隔に関わらず残す。
+  async captureBeforeRestore(recordId: string, sealedBeforeRestore: Uint8Array): Promise<void> {
+    await this.#putAndRemoveOutdated(recordId, { reason: "restore" }, sealedBeforeRestore);
   }
 
   // ほかのデバイスの変更を取り込む直前に呼ぶ。メモごとに、いちばん新しい 1 つだけを残す。
@@ -148,40 +118,37 @@ export class NoteVersionHistory {
 
   // メモを完全に削除したときに呼ぶ。
   async forget(recordId: string): Promise<void> {
-    this.#editCaptureBaselines.delete(recordId);
-    this.#sealedBeforeChangeByOthers.delete(recordId);
     await this.#dependencies.localStore.deleteVersionsOfRecord(recordId);
   }
 
   async #put(recordId: string, capture: Pick<LocalVersionEntry, "reason" | "changedBy">, sealed: Uint8Array): Promise<void> {
-    await this.#dependencies.localStore.putVersion({
-      id: newRandomId(), recordId, ...capture, sealed, capturedAt: this.#dependencies.now().toISOString(), uploaded: false,
-    });
+    const versions = await this.#dependencies.localStore.listVersions(recordId);
+    // AI が変える前と後のように、同じミリ秒に続けて残すことがある。並びが前後しないよう、前に残した版より後の時刻にする。
+    const latestCapturedAt = Math.max(0, ...versions.map((version) => new Date(version.capturedAt).getTime()));
+    const capturedAt = new Date(Math.max(this.#dependencies.now().getTime(), latestCapturedAt + 1)).toISOString();
+    await this.#dependencies.localStore.putVersion({ id: newRandomId(), recordId, ...capture, sealed, capturedAt, uploaded: false });
   }
 
-  // 「編集の前」か「書き換えの前」を残し、そこを次の「編集の前」の間隔の起点にする。
   async #putAndRemoveOutdated(recordId: string, capture: Pick<LocalVersionEntry, "reason" | "changedBy">, sealed: Uint8Array): Promise<void> {
     await this.#put(recordId, capture, sealed);
-    this.#editCaptureBaselines.set(recordId, this.#dependencies.now().getTime());
     await this.#removeOutdatedVersions(recordId);
   }
 
-  // 手元の履歴から起点を決める。「編集の前」も「書き換えの前」も 1 つも無ければ null（起点は文書を開いて決める）。
-  // 「取り込みの前」は、このデバイスの編集とは関わりなく残るので、起点にしない。
-  async #editCaptureBaseline(recordId: string): Promise<number | null> {
-    const known = this.#editCaptureBaselines.get(recordId);
-    if (known !== undefined) {
-      return known;
-    }
-    const captureTimes = (await this.#dependencies.localStore.listVersions(recordId))
+  // いちばん新しく残した版（取り込みの前の控えを除く）と、題と本文が同じか。AI が変える前に残した状態を、変えたあとの
+  // 保存でもう一度残さないため（編集した時刻の書き込みだけでも暗号文は変わるので、中身で比べる）。
+  async #hasSameContentAsNewestVersion(recordId: string, doc: Y.Doc): Promise<boolean> {
+    const newest = (await this.#dependencies.localStore.listVersions(recordId))
       .filter((version) => version.reason !== "sync")
-      .map((version) => new Date(version.capturedAt).getTime());
-    if (captureTimes.length === 0) {
-      return null;
+      .sort((left, right) => right.capturedAt.localeCompare(left.capturedAt))[0];
+    const newestDoc = newest ? await this.#openDocument(recordId, newest.sealed) : null;
+    if (newestDoc === null) {
+      return false;
     }
-    const latest = Math.max(...captureTimes);
-    this.#editCaptureBaselines.set(recordId, latest);
-    return latest;
+    try {
+      return readField(newestDoc, "title") === readField(doc, "title") && recordBody(newestDoc).toString() === recordBody(doc).toString();
+    } finally {
+      newestDoc.destroy();
+    }
   }
 
   // 残す数と期間の決まりから外れた版を、手元から消す。同期先の分は、同期のときに同じ決まりで消す。
@@ -203,4 +170,9 @@ export class NoteVersionHistory {
       return null;
     }
   }
+}
+
+// 何も書いていない状態か（残しても戻す中身が無い）。
+function isEmptyBody(doc: Y.Doc): boolean {
+  return bodyPlainText(recordBody(doc)) === "" && bodyAttachments(recordBody(doc)).length === 0;
 }

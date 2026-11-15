@@ -22,8 +22,8 @@ export type LocalBlobEntry = {
   uploaded: boolean;
 };
 
-// replace の版で、本文を書き換えたもの。ai はアプリの中の AI のチャット、mcp は MCP でつないだ AI、plugin はプラグイン。
-// v0.8.3 までのアプリが残した replace の版には無い（誰が書き換えたかは分からない）。
+// 版の状態を作ったもの。ai はアプリの中の AI のチャット、mcp は MCP でつないだ AI、plugin はプラグイン。
+// 利用者が書いた状態と、v0.8.3 までのアプリが残した版には無い。
 export type VersionChangedBy = "ai" | "mcp" | "plugin";
 
 // メモの過去の状態（履歴）。同期先にも置く（sync/versionSync.ts）。バックアップには入れない。
@@ -32,11 +32,12 @@ export type LocalVersionEntry = {
   recordId: string;
   // ISO 8601。この状態を残した時刻。
   capturedAt: string;
-  // edit は編集を始める前の状態、sync はほかのデバイスの変更を取り込む前の状態、
-  // replace は本文を書き換える前（AI・MCP・プラグインの書き換え）の状態、restore は履歴の版へ戻す前の状態。
+  // edit は編集の区切り（書くのを止めた所と、AI・MCP・プラグインが変える前と後）の状態、sync はほかのデバイスの変更を
+  // 取り込む前の状態、restore は履歴の版へ戻す前の状態。replace は v0.8.3 までのアプリが残した、MCP・プラグインが本文を
+  // 置き換える前の状態（今は残さない）。v0.8.3 までの edit は、編集を始める前の状態。
   // 理由の値は増やさない。v0.8.3 までのアプリは、知らない理由の版を同期先から取り込まずに捨てる。
   reason: "edit" | "sync" | "replace" | "restore";
-  // replace の版で、そのあと本文を書き換えたもの。
+  // edit の版の状態を作ったもの。無ければ利用者。
   changedBy?: VersionChangedBy;
   // 記録と同じ形の暗号文（recordCodec.ts）。記録の ID に結び付いている。
   sealed: Uint8Array;

@@ -4,7 +4,7 @@ import * as Y from "yjs";
 import { appendAttachmentImage, appendParagraph } from "./bodyFixtures";
 import { bodyPlainText } from "./bodyText";
 import { RecordNotFoundError } from "./noteRepository";
-import { EDIT_VERSION_INTERVAL_MILLISECONDS } from "./noteVersions";
+import { EDIT_PAUSE_MILLISECONDS } from "./noteVersions";
 import { newTestRepository } from "./repositoryFixtures";
 
 const MINUTE = 60_000;
@@ -70,13 +70,13 @@ describe("メモの履歴", () => {
     // 作ってすぐの書きかけは残さない。
     expect(await repository.noteVersions(note.id)).toEqual([]);
 
-    advance(EDIT_VERSION_INTERVAL_MILLISECONDS);
+    advance(EDIT_PAUSE_MILLISECONDS);
     await writeLine(note.id, "3 行目");
     advance(MINUTE);
     await writeLine(note.id, "4 行目");
     expect((await repository.noteVersions(note.id)).map((version) => version.plainText)).toEqual(["1 行目\n2 行目"]);
 
-    advance(EDIT_VERSION_INTERVAL_MILLISECONDS);
+    advance(EDIT_PAUSE_MILLISECONDS);
     await writeLine(note.id, "5 行目");
     expect((await repository.noteVersions(note.id)).map((version) => [version.reason, version.title, version.plainText])).toEqual([
       ["edit", "議事録", "1 行目\n2 行目\n3 行目\n4 行目"],
@@ -84,41 +84,60 @@ describe("メモの履歴", () => {
     ]);
   });
 
-  it("AI が本文を変える前の状態を、AI が変えたこととして残し、そのあとの自分の最初の編集では、間隔を待たずに AI の変えた結果を残す", async () => {
+  it("書くのを止めずに続けている間は残さず、止めてから書き始めたときに、止める前の状態を残す", async () => {
+    const { repository, advance, writeLine } = await repositoryWithClock();
+    const note = await repository.createNote({ title: "議事録" });
+    for (let line = 1; line <= 5; line += 1) {
+      await writeLine(note.id, `${line} 行目`);
+      advance(EDIT_PAUSE_MILLISECONDS - MINUTE);
+    }
+    expect(await repository.noteVersions(note.id)).toEqual([]);
+    advance(MINUTE);
+    await writeLine(note.id, "止めたあとの行");
+    expect((await repository.noteVersions(note.id)).map((version) => [version.reason, version.changedBy, version.plainText])).toEqual([
+      ["edit", undefined, "1 行目\n2 行目\n3 行目\n4 行目\n5 行目"],
+    ]);
+  });
+
+  it("AI が本文を変えると、変える前の自分の書きかけと、AI が変えた結果を、間隔に関わらず分けて残す", async () => {
     const { repository, advance, writeLine } = await repositoryWithClock();
     const note = await repository.createNote({ title: "議事録" });
     await writeLine(note.id, "自分の行");
     advance(MINUTE);
-    await repository.captureVersionBeforeReplace(note.id, "ai");
-    await writeLine(note.id, "AI の行");
+    await repository.captureVersionBeforeChange(note.id);
+    appendParagraph(repository.note(note.id)!.body, "AI の行");
+    await repository.captureVersionAfterChange(note.id, "ai");
+    // AI のすぐあとに続けて書いた分は、止めるまで残さない。止めてから書き始めたら、自分の編集として残す。
     advance(MINUTE);
     await writeLine(note.id, "自分で足した行");
-    advance(MINUTE);
-    // 2 回目からは、ふだんの間隔に戻る。
-    await writeLine(note.id, "もう 1 行");
+    advance(EDIT_PAUSE_MILLISECONDS);
+    await writeLine(note.id, "止めたあとの行");
     expect((await repository.noteVersions(note.id)).map((version) => [version.reason, version.changedBy, version.plainText])).toEqual([
-      ["edit", undefined, "自分の行\nAI の行"],
-      ["replace", "ai", "自分の行"],
+      ["edit", undefined, "自分の行\nAI の行\n自分で足した行"],
+      ["edit", "ai", "自分の行\nAI の行"],
+      ["edit", undefined, "自分の行"],
     ]);
   });
 
-  it("MCP とプラグインが変える前の版も、誰が変えたかを持つ", async () => {
+  it("AI が続けて変えても、同じ状態を 2 回残さない。MCP とプラグインも、誰が変えたかを持つ", async () => {
     const { repository, advance, writeLine } = await repositoryWithClock();
     const note = await repository.createNote({ title: "メモ" });
     await writeLine(note.id, "1 行目");
-    await repository.captureVersionBeforeReplace(note.id, "mcp");
-    await writeLine(note.id, "MCP の行");
+    await repository.captureVersionBeforeChange(note.id);
+    appendParagraph(repository.note(note.id)!.body, "MCP の行");
+    await repository.captureVersionAfterChange(note.id, "mcp");
     advance(MINUTE);
-    await repository.captureVersionBeforeReplace(note.id, "plugin");
-    await writeLine(note.id, "プラグインの行");
-    expect((await repository.noteVersions(note.id)).map((version) => version.changedBy)).toEqual(["plugin", "mcp"]);
+    await repository.captureVersionBeforeChange(note.id);
+    appendParagraph(repository.note(note.id)!.body, "プラグインの行");
+    await repository.captureVersionAfterChange(note.id, "plugin");
+    expect((await repository.noteVersions(note.id)).map((version) => version.changedBy)).toEqual(["plugin", "mcp", undefined]);
   });
 
   it("タイトルやピン留めだけの変更では残さない", async () => {
     const { repository, advance, writeLine } = await repositoryWithClock();
     const note = await repository.createNote({ title: "メモ" });
     await writeLine(note.id, "本文");
-    advance(EDIT_VERSION_INTERVAL_MILLISECONDS);
+    advance(EDIT_PAUSE_MILLISECONDS);
     await repository.updateNote(note.id, { title: "名前を変えた", pinned: true });
     await repository.flush();
     expect(await repository.noteVersions(note.id)).toEqual([]);
@@ -132,7 +151,7 @@ describe("メモの履歴", () => {
     const photo = await repository.storeAttachment({ bytes: new Uint8Array([1, 2, 3]), mimeType: "image/png", fileName: "photo.png" });
     appendAttachmentImage(repository.note(note.id)!.body, photo);
     await repository.flush();
-    advance(EDIT_VERSION_INTERVAL_MILLISECONDS);
+    advance(EDIT_PAUSE_MILLISECONDS);
     const body = repository.note(note.id)!.body;
     body.delete(0, body.length);
     await writeLine(note.id, "書き直した文");
@@ -155,12 +174,12 @@ describe("メモの履歴", () => {
     const { repository, advance, writeLine } = await repositoryWithClock();
     const note = await repository.createNote({ title: "議事録" });
     await writeLine(note.id, "1 行目");
-    advance(EDIT_VERSION_INTERVAL_MILLISECONDS);
+    advance(EDIT_PAUSE_MILLISECONDS);
     await writeLine(note.id, "2 行目");
     const [version] = await repository.noteVersions(note.id);
 
     // 前に「編集の前」を残してから間隔が空いていても、戻したあとの保存で、戻す前と同じ状態を「編集の前」として重ねない。
-    advance(EDIT_VERSION_INTERVAL_MILLISECONDS);
+    advance(EDIT_PAUSE_MILLISECONDS);
     await repository.restoreNoteToVersion({ noteId: note.id, versionId: version!.id });
     expect((await repository.noteVersions(note.id)).map((kept) => [kept.reason, kept.plainText])).toEqual([
       ["restore", "1 行目\n2 行目"],
@@ -187,7 +206,7 @@ describe("メモの履歴", () => {
     appendFormattingMarkdownCannotHold(body);
     await repository.flush();
     const structureOfVersion = bodyStructure(body);
-    advance(EDIT_VERSION_INTERVAL_MILLISECONDS);
+    advance(EDIT_PAUSE_MILLISECONDS);
     body.delete(0, body.length);
     await writeLine(note.id, "書式を消した文");
 
@@ -222,7 +241,7 @@ describe("メモの履歴", () => {
     const { repository, localStore, advance, writeLine } = await repositoryWithClock();
     const note = await repository.createNote({ title: "消すメモ" });
     await writeLine(note.id, "1 行目");
-    advance(EDIT_VERSION_INTERVAL_MILLISECONDS);
+    advance(EDIT_PAUSE_MILLISECONDS);
     await writeLine(note.id, "2 行目");
     expect(await localStore.listVersions(note.id)).toHaveLength(1);
     await repository.removeNotePermanently(note.id);

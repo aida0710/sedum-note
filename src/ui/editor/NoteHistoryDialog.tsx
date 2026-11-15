@@ -12,10 +12,10 @@ import { useToast } from "../shared/ToastProvider";
 import { ProgressStatus } from "../shared/ProgressStatus";
 import { useAsyncAction } from "../shared/useAsyncAction";
 
-// 版を残した理由。AI・MCP・プラグインの書き換えの前の版は、誰が書き換えたかを出す（分からない古い版は、まとめた名前）。
+// 版の名前。編集の区切りの版は、その状態を作ったもの（自分・AI チャット・MCP・プラグイン）を出す。
 function versionReasonLabel(version: NoteVersion): string {
-  if (version.reason === "replace" && version.changedBy !== undefined) {
-    return translate(`history.reason.replace.${version.changedBy}`);
+  if (version.reason === "edit" && version.changedBy !== undefined) {
+    return translate(`history.reason.edit.${version.changedBy}`);
   }
   return translate(`history.reason.${version.reason}`);
 }

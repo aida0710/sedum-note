@@ -11,7 +11,7 @@ import { VaultAlreadyExistsError, type VaultSessionEnvironment } from "../src/co
 import { createSyncedVault, joinSyncedVault } from "../src/core/vault/vaultTestDevices";
 import { appendAttachmentImage, appendParagraph } from "../src/core/notes/bodyFixtures";
 import { bodyPlainText } from "../src/core/notes/bodyText";
-import { EDIT_VERSION_INTERVAL_MILLISECONDS } from "../src/core/notes/noteVersions";
+import { EDIT_PAUSE_MILLISECONDS } from "../src/core/notes/noteVersions";
 import { newTestRemoteConfig } from "./testStorage";
 
 const PASSPHRASE = "correct horse battery";
@@ -73,7 +73,7 @@ describe("S3ObjectStore（SeaweedFS）", () => {
     const note = await laptop.repository.createNote({ title: "議事録" });
     appendParagraph(note.body, "1 行目");
     await laptop.repository.flush();
-    clock.now = new Date(clock.now.getTime() + EDIT_VERSION_INTERVAL_MILLISECONDS);
+    clock.now = new Date(clock.now.getTime() + EDIT_PAUSE_MILLISECONDS);
     appendParagraph(laptop.repository.note(note.id)!.body, "2 行目");
     await laptop.syncEngine!.syncOnce();
     await phone.syncEngine!.syncOnce();

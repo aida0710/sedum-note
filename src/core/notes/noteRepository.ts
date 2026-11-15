@@ -21,7 +21,7 @@ import { isDueTime } from "./dueTimes";
 import { isNotebookWithin } from "./noteQueries";
 import { PROPERTY_DEFINITION_FIELD_PREFIX, PROPERTY_VALUE_FIELD_PREFIX, type PropertyDefinition, propertyDefinitionFromField, type PropertyValue } from "./noteProperties";
 import { type AttachmentReference, type LiveNote, type LiveNotebook, type LiveRecord, type LiveSavedSearch, type NotebookContent, PAGE_ALIGNMENTS, type PageAlignment, type SavedSearchContent } from "./noteRecords";
-import { type NoteVersion, NoteVersionHistory, type OverwriteCapture } from "./noteVersions";
+import { type NoteVersion, NoteVersionHistory } from "./noteVersions";
 import type { RecordChangeChannel } from "./recordChangeChannel";
 import { type RepositoryChangeOrigin, RepositoryChangeNotifier } from "./repositoryChangeNotifier";
 import { openRecordPayload, type RecordPayload, sealRecordPayload } from "./recordCodec";
@@ -241,10 +241,21 @@ export class NoteRepository {
     return this.#versionHistory.list(noteId);
   }
 
-  // AI・MCP・プラグインが本文を書き換える前に呼ぶ。間隔に関わらず、今の状態を、誰が書き換えるかと一緒に履歴に残す
-  // （書き換えを取り消せるように、また、どの変更が利用者のものでないかを履歴で見分けられるように）。
-  async captureVersionBeforeReplace(noteId: string, changedBy: VersionChangedBy): Promise<void> {
-    await this.#captureVersionBeforeOverwrite(noteId, { reason: "replace", changedBy });
+  // AI・MCP・プラグインが本文を変える直前に呼ぶ。利用者の書きかけを、間隔に関わらず「自分の編集」として履歴に残す
+  // （AI などの変更と混ぜないため。変更を取り消せるようにも）。
+  async captureVersionBeforeChange(noteId: string): Promise<void> {
+    const stored = await this.#storedNoteEntry(noteId);
+    if (stored) {
+      await this.#versionHistory.captureState(noteId, stored.sealed);
+    }
+  }
+
+  // AI・MCP・プラグインが本文を変えた直後に呼ぶ。変えた結果を、誰が変えたかと一緒に履歴に残す。
+  async captureVersionAfterChange(noteId: string, changedBy: VersionChangedBy): Promise<void> {
+    const stored = await this.#storedNoteEntry(noteId);
+    if (stored) {
+      await this.#versionHistory.captureState(noteId, stored.sealed, changedBy);
+    }
   }
 
   // メモを、履歴の版の中身に戻す。別のメモは作らず、このメモを書き換える。戻す前の状態は「復元の前」として履歴に残す。
@@ -261,7 +272,10 @@ export class NoteRepository {
       throw new RecordNotFoundError(input.versionId);
     }
     try {
-      await this.#captureVersionBeforeOverwrite(input.noteId, { reason: "restore" });
+      const stored = await this.#storedNoteEntry(input.noteId);
+      if (stored) {
+        await this.#versionHistory.captureBeforeRestore(input.noteId, stored.sealed);
+      }
       // 履歴を残す間に、ほかのウィンドウや同期が文書を入れ替えていることがあるので、取り直す。
       const doc = this.#liveDocument(input.noteId, "note");
       replaceBodyWithCopyOf(recordBody(doc), recordBody(versionDocument));
@@ -529,13 +543,11 @@ export class NoteRepository {
 
   // ── 内部 ──────────────────────────────────────────
 
-  // 本文を丸ごと書き換える前に、今の状態を履歴に残す。まだ保存していない入力を先に保存し、それも含めて残す。
-  async #captureVersionBeforeOverwrite(noteId: string, capture: OverwriteCapture): Promise<void> {
+  // 履歴に残すための、メモの今の手元の保存。まだ保存していない入力を先に保存し、それも含める。メモでなければ undefined。
+  async #storedNoteEntry(noteId: string): Promise<LocalRecordEntry | undefined> {
     await this.flush();
     const stored = await this.#dependencies.localStore.getRecordEntry(noteId);
-    if (stored && this.#view(noteId)?.kind === "note") {
-      await this.#versionHistory.captureBeforeOverwrite(noteId, stored.sealed, capture);
-    }
+    return stored && this.#view(noteId)?.kind === "note" ? stored : undefined;
   }
 
   #newDocument(id: string, kind: RecordKind): Y.Doc {
@@ -707,9 +719,11 @@ export class NoteRepository {
     }
     if (holder.bodyEdited) {
       holder.bodyEdited = false;
+      // 上書きする前の、最後に編集した時刻（書くのを止めていた長さを、履歴が見る）。
+      const lastEditedAt = readField<string>(holder.doc, "editedAt");
       this.#writeFields(holder.doc, { editedAt: this.#now().toISOString() });
       if (stored) {
-        await this.#versionHistory.captureBeforeEdit(id, stored.sealed);
+        await this.#versionHistory.captureAfterPause(id, stored.sealed, lastEditedAt === undefined ? null : new Date(lastEditedAt).getTime());
       }
     }
     this.#unsavedIds.delete(id);

@@ -14,7 +14,7 @@ const VERSION_CHANGERS: ReadonlySet<unknown> = new Set<VersionChangedBy>(["ai", 
 
 export type VersionPayload = {
   reason: SyncedVersionReason;
-  // replace の版で、そのあと本文を書き換えたもの。v0.8.3 までのアプリは書かず、読んでも使わない。
+  // 版の状態を作ったもの（AI・MCP・プラグイン）。v0.8.3 までのアプリは書かず、読んでも使わない。
   changedBy?: VersionChangedBy;
   // ISO 8601。
   capturedAt: string;
