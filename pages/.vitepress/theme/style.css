@@ -1,0 +1,267 @@
+/* 色はアプリのテーマ「セダム」「セダム（ダーク）」に合わせる（src/ui/theme/builtInThemes.ts）。 */
+:root {
+  --vp-c-brand-1: #2f7d54;
+  --vp-c-brand-2: #3a8d62;
+  --vp-c-brand-3: #2f7d54;
+  --vp-c-brand-soft: rgba(47, 125, 84, 0.12);
+  --vp-c-bg-alt: #f6f7f3;
+  --vp-c-bg-soft: #eef1ea;
+  --vp-c-divider: #dfe4d8;
+  --vp-font-family-base: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
+  --vp-layout-max-width: 1440px;
+}
+
+.dark {
+  --vp-c-brand-1: #6cc491;
+  --vp-c-brand-2: #82d2a3;
+  --vp-c-brand-3: #4fa877;
+  --vp-c-brand-soft: rgba(108, 196, 145, 0.16);
+  --vp-c-bg: #141a16;
+  --vp-c-bg-alt: #161c18;
+  --vp-c-bg-elv: #1a211c;
+  --vp-c-bg-soft: #1a211c;
+  --vp-c-divider: #2a342c;
+}
+
+/* 本文の画像は、アプリの画面だと分かるように枠を付ける。 */
+.vp-doc img {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+}
+
+/* スマホの画面の画像は、PC の画面の画像より小さく出す。 */
+.vp-doc img[src*="phone-"] {
+  max-width: 320px;
+}
+
+/* ---- トップページ ---- */
+
+.sedum-home {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 72px 24px 96px;
+}
+
+.sedum-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.sedum-hero-icon {
+  width: 88px;
+  height: 88px;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.sedum-hero .sedum-title {
+  margin: 24px 0 0;
+  border: 0;
+  padding: 0;
+  font-size: clamp(40px, 5vw, 64px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.sedum-hero .sedum-lead {
+  max-width: 640px;
+  margin: 20px auto 0;
+  color: var(--vp-c-text-2);
+  font-size: clamp(16px, 1.5vw, 19px);
+  line-height: 1.8;
+}
+
+.sedum-platforms {
+  margin: 16px 0 0;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+}
+
+.sedum-platforms span {
+  margin-right: 10px;
+  color: var(--vp-c-text-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sedum-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.sedum-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  border: 1px solid var(--vp-c-border);
+  border-radius: 8px;
+  padding: 0 18px;
+  color: var(--vp-c-text-1) !important;
+  background: var(--vp-c-bg-soft);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none !important;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.sedum-action:hover {
+  border-color: var(--vp-c-brand-1);
+}
+
+.sedum-action.primary {
+  border-color: var(--vp-c-brand-1);
+  color: #ffffff !important;
+  background: var(--vp-c-brand-1);
+}
+
+.dark .sedum-action.primary {
+  color: #10170f !important;
+}
+
+.sedum-preview {
+  width: 100%;
+  margin-top: 56px;
+  overflow: hidden;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.14);
+}
+
+.sedum-preview img {
+  display: block;
+  width: 100%;
+}
+
+.sedum-section {
+  margin-top: 96px;
+}
+
+.sedum-section-heading {
+  text-align: center;
+}
+
+.sedum-section-heading h2 {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  font-size: clamp(26px, 3vw, 36px);
+  letter-spacing: -0.03em;
+}
+
+.sedum-section-heading p {
+  max-width: 720px;
+  margin: 16px auto 0;
+  color: var(--vp-c-text-2);
+  line-height: 1.8;
+}
+
+.sedum-feature-grid {
+  display: grid;
+  /* 6 列にして、広いカードは半分、ほかは 3 分の 1 を使う。 */
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 32px;
+  overflow: hidden;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  background: var(--vp-c-divider);
+}
+
+.sedum-feature {
+  grid-column: span 2;
+  background: var(--vp-c-bg);
+}
+
+.sedum-feature-wide {
+  grid-column: span 3;
+}
+
+.sedum-feature img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-bottom: 1px solid var(--vp-c-divider);
+  object-fit: cover;
+  object-position: top left;
+}
+
+.sedum-feature-body {
+  padding: 20px 22px 24px;
+}
+
+.sedum-feature h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+
+.sedum-feature h3 a {
+  color: var(--vp-c-text-1);
+  text-decoration: none;
+}
+
+.sedum-feature h3 a:hover {
+  color: var(--vp-c-brand-1);
+}
+
+.sedum-feature p {
+  margin: 0;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.vp-doc .sedum-list {
+  max-width: 880px;
+  margin: 28px auto 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 32px;
+  padding: 0;
+  list-style: none;
+}
+
+.vp-doc .sedum-list li {
+  margin: 0;
+  border-left: 2px solid var(--vp-c-brand-1);
+  padding-left: 12px;
+  color: var(--vp-c-text-2);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.vp-doc .sedum-list li a {
+  color: var(--vp-c-text-1);
+  font-weight: 600;
+}
+
+@media (max-width: 960px) {
+  .sedum-feature,
+  .sedum-feature-wide { grid-column: span 3; }
+}
+
+@media (max-width: 640px) {
+  .VPHome .vp-doc.container { padding-inline: 0; }
+  .sedum-home { padding: 40px 16px 64px; }
+  .sedum-actions { display: grid; grid-template-columns: 1fr; width: 100%; }
+  .sedum-action { justify-content: center; }
+  .sedum-section { margin-top: 64px; }
+  .sedum-feature-grid { grid-template-columns: 1fr; }
+  .sedum-feature,
+  .sedum-feature-wide { grid-column: auto; }
+  .vp-doc .sedum-list { grid-template-columns: 1fr; }
+}
+
+/* スマホの幅では、表の列が細くなって 1 列に数文字しか入らなくなるのを防ぐ。 */
+@media (max-width: 640px) {
+  .vp-doc :is(th, td) {
+    padding: 6px 8px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+}
