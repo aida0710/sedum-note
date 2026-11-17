@@ -202,15 +202,28 @@ export function measureScreen() {
     }
   }
 
-  // 中身（文字と中の部品）が枠の左右の外へ出ているか。scrollWidth は、指の端末でタップ領域を広げる透明な ::before
-  // （position: absolute で枠の外へ出す）も数えるので、それだけで広がった分は、Range で測り直して除く。
+  // 中身（文字と、流れの中に置いた子の部品）が枠の左右の外へ出ているか。scrollWidth は、指の端末でタップ領域を広げる
+  // 透明な ::before や、枠の外の余白に position: absolute で置いた部品（見出しの右のズームのボタン）も数えるので、
+  // 見つけたあと、中の文字と子の部品の範囲を合わせて測り直す（疑似要素と、絶対位置の子は含めない）。
   const contentOverflowsBox = (element) => {
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    const content = range.getBoundingClientRect();
-    const box = element.getBoundingClientRect();
-    const left = box.left + element.clientLeft;
-    return content.width > 0 && (content.right > left + element.clientWidth + 1 || content.left < left - 1);
+    let contentLeft = Infinity;
+    let contentRight = -Infinity;
+    for (const child of element.childNodes) {
+      let rect = null;
+      if (child.nodeType === Node.TEXT_NODE && child.textContent.trim() !== "") {
+        const range = document.createRange();
+        range.selectNodeContents(child);
+        rect = range.getBoundingClientRect();
+      } else if (child.nodeType === Node.ELEMENT_NODE && !["absolute", "fixed"].includes(getComputedStyle(child).position)) {
+        rect = child.getBoundingClientRect();
+      }
+      if (rect && rect.width > 0) {
+        contentLeft = Math.min(contentLeft, rect.left);
+        contentRight = Math.max(contentRight, rect.right);
+      }
+    }
+    const left = element.getBoundingClientRect().left + element.clientLeft;
+    return contentRight > left + element.clientWidth + 1 || contentLeft < left - 1;
   };
 
   // 5. 枠からはみ出した文字（省略の「…」を出さずに切れている、または枠の外へ出ている）。
