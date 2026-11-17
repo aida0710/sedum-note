@@ -11,9 +11,12 @@ import { notebookTreeRows } from "../editor/notebookTreeRows";
 import { translate } from "../i18n/translate";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
 import { formatShortDate } from "../shared/formatTime";
+import { withReadableDueMarks } from "../shared/readableDueMarks";
 import { SearchScopeSwitch } from "../shared/SearchScopeSwitch";
 import { assignNotebookColors, NotebookMark, type NotebookColors } from "../shared/notebookAppearance";
+import { createNoteInView } from "../workspace/createNoteInView";
 import { useTrashWithUndo } from "../workspace/useTrashWithUndo";
+import { EmptyNoteList } from "./EmptyNoteList";
 import type { WorkspaceProps } from "../workspace/workspaceProps";
 import { LIST_ROW_NOTE_ID_ATTRIBUTE, useRememberedListScroll } from "./rememberedListScroll";
 import { type PullState, usePullToSync } from "./usePullToSync";
@@ -96,9 +99,8 @@ export function NoteList({ title, summaries, notebooks, view, listKey, showChips
         )}
         <div ref={scrollRef} className="phone-scroll">
           {summaries.length === 0 && (
-            <div className="empty-state">
-              {searchText.trim() === "" ? translate("sidebar.noNotes") : translate("mobile.noSearchResults", { query: searchText.trim() })}
-            </div>
+            <EmptyNoteList view={view} searchText={searchText.trim()}
+              onCreateNote={(title) => void createNoteInView(repository, view, title).then((note) => onOpen(note.id))} />
           )}
           {summaries.map((summary) => <NoteListItem key={summary.note.id} summary={summary} notebooks={notebooks} notebookColors={notebookColors} repository={repository} onOpen={onOpen} />)}
         </div>
@@ -131,7 +133,7 @@ function NoteListItem({ summary, notebooks, notebookColors, repository, onOpen }
       <button ref={swipe.itemRef} className="note-item" {...swipe.handlers} onClick={() => onOpen(note.id)}>
         <h3>{unsyncedIds.has(note.id) && <span className="unsynced-dot" title={translate("editor.unsynced")} />}{pinned && <Pin size={ICON_SIZE.chip} className="pin" />}<span className="note-item-title">{note.content.title || translate("sidebar.untitled")}</span></h3>
         {firstImage && thumbnail.state === "ready" && <img className="thumb" src={thumbnail.url} alt="" />}
-        <p>{plainText}</p>
+        <p>{withReadableDueMarks(plainText)}</p>
         {/* ノートブックは、PC の左の列と同じ色の印を付けて出す（どのノートブックのメモかを、色でも見分けられる）。 */}
         <span className="meta">
           {formatShortDate(note.updatedAt)}

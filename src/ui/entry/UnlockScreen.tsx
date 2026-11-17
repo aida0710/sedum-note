@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { WrongPassphraseError } from "../../core/vault/vaultDocument";
 import { translate } from "../i18n/translate";
 import { spaceDisplayName } from "../session/spaceDisplayName";
 import { selectSpace, useSpaceRegistry } from "../session/spaceRegistry";
@@ -8,12 +9,21 @@ import { useAsyncAction } from "../shared/useAsyncAction";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
 import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { EntryBrand } from "./EntryBrand";
+import { FieldError, fieldErrorAttributes, useFocusOnFieldError } from "../shared/FieldError";
+import { DisclosureChevron } from "../shared/DisclosureChevron";
+
+const PASSPHRASE_FIELD_ID = "unlock-passphrase";
 
 export function UnlockScreen({ session, spaceId }: { session: VaultSession; spaceId: string }) {
   const { spaces } = useSpaceRegistry();
   const [passphrase, setPassphrase] = useState("");
   const action = useAsyncAction(session.unlock);
   const { customCss, customCssEnabled } = useDevicePreferences();
+  // パスフレーズの間違いは欄の下に出し、欄の文字を選んで打ち直せるようにする。ほかの失敗はフォームの下に出す。
+  const isWrongPassphrase = action.error instanceof WrongPassphraseError;
+  useFocusOnFieldError(isWrongPassphrase ? PASSPHRASE_FIELD_ID : null, action.error);
+  const passphraseProblem = isWrongPassphrase ? action.errorMessage : null;
+  const formProblem = isWrongPassphrase ? null : action.errorMessage;
   return (
     <div className="entry unlock-entry">
       <form className="entry-card" onKeyDown={preventSubmitByImeKey} onSubmit={(event) => { event.preventDefault(); void action.run(passphrase); }}>
@@ -29,10 +39,12 @@ export function UnlockScreen({ session, spaceId }: { session: VaultSession; spac
           </div>
         )}
         <div className="field">
-          <label htmlFor="unlock-passphrase">{translate("setup.passphrase")}</label>
-          <input id="unlock-passphrase" type="password" value={passphrase} onChange={(event) => setPassphrase(event.target.value)} autoComplete="current-password" autoFocus required />
+          <label htmlFor={PASSPHRASE_FIELD_ID}>{translate("setup.passphrase")}</label>
+          <input id={PASSPHRASE_FIELD_ID} type="password" value={passphrase} onChange={(event) => setPassphrase(event.target.value)} autoComplete="current-password" autoFocus required
+            {...fieldErrorAttributes(PASSPHRASE_FIELD_ID, passphraseProblem)} />
+          <FieldError fieldId={PASSPHRASE_FIELD_ID} message={passphraseProblem} />
         </div>
-        {action.errorMessage && <div className="form-error" role="alert">{action.errorMessage}</div>}
+        {formProblem && <div className="form-error" role="alert">{formProblem}</div>}
         {customCssEnabled && customCss.trim() !== "" && (
           <label className="checkbox-line">
             <input type="checkbox" checked={false} onChange={() => updateDevicePreferences({ customCssEnabled: false })} />
@@ -40,7 +52,7 @@ export function UnlockScreen({ session, spaceId }: { session: VaultSession; spac
           </label>
         )}
         <details>
-          <summary>{translate("wipe.forgotPassphrase")}</summary>
+          <summary><DisclosureChevron />{translate("wipe.forgotPassphrase")}</summary>
           <p className="description">{translate("wipe.forgotPassphraseDescription")}</p>
           <WipeDeviceDataButton session={session} />
         </details>

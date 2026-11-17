@@ -6,6 +6,7 @@ import appLicenseText from "../../../LICENSE?raw";
 import { translate } from "../i18n/translate";
 import { ExternalLinkButton } from "./ExternalLinkButton";
 import { loadThirdPartyLicenses, packagesMatching, type ThirdPartyLicenses, type ThirdPartyPackage } from "./thirdPartyLicenses";
+import { DisclosureChevron } from "../shared/DisclosureChevron";
 
 type LoadState = { state: "loading" } | { state: "ready"; licenses: ThirdPartyLicenses } | { state: "failed" };
 
@@ -29,7 +30,7 @@ export function LicensesView() {
         <p>{translate("about.appLicense")}</p>
         <p>{translate("about.artworkLicense")}</p>
         <details className="license-text">
-          <summary>{translate("about.showLicenseText")}</summary>
+          <summary><DisclosureChevron />{translate("about.showLicenseText")}</summary>
           <pre>{appLicenseText}</pre>
         </details>
       </section>
@@ -67,7 +68,7 @@ function ThirdPartyPackageItem({ entry, texts }: { entry: ThirdPartyPackage; tex
   return (
     <li>
       <details className="license-text" onToggle={(event) => setOpen(event.currentTarget.open)}>
-        <summary>
+        <summary><DisclosureChevron />
           <span className="license-package-name">{entry.name}</span> {entry.version}
           <span className="license-package-license">{entry.license ?? translate("about.licenseUnknown")}</span>
         </summary>

@@ -23,6 +23,8 @@
   --radius-control: 8px;  /* ボタン、入力欄、選択欄、本文のブロック（コード、コールアウト、図、クエリ、埋め込み、添付）、知らせ */
   --radius-panel: 10px;   /* メニュー、トースト、カード（テーマの見本、ボードの列、テーマの作成） */
   --radius-dialog: 12px;  /* ダイアログと、最初の画面の枠 */
+  --radius-fab: 16px;     /* スマホの右下の「＋」（54px の大きなボタン。12px では、大きさの割に角ばって見える） */
+  --radius-mark: 3px;     /* 9px 以下の小さな色の印（ノートブックの色、テーマの見本の線）。4px では丸に近づき、形の違いが分からない */
   /* 操作の部品の高さ。同じ行に並ぶボタンと入力欄の上下の端をそろえる。 */
   --control-height: 32px;         /* フォームのボタン、入力欄、選択欄（設定、ダイアログ、検索のバー） */
   --control-height-compact: 28px; /* 本文の中の入力欄（プロパティの値、クエリの条件、脚注、表のセル）と、アイコンのボタン */
@@ -53,7 +55,8 @@
   --duration-enter: 150ms;
   --duration-exit: 100ms;
   --ease-enter: var(--ease-settle);
-  --ease-exit: ease-in;
+  /* 消えるときも ease-out（はじめに大きく動いて、すぐ消え始めて見える。ease-in は動き出しが遅く、閉じたのに残って見える）。 */
+  --ease-exit: ease-out;
   /* チェックボックス・ラジオボタン・つまみは、どのテーマでもテーマの色で描く（決めないと、ブラウザの既定の青になる）。 */
   accent-color: var(--accent);
   /* 画面の部品の文字の大きさは、次の 6 つにする（本文は表示の設定の --editor-font-size）。スマホでは .phone が一部を大きくする。 */
@@ -105,11 +108,18 @@ button, a, label, summary { -webkit-tap-highlight-color: transparent; }
   border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--panel);
 }
 :where(input[type="checkbox"], input[type="radio"]) { width: var(--checkbox-size); height: var(--checkbox-size); flex: none; }
-::placeholder { color: var(--muted); opacity: .8; }
+/* 補助の文字の色のまま（薄くすると、ライトの白の地で 3.7:1 まで落ちて読みにくい）。 */
+::placeholder { color: var(--muted); }
+/* 選んだ文字の地とカーソルは、ブラウザの既定の青ではなく、テーマの accent から作る（セピアやセダムでも、テーマの色で選ばれて見える）。
+   地は accent を 30% 混ぜた淡い色で、上の文字の色は変えない（どのテーマでも本文の文字が読める濃さ）。 */
+::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+:root { caret-color: var(--accent); }
 /* 補足の文。置き場所の規則は、並べ方だけを足す。 */
 .hint { color: var(--muted); font-size: var(--font-size-small); line-height: 1.5; }
 /* 画面の説明の文の最後の行に、「す。」のような 1〜2 文字だけが落ちないようにする。本文は、打つたびに折り返しが動かないよう外す。 */
 p:not(.ProseMirror p), .hint, .form-error, .form-notice { text-wrap: pretty; }
+/* 画面の見出し（設定、ダイアログ、空の画面）は、2 行に折れたときの行の長さをそろえる。本文の見出しは、打つたびに折り返しが動かないよう外す。 */
+:is(h1, h2, h3, h4):not(.ProseMirror *) { text-wrap: balance; }
 /* スクロールバーは、細く、地の色になじむ色にする（隠す所と「/」のメニューは、それぞれの規則が勝つ）。 */
 * { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent; }
 /* アイコン（lucide）の線の太さ。24 の枠の中で、既定の 2 より細い 1.75 にそろえる（画面の文字の線の太さに近づける）。 */
@@ -175,7 +185,7 @@ svg.lucide { stroke-width: 1.75; }
 /* 値の欄はセルの幅いっぱいにする（列の幅は見出しやほかの行で決まり、欄だけ短いと右が空く）。 */
 .database-table td > :is(input:not([type="checkbox"]), select) { width: 100%; }
 .database-table input:not([type="checkbox"]):hover, .database-table select:hover, .database-table input:focus, .database-table select:focus { border-color: var(--line); }
-.database-title { color: var(--accent); max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+.database-title { color: var(--accent-text); max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
 .database-updated { color: var(--muted); }
 .database-group { max-width: 260px; margin-bottom: 12px; }
 .database-board { display: flex; gap: 12px; align-items: flex-start; overflow-x: auto; }
@@ -219,7 +229,7 @@ svg.lucide { stroke-width: 1.75; }
 .ProseMirror pre:is(.zoom-hidden, .folded-block) + .mermaid-diagram { display: none; }
 .mermaid-diagram { padding: 8px; border: 1px solid var(--line); border-radius: var(--radius-control); text-align: center; overflow-x: auto; cursor: pointer; color: var(--muted); font-size: var(--font-size-small); }
 .mermaid-diagram svg { max-width: 100%; height: auto; }
-.mermaid-diagram.failed { color: var(--danger); text-align: left; white-space: pre-wrap; }
+.mermaid-diagram.failed { color: var(--danger-text); text-align: left; white-space: pre-wrap; }
 .attachment-file.with-preview { flex-wrap: wrap; }
 /* 押したままの状態を表すボタン（添付のプレビュー、手書きの道具）。 */
 .pdf-preview { flex: 0 0 100%; margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; }
@@ -242,20 +252,20 @@ svg.lucide { stroke-width: 1.75; }
 .ProseMirror .column { min-width: 0; border: 1px dashed transparent; border-radius: var(--radius-control); padding: 2px 6px; }
 .ProseMirror-focused .column { border-color: var(--line); }
 .ProseMirror { counter-reset: footnote; }
-.ProseMirror .footnote-reference { counter-increment: footnote; cursor: pointer; color: var(--accent); font-size: .75em; padding: 0 1px; }
+.ProseMirror .footnote-reference { counter-increment: footnote; cursor: pointer; color: var(--accent-text); font-size: .75em; padding: 0 1px; }
 .ProseMirror .footnote-reference::before { content: counter(footnote); }
 .ProseMirror .footnote-reference.ProseMirror-selectednode { background: var(--accent-soft); border-radius: var(--radius-inline); }
 .footnotes { margin-top: 32px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; font-size: var(--font-size-ui); }
 .footnote { display: flex; align-items: center; gap: 8px; }
 /* 番号は、隣の文の入力欄と同じ高さにして、上下の端をそろえる。 */
-.footnote-number { min-width: 22px; height: var(--control-height-compact); border-radius: var(--radius-inline); color: var(--accent); font-size: var(--font-size-small); }
+.footnote-number { min-width: 22px; height: var(--control-height-compact); border-radius: var(--radius-inline); color: var(--accent-text); font-size: var(--font-size-small); }
 @media (hover: hover) { .footnote-number:hover { background: var(--selected); } }
 .footnote input { flex: 1; min-width: 0; height: var(--control-height-compact); border: 1px solid transparent; border-radius: var(--radius-control); padding: 0 8px; background: none; color: var(--text); }
 .footnote input:hover, .footnote input:focus { border-color: var(--line); }
 /* ブロックの埋め込み。左の線で、ほかのメモから来た中身だと分かるようにする。 */
 .block-embed { padding: 2px 0 2px 12px; border-left: 3px solid var(--accent-soft); }
 .block-embed-source { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: var(--font-size-small); }
-@media (hover: hover) { .block-embed-source:hover { color: var(--accent); } }
+@media (hover: hover) { .block-embed-source:hover { color: var(--accent-text); } }
 .block-embed .ProseMirror { padding: 0; min-height: 0; }
 /* エディタが末尾に足す空の段落（リストなどのあとに打てるようにするもの）は、読むだけの埋め込みでは出さない。 */
 .block-embed .ProseMirror > p:last-child:has(> br.ProseMirror-trailingBreak:only-child) { display: none; }
@@ -289,7 +299,7 @@ svg.lucide { stroke-width: 1.75; }
 .attachment-unavailable { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px; color: var(--muted); font-size: var(--font-size-ui); }
 .attachment-unavailable.attachment-audio { height: auto; justify-content: flex-start; }
 .attachment-unavailable .secondary-button { display: inline-flex; align-items: center; gap: 6px; }
-.editor-bar .tool.on svg.lucide-square { color: var(--danger); }
+.editor-bar .tool.on svg.lucide-square { color: var(--danger-text); }
 /* AI のチャット。PC では画面の右の欄、スマホではダイアログの中に出す。 */
 .workspace.with-ai-chat { grid-template-columns: var(--sidebar-width) 1fr var(--ai-chat-width); }
 .workspace.with-ai-chat.focus-mode { grid-template-columns: 1fr var(--ai-chat-width); }
@@ -299,7 +309,7 @@ svg.lucide { stroke-width: 1.75; }
 .ai-chat-header h2 { font-size: var(--font-size-ui); font-weight: 700; margin-right: auto; white-space: nowrap; }
 .ai-chat-header .text-button { white-space: nowrap; }
 /* 文字だけのボタン（AI チャットの答えの操作、ショートカットの「既定に戻す」）。 */
-.ai-chat .text-button, .shortcut-list .text-button { color: var(--accent); padding: 2px 6px; border-radius: var(--radius-row); white-space: nowrap; }
+.ai-chat .text-button, .shortcut-list .text-button { color: var(--accent-text); padding: 2px 6px; border-radius: var(--radius-row); white-space: nowrap; }
 @media (hover: hover) { .ai-chat .text-button:hover, .shortcut-list .text-button:hover { background: var(--selected); } }
 .ai-chat-messages { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
 .ai-chat-notice { color: var(--muted); padding: 12px 14px; }
@@ -339,7 +349,7 @@ svg.lucide { stroke-width: 1.75; }
 .ai-connection { display: flex; flex-direction: column; gap: 12px; }
 .ai-edit { border: 1px solid var(--line); border-radius: var(--radius-panel); padding: 8px 10px; display: flex; flex-direction: column; gap: 8px; background: var(--panel); }
 .ai-edit-summary { display: flex; align-items: center; gap: 6px; font-weight: 600; }
-.ai-edit-summary svg { flex: none; color: var(--accent); }
+.ai-edit-summary svg { flex: none; color: var(--accent-text); }
 /* 本文の差分。行ごとに、印（消す行は「-」、足す行は「+」）と文を、1 つの枠の中に詰めて並べる。
    印は CSS で出す（文字に入れないので、コピーしたときに文だけになる）。 */
 .ai-edit-diff { max-height: 320px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-row); padding: 2px 0; font-size: var(--font-size-small); line-height: 1.35; }
@@ -349,8 +359,8 @@ svg.lucide { stroke-width: 1.75; }
 .ai-diff-row::before { position: absolute; left: 8px; font-weight: 700; }
 .ai-edit-removed { background: color-mix(in srgb, var(--danger) 12%, transparent); }
 .ai-edit-added { background: color-mix(in srgb, var(--ok) 14%, transparent); }
-.ai-edit-removed::before { content: "-"; color: var(--danger); }
-.ai-edit-added::before { content: "+"; color: var(--ok); }
+.ai-edit-removed::before { content: "-"; color: var(--danger-text); }
+.ai-edit-added::before { content: "+"; color: var(--ok-text); }
 .ai-diff-collapsed { color: var(--muted); padding: 1px 8px 1px 22px; }
 .ai-edit-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
 .ai-auto-apply { font-size: var(--font-size-small); color: var(--muted); }
@@ -368,7 +378,7 @@ svg.lucide { stroke-width: 1.75; }
 .ai-approval-item + .ai-approval-item { border-top: 1px solid var(--line); padding-top: 8px; }
 .ai-approval-description { font-weight: 600; overflow-wrap: anywhere; }
 .ai-approval-changes { margin: 0; padding-left: 18px; font-size: var(--font-size-small); overflow-wrap: anywhere; }
-.ai-approval .danger-text { color: var(--danger); }
+.ai-approval .danger-text { color: var(--danger-text); }
 .ai-permissions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .ai-saved-chat { display: flex; align-items: center; gap: 4px; }
 .ai-saved-chat-open { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 8px; border-radius: var(--radius-row); text-align: left; }
@@ -416,7 +426,7 @@ svg.lucide { stroke-width: 1.75; }
    （選んだビューと開いているメモの 2 行が、同時に選ばれて見えないように）。 */
 .sidebar-scroll .nav.active { background: none; }
 @media (hover: hover) { .sidebar-scroll .nav.active:hover { background: var(--selected); } }
-.sidebar-scroll .nav.active > svg { color: var(--accent); }
+.sidebar-scroll .nav.active > svg { color: var(--accent-text); }
 .nav .count { margin-left: auto; color: var(--muted); font-size: var(--font-size-small); font-weight: 400; }
 .nav .nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav .disclosure { width: 12px; color: var(--muted); flex: none; display: grid; place-items: center; }
@@ -436,7 +446,7 @@ svg.lucide { stroke-width: 1.75; }
 .section-title.drop-target { background: var(--accent-soft); outline: 1px dashed var(--accent); outline-offset: -1px; border-radius: var(--radius-row); }
 .saved-search-row { display: flex; align-items: center; }
 .search-scope svg { vertical-align: -1px; margin-right: 4px; }
-.dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.dot { width: 9px; height: 9px; border-radius: var(--radius-mark); flex: none; }
 .tree-note { padding: 5px 8px; color: var(--text); border-radius: var(--radius-row); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; width: 100%; }
 @media (hover: hover) { .tree-note:hover { background: var(--selected); color: var(--text); } }
 .tree-note.active { background: var(--accent-soft); color: var(--text); font-weight: 600; }
@@ -489,7 +499,7 @@ svg.lucide { stroke-width: 1.75; }
 .sidebar-scroll .dot.pending { background: var(--line); }
 .inline-input { width: 100%; height: var(--control-height-compact); border: 1px solid var(--accent); border-radius: var(--radius-control); padding: 0 8px; background: var(--panel); }
 
-.update-chip { margin-top: auto; display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: var(--radius-row); color: var(--accent); background: var(--accent-soft); font-size: var(--font-size-small); text-align: left; flex: none; }
+.update-chip { margin-top: auto; display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: var(--radius-row); color: var(--accent-text); background: var(--accent-soft); font-size: var(--font-size-small); text-align: left; flex: none; }
 .update-chip + .sidebar-footer { margin-top: 8px; }
 .phone .update-chip { margin: max(10px, env(safe-area-inset-top)) 16px 0; }
 /* 左の列のいちばん下の行。同期の状態（押すと同期のページ）と、設定を開く歯車。 */
@@ -499,7 +509,7 @@ svg.lucide { stroke-width: 1.75; }
 .sync-line-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sync-line .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
 .sync-line .status-dot.syncing { background: var(--accent); }
-.sync-line .sync-failure-mark { color: var(--danger); flex: none; }
+.sync-line .sync-failure-mark { color: var(--danger-text); flex: none; }
 .sync-line .status-dot.off { background: var(--muted); }
 
 .main { background: var(--panel); display: flex; flex-direction: column; min-width: 0; min-height: 0; }
@@ -538,7 +548,8 @@ svg.lucide { stroke-width: 1.75; }
 /* タブのフォーカスの枠は内側に描く（外に描くと、上はタブの列の枠で、下は本文の境目で切れる）。 */
 .tab:focus-visible { outline-offset: -2px; }
 /* マウスを乗せられない画面（タッチ）では、選んでいないタブの「×」も薄く出しておく。 */
-@media (hover: none) { .tab:not(.on) .tab-close { visibility: visible; opacity: .6; } }
+/* 薄さは、アイコンの目安（3:1）に届く .75 まで（.6 ではライトで 2.5:1）。 */
+@media (hover: none) { .tab:not(.on) .tab-close { visibility: visible; opacity: .75; } }
 /* 開いているタブは、太字にせず（切り替えるたびに隣のタブが動かないように）、地の色と枠で示す。 */
 .tab.on { background: var(--panel); color: var(--text); border-color: var(--line); border-bottom-color: var(--panel); margin-bottom: -1px; }
 /* ピン留めしたタブは、並びを横に送っても左端に留める（left は workspace/stickyPinnedTabs.ts が入れる）。下を通るタブが透けないよう地を塗る。 */
@@ -560,13 +571,13 @@ svg.lucide { stroke-width: 1.75; }
    押したボタンや行にホバーが残り、押したままの形・選んだ形（.on、aria-pressed、選んだ行）と同じ見た目になるため。
    ホバーで操作を出すもの（持ち手、折りたたみの印）は、指の端末では @media (hover: none) でいつも出す。 */
 @media (hover: hover) { .tool:hover { background: var(--selected); } }
-.tool.on { background: var(--selected); color: var(--accent); }
+.tool.on { background: var(--selected); color: var(--accent-text); }
 .tool-separator { width: 1px; height: 18px; background: var(--line); margin: 0 4px; flex: none; }
 /* 右端のボタン（目次・お気に入り・「…」）。左に出るもの（表のメニュー、録音を止めるボタン）で幅が足りなくなっても、右に出したままにする。 */
 .editor-bar .bar-end { margin-left: auto; display: flex; gap: 6px; align-items: center; font-size: var(--font-size-small); flex: none; position: sticky; right: -14px; padding: 0 14px 0 8px; margin-right: -14px; background: var(--panel); box-shadow: -10px 0 8px -4px var(--panel); }
 /* PC のメモの上のバー（editor/NoteTopBar.tsx）。ふだんは右端のボタンだけで、下の線も引かない。表の中では表のメニュー、録音中は止めるボタンが左に出る。 */
 .note-top-bar { border-bottom-color: transparent; padding: 10px 18px; }
-.recording-stop { display: inline-flex; align-items: center; gap: 6px; height: var(--control-height-compact); padding: 0 12px; border-radius: 999px; background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); font-size: var(--font-size-small); font-weight: 600; }
+.recording-stop { display: inline-flex; align-items: center; gap: 6px; height: var(--control-height-compact); padding: 0 12px; border-radius: 999px; background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger-text); font-size: var(--font-size-small); font-weight: 600; }
 @media (hover: hover) { .recording-stop:hover { background: color-mix(in srgb, var(--danger) 20%, transparent); } }
 /* PC で文字を選んだときに、選んだ所の上に出す書式のボタン（editor/SelectionToolbar.tsx）。メニューと同じ面の形にする。 */
 .selection-toolbar { display: flex; align-items: center; gap: 2px; padding: 4px; background: var(--raised); border: 1px solid var(--line); border-radius: var(--radius-panel); box-shadow: var(--elevation-popover); z-index: var(--layer-pane-control); }
@@ -576,7 +587,7 @@ svg.lucide { stroke-width: 1.75; }
 /* お気に入りの星。押したままの切り替え（下の aria-pressed）とは別の見た目にする。 */
 .icon-button.bookmarked, .icon-button.bookmarked:hover:not(:disabled) { color: var(--bookmark); }
 /* 押したままの切り替え（目次、履歴、検索の切り替え、手書きの道具、PDF の見本）は、aria-pressed の状態で描く。 */
-.icon-button:is([aria-pressed="true"], [aria-expanded="true"]), .icon-button:is([aria-pressed="true"], [aria-expanded="true"]):hover:not(:disabled) { background: var(--selected); color: var(--accent); }
+.icon-button:is([aria-pressed="true"], [aria-expanded="true"]), .icon-button:is([aria-pressed="true"], [aria-expanded="true"]):hover:not(:disabled) { background: var(--selected); color: var(--accent-text); }
 
 /* 本文と、その横の目次。 */
 .document-area { display: flex; flex: 1; min-height: 0; }
@@ -631,19 +642,19 @@ svg.lucide { stroke-width: 1.75; }
 .space-list .space-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 
 /* 期限。本文の中の期限の印、メモの期限のチップ、期限の一覧。 */
-.due-mark { color: var(--accent); white-space: nowrap; }
+.due-mark { color: var(--accent-text); white-space: nowrap; }
 /* 絵文字の字は幅を持たせず、代わりに時計のアイコン（lucide の alarm-clock）を、文字の色で描く。 */
 .due-mark-icon { font-size: 0; }
 .due-mark-icon::before { content: ""; display: inline-block; width: 14px; height: 14px; margin-right: 4px; vertical-align: -2px; background: currentColor;
   -webkit-mask: var(--due-mark-icon) center / contain no-repeat; mask: var(--due-mark-icon) center / contain no-repeat;
-  --due-mark-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='8'/%3E%3Cpath d='M12 9v4l2 2'/%3E%3Cpath d='M5 3 2 6'/%3E%3Cpath d='m22 6-3-3'/%3E%3Cpath d='M6.38 18.7 4 21'/%3E%3Cpath d='M17.64 18.67 20 21'/%3E%3C/svg%3E"); }
+  --due-mark-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='8'/%3E%3Cpath d='M12 9v4l2 2'/%3E%3Cpath d='M5 3 2 6'/%3E%3Cpath d='m22 6-3-3'/%3E%3Cpath d='M6.38 18.7 4 21'/%3E%3Cpath d='M17.64 18.67 20 21'/%3E%3C/svg%3E"); }
 .chip.due-chip { cursor: pointer; }
-@media (hover: hover) { .chip.due-chip:hover:not(:disabled) { color: var(--accent); } }
+@media (hover: hover) { .chip.due-chip:hover:not(:disabled) { color: var(--accent-text); } }
 .reminders-view { width: min(760px, 100%); margin: 0 auto; padding: 28px 24px 60px; display: flex; flex-direction: column; gap: 18px; }
 .reminders-header { display: flex; align-items: center; gap: 10px; }
 .reminders-header h1 { font-size: var(--font-size-title); flex: 1; }
 .reminders-group h2 { display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px; }
-.reminders-group.overdue h2 { color: var(--danger); }
+.reminders-group.overdue h2 { color: var(--danger-text); }
 .reminders-group ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .reminder-row { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-bottom: 1px solid var(--line); }
 .reminder-row .reminder-note-mark { color: var(--muted); flex: none; }
@@ -653,17 +664,18 @@ svg.lucide { stroke-width: 1.75; }
 .reminder-text { flex: 1; min-width: 0; text-align: left; display: flex; flex-direction: column; gap: 2px; }
 .reminder-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .reminder-row time { flex: none; color: var(--muted); font-size: var(--font-size-small); }
-.reminders-group.overdue .reminder-row time { color: var(--danger); }
+.reminders-group.overdue .reminder-row time { color: var(--danger-text); }
 .reminders-group.done .reminder-text span:first-child { text-decoration: line-through; color: var(--muted); }
 
 .unsynced-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 6px; vertical-align: middle; flex: none; }
-.chip.unsynced { background: var(--accent-soft); color: var(--accent); }
+.chip.unsynced { background: var(--accent-soft); color: var(--accent-text); }
 /* 本文の上の行の札は背景なしで左の余白を 0 にしているが、「未送信」だけは背景があるので、左右に余白を戻す（文字が背景の端に付かないように）。
    右の札との間は、ほかの札の右の余白（8px）と同じだけ空ける。 */
 .document-meta .chip.unsynced { padding: 0 8px; margin-right: 8px; }
 /* 題は折り返す textarea。高さは中身に合わせて NoteTitleInput.tsx が入れる。 */
 .title-input { display: block; font-size: 30px; line-height: 1.4; letter-spacing: .02em; font-weight: 700; border: 0; outline: 0; width: 100%; background: none; margin-bottom: 20px; padding: 0; resize: none; overflow: hidden; overflow-wrap: anywhere; }
-.title-input::placeholder { color: var(--muted); opacity: .6; }
+/* 題は大きな太字なので、薄くしても大きな文字の目安（3:1）に届く .75 までにする（.6 ではライトで 2.5:1）。 */
+.title-input::placeholder { color: var(--muted); opacity: .75; }
 /* 文とボタンが 1 行に入らないとき（スマホ）は、ボタンを次の行へ送る（詰めると文が細く何行にも折れる）。 */
 .trash-banner { background: var(--tag); border-radius: var(--radius-control); padding: 8px 12px; margin-bottom: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--muted); }
 .trash-banner .actions { margin-left: auto; display: flex; gap: 6px; }
@@ -671,10 +683,10 @@ svg.lucide { stroke-width: 1.75; }
 .template-banner { flex-wrap: wrap; }
 .template-banner-text { flex: 1 1 240px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .template-banner .hint { color: inherit; line-height: 1.6; }
-.empty-state { margin: auto; color: var(--muted); text-align: center; padding: 40px; }
-/* タブを開いていない本文の欄（EmptyEditorPane.tsx）は、案内の文の下にボタンとキーの案内を縦に並べる。 */
-.main .empty-state { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.main .empty-state .primary-button { display: inline-flex; align-items: center; gap: 6px; }
+/* 空の一覧と、タブを開いていない本文の欄（EmptyEditorPane.tsx・mobile/EmptyNoteList.tsx）。案内の文の下に、作成のボタンとキーの案内を縦に並べる。 */
+.empty-state { margin: auto; color: var(--muted); text-align: center; padding: 40px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.empty-state :is(.primary-button, .secondary-button) { display: inline-flex; align-items: center; gap: 6px; }
+.empty-state .secondary-button { height: auto; min-height: var(--control-height); padding-block: 6px; white-space: normal; }
 
 /* Tiptap の本文 */
 /* 本文の文字。日本語の長い文を読みやすいよう、行の間と字の間を少し広げる（書く画面の案 B、2026-11-13）。 */
@@ -693,7 +705,7 @@ svg.lucide { stroke-width: 1.75; }
 .ProseMirror hr { border: 0; border-top: 1px solid var(--line); margin: calc(var(--block-gap-loose) * 1.5) 0; }
 .ProseMirror > :first-child, .ProseMirror :is(blockquote, .callout, td, th, .column) > :first-child { margin-top: 0; }
 .ProseMirror :is(blockquote, .callout, td, th, .column) > :last-child { margin-bottom: 0; }
-.ProseMirror p.is-editor-empty:first-child::before, .ProseMirror p.empty-column::before { content: attr(data-placeholder); color: var(--muted); opacity: .6; float: left; height: 0; pointer-events: none; }
+.ProseMirror p.is-editor-empty:first-child::before, .ProseMirror p.empty-column::before { content: attr(data-placeholder); color: var(--muted); float: left; height: 0; pointer-events: none; }
 /* 見出しは本文の文字の大きさに比例させる（本文 16px のとき 25.6・20.8・17.9px）。上と下の余白は約 3 : 1 にして、
    まとまりの切れ目を見せつつ、見出しを下の本文の側に付ける。 */
 .ProseMirror h1 { font-size: 1.6em; margin: 1.375em 0 .45em; letter-spacing: .02em; }
@@ -746,8 +758,9 @@ svg.lucide { stroke-width: 1.75; }
 .phone .ProseMirror .section-zoom { left: auto; right: 0; width: 18px; }
 .phone .ProseMirror :is(h1, h2, h3, h4, h5, h6) { padding-right: 22px; }
 .ProseMirror .section-zoom.shown-for-hovered-block, .ProseMirror :is(h1, h2, h3, h4, h5, h6):hover > .section-zoom, .ProseMirror .section-zoom:focus-visible { opacity: 1; }
-@media (hover: hover) { .ProseMirror .section-zoom:hover { background: var(--selected); color: var(--accent); } }
-@media (hover: none) { .ProseMirror .section-zoom { opacity: .45; } }
+@media (hover: hover) { .ProseMirror .section-zoom:hover { background: var(--selected); color: var(--accent-text); } }
+/* 薄さは下の折りたたみの印と同じ（アイコンの目安 3:1 に届く .75）。 */
+@media (hover: none) { .ProseMirror .section-zoom { opacity: .75; } }
 .ProseMirror li.collapsed-item > ul, .ProseMirror li.collapsed-item > ol, .ProseMirror li.collapsed-item > div > ul, .ProseMirror li.collapsed-item > div > ol { display: none; }
 .ProseMirror .folded-block { display: none; }
 /* 見出し 4〜6。見出し 4 は本文より少し大きくして、太字の段落と見分けられるようにする。 */
@@ -794,12 +807,12 @@ svg.lucide { stroke-width: 1.75; }
 /* エディタ（Tiptap）が自分で入れる `.ProseMirror pre { white-space: pre-wrap }` より強い書き方にする。 */
 .document .ProseMirror pre { white-space: pre; }
 .ProseMirror pre code { background: none; padding: 0; font-size: inherit; }
-.ProseMirror a { color: var(--accent); }
+.ProseMirror a { color: var(--accent-text); }
 /* コードの色付け（highlight.js のクラス）。どのテーマでも読めるよう、テーマの色から作る。 */
 .ProseMirror pre .hljs-comment, .ProseMirror pre .hljs-quote { color: var(--muted); font-style: italic; }
-.ProseMirror pre .hljs-keyword, .ProseMirror pre .hljs-selector-tag, .ProseMirror pre .hljs-built_in, .ProseMirror pre .hljs-type { color: var(--accent); }
-.ProseMirror pre .hljs-string, .ProseMirror pre .hljs-regexp, .ProseMirror pre .hljs-addition { color: var(--ok); }
-.ProseMirror pre .hljs-number, .ProseMirror pre .hljs-literal, .ProseMirror pre .hljs-deletion { color: var(--danger); }
+.ProseMirror pre .hljs-keyword, .ProseMirror pre .hljs-selector-tag, .ProseMirror pre .hljs-built_in, .ProseMirror pre .hljs-type { color: var(--accent-text); }
+.ProseMirror pre .hljs-string, .ProseMirror pre .hljs-regexp, .ProseMirror pre .hljs-addition { color: var(--ok-text); }
+.ProseMirror pre .hljs-number, .ProseMirror pre .hljs-literal, .ProseMirror pre .hljs-deletion { color: var(--danger-text); }
 .ProseMirror pre .hljs-title, .ProseMirror pre .hljs-section, .ProseMirror pre .hljs-attr, .ProseMirror pre .hljs-attribute { color: color-mix(in srgb, var(--accent) 60%, var(--text)); font-weight: 600; }
 /* 枠を重ねる表（border-collapse）は、外側の枠の半分が表の箱の外に出る。横に送る箱（overflow）がそれを切り落とし、
    画面の倍率によっては左や上の枠が消えていたので、箱の内側に 1px の余白を空ける。 */
@@ -817,7 +830,7 @@ svg.lucide { stroke-width: 1.75; }
 .ProseMirror .rows-filtered { outline: 2px dashed var(--accent); outline-offset: 2px; }
 /* 表のメニューは項目が多いので、行を詰めて、タブとツールバーより下（約 100px）に収める。収まらない小さな画面だけ中を送る。 */
 .table-menu .menu-item { padding-top: 5px; padding-bottom: 5px; }
-.note-link button { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); background: var(--accent-soft); border-radius: var(--radius-row); padding: 0 6px; vertical-align: baseline; max-width: 100%; }
+.note-link button { display: inline-flex; align-items: center; gap: 4px; color: var(--accent-text); background: var(--accent-soft); border-radius: var(--radius-row); padding: 0 6px; vertical-align: baseline; max-width: 100%; }
 .note-link.trashed button, .note-link.missing button { color: var(--muted); background: var(--tag); }
 .note-link.ProseMirror-selectednode button { outline: 2px solid var(--accent); }
 /* メモへのリンクの見本（editor/NoteLinkPreview.tsx）。メニューと同じ面の形にする。 */
@@ -849,7 +862,7 @@ svg.lucide { stroke-width: 1.75; }
 .slash-menu-name, .slash-menu-description { overflow: hidden; text-overflow: ellipsis; }
 .slash-menu-description { color: var(--muted); font-size: var(--font-size-small); }
 /* 同じブロックにできる書き方（「# 」「- 」など）。覚えてもらうための手がかりなので、箱にせず薄い文字で右に添える。 */
-.slash-menu .menu-item > kbd.slash-menu-shortcut { font-family: var(--font-mono); font-size: var(--font-size-small); color: var(--muted); opacity: .75; background: none; border: 0; padding: 0; }
+.slash-menu .menu-item > kbd.slash-menu-shortcut { font-family: var(--font-mono); font-size: var(--font-size-small); color: var(--muted); background: none; border: 0; padding: 0; }
 /* 下にまだ候補があるときだけ、下の端をメニューの地（--raised）へぼかす。スクロールバーの代わりに、続きがあると知らせる。
    メニューの内側の余白（6px）の分だけ外へ広げ、高さの分だけ上へ重ねて、候補の並びを動かさない。 */
 .slash-menu-fade { position: sticky; bottom: -6px; height: 24px; margin: -24px -6px -6px; background: linear-gradient(to bottom, transparent, var(--raised)); pointer-events: none; opacity: 0; }
@@ -860,7 +873,7 @@ svg.lucide { stroke-width: 1.75; }
 .choice.swatch { width: var(--control-height); padding: 0; border-color: transparent; }
 /* 選んだ見本（色・テーマ）は、輪とチェックの印で示す（輪だけだと、フォーカスの枠と見分けられない）。
    文字やアイコンで選ぶものは、輪を付けずに地と色で示す。 */
-.choice.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.choice.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-text); }
 .choice.swatch.on { box-shadow: var(--ring-selected); }
 .color-choices { padding: 6px; max-width: 300px; }
 .table-menu-choices { padding: 4px 6px; }
@@ -878,10 +891,12 @@ svg.lucide { stroke-width: 1.75; }
 .find-row .text-button:disabled { color: var(--muted); }
 .find-bar input { width: 100%; min-width: 0; height: var(--control-height); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 10px; background: var(--panel); color: var(--text); }
 .find-bar input.invalid { border-color: var(--danger); }
+/* 打つ・送る・進むたびに変わる数字（文字数、件数、一致の数、進み具合、時刻）は、数字の幅をそろえて、並びが左右に揺れないようにする。 */
+:is(.document-meta-end, .nav .count, .library-row .count, .find-count, .progress-status, .reminder-row time, .note-item .meta) { font-variant-numeric: tabular-nums; }
 .find-count { color: var(--muted); font-size: var(--font-size-small); min-width: 48px; text-align: center; white-space: nowrap; }
 /* 正規表現の誤りは、入力欄の下の行に出す（操作の列に出すと、入力欄の幅が変わる）。 */
-.find-error { grid-column: 2 / -1; color: var(--danger); font-size: var(--font-size-small); }
-.search-scope { text-align: left; color: var(--accent); font-size: var(--font-size-small); padding: 4px 8px; line-height: 1.5; }
+.find-error { grid-column: 2 / -1; color: var(--danger-text); font-size: var(--font-size-small); }
+.search-scope { text-align: left; color: var(--accent-text); font-size: var(--font-size-small); padding: 4px 8px; line-height: 1.5; }
 .search-scope-switch { margin: 2px 8px 4px; }
 .shortcut-list { display: grid; gap: 6px; }
 .shortcut-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; }
@@ -889,7 +904,7 @@ svg.lucide { stroke-width: 1.75; }
 /* キーのボタン。押すと、次に押したキーを待つ。 */
 .shortcut-keys { min-width: 120px; height: var(--control-height-compact); padding: 0 8px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--panel); color: var(--text); font-size: var(--font-size-small); }
 @media (hover: hover) { .shortcut-keys:hover { border-color: var(--muted); } }
-.shortcut-keys.recording { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.shortcut-keys.recording { border-color: var(--accent); color: var(--accent-text); box-shadow: 0 0 0 2px var(--accent-soft); }
 .shortcut-keys kbd { background: none; border: 0; padding: 0; font: inherit; }
 .shortcut-message { flex-basis: 100%; margin: 0; }
 kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); border: 1px solid var(--line); border-radius: var(--radius-inline); padding: 1px 6px; white-space: nowrap; }
@@ -923,7 +938,7 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 /* ノートブックを選んで移すダイアログの行（editor/MoveNoteToNotebookDialog.tsx）。いま入っている行に印を付ける。 */
 /* 階層の段（--depth）ごとに、子の印の欄が親のノートブックの印の真下に来る幅（印の欄と、.menu-item の間）だけ字下げする。 */
 .menu-item.notebook-choice { cursor: pointer; padding-left: calc(10px + var(--depth, 0) * (var(--checkbox-size) + 10px)); }
-.notebook-choice-check { display: inline-flex; align-items: center; justify-content: center; width: var(--checkbox-size); flex-shrink: 0; color: var(--accent); }
+.notebook-choice-check { display: inline-flex; align-items: center; justify-content: center; width: var(--checkbox-size); flex-shrink: 0; color: var(--accent-text); }
 /* 絞り込みで、名前に当たった子の親として残しただけの行。 */
 .notebook-choice.ancestor-only { color: var(--muted); }
 .dialog.note-history { --dialog-width: 760px; max-height: min(620px, 92%); }
@@ -960,7 +975,7 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 .attachment-image:is(.loaded, .sized) { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
 .attachment-image.sized img { max-width: 100%; }
 /* 写真の右下の、大きさを変える持ち手。ポインターを乗せたときと、写真を選んだときに出す（スマホは選んだとき）。 */
-.image-resize-handle { position: absolute; right: 6px; bottom: 6px; width: 16px; height: 16px; border-radius: 4px; background: var(--panel); border: 2px solid var(--accent); cursor: nwse-resize; opacity: 0; touch-action: none; }
+.image-resize-handle { position: absolute; right: 6px; bottom: 6px; width: 16px; height: 16px; border-radius: var(--radius-inline); background: var(--panel); border: 2px solid var(--accent); cursor: nwse-resize; opacity: 0; touch-action: none; }
 .attachment-image:hover .image-resize-handle, .attachment-image.selected .image-resize-handle, .image-resize-handle:focus-visible { opacity: 1; }
 /* マウスでは、見た目は小さいまま、つかめる範囲を 28px に広げる（16px の角を狙うのは難しい）。指で押す端末は、下の (pointer: coarse) で広げる。 */
 @media (pointer: fine) {
@@ -978,10 +993,10 @@ kbd { font: inherit; font-size: var(--font-size-small); background: var(--tag); 
 /* 本文の選択を保つメニューで、↑↓ で選んでいる項目（フォーカスは本文にあるので、:focus の代わりに付ける）。 */
 .menu .active-descendant { background: var(--selected); outline: 2px solid var(--accent); outline-offset: -2px; }
 .menu-item:active:not(:disabled) { background: var(--pressed); }
-.menu-item.danger { color: var(--danger); }
+.menu-item.danger { color: var(--danger-text); }
 .menu-separator { height: 1px; background: var(--line); margin: 4px 0; }
 .menu-heading { padding: 6px 10px 2px; }
-.menu-check { margin-left: auto; color: var(--accent); }
+.menu-check { margin-left: auto; color: var(--accent-text); }
 /* 項目の右に出すショートカットのキー（メモの「…」とコマンドパレット）。 */
 /* line-height: 1 は、枠つきの小さい字が行の高さを 1px 押し上げ、キーのある項目だけ高くなるのを防ぐため。 */
 .menu-item > kbd { margin-left: auto; color: var(--muted); font-size: var(--font-size-caption); line-height: 1; }
@@ -1066,8 +1081,9 @@ input[type="checkbox"].switch:checked { background: var(--accent); }
 input[type="checkbox"].switch:checked::before { left: calc(var(--switch-width) - var(--switch-height) + 2px); }
 input[type="checkbox"].switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 input[type="checkbox"].switch:disabled { cursor: default; opacity: .55; }
-.form-error { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); border-radius: var(--radius-control); padding: 8px 10px; line-height: 1.5; }
-.form-success { color: var(--ok); }
+/* 帯の濃さ 8% は theme/themeCssVariables.ts の STATUS_BAND_SHARE と同じにする（文字の色 --danger-text は、この帯の上で読める濃さに作る）。 */
+.form-error { color: var(--danger-text); background: color-mix(in srgb, var(--danger) 8%, transparent); border-radius: var(--radius-control); padding: 8px 10px; line-height: 1.5; }
+.form-success { color: var(--ok-text); }
 /* 時間のかかる処理の間に出す文と、件数の分かる処理の棒（shared/ProgressStatus.tsx）。棒の幅は、ボタンの横に並べても行が折れにくい長さ。 */
 .progress-status { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--muted); font-size: var(--font-size-small); line-height: 1.5; }
 .progress-bar { --progress-bar-height: 4px; flex: none; width: 96px; height: var(--progress-bar-height); border-radius: calc(var(--progress-bar-height) / 2); background: var(--line); overflow: hidden; }
@@ -1104,7 +1120,7 @@ input[type="checkbox"].switch:disabled { cursor: default; opacity: .55; }
    文字の大きさも決める（本文の中に置いたボタンが、本文の文字の大きさを引き継がないように）。 */
 .primary-button { background: var(--accent); color: var(--on-accent); border-radius: var(--radius-control); height: var(--control-height); padding: 0 16px; font-weight: 600; white-space: nowrap; font-size: var(--font-size-ui); }
 .secondary-button { border: 1px solid var(--line); border-radius: var(--radius-control); height: var(--control-height); padding: 0 12px; background: var(--panel); white-space: nowrap; font-size: var(--font-size-ui); }
-.danger-button { color: var(--danger); border: 1px solid var(--line); border-radius: var(--radius-control); height: var(--control-height); padding: 0 12px; white-space: nowrap; font-size: var(--font-size-ui); }
+.danger-button { color: var(--danger-text); border: 1px solid var(--line); border-radius: var(--radius-control); height: var(--control-height); padding: 0 12px; white-space: nowrap; font-size: var(--font-size-ui); }
 /* ボタンが多くて 1 行に収まらないときは、ボタンの中で文字を折らずに、行を分ける。 */
 /* アイコンと文字を並べたボタンで、アイコンが文字より上にずれないよう、縦の中央でそろえる。 */
 .primary-button, .secondary-button, .danger-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
@@ -1123,7 +1139,7 @@ input[type="checkbox"].switch:disabled { cursor: default; opacity: .55; }
 .about-artwork { display: block; width: 100%; max-width: 520px; height: auto; border-radius: var(--radius-dialog); }
 .about-section .about-name { color: var(--text); font-size: var(--font-size-title); font-weight: 700; }
 .about-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.about-back { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); margin-bottom: 12px; }
+.about-back { display: inline-flex; align-items: center; gap: 4px; color: var(--accent-text); margin-bottom: 12px; }
 .data-handling > div { display: flex; flex-direction: column; gap: 6px; }
 .data-handling p { line-height: 1.7; }
 .license-search { width: 100%; max-width: 360px; height: var(--control-height); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 10px; background: var(--panel); color: var(--text); }
@@ -1133,7 +1149,7 @@ input[type="checkbox"].switch:disabled { cursor: default; opacity: .55; }
 .license-package-name { font-weight: 600; }
 .license-package-license { margin-left: 8px; color: var(--muted); font-size: var(--font-size-small); }
 .license-package-detail { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 10px; }
-.license-package-detail .text-button { color: var(--accent); padding: 2px 0; }
+.license-package-detail .text-button { color: var(--accent-text); padding: 2px 0; }
 .license-text pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--font-size-small); line-height: 1.5; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-control); max-height: 360px; overflow-y: auto; width: 100%; box-sizing: border-box; }
 .update-check { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 
@@ -1186,7 +1202,7 @@ input[type="checkbox"].switch:disabled { cursor: default; opacity: .55; }
 .settings-navigation { width: 200px; flex: none; border-right: 1px solid var(--line); padding: 24px 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
 .settings-navigation h1 { font-size: var(--font-size-title); padding: 0 8px 14px; }
 .settings-navigation .nav svg { color: var(--muted); flex: none; }
-.settings-navigation .nav.active svg { color: var(--accent); }
+.settings-navigation .nav.active svg { color: var(--accent-text); }
 /* スマホ: 設定を開いた最初の画面に並べるページの一覧。 */
 .settings-page-list { border-top: 1px solid var(--line); }
 .settings-page-list .library-row svg { color: var(--muted); flex: none; }
@@ -1197,7 +1213,13 @@ input[type="checkbox"].switch:disabled { cursor: default; opacity: .55; }
 .unreadable-records ul { margin: 6px 0 0; padding-left: 18px; }
 .unreadable-records code { font-family: var(--font-mono); font-size: var(--font-size-small); overflow-wrap: anywhere; }
 .settings pre { font-family: var(--font-mono); background: var(--tag); border-radius: var(--radius-control); padding: 10px 12px; font-size: var(--font-size-small); overflow-x: auto; }
-details summary { cursor: pointer; color: var(--accent); }
+/* 開閉の行。ブラウザの三角を消し、先頭の DisclosureChevron（shared/DisclosureChevron.tsx）を開いたら下へ向ける。 */
+/* 印と文字の縦の中心をそろえるため、行を flex にする（文字の行の高さに合わせた vertical-align では、フォントによって 1px ずれた）。 */
+summary { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+summary::-webkit-details-marker { display: none; }
+.disclosure-chevron { flex: none; }
+details[open] > summary > .disclosure-chevron { rotate: 90deg; }
+details summary { cursor: pointer; color: var(--accent-text); }
 
 .theme-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
 .theme-choice { position: relative; border: 1px solid var(--line); border-radius: var(--radius-panel); padding: 6px; display: flex; flex-direction: column; gap: 6px; text-align: left; background: var(--panel); }
@@ -1209,11 +1231,11 @@ details summary { cursor: pointer; color: var(--accent); }
 .theme-sample { display: grid; grid-template-columns: 30% 1fr; height: 62px; border-radius: var(--radius-row); overflow: hidden; border: 1px solid var(--line); background: var(--panel); color: var(--text); }
 .theme-sample.split { grid-template-columns: 1fr 1fr; }
 .theme-sample-sidebar { background: var(--sidebar); border-right: 1px solid var(--line); padding: 8px 6px; display: flex; flex-direction: column; gap: 4px; }
-.theme-sample-sidebar span { height: 5px; border-radius: 3px; background: var(--selected); }
+.theme-sample-sidebar span { height: 5px; border-radius: var(--radius-mark); background: var(--selected); }
 .theme-sample-sidebar span:first-child { background: var(--accent); }
 .theme-sample-body { padding: 8px; display: flex; flex-direction: column; gap: 4px; font-size: var(--font-size-caption); line-height: 1.2; min-width: 0; }
 .theme-sample-body .sample-muted { color: var(--muted); }
-.theme-sample-body .sample-accent { color: var(--accent); }
+.theme-sample-body .sample-accent { color: var(--accent-text); }
 .theme-editor { border: 1px solid var(--line); border-radius: var(--radius-panel); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
 .theme-editor .theme-sample { height: 96px; }
 .theme-color-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px 14px; }
@@ -1270,7 +1292,7 @@ details summary { cursor: pointer; color: var(--accent); }
 .chips .chip :is(.dot, .notebook-icon) { flex: none; }
 .chip-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .note-item .thumb { grid-row: 1 / span 3; grid-column: 2; width: 52px; height: 52px; border-radius: var(--radius-row); object-fit: cover; background: var(--tag); }
-.pin { color: var(--accent); flex: none; }
+.pin { color: var(--accent-text); flex: none; }
 .library-row { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--line); width: 100%; text-align: left; font-size: var(--font-size-list-title); }
 .library-row .count { margin-left: auto; color: var(--muted); font-size: var(--font-size-small); flex: none; }
 .library-row > svg, .library-row :is(.dot, .notebook-icon) { flex: none; }
@@ -1278,10 +1300,11 @@ details summary { cursor: pointer; color: var(--accent); }
 /* ノートブックの行は、中の一覧を開くボタンと「…」のボタンを横に並べる。子のノートブックは深さの分だけ字下げする。 */
 .notebook-row { --notebook-depth: 0; padding: 0 8px 0 calc(16px + var(--notebook-depth) * 18px); gap: 4px; }
 .notebook-row-open { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 13px 0; text-align: left; }
-.fab { position: fixed; right: 18px; bottom: calc(76px + env(safe-area-inset-bottom)); width: 54px; height: 54px; border-radius: 16px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent); }
+/* 影は、ほかの浮いた部品と同じ灰色の影にする（accent の色を混ぜた光は、飾りに見える）。 */
+.fab { position: fixed; right: 18px; bottom: calc(76px + env(safe-area-inset-bottom)); width: 54px; height: 54px; border-radius: var(--radius-fab); background: var(--accent); color: var(--on-accent); display: grid; place-items: center; box-shadow: var(--elevation-popover); }
 .tabbar { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); color: var(--muted); font-size: var(--font-size-caption); flex: none; background: var(--panel); }
 .tabbar button { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.tabbar .on { color: var(--accent); font-weight: 600; }
+.tabbar .on { color: var(--accent-text); font-weight: 600; }
 .phone .document { padding: 4px 18px max(80px, 30vh); }
 /* スマホは幅が狭いので、題を PC（30px）より小さくする。 */
 .phone .title-input { font-size: 26px; }
@@ -1313,12 +1336,26 @@ details summary { cursor: pointer; color: var(--accent); }
 .phone .reminders-header { flex-wrap: wrap; }
 .phone .reminders-header h1 { flex: 1 0 auto; }
 /* 指で押す端末では、見た目の大きさは変えずに、押せる範囲を 44px（iOS と Android の指針の大きさ）まで広げる。
-   小さいボタンには透明な ::before（折りたたみの印は ::before を印に使っているので ::after）を重ねる。 */
+   小さいボタンには透明な ::before（折りたたみの印とスイッチは ::before を印に使っているので ::after）を重ねる。
+   並んだボタンの押せる範囲は重ねない。重なった所を押すと、後ろに並ぶボタンが反応し、見えているボタンの端を押しても隣が動く
+   （2026-11-17 に、スマホの書式のツールバーで右端 4px が右隣のボタンになっていた）。間隔の狭い並びでは、横に広げるのを間隔の半分までにする。
+   測り方は scripts/app-checks/visualConsistency/measureTouchTargets.mjs（RUNS=phone で全画面を回る）。 */
 @media (pointer: coarse) {
+  :root {
+    --touch-target-size: 44px;
+    /* 縦の中心をそろえたまま、高さが --touch-target-size に届かない分だけ上下に広げる（届いていれば広げない）。高さがまちまちな部品に使う。 */
+    --touch-area-block: min(0px, calc(50% - var(--touch-target-size) / 2));
+  }
   /* 写真の大きさの持ち手は、写真を選んでいる間だけ見えるので、押せる範囲もその間だけ広げる（見えない持ち手が、写真の角でのスクロールやタップを取らないように）。 */
-  :is(.icon-button, .tool, .phone-back, .chips .chip, .tabbar button, .choice.swatch, .footnote-number, .ProseMirror .section-zoom, .attachment-image.selected .image-resize-handle)::before,
-  .ProseMirror .fold-toggle::after { content: ""; position: absolute; inset: var(--touch-area-inset, -8px); }
-  :is(.icon-button, .tool, .phone-back, .chips .chip, .tabbar button, .choice.swatch, .footnote-number) { position: relative; }
+  :is(.icon-button, .tool, .phone-back, .chips .chip, .tabbar button, .choice.swatch, .footnote-number, .ProseMirror .section-zoom, .attachment-image.selected .image-resize-handle,
+    .primary-button, .secondary-button, .danger-button, .text-button, .segmented button, .sync-line, .search-scope, summary, label.checkbox-line,
+    .ProseMirror ul[data-type="taskList"] li > label)::before,
+  :is(.ProseMirror .fold-toggle, input[type="checkbox"].switch)::after { content: ""; position: absolute; inset: var(--touch-area-inset, -8px); }
+  :is(.icon-button, .tool, .phone-back, .chips .chip, .tabbar button, .choice.swatch, .footnote-number,
+    .primary-button, .secondary-button, .danger-button, .text-button, .segmented button, .sync-line, .search-scope, summary, label.checkbox-line,
+    .ProseMirror ul[data-type="taskList"] li > label) { position: relative; }
+  /* 文字のボタン（高さ 32px の --control-height など）と、文字の行（開閉の行、チェックの行）は、上下だけ広げる。横は文字の幅で足りる。 */
+  :is(.primary-button, .secondary-button, .danger-button, .text-button, .segmented button, .sync-line, .search-scope, summary, label.checkbox-line) { --touch-area-inset: var(--touch-area-block) 0; }
   /* 文字の行の高さはブラウザで違う（WebKit は 21px）ので、高さを決めてから上下に 10px ずつ広げる。 */
   .phone-back { --touch-area-inset: -10px -8px; min-height: 24px; }
   /* チップの帯は縦にも切り取るので、広げた範囲が入るよう帯の上下に余白を取り、その分だけ上へ寄せて位置を保つ。 */
@@ -1326,17 +1363,31 @@ details summary { cursor: pointer; color: var(--accent); }
   .chips .chip { --touch-area-inset: -8px 0; }
   .tabbar button { --touch-area-inset: -8px 0; }
   .choice.swatch { --touch-area-inset: -9px; }
+  /* 色の見本は 6px 間隔で並ぶので、横と縦の広げ方を間隔の半分にする。 */
+  .choice-grid > .choice.swatch { --touch-area-inset: -3px; }
+  /* ボタンが 4px 間隔で並ぶ書式のツールバーとメモの中の検索、6px 間隔のスマホの上のバーは、横に広げるのを間隔の半分にする。 */
+  :is(.editor-bar, .find-controls) > :is(.tool, .icon-button) { --touch-area-inset: -8px -2px; }
+  .phone-top-end > .icon-button { --touch-area-inset: var(--touch-area-block) -3px; }
+  .phone-top-end > .sync-line { --touch-area-inset: var(--touch-area-block) 0; }
   .footnote-number { --touch-area-inset: -8px -11px; }
   /* 見出しの右端のズームのボタンは、見出しの文字の側へは広げない（文字を押したときにズームしないように）。 */
   .phone .ProseMirror .section-zoom { --touch-area-inset: -12px -18px -12px -4px; }
   .image-resize-handle { --touch-area-inset: -14px; }
-  .ProseMirror .fold-toggle { --touch-area-inset: -8px -14px; }
+  .ProseMirror .fold-toggle { --touch-area-inset: var(--touch-area-block) -14px; }
   /* スマホの見出しとチェックリストの印は、文字やチェックのすぐ左にあるので、そちらの側へは広げない。 */
-  .phone .ProseMirror :is(h1, h2, h3, h4, h5, h6, ul[data-type="taskList"] > li > div) > .fold-toggle { --touch-area-inset: -8px 0 -8px -14px; }
+  .phone .ProseMirror :is(h1, h2, h3, h4, h5, h6, ul[data-type="taskList"] > li > div) > .fold-toggle { --touch-area-inset: var(--touch-area-block) 0 var(--touch-area-block) -14px; }
+  /* チェックリストのチェックは、左（字下げの余白）へ広げ、右は項目の文字との間隔（8px）の半分までにする。上下の項目のチェックとは
+     約 2px しか離れていないので、縦には広げない。 */
+  .ProseMirror ul[data-type="taskList"] li > label { --touch-area-inset: 0 -4px 0 -12px; }
+  /* チェックを包む label に重ねた範囲は、チェックそのものより下に置く（チェックを押せばチェックに、周りを押せば label に当たる）。 */
+  :is(label.checkbox-line, .ProseMirror ul[data-type="taskList"] li > label) > input { position: relative; }
+  /* スイッチは右端に置くので、左右も中心をそろえて 44px にする。 */
+  input[type="checkbox"].switch { --touch-area-inset: var(--touch-area-block) min(0px, calc(50% - var(--touch-target-size) / 2)); }
   .menu-item { min-height: 44px; }
 }
-/* 指で使う端末にはポインターを乗せる操作が無いので、折りたたみの印をいつも薄く出す。 */
-@media (hover: none) { .ProseMirror .fold-toggle { opacity: .45; } .ProseMirror .fold-toggle.collapsed { opacity: 1; } }
+/* 指で使う端末にはポインターを乗せる操作が無いので、折りたたみの印とズームのボタンをいつも出す。薄さは、アイコンの目安（3:1）に
+   届く .75 まで（.45 ではライトで 1.9:1 しかなく、押せる印と分からない）。 */
+@media (hover: none) { .ProseMirror .fold-toggle { opacity: .75; } .ProseMirror .fold-toggle.collapsed { opacity: 1; } }
 /* スマホの下のツールバーは横に送れる。まだ先がある側の端に、背景色へ溶ける帯を重ねて、続きがあることを見せる
    （shared/useHorizontalScrollEdges.ts が data 属性を付ける）。帯は sticky で端に留め、幅と間隔の分を負の余白で打ち消して、ボタンの並びを動かさない。
    mask-image は使わない（バーの中から開く色・表のメニューまで切り取られる）。 */

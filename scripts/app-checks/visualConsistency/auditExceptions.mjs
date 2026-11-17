@@ -8,6 +8,10 @@
 
 export const ROLE_VALUE_EXCEPTIONS = [
   {
+    role: "menu-item", measure: "height", value: "44",
+    reason: "指の端末（スマホの流し方）では、メニューの項目を --touch-target-size（44px）の高さにする（app.css の @media (pointer: coarse) の .menu-item）",
+  },
+  {
     role: "text-field", measure: "height", value: "28",
     reason: "--control-height-compact。クエリの条件、脚注、表の中のプロパティなど、本文の中に置く詰めた欄",
   },
@@ -61,7 +65,7 @@ export const ROLE_VALUE_EXCEPTIONS = [
   },
   {
     role: "button-icon", measure: "radius", element: /button\.fab/,
-    reason: "スマホの「新しいメモ」の丸いボタン（Material の FAB と同じ形）",
+    reason: "スマホの「新しいメモ」の大きなボタン（--radius-fab。Material の FAB と同じ形）",
   },
   {
     role: "button-icon", measure: "radius", element: /button\.tab-close/,
@@ -90,5 +94,27 @@ export const FIT_EXCEPTIONS = [
   {
     kind: "field-leaves-space", element: /div\.database-view > div\.field\.database-group > select/,
     reason: "データベース表示の上の「グループ分け」の選択欄。帯の中の操作で、中身の長さの幅でよい",
+  },
+  // タップ領域（measureTouchTargets.mjs）。見た目を変えずには 44px に届かないもの。間隔や高さを変えるかは、利用者が案の画像を見て決める
+  // （2026-11-17 の UI の調査の続き）。決まったら、ここから消して直す。
+  {
+    kind: "touch-target-small", element: /(editor-bar > button\.tool|find-controls > button\.icon-button|phone-top-end > button\.icon-button)/,
+    reason: "28px のボタンが 4〜6px 間隔で並ぶ。重ならないよう横は間隔の半分まで（幅 32〜34px）。44px にするには並びの間隔を広げる（見た目が変わる）",
+  },
+  {
+    kind: "touch-target-small", element: /setting-row-control > (select|span\.setting-slider > input)/,
+    reason: "選択欄とスライダーは --control-height（32px）。select と input には疑似要素を重ねられないので、44px にするには高さを変える（見た目が変わる）",
+  },
+  {
+    kind: "touch-target-small", element: /button\.(fold-toggle|section-zoom)\.ProseMirror-widget/,
+    reason: "折りたたみとズームの印は、片側が画面の端、反対の側が見出しや項目の文字。文字の側へ広げると、文字を押したときに折りたたむ・ズームする",
+  },
+  {
+    kind: "touch-target-small", element: /ul > li > label/,
+    reason: "チェックリストのチェック。上下の項目のチェックとの間隔が約 2px なので縦には広げられない（行の高さは本文の行間で決まる）。横は字下げの側へ広げてある",
+  },
+  {
+    kind: "touch-target-small", element: /footnote > button\.footnote-number/,
+    reason: "脚注の番号。脚注の行は 32px おきなので、縦に 44px まで広げると上下の番号に入り込む",
   },
 ];

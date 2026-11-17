@@ -18,6 +18,8 @@ const FINDING_TITLES = {
   "close-leaves-space": "閉じる「×」の右に、入れ物の幅の空きが残っている（leftover は px）",
   "overlay-outside-window": "メニュー・ダイアログ・候補が、窓の外へはみ出している（上下左右の px）",
   "overlay-content-cut": "メニュー・ダイアログの中身が枠で切れていて、送ることもできない（hidden は px）",
+  "touch-target-overlap": "指の端末で、隣の部品のタップ領域が見た目の中まで入り込んでいる（その所を押すと other が反応する。width・height は px）",
+  "touch-target-small": "指の端末で、タップ領域の幅か高さが 44px に届かない（width・height は px）",
   "japanese-in-english": "英語の画面に、日本語の文字が残っている",
 };
 

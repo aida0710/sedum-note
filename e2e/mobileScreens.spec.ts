@@ -284,7 +284,7 @@ test("スマホのゴミ箱の一覧には、ノートブックのチップも�
   await expect(page.getByRole("button", { name: "新しいメモ" })).toHaveCount(0);
 });
 
-test("スマホの検索で当たるメモが無いと、探した言葉を添えて知らせ、「×」で検索の文字を消せる", async ({ browser }) => {
+test("スマホの検索で当たるメモが無いと、探した言葉を添えて知らせ、その言葉の題でメモを作れ、「×」で検索の文字を消せる", async ({ browser }) => {
   const page = await openPhone(browser);
   await openNewNoteOnPhone(page, "買い物");
   await backToList(page);
@@ -293,7 +293,8 @@ test("スマホの検索で当たるメモが無いと、探した言葉を添�
   await expect(page.getByRole("button", { name: "検索をクリア" })).toHaveCount(0);
 
   await search.fill("見つからない言葉");
-  await expect(page.locator(".empty-state")).toHaveText("「見つからない言葉」に一致するメモはありません");
+  await expect(page.locator(".empty-state p")).toHaveText("「見つからない言葉」に一致するメモはありません");
+  await expect(page.locator(".empty-state").getByRole("button", { name: "「見つからない言葉」というタイトルでメモを作成" })).toBeVisible();
   await page.getByRole("button", { name: "検索をクリア" }).click();
   await expect(search).toHaveValue("");
   await expect(page.locator(".note-item", { hasText: "買い物" })).toBeVisible();
@@ -382,7 +383,7 @@ test("スマホでは、名前の長いプロパティがあっても、値の�
   expect(valueBox.width).toBeGreaterThan(150);
 });
 
-test("指で使う端末では、小さいボタンの押せる範囲が 44px あり、下のツールバーは縦に送れるようにならない", async ({ browser }) => {
+test("指で使う端末では、小さいボタンの押せる範囲が縦に 44px あり、並んだボタンの押せる範囲は隣と重ならない", async ({ browser }) => {
   const page = await openPhone(browser, { hasTouch: true });
   expect(await page.evaluate(() => matchMedia("(pointer: coarse)").matches)).toBe(true);
   await openNewNoteOnPhone(page, "押せる範囲");
@@ -391,9 +392,15 @@ test("指で使う端末では、小さいボタンの押せる範囲が 44px �
     const area = getComputedStyle(element, "::before");
     return { width: Number.parseFloat(area.width), height: Number.parseFloat(area.height) };
   });
-  for (const selector of [".editor-bar .tool", ".phone-top .icon-button", ".phone-back"]) {
+  // 戻るボタンは 1 つだけで置くので、縦も横も 44px。並んだボタン（下のツールバー、上のバー）は、縦は 44px、横は見た目より広く、
+  // 隣のボタンとの間隔の半分まで（44px にすると隣に重なり、見えているボタンの端を押すと隣が反応する）。
+  const backArea = await touchAreaOf(".phone-back");
+  expect(backArea.width).toBeGreaterThanOrEqual(44);
+  expect(backArea.height).toBeGreaterThanOrEqual(44);
+  for (const selector of [".editor-bar .tool", ".phone-top .icon-button"]) {
     const area = await touchAreaOf(selector);
-    expect(area.width, selector).toBeGreaterThanOrEqual(44);
+    const visibleWidth = (await page.locator(selector).first().boundingBox())!.width;
+    expect(area.width, selector).toBeGreaterThan(visibleWidth);
     expect(area.height, selector).toBeGreaterThanOrEqual(44);
   }
   const toolbar = page.locator(".editor-bar");
@@ -401,8 +408,11 @@ test("指で使う端末では、小さいボタンの押せる範囲が 44px �
   // ボタンのすぐ上（見た目の箱の外、広げた範囲の中）を押しても、そのボタンに当たる。
   const bold = toolbar.getByRole("button", { name: "太字" });
   const boldBox = (await bold.boundingBox())!;
-  const hit = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.getAttribute("aria-label"), { x: boldBox.x + boldBox.width / 2, y: boldBox.y - 6 });
-  expect(hit).toBe("太字");
+  const labelAt = (x: number, y: number) => page.evaluate((point) => document.elementFromPoint(point.x, point.y)?.closest("button")?.getAttribute("aria-label"), { x, y });
+  expect(await labelAt(boldBox.x + boldBox.width / 2, boldBox.y - 6)).toBe("太字");
+  // 見えているボタンの左右の端を押しても、そのボタンに当たる（隣のボタンの押せる範囲が入り込まない）。
+  expect(await labelAt(boldBox.x + 1, boldBox.y + boldBox.height / 2)).toBe("太字");
+  expect(await labelAt(boldBox.x + boldBox.width - 1, boldBox.y + boldBox.height / 2)).toBe("太字");
 
   await backToList(page);
   for (const selector of [".chips .chip", ".tabbar button"]) {
@@ -410,7 +420,7 @@ test("指で使う端末では、小さいボタンの押せる範囲が 44px �
   }
 });
 
-test("指で使う端末では、箇条書きの折りたたみの印がいつも薄く見える", async ({ browser }) => {
+test("指で使う端末では、箇条書きの折りたたみの印がいつも見え、薄さはアイコンの目安（3:1）に届く .75 まで", async ({ browser }) => {
   const page = await openPhone(browser, { hasTouch: true });
   expect(await page.evaluate(() => matchMedia("(hover: none)").matches)).toBe(true);
   await openNewNoteOnPhone(page, "折りたたみ");
@@ -422,7 +432,7 @@ test("指で使う端末では、箇条書きの折りたたみの印がいつ�
   await page.keyboard.type("子");
   await page.locator(".editor-bar").getByRole("button", { name: "インデントを増やす", exact: true }).click();
   const foldToggle = body.locator(".fold-toggle").first();
-  await expect(foldToggle).toHaveCSS("opacity", "0.45");
+  await expect(foldToggle).toHaveCSS("opacity", "0.75");
   await foldToggle.click();
   await expect(foldToggle).toHaveCSS("opacity", "1");
   await expect(body.locator("ul ul")).toBeHidden();
@@ -506,12 +516,47 @@ test("スマホのチェックリストでも、折りたたみの印が画面�
   const foldToggle = body.locator("li .fold-toggle").first();
   const toggleBox = (await foldToggle.boundingBox())!;
   expect(toggleBox.x).toBeGreaterThanOrEqual(0);
-  // チェックの真ん中を押すと、折りたたみの印ではなくチェックに当たる。
+  // チェックの真ん中を押すと、折りたたみの印や、チェックを包む label に重ねた押せる範囲ではなく、チェックに当たる。
   const checkbox = body.locator('li input[type="checkbox"]').first();
   const checkboxBox = (await checkbox.boundingBox())!;
   expect(toggleBox.x + toggleBox.width).toBeLessThanOrEqual(checkboxBox.x);
   const hitTagName = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.tagName, { x: checkboxBox.x + checkboxBox.width / 2, y: checkboxBox.y + checkboxBox.height / 2 });
   expect(hitTagName).toBe("INPUT");
+  // 折りたたみの印の無い項目（子）では、チェックのすぐ左（見た目の外、押せる範囲の中）を押しても、チェックが切り替わる。
+  // 印のある項目（親）では、印が上に重なり、印の方に当たる。
+  const childCheckbox = body.locator('li li input[type="checkbox"]').first();
+  const childBox = (await childCheckbox.boundingBox())!;
+  await page.mouse.click(childBox.x - 4, childBox.y + childBox.height / 2);
+  await expect(childCheckbox).toBeChecked();
+  await page.mouse.click(childBox.x - 4, childBox.y + childBox.height / 2);
+  await expect(childCheckbox).not.toBeChecked();
   await foldToggle.click();
   await expect(body.locator("li li")).toBeHidden();
+});
+
+test("指で使う端末では、見えているボタンの端を押しても、隣のボタンではなくそのボタンに当たる", async ({ browser }) => {
+  const page = await openPhone(browser, { hasTouch: true });
+  await openNewNoteOnPhone(page, "隣と重ならない");
+  await page.locator(".ProseMirror").click();
+  // 上のバーと下のツールバーの、画面に全部見えているボタンの、左右上下の端から 1px 内側を押した先を調べる。
+  const misses = await page.evaluate(() => {
+    const found: string[] = [];
+    for (const button of document.querySelectorAll<HTMLElement>(".phone-top button, .editor-bar button")) {
+      const box = button.getBoundingClientRect();
+      if (box.width === 0 || box.left < 0 || box.right > innerWidth) {
+        continue;
+      }
+      const centreX = box.left + box.width / 2;
+      const centreY = box.top + box.height / 2;
+      const edges = { 左: [box.left + 1, centreY], 右: [box.right - 1, centreY], 上: [centreX, box.top + 1], 下: [centreX, box.bottom - 1] } as const;
+      for (const [edge, [x, y]] of Object.entries(edges)) {
+        const hit = document.elementFromPoint(x, y)?.closest("button");
+        if (hit && hit !== button) {
+          found.push(`${button.getAttribute("aria-label") ?? button.textContent}の${edge}端 → ${hit.getAttribute("aria-label") ?? hit.textContent}`);
+        }
+      }
+    }
+    return found;
+  });
+  expect(misses).toEqual([]);
 });

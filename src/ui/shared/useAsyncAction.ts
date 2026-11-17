@@ -13,27 +13,30 @@ export type AsyncAction<Input> = {
   // 実行中に action が渡した、最後の進み具合。渡していなければ null。
   progress: TaskProgress | null;
   errorMessage: string | null;
+  // 最後の失敗のエラーそのもの。誤りをどの入力欄の横に出すかを、エラーの種類で決めるのに使う（FieldError.tsx）。
+  error: unknown;
   clearError: () => void;
 };
 
 export function useAsyncAction<Input>(action: (input: Input, context: AsyncActionContext) => Promise<void>): AsyncAction<Input> {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<TaskProgress | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [failure, setFailure] = useState<{ error: unknown; message: string } | null>(null);
   return {
     busy,
     progress,
-    errorMessage,
-    clearError: () => setErrorMessage(null),
+    errorMessage: failure?.message ?? null,
+    error: failure?.error ?? null,
+    clearError: () => setFailure(null),
     run: async (input) => {
       setBusy(true);
       setProgress(null);
-      setErrorMessage(null);
+      setFailure(null);
       try {
         await action(input, { reportProgress: setProgress });
         return true;
       } catch (error) {
-        setErrorMessage(describeError(error));
+        setFailure({ error, message: describeError(error) });
         return false;
       } finally {
         setBusy(false);

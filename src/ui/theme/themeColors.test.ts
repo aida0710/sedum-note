@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { BUILT_IN_THEMES, DARK_THEME, LIGHT_THEME } from "./builtInThemes";
-import { colorWithContrast, contrastRatio, NON_TEXT_CONTRAST_MINIMUM, readableTextColorOn } from "./colorContrast";
+import { colorWithContrast, colorWithContrastOnAll, contrastRatio, NON_TEXT_CONTRAST_MINIMUM, readableTextColorOn } from "./colorContrast";
+import { mixHexColors } from "./colorMixing";
 import { findContrastProblems, parseStoredCustomTheme, schemeOfColors } from "./customTheme";
 import { PALETTE_COLORS, type PaletteColorName, paletteTextColorVariable } from "./paletteColors";
 import { raisedSurfaceColor } from "./raisedSurfaceColor";
-import { themeCssVariables } from "./themeCssVariables";
+import { STATUS_BAND_SHARE, themeCssVariables } from "./themeCssVariables";
 
 describe("contrastRatio", () => {
   it("黒と白は 21、同じ色は 1 になる", () => {
@@ -66,6 +67,22 @@ describe("テーマから作る色", () => {
     }
   });
 
+  it.each(themes)("%s の文字に使う accent・danger・ok は、文字が載るどの地の上でも読める", (_id, theme) => {
+    const variables = themeCssVariables(theme.colors);
+    const raised = raisedSurfaceColor(theme.colors);
+    const { panel, canvas, sidebar, selected, tag, accentSoft } = theme.colors;
+    const surfaces = { panel, canvas, sidebar, selected, tag, accentSoft, raised };
+    for (const [variable, statusColor] of [["--accent-text", null], ["--danger-text", theme.colors.danger], ["--ok-text", theme.colors.ok]] as const) {
+      const bands = statusColor === null ? {} : {
+        "帯（panel）": mixHexColors(panel, statusColor, STATUS_BAND_SHARE),
+        "帯（raised）": mixHexColors(raised, statusColor, STATUS_BAND_SHARE),
+      };
+      for (const [surfaceName, surface] of Object.entries({ ...surfaces, ...bands })) {
+        expect(contrastRatio(variables[variable]!, surface), `${variable} / ${surfaceName}`).toBeGreaterThanOrEqual(SMALL_TEXT_MINIMUM_CONTRAST);
+      }
+    }
+  });
+
   it.each(themes)("%s のお気に入りの星の黄色は本文の地の上で見分けられ、検索の当たりの文字は黄色の上で読める", (_id, theme) => {
     const variables = themeCssVariables(theme.colors);
     expect(contrastRatio(variables["--bookmark"]!, theme.colors.panel)).toBeGreaterThanOrEqual(NON_TEXT_CONTRAST_MINIMUM);
@@ -78,6 +95,15 @@ describe("colorWithContrast", () => {
     expect(colorWithContrast({ color: "#d1242f", background: "#ffffff", towards: "#1f2328", minimum: 4.5 })).toBe("#d1242f");
     const darkened = colorWithContrast({ color: "#d4a017", background: "#ffffff", towards: "#1f2328", minimum: 4.5 });
     expect(contrastRatio(darkened, "#ffffff")).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+describe("colorWithContrastOnAll", () => {
+  it("どの地の上でも下限に届くまで寄せ、もともと届いていれば元の色のまま返す", () => {
+    expect(colorWithContrastOnAll({ color: "#1f2328", backgrounds: ["#ffffff", "#f1f1ee"], towards: "#000000", minimum: 4.5 })).toBe("#1f2328");
+    const adjusted = colorWithContrastOnAll({ color: "#2f6fde", backgrounds: ["#ffffff", "#e6eefc"], towards: "#1f2328", minimum: 4.5 });
+    expect(contrastRatio(adjusted, "#ffffff")).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(adjusted, "#e6eefc")).toBeGreaterThanOrEqual(4.5);
   });
 });
 

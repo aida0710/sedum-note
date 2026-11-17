@@ -2,7 +2,7 @@
 // メモをドラッグして行に落とすと、その一覧へ移す。ノートブックは、行と中のメモの範囲全体に落とせ、ノートブックを
 // 落とすと、その中へ移す（notebookDrag.ts）。
 
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { type ReactNode, type Ref, useContext, useEffect, useMemo } from "react";
 import type { NoteSummary, NoteView } from "../../core/notes/noteQueries";
 import { parseNoteSearchQuery } from "../../core/notes/noteSearchQuery";
@@ -11,6 +11,7 @@ import { translate } from "../i18n/translate";
 import { useDevicePreferences } from "../preferences/devicePreferences";
 import type { NoteRepository } from "../../core/notes/noteRepository";
 import { UnsyncedRecordsContext } from "../session/useRepositorySnapshot";
+import { createNoteInView } from "./createNoteInView";
 import { canDropDraggedNotebook, dropNotebook, isNotebookDrag } from "./notebookDrag";
 import { acceptsNoteDrop, canDropDraggedNote, dropNoteOnView, isNoteDrag } from "./noteDrag";
 import { markSidebarDropTarget, useSidebarDragState } from "./sidebarDragState";
@@ -202,6 +203,12 @@ export function SearchResults({ summaries, view, navigation, repository }: Searc
       <div className="section-title">{translate("sidebar.searchResults", { count: summaries.length })}</div>
       {/* 当たりが無いときは、「メモはありません」ではなく、検索の結果だと分かる文にする。 */}
       {summaries.length === 0 && <div className="tree-empty unindented">{translate("sidebar.noSearchResults", { query: navigation.searchText.trim() })}</div>}
+      {/* 当たりが無いときは、検索した言葉を題にしてメモを作れるようにする（コマンドパレットの「〜というタイトルでメモを作成」と同じ）。 */}
+      {summaries.length === 0 && (
+        <button type="button" className="search-scope" onClick={() => void createNoteInView(repository, view, navigation.searchText.trim()).then((note) => navigation.openNote(note.id))}>
+          <Plus size={ICON_SIZE.chip} />{translate("palette.createNote", { title: navigation.searchText.trim() })}
+        </button>
+      )}
       {summaries.length > 0 && <NoteRows notes={summaries} view={view} navigation={navigation} repository={repository} depth={null}
         snippetOf={(summary) => searchSnippetOf(summary.plainText, words)} opensInPreviewTab={false} />}
     </>

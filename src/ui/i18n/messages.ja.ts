@@ -1080,6 +1080,10 @@ export const japaneseMessages = {
   "mobile.openSyncSettings": "同期の設定を開く",
   "mobile.clearSearch": "検索をクリア",
   "mobile.noSearchResults": "「{query}」に一致するメモはありません",
+  "mobile.noBookmarkedNotes": "お気に入りのメモはありません",
+  "mobile.noBookmarkedNotesHint": "メモの上の星のボタンを押すと、ここに並びます。",
+  "mobile.noTemplates": "テンプレートはありません",
+  "mobile.createTemplate": "テンプレートを作成",
 
   "progress.working": "{label}…",
   "progress.counted": "{label}（{done}/{total}件）",

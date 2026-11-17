@@ -43,6 +43,19 @@ export function colorWithContrast({ color, background, towards, minimum }: Color
   return towards;
 }
 
+type ColorWithContrastOnAllInput = { color: string; backgrounds: readonly string[]; towards: string; minimum: number };
+
+// colorWithContrast の、載りうる地が何通りもある色の版。どの地の上でも minimum に届くまで、towards へ寄せる。
+export function colorWithContrastOnAll({ color, backgrounds, towards, minimum }: ColorWithContrastOnAllInput): string {
+  for (let share = 0; share < 1; share += MIX_STEP) {
+    const mixed = mixHexColors(color, towards, share);
+    if (backgrounds.every((background) => contrastRatio(mixed, background) >= minimum)) {
+      return mixed;
+    }
+  }
+  return towards;
+}
+
 const WHITE = "#ffffff";
 const NEAR_BLACK = "#16181c";
 
