@@ -11,6 +11,7 @@
 //   DATA=worst                 見本のデータの代わりに、最悪のデータ（多い・長い・空・絵文字）を入れて回る（worstCaseScreens.mjs）。
 //   RUNS=phone                 一部の流し方だけを回る（desktop・sync・phone をカンマで並べる。DATA=worst では使わない）。
 //                              PHONE_SIZE だけを変えて見るときは RUNS=phone にすると、PC の画面を撮り直さずに済む。
+// スマホの流し方（RUNS=phone）は指で押す端末として開き、タップ領域の重なりと大きさも測る（measureTouchTargets.mjs）。
 // 英語の画面は、日本語の画面を回ったあとに言語を英語にして、文言に頼らずに開ける画面だけを測る（auditScreens.mjs の ENGLISH_SCREENS）。
 // 新しい画面や状態（ダイアログ・メニュー・モード）を作ったら、同じコミットで auditScreens.mjs などの一覧にも足す。
 
@@ -21,6 +22,7 @@ import { fillSampleWorkspace } from "../sampleWorkspace.mjs";
 import { measureScreen } from "./measureScreen.mjs";
 import { measureContainerFit } from "./measureContainerFit.mjs";
 import { measureLeftoverJapanese } from "./measureLeftoverJapanese.mjs";
+import { measureTouchTargets } from "./measureTouchTargets.mjs";
 import { unlock, waitForLeavingCopies } from "./appOperations.mjs";
 import { countAuditFindings, writeAuditReport } from "./writeAuditReport.mjs";
 import { DESKTOP_SCREENS, ENGLISH_SCREENS, PHONE_SCREENS, UNVISITED_STATES } from "./auditScreens.mjs";
@@ -59,11 +61,12 @@ async function captureScreen(page, name, { language }) {
   await page.waitForTimeout(SETTLE_MILLISECONDS);
   const measured = await page.evaluate(measureScreen);
   const containerFindings = await page.evaluate(measureContainerFit);
+  const touchFindings = await page.evaluate(measureTouchTargets);
   const japaneseFindings = language === "en" ? await page.evaluate(measureLeftoverJapanese) : [];
   const renderedFonts = BROWSER_NAME === "chromium" ? await readRenderedFonts(page, measured.fontSamples) : [];
   const imagePath = `${outputDirectory}/${String(screens.length + 1).padStart(3, "0")}-${name}.png`;
   await page.screenshot({ path: imagePath });
-  const findings = [...measured.findings, ...containerFindings, ...japaneseFindings];
+  const findings = [...measured.findings, ...containerFindings, ...touchFindings, ...japaneseFindings];
   screens.push({ name, imagePath, findings, parts: measured.parts, fonts: measured.fonts, renderedFonts });
 }
 
@@ -165,8 +168,9 @@ async function clearLeftoverDialog(page) {
 // 開けない画面で 30 秒（Playwright の既定）ずつ待たないように、操作の待ち時間を短くする。
 const ACTION_TIMEOUT_MILLISECONDS = 10_000;
 
-async function newAuditPage(viewport) {
-  const context = await browser.newContext({ viewport, locale: UI_LOCALE });
+// スマホの流し方は、指で押す端末として開く（pointer: coarse と hover: none の規則が効き、タップ領域を測れる）。
+async function newAuditPage(viewport, { hasTouch = false } = {}) {
+  const context = await browser.newContext({ viewport, locale: UI_LOCALE, hasTouch });
   const page = await context.newPage();
   page.setDefaultTimeout(ACTION_TIMEOUT_MILLISECONDS);
   return page;
@@ -184,10 +188,10 @@ const runs = DATA === "worst"
   : [
     { name: "desktop", viewport: DESKTOP_VIEWPORT, screens: [...DESKTOP_SCREENS(screenInput), ...ENGLISH_SCREENS(screenInput)] },
     { name: "sync", viewport: DESKTOP_VIEWPORT, screens: SYNC_SCREENS(screenInput) },
-    { name: "phone", viewport: PHONE_VIEWPORT, screens: PHONE_SCREENS(screenInput) },
+    { name: "phone", viewport: PHONE_VIEWPORT, hasTouch: true, screens: PHONE_SCREENS(screenInput) },
   ].filter((run) => RUNS.has(run.name));
 for (const run of runs) {
-  const page = await newAuditPage(run.viewport);
+  const page = await newAuditPage(run.viewport, { hasTouch: run.hasTouch });
   if (run.prepare) {
     // 準備が失敗しても、どの画面が開けないかを報告に残すため、画面は回る。
     await run.prepare(page).catch((error) => failures.push({ screen: "（準備）", message: firstLineOf(error) }));
