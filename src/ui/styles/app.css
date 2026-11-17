@@ -1214,9 +1214,10 @@ input[type="checkbox"].switch:disabled { cursor: default; opacity: .55; }
 .unreadable-records code { font-family: var(--font-mono); font-size: var(--font-size-small); overflow-wrap: anywhere; }
 .settings pre { font-family: var(--font-mono); background: var(--tag); border-radius: var(--radius-control); padding: 10px 12px; font-size: var(--font-size-small); overflow-x: auto; }
 /* 開閉の行。ブラウザの三角を消し、先頭の DisclosureChevron（shared/DisclosureChevron.tsx）を開いたら下へ向ける。 */
-summary { list-style: none; }
+/* 印と文字の縦の中心をそろえるため、行を flex にする（文字の行の高さに合わせた vertical-align では、フォントによって 1px ずれた）。 */
+summary { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 summary::-webkit-details-marker { display: none; }
-.disclosure-chevron { display: inline-block; vertical-align: -3px; margin-right: 4px; }
+.disclosure-chevron { flex: none; }
 details[open] > summary > .disclosure-chevron { rotate: 90deg; }
 details summary { cursor: pointer; color: var(--accent-text); }
 

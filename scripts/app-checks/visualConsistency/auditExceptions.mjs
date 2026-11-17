@@ -8,6 +8,10 @@
 
 export const ROLE_VALUE_EXCEPTIONS = [
   {
+    role: "menu-item", measure: "height", value: "44",
+    reason: "指の端末（スマホの流し方）では、メニューの項目を --touch-target-size（44px）の高さにする（app.css の @media (pointer: coarse) の .menu-item）",
+  },
+  {
     role: "text-field", measure: "height", value: "28",
     reason: "--control-height-compact。クエリの条件、脚注、表の中のプロパティなど、本文の中に置く詰めた欄",
   },
