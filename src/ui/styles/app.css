@@ -1377,6 +1377,8 @@ details summary { cursor: pointer; color: var(--accent-text); }
   /* チェックリストのチェックは、左（字下げの余白）へ広げ、右は項目の文字との間隔（8px）の半分までにする。上下の項目のチェックとは
      約 2px しか離れていないので、縦には広げない。 */
   .ProseMirror ul[data-type="taskList"] li > label { --touch-area-inset: 0 -4px 0 -12px; }
+  /* チェックを包む label に重ねた範囲は、チェックそのものより下に置く（チェックを押せばチェックに、周りを押せば label に当たる）。 */
+  :is(label.checkbox-line, .ProseMirror ul[data-type="taskList"] li > label) > input { position: relative; }
   /* スイッチは右端に置くので、左右も中心をそろえて 44px にする。 */
   input[type="checkbox"].switch { --touch-area-inset: var(--touch-area-block) min(0px, calc(50% - var(--touch-target-size) / 2)); }
   .menu-item { min-height: 44px; }

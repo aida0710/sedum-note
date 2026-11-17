@@ -516,16 +516,12 @@ test("スマホのチェックリストでも、折りたたみの印が画面�
   const foldToggle = body.locator("li .fold-toggle").first();
   const toggleBox = (await foldToggle.boundingBox())!;
   expect(toggleBox.x).toBeGreaterThanOrEqual(0);
-  // チェックの真ん中を押すと、折りたたみの印ではなくチェックに当たる。指の端末では、チェックを包む label の押せる範囲
-  // （::before）がチェックの上に重なるので、当たるのはチェックか、それを包む label（押すとチェックが切り替わる）。
+  // チェックの真ん中を押すと、折りたたみの印や、チェックを包む label に重ねた押せる範囲ではなく、チェックに当たる。
   const checkbox = body.locator('li input[type="checkbox"]').first();
   const checkboxBox = (await checkbox.boundingBox())!;
   expect(toggleBox.x + toggleBox.width).toBeLessThanOrEqual(checkboxBox.x);
-  const hitsCheckbox = await page.evaluate(({ x, y }) => {
-    const hit = document.elementFromPoint(x, y);
-    return hit instanceof HTMLInputElement || (hit instanceof HTMLLabelElement && hit.querySelector('input[type="checkbox"]') !== null);
-  }, { x: checkboxBox.x + checkboxBox.width / 2, y: checkboxBox.y + checkboxBox.height / 2 });
-  expect(hitsCheckbox).toBe(true);
+  const hitTagName = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.tagName, { x: checkboxBox.x + checkboxBox.width / 2, y: checkboxBox.y + checkboxBox.height / 2 });
+  expect(hitTagName).toBe("INPUT");
   // 折りたたみの印の無い項目（子）では、チェックのすぐ左（見た目の外、押せる範囲の中）を押しても、チェックが切り替わる。
   // 印のある項目（親）では、印が上に重なり、印の方に当たる。
   const childCheckbox = body.locator('li li input[type="checkbox"]').first();
