@@ -30,6 +30,7 @@ import { useRowFocusAfterNaming } from "./useRowFocusAfterNaming";
 import { useTrashWithUndo } from "./useTrashWithUndo";
 import { viewKey } from "./useWorkspaceNavigation";
 import { ICON_SIZE } from "../shared/iconSizes";
+import { withReadableDueMarks } from "../shared/readableDueMarks";
 
 // MouseEvent.button の中ボタン（ホイール）。
 const MIDDLE_BUTTON = 1;
@@ -177,7 +178,7 @@ function SidebarNoteRowContent({ note, view, listedNoteIds, depth, activeTab, op
         {snippet ? (
           <>
             <span className="tree-note-title">{title}</span>
-            <span className="tree-note-snippet">{snippet.before}<mark>{snippet.match}</mark>{snippet.after}</span>
+            <span className="tree-note-snippet">{withReadableDueMarks(snippet.before)}<mark>{snippet.match}</mark>{withReadableDueMarks(snippet.after)}</span>
           </>
         ) : title}
       </button>

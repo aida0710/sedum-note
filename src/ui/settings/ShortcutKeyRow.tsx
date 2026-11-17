@@ -29,6 +29,8 @@ type ShortcutKeyRowProps = {
 };
 
 export function ShortcutKeyRow({ id, overrides, recording, onRecordingChange }: ShortcutKeyRowProps) {
+  // 断った理由（ほかの操作が使っているキーなど）を、キーのボタンに結ぶ。
+  const messageId = `shortcut-message-${id}`;
   const [message, setMessage] = useState<string | null>(null);
   const name = translate(shortcutDefinition(id).label);
   const keys = shortcutKeysOf(id, overrides);
@@ -85,6 +87,7 @@ export function ShortcutKeyRow({ id, overrides, recording, onRecordingChange }: 
       <dt>{name}</dt>
       <dd>
         <button type="button" className={`shortcut-keys${recording ? " recording" : ""}`} aria-label={translate("shortcut.change", { name })} aria-pressed={recording}
+          aria-describedby={message ? messageId : undefined}
           onClick={() => {
             setMessage(null);
             onRecordingChange(!recording);
@@ -96,7 +99,7 @@ export function ShortcutKeyRow({ id, overrides, recording, onRecordingChange }: 
           <button type="button" className="text-button" aria-label={translate("shortcut.resetOf", { name })} onClick={reset}>{translate("shortcut.reset")}</button>
         )}
       </dd>
-      {message && <p className="form-error shortcut-message" role="alert">{message}</p>}
+      {message && <p id={messageId} className="form-error shortcut-message" role="alert">{message}</p>}
     </div>
   );
 }

@@ -4,6 +4,7 @@
 import { MIN_SYNC_KEY_LENGTH } from "../../core/vault/vaultDocument";
 import { translate } from "../i18n/translate";
 import { RadioGroup } from "../shared/RadioGroup";
+import { FieldError, fieldErrorAttributes } from "../shared/FieldError";
 
 // 新しい暗号化キーの決め方。
 export type NewSyncKeySource = "generate" | "enter";
@@ -17,9 +18,11 @@ type NewSyncKeyChoiceProps = {
   inputId: string;
   value: NewSyncKey;
   onChange: (value: NewSyncKey) => void;
+  // 自分で入力したキーの誤り（短すぎるなど）。入力欄の下に出す。
+  problem?: string | null;
 };
 
-export function NewSyncKeyChoice({ inputId, value, onChange }: NewSyncKeyChoiceProps) {
+export function NewSyncKeyChoice({ inputId, value, onChange, problem = null }: NewSyncKeyChoiceProps) {
   const choose = (source: NewSyncKeySource) => () => onChange({ ...value, source });
   return (
     <div className="field">
@@ -37,8 +40,9 @@ export function NewSyncKeyChoice({ inputId, value, onChange }: NewSyncKeyChoiceP
           <label htmlFor={inputId}>{translate("syncTarget.syncKey")}</label>
           {/* 自分で決めたキーは、ほかのデバイスでも同じものを打つ。打ち間違いに気づけるよう、伏せ字にしない。 */}
           <input id={inputId} type="text" value={value.entered} onChange={(event) => onChange({ ...value, entered: event.target.value })}
-            autoComplete="off" autoCapitalize="off" spellCheck={false} />
-          <span className="hint">{translate("syncKey.source.enterHint", { minimum: MIN_SYNC_KEY_LENGTH })}</span>
+            autoComplete="off" autoCapitalize="off" spellCheck={false} {...fieldErrorAttributes(inputId, problem, `${inputId}-hint`)} />
+          <span className="hint" id={`${inputId}-hint`}>{translate("syncKey.source.enterHint", { minimum: MIN_SYNC_KEY_LENGTH })}</span>
+          <FieldError fieldId={inputId} message={problem} />
         </>
       )}
     </div>

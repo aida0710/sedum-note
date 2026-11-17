@@ -1081,6 +1081,10 @@ export const englishMessages: Record<MessageKey, string> = {
   "mobile.openSyncSettings": "Open sync settings",
   "mobile.clearSearch": "Clear search",
   "mobile.noSearchResults": "No notes match “{query}”",
+  "mobile.noBookmarkedNotes": "No favorite notes",
+  "mobile.noBookmarkedNotesHint": "Tap the star at the top of a note to list it here.",
+  "mobile.noTemplates": "No templates",
+  "mobile.createTemplate": "Create a template",
 
   "progress.working": "{label}…",
   "progress.counted": "{label} ({done} of {total})",

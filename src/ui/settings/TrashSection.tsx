@@ -8,6 +8,7 @@ import { translate } from "../i18n/translate";
 import { isTrashRetentionDays, TRASH_RETENTION_DAYS_RANGE, updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { useDialogs } from "../shared/DialogProvider";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
+import { FieldError, fieldErrorAttributes } from "../shared/FieldError";
 import { SettingCheckboxRow, SettingRow } from "./SettingRow";
 
 // 自動削除を有効にしたときに、最初に入れておく日数。
@@ -22,6 +23,7 @@ export function TrashSection({ repository }: { repository: NoteRepository }) {
   const enabled = trashRetentionDays !== null;
   const typedDays = Number(daysText);
   const typedDaysAreValid = isTrashRetentionDays(typedDays);
+  const daysProblem = typedDaysAreValid ? null : translate("trash.retentionDaysInvalid", TRASH_RETENTION_DAYS_RANGE);
 
   // この日数で決めると、いま消えるメモがあれば、その件数を出して確かめる。
   const applyRetentionDays = async (days: number) => {
@@ -63,7 +65,7 @@ export function TrashSection({ repository }: { repository: NoteRepository }) {
           <SettingRow controlId="trash-retention-days" label={translate("trash.retentionDays")} hint={translate("trash.retentionDaysHint", { days: trashRetentionDays })}>
             {(control) => (
               <span className="setting-inline-save">
-                <input {...control} type="number" inputMode="numeric" min={TRASH_RETENTION_DAYS_RANGE.minimum} max={TRASH_RETENTION_DAYS_RANGE.maximum}
+                <input {...control} {...fieldErrorAttributes(control.id, daysProblem, control["aria-describedby"])} type="number" inputMode="numeric" min={TRASH_RETENTION_DAYS_RANGE.minimum} max={TRASH_RETENTION_DAYS_RANGE.maximum}
                   value={daysText} onChange={(event) => setDaysText(event.target.value)} onKeyDown={saveDaysOnEnter} />
                 <button type="button" className="secondary-button" disabled={!typedDaysAreValid || typedDays === trashRetentionDays} onClick={saveDays}>
                   {translate("common.save")}
@@ -71,9 +73,7 @@ export function TrashSection({ repository }: { repository: NoteRepository }) {
               </span>
             )}
           </SettingRow>
-          {!typedDaysAreValid && (
-            <span className="form-error" role="alert">{translate("trash.retentionDaysInvalid", TRASH_RETENTION_DAYS_RANGE)}</span>
-          )}
+          <FieldError fieldId="trash-retention-days" message={daysProblem} />
         </>
       )}
     </section>

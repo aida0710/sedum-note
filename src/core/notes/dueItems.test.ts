@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import { appendParagraph, appendTaskItem } from "./bodyFixtures";
 import { dueItemsOf, dueItemsToNotify, groupDueItems, MISSED_REMINDER_WINDOW_MILLISECONDS, upcomingDueItems } from "./dueItems";
 import { bodyDueTasks, setDueTaskDone } from "./dueTasks";
-import { dueMarkText, dueTimeAsDate, dueTimeOf, findDueMark, isDueTime } from "./dueTimes";
+import { dueMarkText, dueTimeAsDate, dueTimeOf, findDueMark, isDueTime, replaceDueMarks } from "./dueTimes";
 import { noteContentFixture } from "./noteFixtures";
 import { summarizeNote } from "./noteQueries";
 import type { LiveNote } from "./noteRecords";
@@ -14,6 +14,13 @@ function note(id: string, overrides: Partial<LiveNote["content"]> = {}): LiveNot
   const body = new Y.Doc().getXmlFragment("body");
   return { id, kind: "note", updatedAt: CREATED_AT, revision: 1, body, content: noteContentFixture({ createdAt: CREATED_AT, title: id, ...overrides }) };
 }
+
+describe("replaceDueMarks", () => {
+  it("文字の中のすべての期限の印を置き換え、実在しない日時の印はそのまま残す", () => {
+    const text = "📅 2026-02-31 と 牛乳を買う 📅 2026-11-15 18:30、提出 📅2026-11-16";
+    expect(replaceDueMarks(text, (dueAt) => `[${dueAt}]`)).toBe("📅 2026-02-31 と 牛乳を買う [2026-11-15T18:30]、提出 [2026-11-16T09:00]");
+  });
+});
 
 describe("期限の時刻", () => {
   it("文字の中の期限の印を読む。時刻を省くと朝 9 時になる", () => {

@@ -51,7 +51,22 @@ export function findDueMark(text: string): DueMarkInText | null {
   if (!match) {
     return null;
   }
-  const [hour, minute] = (match[2] ?? DEFAULT_DUE_TIME_OF_DAY).split(":") as [string, string];
-  const dueAt = `${match[1]}T${hour.padStart(2, "0")}:${minute}`;
-  return isDueTime(dueAt) ? { dueAt, start: match.index, end: match.index + match[0].length } : null;
+  const dueAt = dueAtOfMark(match[1]!, match[2]);
+  return dueAt === null ? null : { dueAt, start: match.index, end: match.index + match[0].length };
+}
+
+// 文字の中の期限の印を、ひとつずつ replace の返す文字に置き換える（一覧の要約で、画面の日時の書き方にするなど）。
+// 実在しない日時の印は、そのまま残す。
+export function replaceDueMarks(text: string, replace: (dueAt: string) => string): string {
+  return text.replace(new RegExp(DUE_MARK_PATTERN.source, "gu"), (whole: string, date: string, time: string | undefined) => {
+    const dueAt = dueAtOfMark(date, time);
+    return dueAt === null ? whole : replace(dueAt);
+  });
+}
+
+// 印の日付と時刻（省いたら DEFAULT_DUE_TIME_OF_DAY）を、期限の形にする。実在しない日時なら null。
+function dueAtOfMark(date: string, time: string | undefined): string | null {
+  const [hour, minute] = (time ?? DEFAULT_DUE_TIME_OF_DAY).split(":") as [string, string];
+  const dueAt = `${date}T${hour.padStart(2, "0")}:${minute}`;
+  return isDueTime(dueAt) ? dueAt : null;
 }

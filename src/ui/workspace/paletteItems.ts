@@ -1,6 +1,7 @@
 // コマンドパレットで探せるもの（メモ・ノートブック・タグ・設定の項目・操作）と、打った言葉での絞り込み。
 
 import { excerptAt } from "../../core/notes/textExcerpt";
+import { withReadableDueMarks } from "../shared/readableDueMarks";
 import { findFoldedWord, foldForSearch } from "../../core/notes/searchTextFolding";
 import { containsAllWords, searchWordsOf } from "../shared/searchWords";
 
@@ -39,7 +40,7 @@ const MAX_RECENT_NOTES = 8;
 // 本文の中の、最初の言葉が当たった所の前後を 1 行にして出す。
 function excerptAround(text: string, word: string): string {
   const match = findFoldedWord(text, word);
-  return match === null ? "" : excerptAt(text, match);
+  return match === null ? "" : withReadableDueMarks(excerptAt(text, match));
 }
 
 // 候補ごとの、全角と半角・大文字と小文字をそろえた名前と、名前に本文などを足したもの。打つたびに全部のメモの本文をそろえ直すと、

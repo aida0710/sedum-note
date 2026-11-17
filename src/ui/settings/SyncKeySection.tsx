@@ -2,12 +2,18 @@
 // （同期先の vault.json を、新しいキーで包み直すだけ）。
 
 import { useState } from "react";
+import { WrongPassphraseError } from "../../core/vault/vaultDocument";
 import { translate } from "../i18n/translate";
 import type { VaultSession } from "../session/useVaultSession";
 import { ProgressStatus } from "../shared/ProgressStatus";
 import { useAsyncAction } from "../shared/useAsyncAction";
 import { chosenSyncKey, findNewSyncKeyProblem, GENERATED_SYNC_KEY, NewSyncKeyChoice } from "../sync/NewSyncKeyChoice";
 import { preventSubmitByImeKey } from "../shared/imeKeyEvent";
+import { FieldError, fieldErrorAttributes, focusFieldWithError, useFocusOnFieldError } from "../shared/FieldError";
+
+const SYNC_KEY_FIELD_ID = "replacement-sync-key";
+const PASSPHRASE_FIELD_ID = "sync-key-passphrase";
+const PASSPHRASE_HINT_ID = "sync-key-passphrase-hint";
 
 export function SyncKeySection({ session }: { session: VaultSession }) {
   const [passphrase, setPassphrase] = useState("");
@@ -16,13 +22,20 @@ export function SyncKeySection({ session }: { session: VaultSession }) {
   const [replaced, setReplaced] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const replace = useAsyncAction(session.replaceSyncKey);
-  const message = problem ?? replace.errorMessage;
+  // パスフレーズの間違いはパスフレーズの欄の下、新しいキーの誤りはキーの欄の下、ほかの失敗はフォームの下に出す。
+  const isWrongPassphrase = replace.error instanceof WrongPassphraseError;
+  useFocusOnFieldError(isWrongPassphrase ? PASSPHRASE_FIELD_ID : null, replace.error);
+  const passphraseProblem = isWrongPassphrase ? replace.errorMessage : null;
+  const formProblem = isWrongPassphrase ? null : replace.errorMessage;
   return (
     <form className="settings-section" onKeyDown={preventSubmitByImeKey} onSubmit={async (event) => {
       event.preventDefault();
       setReplaced(false);
       const newSyncKeyProblem = findNewSyncKeyProblem(newSyncKey);
       setProblem(newSyncKeyProblem);
+      if (newSyncKeyProblem !== null) {
+        focusFieldWithError(SYNC_KEY_FIELD_ID);
+      }
       if (newSyncKeyProblem === null && await replace.run({ passphrase, syncKey: chosenSyncKey(newSyncKey) })) {
         setReplaced(true);
         setPassphrase("");
@@ -32,17 +45,19 @@ export function SyncKeySection({ session }: { session: VaultSession }) {
     }}>
       <h2>{translate("settings.syncKey")}</h2>
       <p>{translate("settings.syncKeyDescription")}</p>
-      <NewSyncKeyChoice inputId="replacement-sync-key" value={newSyncKey} onChange={setNewSyncKey} />
+      <NewSyncKeyChoice inputId={SYNC_KEY_FIELD_ID} value={newSyncKey} onChange={setNewSyncKey} problem={problem} />
       <div className="field">
-        <label htmlFor="sync-key-passphrase">{translate("settings.syncPassphrase")}</label>
-        <input id="sync-key-passphrase" type="password" value={passphrase} onChange={(event) => setPassphrase(event.target.value)} autoComplete="current-password" required />
-        <span className="hint">{translate("settings.syncPassphraseHint")}</span>
+        <label htmlFor={PASSPHRASE_FIELD_ID}>{translate("settings.syncPassphrase")}</label>
+        <input id={PASSPHRASE_FIELD_ID} type="password" value={passphrase} onChange={(event) => setPassphrase(event.target.value)} autoComplete="current-password" required
+          {...fieldErrorAttributes(PASSPHRASE_FIELD_ID, passphraseProblem, PASSPHRASE_HINT_ID)} />
+        <span className="hint" id={PASSPHRASE_HINT_ID}>{translate("settings.syncPassphraseHint")}</span>
+        <FieldError fieldId={PASSPHRASE_FIELD_ID} message={passphraseProblem} />
       </div>
       <label className="checkbox-line">
         <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
         {translate("settings.syncKeyConfirm")}
       </label>
-      {message && <div className="form-error" role="alert">{message}</div>}
+      {formProblem && <div className="form-error" role="alert">{formProblem}</div>}
       <div className="form-actions">
         {replace.busy && <ProgressStatus label={translate("settings.syncKeyReplacing")} progress={null} />}
         {replaced && <span className="form-success">{translate("settings.syncKeyReplaced")}</span>}

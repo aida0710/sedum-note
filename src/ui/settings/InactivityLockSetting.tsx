@@ -8,6 +8,7 @@ import {
 } from "../preferences/inactivityLockMinutes";
 import { updateDevicePreferences, useDevicePreferences } from "../preferences/devicePreferences";
 import { isImeKeyEvent } from "../shared/imeKeyEvent";
+import { FieldError, fieldErrorAttributes } from "../shared/FieldError";
 import { SettingRow } from "./SettingRow";
 
 // 選択欄の「しない」と「時間を指定」の値。ほかの選択肢の値は分の数。
@@ -35,6 +36,7 @@ export function InactivityLockSetting() {
   const [amountText, setAmountText] = useState(() => String(amountToShow().amount));
   const [unit, setUnit] = useState<InactivityLockUnit>(() => amountToShow().unit);
   const typed = parseInactivityLockInput(amountText, unit);
+  const amountProblem = "invalid" in typed ? translate(INVALID_MESSAGES[typed.invalid]) : null;
   const typedMinutes = "minutes" in typed ? typed.minutes : null;
 
   const selectedChoice = showsCustom ? CUSTOM_CHOICE : inactivityLockMinutes === null ? NEVER_CHOICE : String(inactivityLockMinutes);
@@ -77,7 +79,8 @@ export function InactivityLockSetting() {
         <div className="field inactivity-lock-amount">
           <label htmlFor="inactivity-lock-amount">{translate("inactivityLock.customAmount")}</label>
           <div className="field-row">
-            <input id="inactivity-lock-amount" type="number" inputMode="numeric" aria-describedby="inactivity-lock-amount-hint" value={amountText}
+            <input id="inactivity-lock-amount" type="number" inputMode="numeric" value={amountText}
+              {...fieldErrorAttributes("inactivity-lock-amount", amountProblem, "inactivity-lock-amount-hint")}
               onChange={(event) => setAmountText(event.target.value)} onKeyDown={saveCustomOnEnter} />
             <select aria-label={translate("inactivityLock.unit")} value={unit} onChange={(event) => setUnit(event.target.value as InactivityLockUnit)} onKeyDown={saveCustomOnEnter}>
               {INACTIVITY_LOCK_UNITS.map((choice) => <option key={choice} value={choice}>{translate(UNIT_LABELS[choice])}</option>)}
@@ -89,7 +92,7 @@ export function InactivityLockSetting() {
           <span className="hint" id="inactivity-lock-amount-hint">
             {translate("inactivityLock.customAmountHint", { current: inactivityLockMinutes === null ? translate("inactivityLock.never") : durationLabel(inactivityLockMinutes) })}
           </span>
-          {"invalid" in typed && <span className="form-error" role="alert">{translate(INVALID_MESSAGES[typed.invalid])}</span>}
+          <FieldError fieldId="inactivity-lock-amount" message={amountProblem} />
         </div>
       )}
     </>

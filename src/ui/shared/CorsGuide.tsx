@@ -5,6 +5,7 @@
 import { translate } from "../i18n/translate";
 import { isRunningInTauri } from "../platform/runtime";
 import { corsRuleJson } from "../settings/corsRule";
+import { DisclosureChevron } from "./DisclosureChevron";
 
 export function CorsGuide() {
   if (isRunningInTauri()) {
@@ -13,7 +14,7 @@ export function CorsGuide() {
   const rule = corsRuleJson(window.location.origin);
   return (
     <details>
-      <summary>{translate("settings.corsTitle")}</summary>
+      <summary><DisclosureChevron />{translate("settings.corsTitle")}</summary>
       <p>{translate("settings.corsDescription")}</p>
       <pre>{rule}</pre>
       <div><button type="button" className="secondary-button" onClick={() => void navigator.clipboard.writeText(rule)}>{translate("settings.corsCopy")}</button></div>

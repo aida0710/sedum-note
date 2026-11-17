@@ -4,6 +4,7 @@
 
 import { translate } from "../i18n/translate";
 import type { SettingsPage } from "./settingsPages";
+import { DisclosureChevron } from "../shared/DisclosureChevron";
 
 type UnreadableRecordsNoticeProps = {
   recordIds: string[];
@@ -18,7 +19,7 @@ export function UnreadableRecordsNotice({ recordIds, synced, onSelectPage }: Unr
       <p>{translate("settings.unreadable", { count: recordIds.length })}</p>
       <p>{translate(synced ? "settings.unreadableNextStepSynced" : "settings.unreadableNextStepLocal")}</p>
       <details>
-        <summary>{translate("settings.unreadableIds")}</summary>
+        <summary><DisclosureChevron />{translate("settings.unreadableIds")}</summary>
         <ul>{recordIds.map((recordId) => <li key={recordId}><code>{recordId}</code></li>)}</ul>
       </details>
       {synced && (
