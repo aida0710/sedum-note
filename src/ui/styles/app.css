@@ -1367,7 +1367,8 @@ details summary { cursor: pointer; color: var(--accent-text); }
   .choice-grid > .choice.swatch { --touch-area-inset: -3px; }
   /* ボタンが 4px 間隔で並ぶ書式のツールバーとメモの中の検索、6px 間隔のスマホの上のバーは、横に広げるのを間隔の半分にする。 */
   :is(.editor-bar, .find-controls) > :is(.tool, .icon-button) { --touch-area-inset: -8px -2px; }
-  .phone-top-end > :is(.icon-button, .sync-line) { --touch-area-inset: var(--touch-area-block) -3px; }
+  .phone-top-end > .icon-button { --touch-area-inset: var(--touch-area-block) -3px; }
+  .phone-top-end > .sync-line { --touch-area-inset: var(--touch-area-block) 0; }
   .footnote-number { --touch-area-inset: -8px -11px; }
   /* 見出しの右端のズームのボタンは、見出しの文字の側へは広げない（文字を押したときにズームしないように）。 */
   .phone .ProseMirror .section-zoom { --touch-area-inset: -12px -18px -12px -4px; }

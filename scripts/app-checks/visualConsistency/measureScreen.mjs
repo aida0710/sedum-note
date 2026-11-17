@@ -202,11 +202,22 @@ export function measureScreen() {
     }
   }
 
+  // 中身（文字と中の部品）が枠の左右の外へ出ているか。scrollWidth は、指の端末でタップ領域を広げる透明な ::before
+  // （position: absolute で枠の外へ出す）も数えるので、それだけで広がった分は、Range で測り直して除く。
+  const contentOverflowsBox = (element) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const content = range.getBoundingClientRect();
+    const box = element.getBoundingClientRect();
+    const left = box.left + element.clientLeft;
+    return content.width > 0 && (content.right > left + element.clientWidth + 1 || content.left < left - 1);
+  };
+
   // 5. 枠からはみ出した文字（省略の「…」を出さずに切れている、または枠の外へ出ている）。
   for (const element of [...document.querySelectorAll("button, [role=tab], [role=menuitem], label, h1, h2, h3, th, .chip, .tag, legend")].filter(isShown)) {
     const style = getComputedStyle(element);
     if (style.textOverflow === "ellipsis" || style.overflowX === "auto" || style.overflowX === "scroll") continue;
-    if (element.scrollWidth > element.clientWidth + 1 && element.clientWidth > 0) {
+    if (element.scrollWidth > element.clientWidth + 1 && element.clientWidth > 0 && contentOverflowsBox(element)) {
       report("text-overflows", element, { overflow: element.scrollWidth - element.clientWidth });
     }
   }
