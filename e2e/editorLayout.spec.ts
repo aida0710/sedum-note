@@ -117,7 +117,7 @@ test("コードは本文より行の間が狭く、長い行は折り返さず�
   expect(await page.locator(".document-scroll").evaluate((scroll) => scroll.scrollWidth - scroll.clientWidth)).toBe(0);
 });
 
-test("長い名前のプロパティがあっても、値の欄は枠の中に収まり、枠の右端まで広がる。スマホの幅でも、値の欄は画面の外へ出ない", async ({ page }) => {
+test("長い名前のプロパティがあっても、値の欄はプロパティの並びの中に収まり、並びの右端まで広がる。スマホの幅でも、値の欄は画面の外へ出ない", async ({ page }) => {
   const longName = "とても長いプロパティの名前で、枠の幅を食いつぶしそうなもの（確認用）";
   await startLocalVault(page);
   await addNotebookOnDesktop(page, "読書");
@@ -131,30 +131,30 @@ test("長い名前のプロパティがあっても、値の欄は枠の中に�
   await page.locator(".nav", { hasText: "読書" }).click();
   await createNoteOnDesktop(page, "本");
 
-  const frame = page.locator(".note-properties");
+  const properties = page.locator(".note-properties");
   const valueInput = page.getByLabel(longName);
   const edges = async () => {
-    const frameBox = (await frame.boundingBox())!;
+    const propertiesBox = (await properties.boundingBox())!;
     const inputBox = (await valueInput.boundingBox())!;
-    const labelBox = (await frame.locator("label").boundingBox())!;
-    return { frameBox, inputBox, labelBox };
+    const labelBox = (await properties.locator("label").boundingBox())!;
+    return { propertiesBox, inputBox, labelBox };
   };
   const desktop = await edges();
-  // 名前の列は枠の 4 割まで。値の欄は、その右から枠の右端（中の余白 12px と枠線の手前）まで。
-  expect(desktop.labelBox.width).toBeLessThanOrEqual(desktop.frameBox.width * 0.4);
-  expect(desktop.inputBox.width).toBeGreaterThan(desktop.frameBox.width * 0.5);
-  expect(Math.round(desktop.frameBox.x + desktop.frameBox.width - (desktop.inputBox.x + desktop.inputBox.width))).toBe(13);
+  // 名前の列は並びの幅の 4 割まで。値の欄は、その右から並びの右端まで（並びは外の枠も中の余白も持たない）。
+  expect(desktop.labelBox.width).toBeLessThanOrEqual(desktop.propertiesBox.width * 0.4);
+  expect(desktop.inputBox.width).toBeGreaterThan(desktop.propertiesBox.width * 0.5);
+  expect(Math.round(desktop.propertiesBox.x + desktop.propertiesBox.width - (desktop.inputBox.x + desktop.inputBox.width))).toBe(0);
 
-  // スマホの幅でも、名前は 4 割までで折り返し、値の欄は打てるだけの幅で枠の中に収まる
+  // スマホの幅でも、名前は 4 割までで折り返し、値の欄は打てるだけの幅で並びの中に収まる
   // （スマホの組み方に切り替わると、開いていたメモの画面のまま組み直される）。
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator(".phone")).toBeVisible();
   await page.locator(".phone").getByText("本", { exact: true }).first().click();
   await expect(valueInput).toBeVisible();
   const phone = await edges();
-  expect(phone.labelBox.width).toBeLessThanOrEqual(phone.frameBox.width * 0.4);
-  expect(phone.inputBox.x + phone.inputBox.width).toBeLessThanOrEqual(phone.frameBox.x + phone.frameBox.width);
-  expect(phone.inputBox.width).toBeGreaterThan(phone.frameBox.width * 0.5);
+  expect(phone.labelBox.width).toBeLessThanOrEqual(phone.propertiesBox.width * 0.4);
+  expect(phone.inputBox.x + phone.inputBox.width).toBeLessThanOrEqual(phone.propertiesBox.x + phone.propertiesBox.width);
+  expect(phone.inputBox.width).toBeGreaterThan(phone.propertiesBox.width * 0.5);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
 });
 

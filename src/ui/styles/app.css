@@ -146,8 +146,9 @@ svg.lucide { stroke-width: 1.75; }
 .typography-preview { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-control); }
 .settings-section .typography-preview p { color: var(--text); font-size: var(--editor-font-size); line-height: var(--editor-line-height, 1.85); letter-spacing: var(--editor-letter-spacing, .02em); }
 .code-input { width: 100%; font-family: var(--font-mono); font-size: var(--font-size-small); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 8px 10px; background: var(--panel); color: var(--text); resize: vertical; }
-/* 名前の列は、中身の幅まで（枠の 4 割を上限に、長い名前は折り返す）。値の列は残りの幅で、枠からはみ出さない。 */
-.note-properties { display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr); gap: 6px 14px; align-items: center; margin-bottom: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-control); font-size: var(--font-size-ui); }
+/* プロパティは外の枠で囲まず、名前と値の行だけを並べる（枠の中に枠つきの欄が入ると、書く画面がフォームに見えるため）。名前の列は中身の幅まで
+   （並びの幅の 4 割を上限に、長い名前は折り返す）。値の列は残りの幅で、並びからはみ出さない。 */
+.note-properties { display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr); gap: 6px 14px; align-items: center; margin-bottom: 16px; font-size: var(--font-size-ui); }
 .note-property { display: contents; }
 .note-property label { color: var(--muted); overflow-wrap: anywhere; }
 .note-property input:not([type="checkbox"]), .note-property select { height: var(--control-height-compact); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0 8px; background: var(--panel); color: var(--text); width: 100%; min-width: 0; }
