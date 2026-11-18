@@ -145,7 +145,7 @@ export function ViewGroup(props: ViewGroupProps) {
     <>
       {childBranches}
       {/* 空のノートブックに「メモはありません」は出さない（件数を出さないことと開閉の印が無いことで分かる）。 */}
-      {(notebookId === null || notes.length > 0) && <NoteRows notes={notes} view={view} navigation={navigation} repository={repository} depth={depth} opensInPreviewTab />}
+      {(notebookId === null || notes.length > 0) && <NoteRows notes={notes} view={view} navigation={navigation} repository={repository} depth={depth} allowsPreviewTab />}
     </>
   );
   if (dropsOnWholeGroup) {
@@ -169,18 +169,20 @@ type NoteRowsProps = {
   depth: number | null;
   // 検索の結果なら、行に添える本文の一部（当たった所）。
   snippetOf?: (summary: NoteSummary) => SearchSnippet | null;
-  // 普通に押したメモを、仮のタブで開くか（ノートブックの木の中）。検索の結果は、普通のタブで開く。
-  opensInPreviewTab: boolean;
+  // 普通に押したメモを、仮のタブで開いてよい一覧か（ノートブックの木の中）。仮のタブで開くのは、設定（previewTabs）で選んだときだけ。
+  // 検索の結果は、いつも普通のタブで開く。
+  allowsPreviewTab: boolean;
 };
 
-export function NoteRows({ notes, view, navigation, repository, depth, snippetOf, opensInPreviewTab }: NoteRowsProps) {
+export function NoteRows({ notes, view, navigation, repository, depth, snippetOf, allowsPreviewTab }: NoteRowsProps) {
   // 行は描き直しを省く（memo）ので、行が使う値は、変わらない限り同じものを渡す。並びが同じなら同じ配列を渡し、
   // 未送信の印は行ごとの真偽値にする（未送信の ID の Set は、スナップショットのたびに作り直される）。
   const listedNoteIdsText = notes.map(({ note }) => note.id).join(" ");
   const listedNoteIds = useMemo(() => (listedNoteIdsText === "" ? [] : listedNoteIdsText.split(" ")), [listedNoteIdsText]);
   const unsyncedIds = useContext(UnsyncedRecordsContext);
   // 言語を変えたら行の文言を入れ替える（translate は描くときに今の言語を読むので、行を描き直させる）。
-  const { language } = useDevicePreferences();
+  const { language, previewTabs } = useDevicePreferences();
+  const opensInPreviewTab = allowsPreviewTab && previewTabs;
   if (notes.length === 0) {
     return <div className="tree-empty" style={treeDepthStyle(depth)}>{translate("sidebar.noNotes")}</div>;
   }
@@ -210,7 +212,7 @@ export function SearchResults({ summaries, view, navigation, repository }: Searc
         </button>
       )}
       {summaries.length > 0 && <NoteRows notes={summaries} view={view} navigation={navigation} repository={repository} depth={null}
-        snippetOf={(summary) => searchSnippetOf(summary.plainText, words)} opensInPreviewTab={false} />}
+        snippetOf={(summary) => searchSnippetOf(summary.plainText, words)} allowsPreviewTab={false} />}
     </>
   );
 }

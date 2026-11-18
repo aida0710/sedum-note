@@ -999,6 +999,8 @@ export const japaneseMessages = {
   "settings.templateDateFormat": "日付と時刻の形式",
   "settings.templateDateFormatHint": "テンプレートの@date・@time・@datetimeを、この形式の日時に置き換えます。",
   "settings.typewriterMode": "入力中の行を中央に保つ（タイプライターモード）",
+  "settings.previewTabs": "サイドバーで押したメモを仮のタブで開く",
+  "settings.previewTabsHint": "仮のタブはタイトルが斜体になり、次にサイドバーで押したメモと入れ替わります。書く・ダブルクリックすると普通のタブになります。オフのときは、まだ開いていないメモを押すと、新しいタブで開きます。",
   "settings.vibration": "振動",
   "settings.hapticFeedback": "操作したときに振動する",
   "settings.hapticFeedbackHint": "チェックボックス、スイッチ、一覧のスワイプと引っ張って同期のときに、短く振動します。",

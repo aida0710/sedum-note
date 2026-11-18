@@ -21,6 +21,7 @@ export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
   { label: "settings.pageAlignment", page: "general" },
   { label: "settings.imageAttachment", page: "general" },
   { label: "settings.typewriterMode", page: "general" },
+  { label: "settings.previewTabs", page: "general" },
   { label: "settings.vibration", page: "general", onlyIn: "androidApp" },
   { label: "settings.hapticFeedback", page: "general", onlyIn: "androidApp" },
   { label: "settings.templates", page: "general" },

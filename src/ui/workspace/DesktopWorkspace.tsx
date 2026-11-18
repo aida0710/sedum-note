@@ -19,6 +19,7 @@ import { openNoteCommands } from "./openNoteCommands";
 import { workspaceCommands } from "./workspaceCommands";
 import { useTrashWithUndo } from "./useTrashWithUndo";
 import { useKeepPreviewTabOnEdit } from "./useKeepPreviewTabOnEdit";
+import { useKeepPreviewTabWhenDisabled } from "./useKeepPreviewTabWhenDisabled";
 import { APP_SHORTCUT_IDS, useKeyboardShortcuts } from "./keyboardShortcuts";
 import { UpdateChip } from "../update/UpdateChip";
 import { NotebookDatabaseView } from "./NotebookDatabaseView";
@@ -58,7 +59,8 @@ export function DesktopWorkspace({ session, vault, snapshot, navigation, isNoteW
   const [focusMode, setFocusMode] = useState(false);
   const exitFocusMode = useCallback(() => setFocusMode(false), []);
   useExitFocusModeOnEscape(focusMode, exitFocusMode);
-  const { typewriterMode, shortcutOverrides } = useDevicePreferences();
+  const { typewriterMode, shortcutOverrides, previewTabs } = useDevicePreferences();
+  useKeepPreviewTabWhenDisabled({ previewTabs, previewTab: navigation.previewTab, keepPreviewTab: navigation.keepPreviewTab });
   const openNeighborTab = (step: 1 | -1) => {
     const { openTabs, activeTab } = navigation;
     const neighbor = openTabs[(openTabs.indexOf(activeTab ?? "") + step + openTabs.length) % openTabs.length];

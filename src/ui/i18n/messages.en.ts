@@ -1000,6 +1000,8 @@ export const englishMessages: Record<MessageKey, string> = {
   "settings.templateDateFormat": "Date and time format",
   "settings.templateDateFormatHint": "The template variables @date, @time and @datetime are replaced with dates in this format.",
   "settings.typewriterMode": "Keep the current line centered (typewriter mode)",
+  "settings.previewTabs": "Open notes clicked in the sidebar in a preview tab",
+  "settings.previewTabsHint": "A preview tab has an italic title and is replaced by the next note you click in the sidebar. Typing in it or double-clicking keeps it. When off, a note that isn't open yet opens in a new tab.",
   "settings.vibration": "Vibration",
   "settings.hapticFeedback": "Vibrate on touch",
   "settings.hapticFeedbackHint": "Vibrates briefly when you tick a checkbox, flip a switch, swipe a note, or pull to sync.",
