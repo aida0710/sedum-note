@@ -95,15 +95,15 @@ export const FIT_EXCEPTIONS = [
     kind: "field-leaves-space", element: /div\.database-view > div\.field\.database-group > select/,
     reason: "データベース表示の上の「グループ分け」の選択欄。帯の中の操作で、中身の長さの幅でよい",
   },
-  // タップ領域（measureTouchTargets.mjs）。見た目を変えずには 44px に届かないもの。間隔や高さを変えるかは、利用者が案の画像を見て決める
-  // （2026-11-17 の UI の調査の続き）。決まったら、ここから消して直す。
+  // タップ領域（measureTouchTargets.mjs）。44px に届かないが、そのままにするもの。スマホの間隔は、ツールバーと上のバーだけを 44px おきに
+  // 広げ、メモの中の検索と設定の欄の高さは変えない（2026-11-18 に利用者が選んだ、UI の調査の案 4B）。
   {
-    kind: "touch-target-small", element: /(editor-bar > button\.tool|find-controls > button\.icon-button|phone-top-end > button\.icon-button)/,
-    reason: "28px のボタンが 4〜6px 間隔で並ぶ。重ならないよう横は間隔の半分まで（幅 32〜34px）。44px にするには並びの間隔を広げる（見た目が変わる）",
+    kind: "touch-target-small", element: /find-controls > button\.icon-button/,
+    reason: "メモの中の検索のボタン。28px のボタンが 4px 間隔で並び、重ならないよう横は間隔の半分まで（幅 32px）。広げたのはツールバーと上のバーだけ（案 4B）",
   },
   {
     kind: "touch-target-small", element: /setting-row-control > (select|span\.setting-slider > input)/,
-    reason: "選択欄とスライダーは --control-height（32px）。select と input には疑似要素を重ねられないので、44px にするには高さを変える（見た目が変わる）",
+    reason: "選択欄とスライダーは --control-height（32px）。select と input には疑似要素を重ねられない。高さは変えない（案 4B。高さも 44px にするのは案 4C で、選ばれなかった）",
   },
   {
     kind: "touch-target-small", element: /button\.(fold-toggle|section-zoom)\.ProseMirror-widget/,

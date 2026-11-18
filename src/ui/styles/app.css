@@ -1249,7 +1249,7 @@ details summary { cursor: pointer; color: var(--accent-text); }
 .phone { display: flex; flex-direction: column; height: 100%; background: var(--panel); }
 .phone-top { padding: 14px 16px 8px; display: flex; align-items: center; gap: 10px; flex: none; padding-top: max(14px, env(safe-area-inset-top)); }
 .phone-top h2 { font-size: var(--font-size-title); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.phone-top .phone-top-end { margin-left: auto; display: flex; gap: 6px; color: var(--muted); align-items: center; }
+.phone-top .phone-top-end { margin-left: auto; display: flex; gap: 16px; color: var(--muted); align-items: center; }
 .phone-back { display: flex; align-items: center; gap: 2px; font-size: 16px; }
 /* 戻るボタンの右の、開いているページの名前（設定のページ）。戻るボタンの文字より太くして、今いる所だと分かるようにする。 */
 .phone-top-title { font-size: 16px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1309,7 +1309,9 @@ details summary { cursor: pointer; color: var(--accent-text); }
 .phone .document { padding: 4px 18px max(80px, 30vh); }
 /* スマホは幅が狭いので、題を PC（30px）より小さくする。 */
 .phone .title-input { font-size: 26px; }
-.phone .editor-bar { order: 2; border-bottom: 0; border-top: 1px solid var(--line); justify-content: space-between; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
+/* スマホの書式のツールバーは、28px のボタンを 16px 間隔（44px おき）で並べる（上のバーの .phone-top-end も同じ）。指の端末では、押せる範囲を
+   間隔の半分ずつ横に広げて 44px にする（下の @media (pointer: coarse)）。 */
+.phone .editor-bar { --toolbar-gap: 16px; order: 2; gap: var(--toolbar-gap); border-bottom: 0; border-top: 1px solid var(--line); justify-content: space-between; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
 .phone .settings { padding: 8px 16px 40px; }
 /* 「ノートブック」タブから開いた一覧は、戻るボタンの行の下に題の行を置く。 */
 .phone-top.phone-top-below-back { padding-top: 0; }
@@ -1366,9 +1368,11 @@ details summary { cursor: pointer; color: var(--accent-text); }
   .choice.swatch { --touch-area-inset: -9px; }
   /* 色の見本は 6px 間隔で並ぶので、横と縦の広げ方を間隔の半分にする。 */
   .choice-grid > .choice.swatch { --touch-area-inset: -3px; }
-  /* ボタンが 4px 間隔で並ぶ書式のツールバーとメモの中の検索、6px 間隔のスマホの上のバーは、横に広げるのを間隔の半分にする。 */
+  /* ボタンが 4px 間隔で並ぶ書式のツールバーとメモの中の検索は、横に広げるのを間隔の半分にする。スマホの組み方のツールバーと上のバーは
+     16px 間隔なので、横にも 8px ずつ広げて 44px にする。 */
   :is(.editor-bar, .find-controls) > :is(.tool, .icon-button) { --touch-area-inset: -8px -2px; }
-  .phone-top-end > .icon-button { --touch-area-inset: var(--touch-area-block) -3px; }
+  .phone .editor-bar > :is(.tool, .icon-button) { --touch-area-inset: -8px; }
+  .phone-top-end > .icon-button { --touch-area-inset: var(--touch-area-block) -8px; }
   .phone-top-end > .sync-line { --touch-area-inset: var(--touch-area-block) 0; }
   .footnote-number { --touch-area-inset: -8px -11px; }
   /* 見出しの右端のズームのボタンは、見出しの文字の側へは広げない（文字を押したときにズームしないように）。 */
@@ -1393,8 +1397,8 @@ details summary { cursor: pointer; color: var(--accent-text); }
    （shared/useHorizontalScrollEdges.ts が data 属性を付ける）。帯は sticky で端に留め、幅と間隔の分を負の余白で打ち消して、ボタンの並びを動かさない。
    mask-image は使わない（バーの中から開く色・表のメニューまで切り取られる）。 */
 .phone .editor-bar::before, .phone .editor-bar::after { content: ""; position: sticky; z-index: var(--layer-sticky); flex: none; align-self: stretch; width: 40px; pointer-events: none; opacity: 0; }
-.phone .editor-bar::before { left: -10px; margin-right: -44px; background: linear-gradient(to right, var(--panel), transparent); }
-.phone .editor-bar::after { right: -10px; margin-left: -44px; background: linear-gradient(to left, var(--panel), transparent); }
+.phone .editor-bar::before { left: -10px; margin-right: calc(-40px - var(--toolbar-gap)); background: linear-gradient(to right, var(--panel), transparent); }
+.phone .editor-bar::after { right: -10px; margin-left: calc(-40px - var(--toolbar-gap)); background: linear-gradient(to left, var(--panel), transparent); }
 .phone .editor-bar[data-more-start]::before, .phone .editor-bar[data-more-end]::after { opacity: 1; }
 .tool[aria-disabled="true"] { opacity: .4; }
 .tool[aria-disabled="true"]:hover { background: none; }
