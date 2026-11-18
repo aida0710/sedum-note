@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, openSettingsPage, PHONE_VIEWPORT, startLocalVault } from "./devices";
+import { createNoteButton, createNoteOnDesktop, openSettingsPage, PHONE_VIEWPORT, startLocalVault } from "./devices";
 
 // 試験の中の「今」。期限は、デバイスの時計での日時なので、タイムゾーンを付けずに書く。
 const NOW = new Date(2026, 10, 12, 10, 0);
@@ -70,7 +70,7 @@ test("「/」の「期限」で、チェックリストの項目に期限の印�
 test("スマホの画面では、「ノートブック」のタブから期限の一覧を開ける", async ({ browser }) => {
   const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await page.getByPlaceholder("タイトル").fill("提出物");
   await page.getByRole("button", { name: "その他の操作" }).click();
   await page.getByRole("menuitem", { name: "メモの期限を設定" }).click();

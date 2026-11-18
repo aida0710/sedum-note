@@ -26,7 +26,7 @@ await app.getByRole("button", { name: "接続を確認" }).click();
 await app.getByRole("radio", { name: /自分で入力する/ }).click();
 await app.locator("#new-sync-key").fill(SYNC_KEY);
 await app.getByRole("button", { name: "作成" }).click();
-await app.getByRole("button", { name: "新しいメモ", exact: true }).click({ timeout: 60_000 });
+await app.getByRole("button", { name: "メモを作成", exact: true }).click({ timeout: 60_000 });
 await app.getByPlaceholder("タイトル").fill("アプリから WebDAV へ");
 await app.getByPlaceholder("タイトル").press("Enter");
 await app.keyboard.type("Windows のアプリが書いた行");

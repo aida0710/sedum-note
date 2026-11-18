@@ -1,6 +1,6 @@
 // 画面の試験で使う「デバイス」（別々の保存を持つブラウザのページ）の用意。
 
-import { type Browser, expect, type Page } from "@playwright/test";
+import { type Browser, expect, type Locator, type Page } from "@playwright/test";
 import type { S3RemoteConfig } from "../src/core/remote/remoteConfig";
 
 export const PASSPHRASE = "correct horse battery";
@@ -99,10 +99,16 @@ export async function syncNowOnDesktop(page: Page, noteTitle: string): Promise<v
   await page.getByRole("tab", { name: noteTitle }).click();
 }
 
+// メモを作るボタン（PC は左の列の「メモを作成」、スマホは右下の「＋」）。何も開いていない画面と、スマホの空の一覧にも
+// 同じ名前のボタンがあり、検索で当たらないときは「「…」というタイトルでメモを作成」も出るので、置き場所で絞る。
+export function createNoteButton(page: Page): Locator {
+  return page.getByRole("button", { name: "メモを作成", exact: true }).and(page.locator(".sidebar .new-note, .phone .fab"));
+}
+
 // PC の画面で新しいメモを作り、タイトルを入れて、本文にカーソルを移す。
 export async function createNoteOnDesktop(page: Page, title: string): Promise<void> {
   // メモの画面が出てから数える（最初の画面の「始める」などの切り替えもタブなので）。
-  const newNoteButton = page.getByRole("button", { name: "新しいメモ" });
+  const newNoteButton = createNoteButton(page);
   await newNoteButton.waitFor();
   const tabsBefore = await page.getByRole("tab").count();
   await newNoteButton.click();

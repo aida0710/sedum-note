@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { addNotebookOnDesktop, createNoteOnDesktop, PHONE_VIEWPORT, startLocalVault } from "./devices";
+import { addNotebookOnDesktop, createNoteButton, createNoteOnDesktop, PHONE_VIEWPORT, startLocalVault } from "./devices";
 
 function viewRow(page: Page, label: string) {
   return page.locator(".nav-row", { has: page.locator(".nav", { hasText: label }) });
@@ -208,10 +208,10 @@ test("左の列の端をドラッグすると幅が変わり、開き直して�
   await expect.poll(async () => (await sidebar.boundingBox())!.width).toBe(400);
 });
 
-test("スマホの幅では、ゴミ箱に入れた知らせが、下のメニューと「新しいメモ」のボタンに重ならない", async ({ browser }) => {
+test("スマホの幅では、ゴミ箱に入れた知らせが、下のメニューと「メモを作成」のボタンに重ならない", async ({ browser }) => {
   const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await page.getByPlaceholder("タイトル").fill("捨てるメモ");
   await page.getByRole("button", { name: "その他の操作" }).click();
   await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
@@ -219,7 +219,7 @@ test("スマホの幅では、ゴミ箱に入れた知らせが、下のメニ�
 
   const toast = (await page.getByRole("status").filter({ hasText: "ゴミ箱に移動しました" }).boundingBox())!;
   const bottomNavigation = (await page.locator(".tabbar").boundingBox())!;
-  const newNoteButton = (await page.getByRole("button", { name: "新しいメモ" }).boundingBox())!;
+  const newNoteButton = (await createNoteButton(page).boundingBox())!;
   expect(toast.y + toast.height).toBeLessThanOrEqual(bottomNavigation.y);
   expect(toast.x + toast.width <= newNoteButton.x || toast.y + toast.height <= newNoteButton.y).toBe(true);
 });

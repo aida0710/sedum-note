@@ -11,13 +11,13 @@ import java.io.InputStream
 import org.json.JSONArray
 import org.json.JSONObject
 
-// ウィジェットとショートカットが「新しいメモ」を頼むときの Intent の action。AndroidManifest.xml と res/xml/shortcuts.xml と揃える。
+// ウィジェットとショートカットが「メモを作成」を頼むときの Intent の action。AndroidManifest.xml と res/xml/shortcuts.xml と揃える。
 const val ACTION_NEW_NOTE = "com.github.aida0710.sedumnote.action.NEW_NOTE"
 
 // 読めなかったファイルの印。Base64 に出てこない文字にする。src/ui/platform/sharedContent.ts と揃える。
 private const val UNREADABLE_FILE_MARK = "!"
 
-// アプリの外から頼まれたこと（ほかのアプリの「共有」、ウィジェットやショートカットの「新しいメモ」）を、
+// アプリの外から頼まれたこと（ほかのアプリの「共有」、ウィジェットやショートカットの「メモを作成」）を、
 // 画面（WebView）へ渡す窓口。アプリを開いていないときに頼まれたものも、画面が取りに来るまで覚えておく。
 //
 // 共有で受け取った文字とファイルの場所は、メモリにだけ持つ。メモはロックを解除するまで暗号化
@@ -54,7 +54,7 @@ class LaunchRequestBridge(private val contentResolver: ContentResolver) {
     return true
   }
 
-  // 「新しいメモ」を頼まれていたら true を返し、頼まれごとを忘れる。
+  // 「メモを作成」を頼まれていたら true を返し、頼まれごとを忘れる。
   @JavascriptInterface
   @Synchronized
   fun takeNewNoteRequest(): Boolean {

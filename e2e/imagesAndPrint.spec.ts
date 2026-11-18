@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, insertBodyHtml, insertFromSlashMenu, openSettingsPage, startLocalVault } from "./devices";
+import { createNoteButton, createNoteOnDesktop, insertBodyHtml, insertFromSlashMenu, openSettingsPage, startLocalVault } from "./devices";
 
 // 写真の代わりの、細かいむらのある大きな画像を作る。
 async function largePhoto(page: Page, width: number, height: number): Promise<Buffer> {
@@ -40,7 +40,7 @@ test("写真は既定では元のまま貼り、「縮小して挿入」にす�
 
   await openSettingsPage(page, "一般");
   await page.getByLabel("画像を挿入するとき").selectOption("reduced");
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await page.getByPlaceholder("タイトル").fill("小さくした写真");
   await page.getByPlaceholder("タイトル").press("Enter");
   await page.locator('input[type="file"][accept="image/*"]:not([capture])').setInputFiles({ name: "IMG_0002.jpg", mimeType: "image/jpeg", buffer: photo });

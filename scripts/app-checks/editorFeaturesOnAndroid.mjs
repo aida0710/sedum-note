@@ -27,7 +27,7 @@ await app.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
 await app.getByRole("button", { name: "作成" }).click();
 
 async function createNote(title) {
-  await app.getByRole("button", { name: "新しいメモ" }).click();
+  await app.getByRole("button", { name: "メモを作成" }).click();
   await app.getByPlaceholder("タイトル").fill(title);
   await app.getByPlaceholder("タイトル").press("Enter");
 }

@@ -30,7 +30,7 @@ try {
   await app.click(await app.waitForXPath("//*[@role='radio'][contains(., '自分で入力する')]", 30_000));
   await app.type(await app.waitForXPath("//input[@id='new-sync-key']", 10_000), SYNC_KEY);
   await app.click(await app.findByXPath("//button[normalize-space()='作成']"));
-  await app.click(await app.waitForXPath("//button[normalize-space()='新しいメモ']", 60_000));
+  await app.click(await app.waitForXPath("//button[normalize-space()='メモを作成']", 60_000));
   await app.type(await app.waitForXPath("//input[@placeholder='タイトル']", 10_000), "アプリから WebDAV へ");
   await app.type(await app.find(".ProseMirror"), "Linux のアプリが書いた行");
 

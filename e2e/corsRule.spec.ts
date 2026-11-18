@@ -2,7 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { type CorsRule, newTestRemoteConfigWithCors } from "../integration/testStorage";
 import type { S3RemoteConfig } from "../src/core/remote/remoteConfig";
 import { corsRuleJson } from "../src/ui/settings/corsRule";
-import { fillSyncTarget, startSyncedVault } from "./devices";
+import { createNoteButton, fillSyncTarget, startSyncedVault } from "./devices";
 import { PAGE_ORIGIN } from "./devServer";
 
 
@@ -17,7 +17,7 @@ test("設定の画面が案内する CORS の規則だけで、作成から同�
   const rules = JSON.parse(corsRuleJson(PAGE_ORIGIN)) as CorsRule[];
   const config = await newTestRemoteConfigWithCors("sedum-note-cors-documented", rules);
   await startSyncedVault(page, { remoteConfig: config, join: false });
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await page.getByPlaceholder("タイトル").fill("CORS の確認");
   await expect(page.getByText(/同期済み/)).toBeVisible({ timeout: 20_000 });
 });

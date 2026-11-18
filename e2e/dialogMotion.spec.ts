@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, startLocalVault } from "./devices";
+import { createNoteButton, createNoteOnDesktop, startLocalVault } from "./devices";
 
 // ダイアログと知らせの出入りの動き。ほかの試験は動きを減らす設定で流している（playwright.config.ts）ので、ここだけ外す。
 test.use({ contextOptions: { reducedMotion: "no-preference" } });
@@ -79,7 +79,7 @@ test("知らせは 150ms で現れ、「元に戻す」で閉じると 100ms で
 
 test("コマンドパレットは、出るときも消えるときも動かさない", async ({ page }) => {
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).waitFor();
+  await createNoteButton(page).waitFor();
   await page.keyboard.press("Control+k");
   await expect(page.locator(".dialog.command-palette")).toBeVisible();
   await expect(page.locator(".dialog.command-palette")).toHaveCSS("animation-name", "none");

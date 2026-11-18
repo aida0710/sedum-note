@@ -1,7 +1,7 @@
 import { type Browser, expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
 import { S3ObjectStore } from "../src/core/remote/s3ObjectStore";
-import { createNoteOnDesktop, DESKTOP_VIEWPORT, insertFromSlashMenu, openSyncedDevice, startSyncedVault, syncNowOnDesktop } from "./devices";
+import { createNoteButton, createNoteOnDesktop, DESKTOP_VIEWPORT, insertFromSlashMenu, openSyncedDevice, startSyncedVault, syncNowOnDesktop } from "./devices";
 
 const PASSPHRASE = "correct horse battery";
 // 画面の確認用の画像を置く場所。artifacts は git に入れない。
@@ -46,7 +46,7 @@ test("PC で書いた写真付きのメモが、スマホの大きさのもう 1
   await laptop.getByPlaceholder("ノートブックの名前").fill("旅行");
   await laptop.getByPlaceholder("ノートブックの名前").press("Enter");
   await laptop.getByRole("button", { name: /^旅行/ }).click();
-  await laptop.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(laptop).click();
 
   await laptop.getByPlaceholder("タイトル").fill("沖縄旅行の持ち物");
   await laptop.getByPlaceholder("タイトル").press("Enter");
@@ -95,7 +95,7 @@ test("写真は貼り付けとドロップでも本文に入る", async ({ brows
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await page.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
   await page.getByRole("button", { name: "作成" }).click();
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await page.locator(".ProseMirror").click();
   const png = [...(await photoPng(page))];
   // 貼り付けとドロップの事象を、画像のファイルを持たせて本文に送る（OS のクリップボードとドラッグの代わり）。

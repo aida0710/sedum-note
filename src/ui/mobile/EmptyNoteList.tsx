@@ -33,7 +33,7 @@ export function EmptyNoteList({ view, searchText, onCreateNote }: EmptyNoteListP
       <p>{translate(view.kind === "bookmarked" ? "mobile.noBookmarkedNotes" : view.kind === "templates" ? "mobile.noTemplates" : "sidebar.noNotes")}</p>
       {view.kind === "bookmarked" && <p className="hint">{translate("mobile.noBookmarkedNotesHint")}</p>}
       <button type="button" className="primary-button" onClick={() => onCreateNote("")}>
-        <Plus size={ICON_SIZE.button} />{translate(view.kind === "templates" ? "mobile.createTemplate" : "editor.emptyCreateNote")}
+        <Plus size={ICON_SIZE.button} />{translate(view.kind === "templates" ? "mobile.createTemplate" : "common.createNote")}
       </button>
     </div>
   );

@@ -33,7 +33,7 @@ try {
   await app.waitForXPath("//button[contains(., 'PCで書いたメモ')]", 30_000);
   writeFileSync(`${outputDirectory}/linux-app-list.png`, await app.screenshotPng());
 
-  await app.click(await app.findByXPath("//button[normalize-space()='新しいメモ']"));
+  await app.click(await app.findByXPath("//button[normalize-space()='メモを作成']"));
   await app.type(await app.waitForXPath("//input[@placeholder='タイトル']", 10_000), "アプリで書いたメモ");
   await app.type(await app.find(".ProseMirror"), "Linuxのアプリから同期");
   await new Promise((resolve) => setTimeout(resolve, 4_000));

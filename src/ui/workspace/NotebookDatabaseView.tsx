@@ -61,7 +61,7 @@ export function NotebookDatabaseView({ notebook, notes, repository, onOpenNote }
             })}
           </RadioGroup>
         </div>
-        {/* メモが無くても表とボードを出す。最初のメモを、ここの「新しいメモ」から足せるように。 */}
+        {/* メモが無くても表とボードを出す。最初のメモを、ここの「メモを作成」から足せるように。 */}
         {view.layout === "table" && <DatabaseTable {...content} onSort={changeView} onEditProperties={() => setEditingProperties(true)} />}
         {view.layout === "board" && <DatabaseBoard {...content} onChooseGroup={(groupBy) => changeView({ groupBy })} onEditProperties={() => setEditingProperties(true)} />}
       </div>
@@ -76,7 +76,7 @@ type DatabaseContentProps = {
   properties: PropertyDefinition[];
   view: DatabaseView;
   repository: NoteRepository;
-  // 「新しいメモ」で作るメモを入れる先（このノートブック）。
+  // 「メモを作成」で作るメモを入れる先（このノートブック）。
   notebookView: NoteView;
   titleOf: (note: LiveNote) => string;
   onOpenNote: (noteId: string) => void;
@@ -169,7 +169,7 @@ function DatabaseBoard({ notes, properties, view, repository, notebookView, titl
       </div>
     );
   }
-  // 列の「新しいメモ」では、その列の選択肢の値を入れたメモを作る。「未設定」の列（option が null）では値を入れない。
+  // 列の「メモを作成」では、その列の選択肢の値を入れたメモを作る。「未設定」の列（option が null）では値を入れない。
   const createCard = async (title: string, option: string | null) => {
     const note = await createNoteInView(repository, notebookView, title);
     if (option !== null) {

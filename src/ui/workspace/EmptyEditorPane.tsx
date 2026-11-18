@@ -26,7 +26,7 @@ export function EmptyEditorPane({ view, trashHasNotes, onCreateNote }: EmptyEdit
   return (
     <div className="empty-state">
       <p>{translate("editor.empty")}</p>
-      <button type="button" className="primary-button" onClick={onCreateNote}><Plus size={ICON_SIZE.button} />{translate("editor.emptyCreateNote")}</button>
+      <button type="button" className="primary-button" onClick={onCreateNote}><Plus size={ICON_SIZE.button} />{translate("common.createNote")}</button>
       {/* キーを外している（設定の「ショートカット」）ときは、キーの案内を出さない。 */}
       {newNote !== null && commandPalette !== null && <p className="hint">{translate("editor.emptyShortcuts", { newNote, commandPalette })}</p>}
     </div>

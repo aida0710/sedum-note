@@ -51,7 +51,7 @@ try {
   await app.type(await app.waitForXPath("//input[@id='setup-passphrase']", 30_000), PASSPHRASE);
   await app.type(await app.find("#setup-passphrase-confirm"), PASSPHRASE);
   await app.click(await app.findByXPath("//button[normalize-space()='作成']"));
-  await app.click(await app.waitForXPath("//button[normalize-space()='新しいメモ']", 30_000));
+  await app.click(await app.waitForXPath("//button[normalize-space()='メモを作成']", 30_000));
   await app.type(await app.waitForXPath("//textarea[@placeholder='タイトル']", 10_000), "買い物");
   await app.type(await app.find(".ProseMirror"), "牛乳");
   await waitUntil("the body of the first window", bodyText, (text) => text === "牛乳");
@@ -95,7 +95,7 @@ try {
   await app.click(await app.findByXPath("//button[normalize-space()='解除']"));
   await waitUntil("the body of the note window after unlocking", bodyText, (text) => text?.includes("卵"));
   await switchToWindow(mainWindow);
-  await app.waitForXPath("//button[normalize-space()='新しいメモ']", 15_000);
+  await app.waitForXPath("//button[normalize-space()='メモを作成']", 15_000);
   await capture("linux-main-window-unlocked-by-note-window");
   console.log("ok: unlocking the note window unlocks the first window too");
 } finally {

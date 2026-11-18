@@ -1,6 +1,6 @@
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 import { MemoryWebDavServer } from "../src/core/remote/memoryWebDavServer";
-import { createNoteOnDesktop, DESKTOP_VIEWPORT, PASSPHRASE, SYNC_KEY, syncNowOnDesktop } from "./devices";
+import { createNoteButton, createNoteOnDesktop, DESKTOP_VIEWPORT, PASSPHRASE, SYNC_KEY, syncNowOnDesktop } from "./devices";
 
 // 試験の WebDAV サーバーは、試験の中（メモリ）に置き、ブラウザからの要求を横取りして渡す。
 const WEBDAV_ORIGIN = "https://webdav.sedum-note.test";
@@ -99,5 +99,5 @@ test("WebDAV の URL が https でなければ、接続を確かめる前に知�
   await page.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
   await page.getByRole("button", { name: "作成" }).click();
   await expect(page.getByRole("alert")).toBeVisible();
-  await expect(page.getByRole("button", { name: "新しいメモ" })).toHaveCount(0);
+  await expect(createNoteButton(page)).toHaveCount(0);
 });

@@ -1,7 +1,7 @@
 // PC の画面の並び（開いているタブ、ピン留め、選んでいるタブ、左の列の開け閉め）が、ロックと再読み込みのあとに戻ること。
 
 import { expect, type Page, test } from "@playwright/test";
-import { addNotebookOnDesktop, createNoteOnDesktop, openSettingsPage, PASSPHRASE, startLocalVault } from "./devices";
+import { addNotebookOnDesktop, createNoteButton, createNoteOnDesktop, openSettingsPage, PASSPHRASE, startLocalVault } from "./devices";
 
 async function unlockApp(page: Page): Promise<void> {
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
@@ -53,7 +53,7 @@ test("ロックして解除すると、開いていたタブ・ピン留め・�
 
 test("読み込み直して解除しても、開いていたタブが戻る。タブの並びは、ブラウザの平文の保存にもアドレスにも書かない", async ({ page }) => {
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).waitFor();
+  await createNoteButton(page).waitFor();
   const plainStorageBefore = await plainStorageOf(page);
   await openThreeNotesAndPinOne(page);
   expect(await plainStorageOf(page)).toBe(plainStorageBefore);
@@ -88,7 +88,7 @@ test("完全に削除したメモのタブは、読み込み直したあとに�
 
 test("設定で開いていたページも、ロックして解除したあとに戻る", async ({ page }) => {
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).waitFor();
+  await createNoteButton(page).waitFor();
   await openSettingsPage(page, "外観");
   await expect(page.getByRole("heading", { name: "テーマ", exact: true })).toBeVisible();
 

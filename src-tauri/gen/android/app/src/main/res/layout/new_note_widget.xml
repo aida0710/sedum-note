@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- ホーム画面のウィジェット。「新しいメモ」のボタンだけ。 -->
+<!-- ホーム画面のウィジェット。「メモを作成」のボタンだけ。 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/new_note_widget_button"
     android:layout_width="match_parent"

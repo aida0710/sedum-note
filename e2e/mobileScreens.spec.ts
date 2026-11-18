@@ -1,6 +1,6 @@
 import { type Browser, expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
-import { createNoteOnDesktop, openSyncedDevice, PHONE_VIEWPORT, startLocalVault, SYNC_KEY } from "./devices";
+import { createNoteButton, createNoteOnDesktop, openSyncedDevice, PHONE_VIEWPORT, startLocalVault, SYNC_KEY } from "./devices";
 import { PAGE_ORIGIN } from "./devServer";
 
 // スマホの幅の画面で、同期なしの vault を作る。hasTouch を付けると、指で使う端末（pointer: coarse）として開く。
@@ -12,7 +12,7 @@ async function openPhone(browser: Browser, { hasTouch = false }: { hasTouch?: bo
 
 // スマホの一覧で新しいメモを作り、題を入れる（メモは開いたまま）。
 async function openNewNoteOnPhone(page: Page, title: string): Promise<void> {
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await page.getByPlaceholder("タイトル").fill(title);
 }
 
@@ -275,13 +275,13 @@ test("スマホのゴミ箱の一覧には、ノートブックのチップも�
   await openNewNoteOnPhone(page, "捨てるメモ");
   await backToList(page);
   await expect(page.locator(".chips")).toBeVisible();
-  await expect(page.getByRole("button", { name: "新しいメモ" })).toBeVisible();
+  await expect(createNoteButton(page)).toBeVisible();
 
   await selectPhoneTab(page, "ノートブック");
   await page.getByRole("button", { name: /ゴミ箱/ }).click();
   await expect(page.getByRole("heading", { name: "ゴミ箱" })).toBeVisible();
   await expect(page.locator(".chips")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "新しいメモ" })).toHaveCount(0);
+  await expect(createNoteButton(page)).toHaveCount(0);
 });
 
 test("スマホの検索で当たるメモが無いと、探した言葉を添えて知らせ、その言葉の題でメモを作れ、「×」で検索の文字を消せる", async ({ browser }) => {
@@ -327,7 +327,7 @@ test("スマホの一覧を下へ送ってメモを開き、戻ると、同じ�
   // いちばん下のメモ（最初に作ったもの）の下端が、「＋」の上端より上にある。
   const lastItem = page.locator(".note-item", { hasText: "メモ 01" });
   const lastBox = (await lastItem.boundingBox())!;
-  const fabBox = (await page.getByRole("button", { name: "新しいメモ" }).boundingBox())!;
+  const fabBox = (await createNoteButton(page).boundingBox())!;
   expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(fabBox.y);
 
   await lastItem.click();
