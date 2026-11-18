@@ -349,7 +349,7 @@ await capture(syncPage, "sync-key-generated", { elements: [keyDialog] });
 const noted = keyDialog.getByRole("checkbox");
 if (await noted.count()) await noted.first().check();
 await keyDialog.getByRole("button").last().click();
-await syncPage.getByRole("button", { name: translate("sidebar.newNote") }).waitFor();
+await syncPage.locator(".sidebar").getByRole("button", { name: translate("common.createNote"), exact: true }).waitFor();
 await openSettingsOnDesktop(syncPage, "sync");
 await syncPage.getByRole("button", { name: translate("syncSetup.export") }).click();
 await syncPage.getByRole("dialog").waitFor();

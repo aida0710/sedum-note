@@ -39,7 +39,7 @@ export function SYNC_SCREENS({ baseUrl, passphrase }) {
         const confirm = dialog.getByRole("checkbox");
         if (await confirm.count()) await confirm.first().check();
         await dialog.getByRole("button").last().click();
-        await page.getByRole("button", { name: translate("sidebar.newNote") }).waitFor();
+        await page.locator(".sidebar").getByRole("button", { name: translate("common.createNote"), exact: true }).waitFor();
       },
     },
     {
