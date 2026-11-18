@@ -24,7 +24,7 @@ try {
   await app.type(await app.waitForXPath("//input[@id='setup-passphrase']", 30_000), PASSPHRASE);
   await app.type(await app.find("#setup-passphrase-confirm"), PASSPHRASE);
   await app.click(await app.findByXPath("//button[normalize-space()='作成']"));
-  await app.click(await app.waitForXPath("//button[normalize-space()='新しいメモ']", 30_000));
+  await app.click(await app.waitForXPath("//button[normalize-space()='メモを作成']", 30_000));
   await app.type(await app.waitForXPath("//input[@placeholder='タイトル']", 10_000), "資料つき");
 
   // 隠してあるファイルの入力欄は WebDriver から打てないので、見える状態にしてからパスを渡す。

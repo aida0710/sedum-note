@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
-import { addNotebookOnDesktop, createNoteOnDesktop, insertBodyHtml, startLocalVault } from "./devices";
+import { addNotebookOnDesktop, createNoteButton, createNoteOnDesktop, insertBodyHtml, startLocalVault } from "./devices";
 
 // 本文の文字の大きさの既定（px）。ブロックの間は、これに比例する（app.css の --block-gap・--block-gap-loose）。
 const BODY_FONT_SIZE = 16;
@@ -174,7 +174,7 @@ test("タグの多いメモでは、本文の上のタグは最初の 5 個だ�
 
 test("作ったばかりの空のメモには文字数と更新日時を出さず、書き始めると出る", async ({ page }) => {
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await expect(page.getByPlaceholder("タイトル")).toBeFocused();
   await expect(page.locator(".document-meta .character-count")).toHaveCount(0);
   await expect(page.locator(".document-meta .updated")).toHaveCount(0);

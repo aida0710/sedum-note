@@ -175,7 +175,7 @@ svg.lucide { stroke-width: 1.75; }
 .database-header h1 { font-size: var(--font-size-title); margin: 0; flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .database-column h2 { overflow-wrap: anywhere; }
 .database-header .segmented button { display: inline-flex; align-items: center; gap: 4px; }
-/* 横に送る枠は、はみ出たものを切る。表の端に来る欄とボタン（下の「新しいメモ」）のフォーカスの枠（太さ 2px、離れ 1px）が
+/* 横に送る枠は、はみ出たものを切る。表の端に来る欄とボタン（下の「メモを作成」）のフォーカスの枠（太さ 2px、離れ 1px）が
    切れないよう、その分の余白を内側に取り、外側の負の余白で表の位置を戻す。 */
 .database-table-scroll { overflow-x: auto; padding: 3px; margin: -3px; }
 .database-table { border-collapse: collapse; min-width: 100%; font-size: var(--font-size-ui); }
@@ -200,7 +200,7 @@ svg.lucide { stroke-width: 1.75; }
 .database-table .database-add-property { width: 1%; padding: 0 2px; }
 .database-add-property .icon-button { display: grid; margin: 0 auto; color: var(--muted); }
 @media (hover: hover) { .database-add-property .icon-button:hover { color: var(--text); } }
-/* 表の下の「新しいメモ」の行は、枠を付けず、表の左の端にそろえる。 */
+/* 表の下の「メモを作成」の行は、枠を付けず、表の左の端にそろえる。 */
 .database-table tfoot td { border: 0; padding: 4px 0 0; }
 .database-board-needs-select { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; color: var(--muted); font-size: var(--font-size-small); line-height: 1.6; }
 .database-board-needs-select .secondary-button { display: inline-flex; align-items: center; gap: 6px; }

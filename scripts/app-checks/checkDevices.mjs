@@ -48,7 +48,7 @@ export async function startBrowserDevice(remote) {
   await page.getByRole("radio", { name: "自分で入力する" }).click();
   await page.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
   await page.getByRole("button", { name: "作成" }).click();
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await page.getByRole("button", { name: "メモを作成" }).click();
   await page.getByPlaceholder("タイトル").fill("PCで書いたメモ");
   await page.getByPlaceholder("タイトル").press("Enter");
   await page.keyboard.type("アプリで読めるか確かめる #確認");

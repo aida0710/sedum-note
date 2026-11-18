@@ -1,4 +1,4 @@
-// Android のエミュレーターに入れたアプリで、「新しいメモ」の頼まれごと（ウィジェットとショートカットが送る Intent）と、
+// Android のエミュレーターに入れたアプリで、「メモを作成」の頼まれごと（ウィジェットとショートカットが送る Intent）と、
 // カメラのボタンを確かめる。手で流す確認の道具。配布用（最適化あり）の APK で流す。
 //
 // 前提: shareToAndroidApp.mjs を流したあと（vault があり、ロックを解除して、一覧が出ている）。
@@ -18,7 +18,7 @@ async function expectEmptyNoteOpen(app, description) {
   console.log(`ok: ${description}`);
 }
 
-// 1. アプリを開いたまま「新しいメモ」を頼む。
+// 1. アプリを開いたまま「メモを作成」を頼む。
 let app = await connectToApp();
 const notesBefore = await app.evaluate(NOTE_COUNT);
 requestNewNote();

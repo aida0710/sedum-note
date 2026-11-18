@@ -44,7 +44,7 @@ export function SettingsPageContent({ page, session, vault, onSelectPage, isMobi
     case "general":
       return (
         <>
-          <DisplaySection showsPageAlignment={!isMobile} />
+          <DisplaySection showsDesktopLayoutSettings={!isMobile} />
           {/* 振動は Android のアプリだけ（Web 版と PC のアプリでは何もしないので、欄も出さない）。 */}
           {isAndroidApp() && <HapticFeedbackSection />}
           <TemplateSection /><RemindersSection /><TrashSection repository={repository} /><SpacesSection />

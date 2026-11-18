@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, startLocalVault } from "./devices";
+import { createNoteButton, createNoteOnDesktop, startLocalVault } from "./devices";
 
 const splitPane = (page: Page) => page.getByRole("region", { name: "右に並べたメモ" });
 const leftBody = (page: Page) => page.locator(".pane:not(.split-pane) .ProseMirror");
@@ -13,7 +13,7 @@ test("メモを右に並べて開くと、左で別のメモを開いても、�
   await expect(splitPane(page).locator(".ProseMirror")).toHaveText("去年の数字");
 
   // 左で別のメモを作る。右は「資料」のまま。
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   const leftTitle = page.locator(".pane:not(.split-pane)").getByPlaceholder("タイトル");
   await expect(leftTitle).toHaveValue("");
   await leftTitle.fill("報告");

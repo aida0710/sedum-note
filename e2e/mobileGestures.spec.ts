@@ -1,10 +1,10 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
-import { createNoteOnDesktop, openSyncedDevice, PHONE_VIEWPORT, startLocalVault, syncNowOnDesktop } from "./devices";
+import { createNoteButton, createNoteOnDesktop, openSyncedDevice, PHONE_VIEWPORT, startLocalVault, syncNowOnDesktop } from "./devices";
 
 // スマホの一覧で、メモを作って一覧へ戻る。
 async function createNoteOnPhone(page: Page, title: string): Promise<void> {
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await page.getByPlaceholder("タイトル").fill(title);
   await page.getByRole("button", { name: "戻る" }).click();
 }

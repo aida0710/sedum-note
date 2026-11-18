@@ -17,7 +17,7 @@ await app.reload();
 await app.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
 await app.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
 await app.getByRole("button", { name: "作成" }).click();
-await app.getByRole("button", { name: "新しいメモ", exact: true }).click();
+await app.getByRole("button", { name: "メモを作成", exact: true }).click();
 await app.getByPlaceholder("タイトル").fill("買い物");
 await app.getByPlaceholder("タイトル").press("Enter");
 await app.keyboard.type("牛乳と卵");

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { DESKTOP_VIEWPORT, PASSPHRASE, PHONE_VIEWPORT, startLocalVault } from "./devices";
+import { createNoteButton, DESKTOP_VIEWPORT, PASSPHRASE, PHONE_VIEWPORT, startLocalVault } from "./devices";
 
 test("最初の画面は、題の上にアプリのアイコンと名前を出し、鍵のアイコンは出さない", async ({ page }) => {
   await page.goto("/");
@@ -26,7 +26,7 @@ test("同期の欄を開いても、カードの上の端は動かず、中だ�
 
 test("ロックの画面では、「パスフレーズを忘れたとき」をボタンの上に置き、ボタンの行をカードの下の端に置く", async ({ page }) => {
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).waitFor();
+  await createNoteButton(page).waitFor();
   await page.keyboard.press("Control+l");
   await expect(page.getByRole("heading", { name: "ロックを解除" })).toBeVisible();
   const forgot = (await page.getByText("パスフレーズを忘れたとき").boundingBox())!;
@@ -37,16 +37,16 @@ test("ロックの画面では、「パスフレーズを忘れたとき」を�
   expect(Math.round(actions.y + actions.height)).toBe(Math.round(card.y + card.height - 1));
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await page.getByRole("button", { name: "解除" }).click();
-  await expect(page.getByRole("button", { name: "新しいメモ" })).toBeVisible();
+  await expect(createNoteButton(page)).toBeVisible();
 });
 
 test("ロックの画面では、パスフレーズを打って Enter で解除でき、「このデバイスのデータを削除」は押されない", async ({ page }) => {
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).waitFor();
+  await createNoteButton(page).waitFor();
   await page.keyboard.press("Control+l");
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await page.getByLabel("パスフレーズ", { exact: true }).press("Enter");
-  await expect(page.getByRole("button", { name: "新しいメモ" })).toBeVisible();
+  await expect(createNoteButton(page)).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
@@ -54,7 +54,7 @@ for (const [screen, viewport] of [["スマホ", PHONE_VIEWPORT], ["PC", DESKTOP_
   test(`${screen}のロックの画面では、カードを画面の縦の真ん中に置く`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await startLocalVault(page);
-    await page.getByRole("button", { name: "新しいメモ" }).first().waitFor();
+    await createNoteButton(page).first().waitFor();
     await page.reload();
     await expect(page.getByRole("heading", { name: "ロックを解除" })).toBeVisible();
     const card = (await page.locator(".entry-card").boundingBox())!;

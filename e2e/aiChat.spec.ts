@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page, type Route, test } from "@playwright/test";
-import { createNoteOnDesktop, openSettingsPage, PASSPHRASE, PHONE_VIEWPORT, startLocalVault } from "./devices";
+import { createNoteButton, createNoteOnDesktop, openSettingsPage, PASSPHRASE, PHONE_VIEWPORT, startLocalVault } from "./devices";
 
 // 試験では AI の提供元へつながない。届いた要求を覚えて、ストリーミングの形の決まった答えを返す。
 
@@ -149,7 +149,7 @@ test("AI チャットは、設定で有効にするまで使えない。案内�
 test("スマホでも、AI チャットの案内のボタンでメモを閉じて設定の「AI」のページへ移り、端末の「戻る」で設定のページの一覧へ戻る", async ({ browser }) => {
   const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await page.getByPlaceholder("タイトル").fill("買い物");
   await page.getByRole("button", { name: "その他の操作" }).click();
   await page.getByRole("menuitem", { name: "AIチャット" }).click();
@@ -168,7 +168,7 @@ test("スマホでも、AI チャットの案内のボタンでメモを閉じ�
 test("スマホで AI チャットを開いたまま端末の「戻る」を押すと、チャットだけが閉じ、メモは開いたまま", async ({ browser }) => {
   const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await page.getByPlaceholder("タイトル").fill("買い物");
   await page.getByRole("button", { name: "その他の操作" }).click();
   await page.getByRole("menuitem", { name: "AIチャット" }).click();

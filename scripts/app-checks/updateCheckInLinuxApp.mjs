@@ -27,7 +27,7 @@ try {
   await app.type(await app.waitForXPath("//input[@id='setup-passphrase']", 30_000), PASSPHRASE);
   await app.type(await app.find("#setup-passphrase-confirm"), PASSPHRASE);
   await app.click(await app.findByXPath("//button[normalize-space()='作成']"));
-  await app.waitForXPath("//button[normalize-space()='新しいメモ']", 30_000);
+  await app.waitForXPath("//button[normalize-space()='メモを作成']", 30_000);
 
   await app.click(await app.findByXPath("//button[@aria-label='設定']"));
   await app.click(await app.waitForXPath("//nav[@aria-label='設定のページ']//button[normalize-space()='更新']", 10_000));

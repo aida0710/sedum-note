@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { createNoteButton } from "./devices";
 
 const PASSPHRASE = "correct horse battery";
 // ひらがな・カタカナ・漢字。英語の画面に残っていたら、文言の拾い漏れ。
@@ -26,7 +27,7 @@ test.describe("システムの言語が英語のとき", () => {
     await page.getByLabel("Passphrase", { exact: true }).fill(PASSPHRASE);
     await page.getByLabel("Passphrase (confirm)").fill(PASSPHRASE);
     await page.getByRole("button", { name: "Create" }).click();
-    await page.getByRole("button", { name: "New note" }).click();
+    await page.locator(".sidebar").getByRole("button", { name: "Create a note", exact: true }).click();
     await page.getByPlaceholder("Title").fill("A note");
     await expect(page.getByText(/^Updated /)).toBeVisible();
     expect(await visibleTextOutsideLanguageNames(page)).not.toMatch(JAPANESE_CHARACTERS);
@@ -48,13 +49,13 @@ test.describe("システムの言語が英語のとき", () => {
     await page.getByLabel("Passphrase (confirm)").fill(PASSPHRASE);
     await page.getByRole("button", { name: "Create" }).click();
     // 左の列のメモの行は描き直しを省く（memo）ので、言語を変えたときに行の文言も入れ替わるかを見る。
-    await page.getByRole("button", { name: "New note" }).click();
+    await page.locator(".sidebar").getByRole("button", { name: "Create a note", exact: true }).click();
     const untitledRow = page.locator(".sidebar button.tree-note");
     await expect(untitledRow).toHaveText("Untitled note");
     await page.getByRole("button", { name: "Settings", exact: true }).click();
     await page.getByLabel("Language").selectOption("ja");
     await expect(page.getByRole("heading", { name: "設定" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "新しいメモ" })).toBeVisible();
+    await expect(createNoteButton(page)).toBeVisible();
     await expect(untitledRow).toHaveText("無題のメモ");
     await page.reload();
     await expect(page.getByRole("heading", { name: "ロックを解除" })).toBeVisible();

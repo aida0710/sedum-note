@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
-import { confirmDeviceDataWipe, createNoteOnDesktop, fillSyncTarget, openSettingsPage, openSyncedDevice, PASSPHRASE, selectSettingsPage, startLocalVault, startSyncedVault, SYNC_KEY, syncNowOnDesktop } from "./devices";
+import { confirmDeviceDataWipe, createNoteButton, createNoteOnDesktop, fillSyncTarget, openSettingsPage, openSyncedDevice, PASSPHRASE, selectSettingsPage, startLocalVault, startSyncedVault, SYNC_KEY, syncNowOnDesktop } from "./devices";
 
 const spaceSwitcher = (page: Page) => page.getByRole("button", { name: /スペースを切り替え/ });
 const noteInList = (page: Page, title: string) => page.locator(".tree-note", { hasText: title });
@@ -32,7 +32,7 @@ test("スペースを足すと、メモの保管先が分かれる。足すと�
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await page.getByRole("button", { name: "作成" }).click();
 
-  await expect(page.getByRole("button", { name: "新しいメモ" })).toBeVisible();
+  await expect(createNoteButton(page)).toBeVisible();
   await expect(noteInList(page, "個人のメモ")).toHaveCount(0);
   await createNoteOnDesktop(page, "仕事のメモ");
   await expect(spaceSwitcher(page)).toHaveText("仕事");
@@ -98,7 +98,7 @@ test("パスフレーズを変えると、全部のスペースのパスフレ�
   await page.getByLabel("スペース").selectOption({ label: "最初のスペース" });
   await page.getByLabel("パスフレーズ", { exact: true }).fill(NEW_PASSPHRASE);
   await page.getByRole("button", { name: "解除" }).click();
-  await expect(page.getByRole("button", { name: "新しいメモ" })).toBeVisible();
+  await expect(createNoteButton(page)).toBeVisible();
 });
 
 test("スペースごとに、同期先を別にできる。ほかのデバイスには、参加した同期先のスペースのメモだけが届く", async ({ page, browser }) => {

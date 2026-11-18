@@ -33,7 +33,7 @@ try {
   await app.waitForXPath("//*[@role='status'][contains(., '空の同期先です')]", 30_000);
   await app.click(await app.findByXPath("//button[normalize-space()='作成']"));
   await app.click(await app.waitForXPath("//button[normalize-space()='控えました']", 60_000));
-  await app.click(await app.waitForXPath("//button[normalize-space()='新しいメモ']", 60_000));
+  await app.click(await app.waitForXPath("//button[normalize-space()='メモを作成']", 60_000));
   await app.type(await app.waitForXPath("//input[@placeholder='タイトル']", 10_000), "CORS なしで同期したメモ");
   await app.waitForXPath("//button[contains(@class,'sync-line')][contains(., '同期済み')]", 30_000);
   writeFileSync(`${outputDirectory}/linux-sync-without-cors.png`, await app.screenshotPng());

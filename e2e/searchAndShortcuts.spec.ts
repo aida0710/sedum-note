@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, selectSettingsPage, startLocalVault } from "./devices";
+import { createNoteButton, createNoteOnDesktop, selectSettingsPage, startLocalVault } from "./devices";
 
 async function newNote(page: Page, title: string, body: string): Promise<void> {
   await createNoteOnDesktop(page, title);
@@ -66,7 +66,7 @@ test("メモ全体の検索は、#タグ と notebook:名前 で絞り込める�
   await expect(page.locator(".ProseMirror .search-match")).toHaveText(["予算"]);
 });
 
-test("ショートカットで、新しいメモ・タブの切り替え・タブを閉じる・設定ができる。ダイアログが開いている間は効かない", async ({ page }) => {
+test("ショートカットで、メモの作成・タブの切り替え・タブを閉じる・設定ができる。ダイアログが開いている間は効かない", async ({ page }) => {
   await startLocalVault(page);
   await newNote(page, "1 つ目", "");
   await page.keyboard.press("Control+Alt+n");
@@ -101,8 +101,8 @@ test("設定でショートカットのキーを変えられる。使ってい�
   await selectSettingsPage(page, "ショートカット");
   const keyButton = (name: string) => page.getByRole("button", { name: `「${name}」のキーを変える` });
 
-  await keyButton("新しいメモ").click();
-  await expect(keyButton("新しいメモ")).toHaveText("キーを押してください…");
+  await keyButton("メモを作成").click();
+  await expect(keyButton("メモを作成")).toHaveText("キーを押してください…");
   // 押したキーは、ほかのショートカット（Ctrl+K のコマンドパレット）に渡らず、使っているキーとして断る。
   await page.keyboard.press("Control+k");
   await expect(page.getByRole("alert")).toHaveText("Ctrl + K は「コマンドパレット」で使っています。先にそちらのキーを変えてください。");
@@ -110,7 +110,7 @@ test("設定でショートカットのキーを変えられる。使ってい�
   await page.keyboard.press("Control+b");
   await expect(page.getByRole("alert")).toContainText("Ctrl + B は、文字の編集やコピーなどに使われているので");
   await page.keyboard.press("Control+Alt+m");
-  await expect(keyButton("新しいメモ")).toHaveText("Ctrl + Alt + M");
+  await expect(keyButton("メモを作成")).toHaveText("Ctrl + Alt + M");
   await expect(page.getByRole("alert")).toHaveCount(0);
 
   // 本文の中のキーも変えられる（開いているメモにも、すぐ効く）。
@@ -144,7 +144,7 @@ test("設定でショートカットのキーを変えられる。使ってい�
   await page.getByRole("tab", { name: "設定" }).click();
   await page.getByRole("button", { name: "すべて既定に戻す" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "すべて既定に戻す" }).click();
-  await expect(keyButton("新しいメモ")).toHaveText("Ctrl + Alt + N");
+  await expect(keyButton("メモを作成")).toHaveText("Ctrl + Alt + N");
   await expect(keyButton("ブロックを複製")).toHaveText("Ctrl + D");
   await expect(keyButton("開いているメモの中を置換")).toHaveText("Ctrl + R");
 });
@@ -311,7 +311,7 @@ test("コマンドパレットを開いた直後は、最近のメモの下に�
   await page.keyboard.press("Control+k");
   const palette = page.getByRole("dialog", { name: "コマンドパレット" });
   await expect(palette.locator(".menu-heading")).toHaveText(["メモ", "操作"]);
-  await expect(palette.getByRole("option").locator(".nav-label")).toHaveText(["会議の記録", "新しいメモ", "設定を開く", "期限の一覧"]);
+  await expect(palette.getByRole("option").locator(".nav-label")).toHaveText(["会議の記録", "メモを作成", "設定を開く", "期限の一覧"]);
   await expect(palette.getByRole("option").locator("kbd")).toHaveText(["Ctrl + Alt + N", "Ctrl + ,", "Ctrl + Alt + E"]);
   // 最初に選ばれているのは、最近のメモ。下へ移って、操作を実行できる。
   await expect(palette.getByRole("option", { name: "会議の記録" })).toHaveAttribute("aria-selected", "true");
@@ -341,7 +341,7 @@ test("コマンドパレットで ↓ を押し続けても、選んだ項目が
   // 操作の一覧が、パレットの高さに収まらない窓の高さにする。
   await page.setViewportSize({ width: 1280, height: 420 });
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).waitFor();
+  await createNoteButton(page).waitFor();
   await page.keyboard.press("Control+k");
   const palette = page.getByRole("dialog", { name: "コマンドパレット" });
   await palette.getByRole("combobox").fill(">");

@@ -1,4 +1,4 @@
-// データベース表示の「＋ 新しいメモ」（表の下と、ボードの列の下）。押すとその場にタイトルの欄を出し、決めたタイトルでメモを作る。
+// データベース表示の「＋ メモを作成」（表の下と、ボードの列の下）。押すとその場にタイトルの欄を出し、決めたタイトルでメモを作る。
 //
 // タイトルは、メモを開かずにその場で打つ。表やボードへ続けて何件も足すとき、1 件ごとにメモのタブへ移らずに済み、
 // 足した行のプロパティもそのまま表で入れられる。メモはタイトルを決めたときに作る。押した時点で作ると、打っている間に
@@ -44,7 +44,7 @@ export function DatabaseNewNoteButton({ onCreate }: DatabaseNewNoteButtonProps) 
   }
   return (
     <button ref={buttonRef} type="button" className="database-new-note-button" onClick={() => setTypingTitle(true)}>
-      <Plus size={ICON_SIZE.row} />{translate("database.newNote")}
+      <Plus size={ICON_SIZE.row} />{translate("common.createNote")}
     </button>
   );
 }

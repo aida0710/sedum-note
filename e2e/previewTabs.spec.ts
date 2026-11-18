@@ -1,8 +1,8 @@
-// 仮のタブ（サイドバーでメモを普通に押して開くタブ）。次に押したメモと入れ替わり、タイトルを斜体で出し、書く・ダブルクリック・
-// ピン留め・並べ替えで普通のタブになる。
+// 仮のタブ（設定で選んだときに、サイドバーでメモを普通に押して開くタブ）。次に押したメモと入れ替わり、タイトルを斜体で出し、
+// 書く・ダブルクリック・ピン留め・並べ替えで普通のタブになる。既定（設定がオフ）では、押したメモはいつも普通のタブで開く。
 
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, PASSPHRASE, startLocalVault } from "./devices";
+import { createNoteOnDesktop, openSettingsPage, PASSPHRASE, startLocalVault } from "./devices";
 
 function sidebarNote(page: Page, title: string) {
   return page.locator(".sidebar .tree-note", { hasText: title }).first();
@@ -23,24 +23,60 @@ async function expectKeptTab(page: Page, title: string): Promise<void> {
   await expect(tabOf(page, title).locator(".tab-label")).toHaveCSS("font-style", "normal");
 }
 
-// メモを作り（作ったメモは普通のタブで開く）、タブを全部閉じて、サイドバーから開く前の状態にする。
-async function createNotesWithoutTabs(page: Page, titles: string[]): Promise<void> {
+const PREVIEW_TABS_SETTING = "サイドバーで押したメモを仮のタブで開く";
+
+// メモを作り（作ったメモは普通のタブで開く）、タブを全部閉じて、サイドバーから開く前の状態にする。previewTabs を付けると、
+// 先に設定の「一般」で仮のタブを使うようにする（設定のタブも、ほかのタブと一緒に閉じる）。
+async function createNotesWithoutTabs(page: Page, titles: string[], { previewTabs = true } = {}): Promise<void> {
   await startLocalVault(page);
+  if (previewTabs) {
+    await openSettingsPage(page, "一般");
+    await page.getByRole("switch", { name: PREVIEW_TABS_SETTING }).check();
+  }
   for (const title of titles) {
     await createNoteOnDesktop(page, title);
   }
   // 閉じる「×」は、選んでいるタブにだけ出ている。閉じると隣のタブが選ばれるので、選んでいるタブを順に閉じる。
-  for (let closedCount = 0; closedCount < titles.length; closedCount += 1) {
+  const tabs = page.getByRole("tab");
+  for (let openCount = await tabs.count(); openCount > 0; openCount -= 1) {
     await page.locator(".tab.on").getByRole("button", { name: "タブを閉じる" }).click();
+    await expect(tabs).toHaveCount(openCount - 1);
   }
-  await expect(page.getByRole("tab")).toHaveCount(0);
 }
 
 // メモを開いたあとの保存（PERSIST_DELAY_MILLISECONDS は 150ms）が済むまで待つ。開いただけで書き込みが起きて
 // 普通のタブになってしまう不具合があれば、この間に出る。
 const AFTER_OPENING_WAIT_MILLISECONDS = 600;
 
-test("サイドバーでメモを押すと、タイトルが斜体の仮のタブで開き、次に押したメモと入れ替わる。もう開いているメモは選ぶだけ", async ({ page }) => {
+test("既定では、サイドバーで押したメモは押すたびに普通のタブで開き、もう開いているメモはそのタブを選ぶ", async ({ page }) => {
+  await createNotesWithoutTabs(page, ["一", "二", "三"], { previewTabs: false });
+
+  await sidebarNote(page, "一").click();
+  await sidebarNote(page, "二").click();
+  await sidebarNote(page, "三").click();
+  await expect(page.getByRole("tab")).toHaveText(["一", "二", "三"]);
+  for (const title of ["一", "二", "三"]) {
+    await expectKeptTab(page, title);
+  }
+  await sidebarNote(page, "一").click();
+  await expect(page.getByRole("tab")).toHaveText(["一", "二", "三"]);
+  await expect(tabOf(page, "一")).toHaveAttribute("aria-selected", "true");
+});
+
+test("設定で仮のタブを切ると、残っていた仮のタブは普通のタブになり、次に押したメモは新しいタブで開く", async ({ page }) => {
+  await createNotesWithoutTabs(page, ["仮で開く", "次に開く"]);
+  await sidebarNote(page, "仮で開く").click();
+  await expectPreviewTab(page, "仮で開く");
+
+  await openSettingsPage(page, "一般");
+  await page.getByRole("switch", { name: PREVIEW_TABS_SETTING }).uncheck();
+  await tabOf(page, "仮で開く").click();
+  await expectKeptTab(page, "仮で開く");
+  await sidebarNote(page, "次に開く").click();
+  await expect(page.getByRole("tab")).toHaveText(["仮で開く", "設定", "次に開く"]);
+});
+
+test("仮のタブを使う設定では、サイドバーでメモを押すと、タイトルが斜体の仮のタブで開き、次に押したメモと入れ替わる。もう開いているメモは選ぶだけ", async ({ page }) => {
   await createNotesWithoutTabs(page, ["一", "二", "三"]);
 
   await sidebarNote(page, "一").click();

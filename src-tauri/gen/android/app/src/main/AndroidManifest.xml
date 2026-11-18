@@ -58,7 +58,7 @@
             </intent-filter>
         </activity>
 
-        <!-- ホーム画面のウィジェット（「新しいメモ」のボタン）。 -->
+        <!-- ホーム画面のウィジェット（「メモを作成」のボタン）。 -->
         <receiver android:name=".NewNoteWidget" android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

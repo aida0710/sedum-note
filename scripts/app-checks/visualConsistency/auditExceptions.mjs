@@ -65,7 +65,7 @@ export const ROLE_VALUE_EXCEPTIONS = [
   },
   {
     role: "button-icon", measure: "radius", element: /button\.fab/,
-    reason: "スマホの「新しいメモ」の大きなボタン（--radius-fab。Material の FAB と同じ形）",
+    reason: "スマホの「メモを作成」の大きなボタン（--radius-fab。Material の FAB と同じ形）",
   },
   {
     role: "button-icon", measure: "radius", element: /button\.tab-close/,

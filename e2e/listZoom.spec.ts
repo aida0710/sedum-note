@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, insertFromSlashMenu, PHONE_VIEWPORT, placeCursorAtBodyEnd, startLocalVault } from "./devices";
+import { createNoteButton, createNoteOnDesktop, insertFromSlashMenu, PHONE_VIEWPORT, placeCursorAtBodyEnd, startLocalVault } from "./devices";
 
 const SCREENSHOT_DIRECTORY = process.env.SCREENSHOT_DIRECTORY;
 // ズームしている間に左上に出る、戻るボタン。名前は「「戻り先」に戻る」。
@@ -172,7 +172,7 @@ test("見出しの左のボタンで、そのセクション（次の同じ段�
 test("スマホでは、ズームしている間は上の「戻る」が 1 つ上の階層へ戻るボタンになり、全体に戻ってからの「戻る」で一覧へ戻る", async ({ browser }) => {
   const page = await (await browser.newContext({ viewport: PHONE_VIEWPORT })).newPage();
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await page.getByPlaceholder("タイトル").fill("計画");
   await page.getByPlaceholder("タイトル").press("Enter");
   await page.keyboard.type("- 旅行");

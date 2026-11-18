@@ -6,7 +6,7 @@ import { S3ObjectStore } from "../src/core/remote/s3ObjectStore";
 import { readRemoteVault, writeRemoteVault } from "../src/core/vault/remoteVault";
 import { createVault } from "../src/core/vault/vaultDocument";
 import { corsRuleJson } from "../src/ui/settings/corsRule";
-import { createNoteOnDesktop, DESKTOP_VIEWPORT, fillRemoteConfigFields, fillSyncTarget, openSyncedDevice, PASSPHRASE, PHONE_VIEWPORT, startLocalVault, SYNC_KEY } from "./devices";
+import { createNoteButton, createNoteOnDesktop, DESKTOP_VIEWPORT, fillRemoteConfigFields, fillSyncTarget, openSyncedDevice, PASSPHRASE, PHONE_VIEWPORT, startLocalVault, SYNC_KEY } from "./devices";
 import { PAGE_ORIGIN } from "./devServer";
 
 // 2 台目のデバイスのパスフレーズ。デバイスごとに違ってよいことを確かめるために、1 台目と変える。
@@ -173,7 +173,7 @@ test("暗号化キーは、自動で生成するか自分で入力するかを�
   await laptop.getByLabel("暗号化キー", { exact: true }).fill(SYNC_KEY);
   await laptop.getByRole("button", { name: "作成" }).click();
   // 自分で入力したキーは、あらためて表示しない。
-  await expect(laptop.getByRole("button", { name: "新しいメモ" })).toBeVisible();
+  await expect(createNoteButton(laptop)).toBeVisible();
   await expect(laptop.getByRole("dialog", { name: "暗号化キー" })).toBeHidden();
 
   // 作り直すときも、どちらかを選べる。
@@ -191,7 +191,7 @@ test("暗号化キーは、自動で生成するか自分で入力するかを�
   await phone.getByRole("button", { name: "接続を確認" }).click();
   await phone.getByLabel("暗号化キー", { exact: true }).fill("another-key-of-my-own");
   await phone.getByRole("button", { name: "参加" }).click();
-  await expect(phone.getByRole("button", { name: "新しいメモ" })).toBeVisible({ timeout: 20_000 });
+  await expect(createNoteButton(phone)).toBeVisible({ timeout: 20_000 });
 });
 
 test("v0.2 までのアプリで作った同期先は、確かめた時点で使えないと知らせる", async ({ page }) => {

@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { PHONE_VIEWPORT, startLocalVault } from "./devices";
+import { createNoteButton, PHONE_VIEWPORT, startLocalVault } from "./devices";
 
 test("PC では左下の歯車で設定を開き、同期の状態を押すと同期のページが開く", async ({ page }) => {
   await startLocalVault(page);
@@ -126,7 +126,7 @@ test("設定のボタンは右にそろい、並べて置くボタンは縦に�
 
 test("開けない記録があると、設定に件数と次の手と記録の ID を出す", async ({ page }) => {
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await page.getByPlaceholder("タイトル").fill("壊れるメモ");
   await page.getByPlaceholder("タイトル").press("Enter");
   // 記録が手元に保存されるのを待ち、ロックの画面に戻してから壊す。開いたままだと、あとから走る保存が、壊した記録を正しい中身で上書きする。
@@ -169,7 +169,7 @@ test("開けない記録があると、設定に件数と次の手と記録の I
 
 test("設定に保存していない入力を残したまま、ほかのページやタブへ移ろうとすると聞く。やめれば入力が残る", async ({ page }) => {
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await page.getByPlaceholder("タイトル").fill("買い物");
   await page.getByRole("button", { name: "設定", exact: true }).click();
   const pages = page.getByRole("navigation", { name: "設定のページ" });

@@ -64,7 +64,7 @@ const dueAt = await app.evaluate((minutes) => {
   return `${due.getFullYear()}-${twoDigits(due.getMonth() + 1)}-${twoDigits(due.getDate())} ${twoDigits(due.getHours())}:${twoDigits(due.getMinutes())}`;
 }, DUE_AFTER_MINUTES + 1);
 await app.getByRole("button", { name: "メモ", exact: true }).click();
-await app.getByRole("button", { name: "新しいメモ" }).click();
+await app.getByRole("button", { name: "メモを作成" }).click();
 await app.getByPlaceholder("タイトル").fill("買い物");
 await app.getByPlaceholder("タイトル").press("Enter");
 await app.keyboard.type(`[ ] 牛乳を買う 📅 ${dueAt}`);

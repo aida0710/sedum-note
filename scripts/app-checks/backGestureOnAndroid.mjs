@@ -22,7 +22,7 @@ await app.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
 await app.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
 await app.getByRole("button", { name: "作成" }).click();
 
-await app.getByRole("button", { name: "新しいメモ" }).click();
+await app.getByRole("button", { name: "メモを作成" }).click();
 await app.getByPlaceholder("タイトル").fill("戻るの確認");
 await app.getByPlaceholder("タイトル").press("Enter");
 

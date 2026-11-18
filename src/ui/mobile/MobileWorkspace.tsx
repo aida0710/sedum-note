@@ -176,7 +176,7 @@ export function MobileWorkspace({ session, vault, snapshot, navigation }: Omit<W
       )}
       {/* ゴミ箱の中には新しいメモを作れないので、「＋」を出さない。 */}
       {view && view.kind !== "trash" && (
-        <button className="fab" aria-label={translate("sidebar.newNote")} onClick={() => void createNote(view)}><Plus size={ICON_SIZE.fab} /></button>
+        <button className="fab" aria-label={translate("common.createNote")} onClick={() => void createNote(view)}><Plus size={ICON_SIZE.fab} /></button>
       )}
       <nav className="tabbar">
         <button className={tab === "notes" ? "on" : ""} onClick={() => selectTab("notes")}><FileText size={ICON_SIZE.touch} />{translate("mobile.notes")}</button>

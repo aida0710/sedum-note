@@ -30,7 +30,7 @@ await app.waitForText("空の同期先です");
 await app.clickButton("作成");
 await app.clickButton("控えました");
 // 新しいメモのボタンは画面に固定されていて、clickButton の「見えているか」の判定（offsetParent）に掛からない。
-const newNoteButton = `document.querySelector('button[aria-label="新しいメモ"]')`;
+const newNoteButton = `document.querySelector('button[aria-label="メモを作成"]')`;
 await app.waitFor("the new note button", `Boolean(${newNoteButton})`, 60_000);
 await app.evaluate(`${newNoteButton}.click()`);
 await app.fillBySelector(".title-input", "CORS なしで同期したメモ");

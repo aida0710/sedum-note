@@ -139,7 +139,7 @@ export function Sidebar({ snapshot, repository, navigation, onCreateNote, onEnte
             onKeyDown={(event) => event.key === "Escape" && !isImeKeyEvent(event.nativeEvent) && closeSearch()} />
         </label>
       )}
-      <button className="new-note" onClick={onCreateNote}><Plus size={ICON_SIZE.button} />{translate("sidebar.newNote")}</button>
+      <button className="new-note" onClick={onCreateNote}><Plus size={ICON_SIZE.button} />{translate("common.createNote")}</button>
       {/* 落とせる一覧の外（タグ、見出し、行の間）に来たら、落とし先の光りを消す。一覧の外へ出たときも消す。 */}
       <div className="sidebar-scroll" onKeyDown={moveFocusBetweenRows}
         onDragOver={(event) => (isNoteDrag(event) || isNotebookDrag(event)) && markSidebarDropTarget(null)}

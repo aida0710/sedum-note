@@ -125,7 +125,7 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       open: async (page, { captureScreen }) => {
         await page.getByRole("button", { name: /^仕事/ }).first().click();
         const tabsBefore = await page.getByRole("tab").count();
-        await page.getByRole("button", { name: translate("sidebar.newNote") }).click();
+        await page.locator(".sidebar").getByRole("button", { name: translate("common.createNote"), exact: true }).click();
         await page.waitForFunction((count) => document.querySelectorAll('[role="tab"]').length > count, tabsBefore);
         await page.getByPlaceholder(translate("editor.titlePlaceholder")).fill(RICH_NOTE_TITLE);
         await page.getByPlaceholder(translate("editor.titlePlaceholder")).press("Enter");
@@ -640,7 +640,7 @@ export function DESKTOP_SCREENS({ baseUrl, passphrase, themeName, fillSampleWork
       close: async (page) => {
         await page.getByLabel(translate("setup.passphrase"), { exact: true }).fill(passphrase);
         await page.getByRole("button", { name: translate("setup.submitNew") }).click();
-        await page.getByRole("button", { name: translate("sidebar.newNote") }).waitFor();
+        await page.locator(".sidebar").getByRole("button", { name: translate("common.createNote"), exact: true }).waitFor();
       },
     },
     {

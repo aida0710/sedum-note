@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { PAGE_ORIGIN } from "./devServer";
-import { insertFromSlashMenu, openSettingsPage } from "./devices";
+import { createNoteButton, insertFromSlashMenu, openSettingsPage } from "./devices";
 
 const PASSPHRASE = "correct horse battery";
 
@@ -11,7 +11,7 @@ async function startLocalVault(page: Page): Promise<void> {
   await page.getByLabel("パスフレーズ", { exact: true }).fill(PASSPHRASE);
   await page.getByLabel("パスフレーズ（確認）").fill(PASSPHRASE);
   await page.getByRole("button", { name: "作成" }).click();
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
 }
 
 test("同期を設定しなくても、パスフレーズだけで始めてメモを書ける", async ({ page }) => {
@@ -133,11 +133,11 @@ test("強いパスフレーズを生成して始められ、生成したパス�
   await page.getByLabel("パスフレーズ", { exact: true }).fill(generated);
 
   await page.getByRole("button", { name: "作成" }).click();
-  await page.getByRole("button", { name: "新しいメモ" }).waitFor();
+  await createNoteButton(page).waitFor();
   await page.reload();
   await page.getByLabel("パスフレーズ").fill(generated);
   await page.getByRole("button", { name: "解除" }).click();
-  await expect(page.getByRole("button", { name: "新しいメモ" })).toBeVisible();
+  await expect(createNoteButton(page)).toBeVisible();
 });
 
 test("Web 版で同期を使うときは、最初の画面でバケットの CORS の設定を見られる", async ({ page }) => {

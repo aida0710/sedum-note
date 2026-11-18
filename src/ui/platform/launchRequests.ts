@@ -1,4 +1,4 @@
-// Android で、アプリの外から頼まれたこと（ほかのアプリの「共有」、ウィジェットやショートカットの「新しいメモ」）の
+// Android で、アプリの外から頼まれたこと（ほかのアプリの「共有」、ウィジェットやショートカットの「メモを作成」）の
 // 窓口。ネイティブ側（LaunchRequestBridge.kt）が覚えているものを、画面が取りに行く。ほかの環境には窓口が無い。
 
 // MainActivity.kt の LAUNCH_BRIDGE_NAME・LAUNCH_REQUEST_EVENT と揃える。
@@ -17,7 +17,7 @@ export function nativeLaunchBridge(): NativeLaunchBridge | null {
   return (window as unknown as Record<string, NativeLaunchBridge | undefined>)[LAUNCH_BRIDGE_NAME] ?? null;
 }
 
-// 「新しいメモ」を頼まれていたら true を返す。1 回取ると、ネイティブ側は忘れる。
+// 「メモを作成」を頼まれていたら true を返す。1 回取ると、ネイティブ側は忘れる。
 export function takeNewNoteRequest(): boolean {
   return nativeLaunchBridge()?.takeNewNoteRequest() ?? false;
 }

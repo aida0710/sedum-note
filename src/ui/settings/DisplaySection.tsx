@@ -1,4 +1,5 @@
-// 設定: このデバイスの表示（言語、メモの並び順、本文の文字の組み方、本文の配置の既定（PC だけ）、写真を貼るときの大きさ、タイプライターモード）。
+// 設定: このデバイスの表示（言語、メモの並び順、本文の文字の組み方、本文の配置の既定（PC だけ）、写真を貼るときの大きさ、タイプライターモード、
+// 左の列のメモを仮のタブで開くか（PC だけ））。
 
 import { NOTE_SORT_ORDERS, type NoteSortOrder } from "../../core/notes/noteQueries";
 import { PAGE_ALIGNMENTS, type PageAlignment } from "../../core/notes/noteRecords";
@@ -13,11 +14,12 @@ import { SettingCheckboxRow, SettingRow } from "./SettingRow";
 const LANGUAGE_NAMES: Record<Language, string> = { ja: "日本語", en: "English" };
 
 type DisplaySectionProps = {
-  // 本文の配置の既定を出すか。スマホでは本文が画面の幅いっぱいで、メモごとに配置を選ぶ所（メモの「…」）も無いので出さない。
-  showsPageAlignment: boolean;
+  // PC の組み方にだけある設定（本文の配置の既定、仮のタブ）を出すか。スマホでは本文が画面の幅いっぱいで、メモごとに配置を選ぶ所
+  //（メモの「…」）も、タブも無いので出さない。
+  showsDesktopLayoutSettings: boolean;
 };
 
-export function DisplaySection({ showsPageAlignment }: DisplaySectionProps) {
+export function DisplaySection({ showsDesktopLayoutSettings }: DisplaySectionProps) {
   const preferences = useDevicePreferences();
   return (
     <section className="settings-section">
@@ -41,7 +43,7 @@ export function DisplaySection({ showsPageAlignment }: DisplaySectionProps) {
         )}
       </SettingRow>
       <EditorTypographySettings />
-      {showsPageAlignment && (
+      {showsDesktopLayoutSettings && (
         <SettingRow controlId="display-page-alignment" label={translate("settings.pageAlignment")} hint={translate("settings.pageAlignmentHint")}>
           {(control) => (
             <select {...control} value={preferences.pageAlignment} onChange={(event) => updateDevicePreferences({ pageAlignment: event.target.value as PageAlignment })}>
@@ -60,6 +62,10 @@ export function DisplaySection({ showsPageAlignment }: DisplaySectionProps) {
       </SettingRow>
       <SettingCheckboxRow controlId="display-typewriter-mode" label={translate("settings.typewriterMode")} checked={preferences.typewriterMode}
         onChange={(typewriterMode) => updateDevicePreferences({ typewriterMode })} />
+      {showsDesktopLayoutSettings && (
+        <SettingCheckboxRow controlId="display-preview-tabs" label={translate("settings.previewTabs")} hint={translate("settings.previewTabsHint")}
+          checked={preferences.previewTabs} onChange={(previewTabs) => updateDevicePreferences({ previewTabs })} />
+      )}
     </section>
   );
 }

@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
-import { addNotebookOnDesktop, createNoteOnDesktop, openSettingsPage, PHONE_VIEWPORT, startLocalVault } from "./devices";
+import { addNotebookOnDesktop, createNoteButton, createNoteOnDesktop, openSettingsPage, PHONE_VIEWPORT, startLocalVault } from "./devices";
 
 // プロパティのダイアログで、選択肢を 1 つずつ足す（足す欄に打って Enter）。
 async function addPropertyOptions(dialog: Locator, options: string[]) {
@@ -57,7 +57,7 @@ test("ノートブックの色とアイコンを選ぶと、左の列の印が�
 test("ゴミ箱の自動削除は、既定ではオフ。日数は Enter か「保存」で決まり、いま消えるメモがあれば件数を出して確かめる", async ({ page }) => {
   await page.clock.install({ time: new Date("2026-11-01T09:00:00+09:00") });
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await page.getByPlaceholder("タイトル").fill("捨てるメモ");
   await page.getByRole("button", { name: "その他の操作" }).click();
   await page.getByRole("menuitem", { name: "ゴミ箱に移動" }).click();
@@ -211,13 +211,13 @@ async function openDatabaseView(page: Page, notebookName: string) {
   return page.locator(".database-view");
 }
 
-test("データベース表示の表では、キーボードだけで、下の「新しいメモ」から行を続けて足し、右端の「＋」からプロパティを足せる", async ({ page }) => {
+test("データベース表示の表では、キーボードだけで、下の「メモを作成」から行を続けて足し、右端の「＋」からプロパティを足せる", async ({ page }) => {
   await startLocalVault(page);
   await addNotebookOnDesktop(page, "読書");
   const database = await openDatabaseView(page, "読書");
-  // メモが無いノートブックでも、表と「新しいメモ」が出る。
+  // メモが無いノートブックでも、表と「メモを作成」が出る。
   await expect(database.locator("tbody tr")).toHaveCount(0);
-  const newNoteButton = database.getByRole("button", { name: "新しいメモ" });
+  const newNoteButton = database.getByRole("button", { name: "メモを作成" });
   const titleInput = database.getByPlaceholder("タイトル");
 
   await newNoteButton.focus();
@@ -226,7 +226,7 @@ test("データベース表示の表では、キーボードだけで、下の�
     await expect(titleInput).toBeFocused();
     await page.keyboard.type(title);
     await page.keyboard.press("Enter");
-    // 決めたら「新しいメモ」へフォーカスが戻り、そのまま次の行を足せる。
+    // 決めたら「メモを作成」へフォーカスが戻り、そのまま次の行を足せる。
     await expect(newNoteButton).toBeFocused();
   }
   // Escape では作らない。
@@ -281,7 +281,7 @@ test("プロパティの選択肢は 1 つずつのチップで、名前を変�
 
   await database.getByRole("radio", { name: "ボード" }).click();
   const column = (name: string) => database.getByRole("region", { name });
-  await column("読了").getByRole("button", { name: "新しいメモ" }).click();
+  await column("読了").getByRole("button", { name: "メモを作成" }).click();
   await column("読了").getByPlaceholder("タイトル").fill("こころ");
   await column("読了").getByPlaceholder("タイトル").press("Enter");
   await expect(column("読了").locator(".database-card")).toHaveText(["こころ"]);
@@ -316,7 +316,7 @@ test("ボードのカードをドラッグすると、持っているカード�
   await dialog.getByRole("button", { name: "閉じる" }).click();
   await database.getByRole("radio", { name: "ボード" }).click();
   const column = (name: string) => database.getByRole("region", { name });
-  await column("未読").getByRole("button", { name: "新しいメモ" }).click();
+  await column("未読").getByRole("button", { name: "メモを作成" }).click();
   await column("未読").getByPlaceholder("タイトル").fill("こころ");
   await column("未読").getByPlaceholder("タイトル").press("Enter");
 
@@ -333,7 +333,7 @@ test("ボードのカードをドラッグすると、持っているカード�
   await expect(database.locator(".drop-target")).toHaveCount(0);
 });
 
-test("データベース表示のボードでは、列の下の「新しいメモ」から、その列の選択肢の値を入れたメモを作れる", async ({ page }) => {
+test("データベース表示のボードでは、列の下の「メモを作成」から、その列の選択肢の値を入れたメモを作れる", async ({ page }) => {
   await startLocalVault(page);
   await addNotebookOnDesktop(page, "読書");
   const database = await openDatabaseView(page, "読書");
@@ -348,14 +348,14 @@ test("データベース表示のボードでは、列の下の「新しいメ�
 
   await database.getByRole("radio", { name: "ボード" }).click();
   const column = (name: string) => database.getByRole("region", { name });
-  await column("読了").getByRole("button", { name: "新しいメモ" }).click();
+  await column("読了").getByRole("button", { name: "メモを作成" }).click();
   await column("読了").getByPlaceholder("タイトル").fill("こころ");
   await column("読了").getByPlaceholder("タイトル").press("Enter");
-  // 決めた Enter で、戻ったフォーカスの先の「新しいメモ」をもう一度押したことにならない。
+  // 決めた Enter で、戻ったフォーカスの先の「メモを作成」をもう一度押したことにならない。
   await expect(column("読了").getByPlaceholder("タイトル")).toHaveCount(0);
-  await expect(column("読了").getByRole("button", { name: "新しいメモ" })).toBeFocused();
+  await expect(column("読了").getByRole("button", { name: "メモを作成" })).toBeFocused();
   // 値の無い「未設定」の列からは、値を入れずに作る。欄の外を押しても決まり、フォーカスは押した先に残る。
-  await column("未設定").getByRole("button", { name: "新しいメモ" }).click();
+  await column("未設定").getByRole("button", { name: "メモを作成" }).click();
   await column("未設定").getByPlaceholder("タイトル").fill("門");
   await database.getByRole("radio", { name: "ボード" }).click();
   await expect(database.getByRole("radio", { name: "ボード" })).toBeFocused();

@@ -1,6 +1,6 @@
 import { type CDPSession, expect, type Page, test } from "@playwright/test";
 import { newTestRemoteConfig } from "../integration/testStorage";
-import { createNoteOnDesktop, insertBodyHtml, openSyncedDevice, placeCursorInBlock, startLocalVault } from "./devices";
+import { createNoteButton, createNoteOnDesktop, insertBodyHtml, openSyncedDevice, placeCursorInBlock, startLocalVault } from "./devices";
 
 // 日本語の変換中（未確定の文字がある間）に、ほかのデバイスの変更が同じ段落へマージされても、
 // 変換が壊れず、確定した文字とほかのデバイスの文字の両方が残ることを確かめる。
@@ -11,7 +11,7 @@ test("日本語の変換中に、ほかのデバイスの変更が同じ段落�
   const open = (join: boolean) => openSyncedDevice(browser, { remoteConfig, join });
 
   const laptop = await open(false);
-  await laptop.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(laptop).click();
   await laptop.getByPlaceholder("タイトル").fill("変換の確認");
   await laptop.getByPlaceholder("タイトル").press("Enter");
   await laptop.keyboard.type("最初の文。");
@@ -59,7 +59,7 @@ for (const confirmEnter of IME_CONFIRM_ENTERS) {
       document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { ...init, bubbles: true, cancelable: true }));
     }, confirmEnter.init);
 
-    await page.getByRole("button", { name: "新しいメモ" }).click();
+    await createNoteButton(page).click();
     const title = page.getByPlaceholder("タイトル");
     await title.fill("かいぎ");
     await pressImeConfirmEnter();

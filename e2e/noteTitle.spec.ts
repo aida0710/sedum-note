@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, insertFromSlashMenu, PASSPHRASE, PHONE_VIEWPORT, placeCursorInBlock, startLocalVault, textOfBlockAtCursor } from "./devices";
+import { createNoteButton, createNoteOnDesktop, insertFromSlashMenu, PASSPHRASE, PHONE_VIEWPORT, placeCursorInBlock, startLocalVault, textOfBlockAtCursor } from "./devices";
 
 const LONG_TITLE = "来年度の研究計画と予算の見直しについて、関係する全部の部署の担当者と相談して決めたことのまとめ（第 3 版・最終確認用）";
 
@@ -34,7 +34,7 @@ test("スマホでも、長い題は折り返して全部が見える", async ({
 
 test("題の途中で Enter を押すと、カーソルから後ろが本文の先頭の行になる。貼り付けた改行は題に入らない", async ({ page }) => {
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await titleInput(page).fill("会議のメモ議題の一覧");
   for (let step = 0; step < 5; step += 1) {
     await page.keyboard.press("ArrowLeft");
@@ -106,7 +106,7 @@ test("本文が区切り線で始まるメモでも、題の Enter と ↓ で�
 test("題の変換中の未確定の文字は保存せず、確定したときに保存する", async ({ page, browserName }) => {
   test.skip(browserName !== "chromium", "変換は Chromium の DevTools で作る");
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await titleInput(page).click();
   const devTools = await page.context().newCDPSession(page);
   await devTools.send("Input.imeSetComposition", { text: "かいぎ", selectionStart: 3, selectionEnd: 3 });
@@ -119,7 +119,7 @@ test("題の変換中の未確定の文字は保存せず、確定したとき�
 
 test("変換中の ↓ と Enter は、題から本文へ移らない", async ({ page }) => {
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await titleInput(page).fill("かいぎ");
   for (const key of ["ArrowDown", "Enter"]) {
     await page.evaluate((pressedKey) => {
@@ -143,7 +143,7 @@ async function openSameNoteInSecondTab(page: Page, sidebarText: string): Promise
 // そのあとに届いた題を、まだ打っていない題の欄が出さないと、題が空のまま残る（noteWindows.spec.ts がときどき落ちた形）。
 test("空の題の欄にフォーカスがあっても、まだ打っていなければ、ほかのウィンドウで付けた題に替わる", async ({ page, context }) => {
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await expect(titleInput(page)).toBeFocused();
   await page.getByRole("button", { name: "その他の操作" }).last().click();
   const opened = context.waitForEvent("page");

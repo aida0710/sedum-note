@@ -53,7 +53,7 @@ await app.getByRole("button", { name: /PCで書いたメモ/ }).first().waitFor(
 await screenshotDevice(app, "app-list");
 
 // 3. アプリでメモを書き、PC に届くか。
-await app.getByRole("button", { name: "新しいメモ", exact: true }).click();
+await app.getByRole("button", { name: "メモを作成", exact: true }).click();
 await app.getByPlaceholder("タイトル").fill("アプリで書いたメモ");
 await app.getByPlaceholder("タイトル").press("Enter");
 await app.keyboard.type("アプリから同期");

@@ -23,7 +23,7 @@ export function InlineNameInput({ initialName = "", placeholder, onDone }: Inlin
           return;
         }
         if (event.key === "Enter") {
-          // 決めたあとにフォーカスがボタンへ移ると（データベース表示の「新しいメモ」）、ブラウザはこの Enter の続きの
+          // 決めたあとにフォーカスがボタンへ移ると（データベース表示の「メモを作成」）、ブラウザはこの Enter の続きの
           // keypress をそのボタンへ送り、ボタンを押したことになる。既定の動作を止めて、続きを送らせない。
           event.preventDefault();
           onDone(name.trim());

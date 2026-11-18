@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createNoteOnDesktop, openSettingsPage, startLocalVault, unlockApp } from "./devices";
+import { createNoteButton, createNoteOnDesktop, openSettingsPage, startLocalVault, unlockApp } from "./devices";
 
 // 試験の中の「今」。偽の時計で進める。
 const NOW = new Date("2026-11-14T09:00:00+09:00");
@@ -20,7 +20,7 @@ test("操作が無いまま、選んだ時間が過ぎるとロックする。�
   await chooseInactivityLock(page, "15分");
 
   await page.clock.fastForward(14 * MINUTE);
-  await expect(page.getByRole("button", { name: "新しいメモ" })).toBeVisible();
+  await expect(createNoteButton(page)).toBeVisible();
   await page.clock.fastForward(MINUTE);
   await expect(lockScreen(page)).toBeVisible();
 

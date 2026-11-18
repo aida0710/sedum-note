@@ -28,7 +28,7 @@ export async function fillSampleWorkspace(page, baseUrl = "http://127.0.0.1:5173
   for (const note of NOTES) {
     await page.getByRole("button", { name: new RegExp(`^${note.notebook}`) }).first().click();
     const tabsBefore = await page.getByRole("tab").count();
-    await page.getByRole("button", { name: translate("sidebar.newNote") }).click();
+    await page.locator(".sidebar").getByRole("button", { name: translate("common.createNote"), exact: true }).click();
     // 新しいメモのタブが開いてから打つ。早すぎると、前のメモのタイトル欄に入る。
     await page.waitForFunction((count) => document.querySelectorAll('[role="tab"]').length > count, tabsBefore);
     await page.getByPlaceholder(translate("editor.titlePlaceholder")).fill(note.title);

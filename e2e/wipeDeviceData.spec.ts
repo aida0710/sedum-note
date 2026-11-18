@@ -1,9 +1,9 @@
 import { expect, type Page, test } from "@playwright/test";
-import { confirmDeviceDataWipe, openSettingsPage, selectSettingsPage, startLocalVault } from "./devices";
+import { confirmDeviceDataWipe, createNoteButton, openSettingsPage, selectSettingsPage, startLocalVault } from "./devices";
 
 async function startLocalVaultWithNote(page: Page, title: string): Promise<void> {
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   await page.getByPlaceholder("タイトル").fill(title);
 }
 

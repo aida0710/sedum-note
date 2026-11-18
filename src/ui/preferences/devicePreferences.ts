@@ -1,4 +1,4 @@
-// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の組み方、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか、テンプレートの日付と時刻の形式、タイプライターモード、カスタム CSS、期限の通知、常駐、「/」のメニューの最近使った候補、操作したときの振動、操作が無いときに自動でロックするまでの時間）。メモの中身ではないので暗号化せず、
+// このデバイスだけの表示の設定（言語、一覧の並び順、テーマ、本文の文字の組み方、更新の確認、ゴミ箱の自動削除、目次を出すか、写真を貼るときの大きさ、左の列の幅、同期を自動で流すか、テンプレートの日付と時刻の形式、タイプライターモード、カスタム CSS、期限の通知、常駐、「/」のメニューの最近使った候補、操作したときの振動、操作が無いときに自動でロックするまでの時間、左の列のメモを仮のタブで開くか）。メモの中身ではないので暗号化せず、
 // ロック解除の前の画面でも読めるように localStorage に置く。同期はしない。
 
 import { useSyncExternalStore } from "react";
@@ -62,6 +62,9 @@ export type DevicePreferences = {
   hapticFeedback: boolean;
   // どのウィンドウでも操作が無いまま、この分数が過ぎたらロックする（session/inactivityLock.ts）。null なら自動ではロックしない。
   inactivityLockMinutes: number | null;
+  // PC の画面で、左の列で普通に押したメモを仮のタブ（workspace/tabState.ts）で開くか。切っているときは、いつも普通のタブで開く
+  // （押すたびにタブが増える）。
+  previewTabs: boolean;
 };
 
 export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
@@ -87,6 +90,7 @@ export const DEFAULT_DEVICE_PREFERENCES: DevicePreferences = {
   recentSlashCommandIds: [],
   hapticFeedback: true,
   inactivityLockMinutes: null,
+  previewTabs: false,
 };
 
 let current: DevicePreferences | null = null;
@@ -179,6 +183,7 @@ function validPreferences(stored: unknown): DevicePreferences {
       : DEFAULT_DEVICE_PREFERENCES.recentSlashCommandIds,
     hapticFeedback: typeof candidate.hapticFeedback === "boolean" ? candidate.hapticFeedback : DEFAULT_DEVICE_PREFERENCES.hapticFeedback,
     inactivityLockMinutes: isInactivityLockMinutes(candidate.inactivityLockMinutes) ? candidate.inactivityLockMinutes : DEFAULT_DEVICE_PREFERENCES.inactivityLockMinutes,
+    previewTabs: typeof candidate.previewTabs === "boolean" ? candidate.previewTabs : DEFAULT_DEVICE_PREFERENCES.previewTabs,
   };
 }
 

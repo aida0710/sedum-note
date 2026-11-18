@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { openSettingsPage, PASSPHRASE, startLocalVault } from "./devices";
+import { createNoteButton, openSettingsPage, PASSPHRASE, startLocalVault } from "./devices";
 
 // 新しい vault を作り、設定の外観のページ（テーマとカスタム CSS）を開く。
 async function openAppearanceOfNewVault(page: Page): Promise<void> {
@@ -60,7 +60,7 @@ test("本文の文字の大きさ・字の間・行の間を変えると、見�
   await expect(sample).toHaveCSS("letter-spacing", "1.6px");
   await expect(sample).toHaveCSS("line-height", "44px");
 
-  await page.getByRole("button", { name: "新しいメモ" }).click();
+  await createNoteButton(page).click();
   const body = page.locator(".ProseMirror");
   await expect(body).toHaveCSS("font-size", "20px");
   await expect(body).toHaveCSS("letter-spacing", "1.6px");
@@ -110,7 +110,7 @@ test("カスタム CSS は、ロックを解除している間だけ当たり、
 
 test("アイコンの線は、大きさによらず枠の中で 1.75 の太さにそろう", async ({ page }) => {
   await startLocalVault(page);
-  await page.getByRole("button", { name: "新しいメモ" }).waitFor();
+  await createNoteButton(page).waitFor();
   const strokeWidths = await page.locator("svg.lucide").evaluateAll((icons) => [...new Set(icons.map((icon) => getComputedStyle(icon).strokeWidth))]);
   expect(strokeWidths).toEqual(["1.75px"]);
 });
