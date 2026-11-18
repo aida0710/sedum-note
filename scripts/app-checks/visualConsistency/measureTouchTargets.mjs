@@ -50,16 +50,35 @@ export function measureTouchTargets() {
     return true;
   };
 
-  // overflow で切る祖先の内側（枠の内側）を、順に重ねる。
-  const clipOf = (element) => {
-    let clip = viewport;
+  // overflow で切る祖先の内側（枠の内側）と画面を、順に重ねる。includeScrollable を付けると、利用者が送れる向き（overflow が auto・scroll）
+  // では、いちばん近い送れる祖先の、送れば見える範囲（scrollWidth・scrollHeight）だけで切り、その外側の祖先と画面ではその向きを切らない。
+  // 横に送るツールバーで、今の送り位置のせいで画面の端に来たボタンの押せる範囲を、狭いと数えないため（送れば真ん中に来る）。
+  // 中身の本当の端で切れるものは、送っても届かないので数える。
+  const isUserScrollable = (overflow) => overflow === "auto" || overflow === "scroll";
+  const clipOf = (element, { includeScrollable = false } = {}) => {
+    const clip = { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity };
+    let horizontalSettled = false;
+    let verticalSettled = false;
+    const clipBy = (inner) => {
+      if (!horizontalSettled) Object.assign(clip, { left: Math.max(clip.left, inner.left), right: Math.min(clip.right, inner.right) });
+      if (!verticalSettled) Object.assign(clip, { top: Math.max(clip.top, inner.top), bottom: Math.min(clip.bottom, inner.bottom) });
+    };
     for (let current = element.parentElement; current && current !== document.documentElement; current = current.parentElement) {
       const style = getComputedStyle(current);
       if (style.overflowX === "visible" && style.overflowY === "visible") continue;
       const rect = current.getBoundingClientRect();
-      const inner = { left: rect.left + current.clientLeft, top: rect.top + current.clientTop, right: rect.left + current.clientLeft + current.clientWidth, bottom: rect.top + current.clientTop + current.clientHeight };
-      clip = intersect(clip, inner);
+      const contentLeft = rect.left + current.clientLeft;
+      const contentTop = rect.top + current.clientTop;
+      const inner = { left: contentLeft, top: contentTop, right: contentLeft + current.clientWidth, bottom: contentTop + current.clientHeight };
+      const scrollsHorizontally = includeScrollable && isUserScrollable(style.overflowX);
+      const scrollsVertically = includeScrollable && isUserScrollable(style.overflowY);
+      if (scrollsHorizontally) Object.assign(inner, { left: contentLeft - current.scrollLeft, right: contentLeft - current.scrollLeft + current.scrollWidth });
+      if (scrollsVertically) Object.assign(inner, { top: contentTop - current.scrollTop, bottom: contentTop - current.scrollTop + current.scrollHeight });
+      clipBy(inner);
+      horizontalSettled ||= scrollsHorizontally;
+      verticalSettled ||= scrollsVertically;
     }
+    clipBy(viewport);
     return clip;
   };
 
@@ -99,12 +118,14 @@ export function measureTouchTargets() {
     const centreY = (visible.top + visible.bottom) / 2;
     const topmost = document.elementFromPoint(centreX, centreY);
     if (!topmost || !(topmost === element || element.contains(topmost))) continue;
-    reachableTargets.push({ element, visible, hit: intersect(hitRectOf(element), clip) });
+    const hitRect = hitRectOf(element);
+    // hit は今見えている範囲で切ったもの（重なりを調べる）。scrollableHit は送れば届く範囲で切ったもの（大きさを調べる）。
+    reachableTargets.push({ element, visible, hit: intersect(hitRect, clip), scrollableHit: intersect(hitRect, clipOf(element, { includeScrollable: true })) });
   }
 
   for (const target of reachableTargets) {
-    const width = target.hit.right - target.hit.left;
-    const height = target.hit.bottom - target.hit.top;
+    const width = target.scrollableHit.right - target.scrollableHit.left;
+    const height = target.scrollableHit.bottom - target.scrollableHit.top;
     if (Math.min(width, height) < MINIMUM_TARGET_PX - TOLERANCE_PX) {
       findings.push({ kind: "touch-target-small", element: describe(target.element), width: round(width), height: round(height) });
     }

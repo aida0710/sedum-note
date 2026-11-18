@@ -383,7 +383,7 @@ test("スマホでは、名前の長いプロパティがあっても、値の�
   expect(valueBox.width).toBeGreaterThan(150);
 });
 
-test("指で使う端末では、小さいボタンの押せる範囲が縦に 44px あり、並んだボタンの押せる範囲は隣と重ならない", async ({ browser }) => {
+test("指で使う端末では、小さいボタンの押せる範囲が縦も横も 44px あり、並んだボタンの押せる範囲は隣と重ならない", async ({ browser }) => {
   const page = await openPhone(browser, { hasTouch: true });
   expect(await page.evaluate(() => matchMedia("(pointer: coarse)").matches)).toBe(true);
   await openNewNoteOnPhone(page, "押せる範囲");
@@ -392,15 +392,11 @@ test("指で使う端末では、小さいボタンの押せる範囲が縦に 4
     const area = getComputedStyle(element, "::before");
     return { width: Number.parseFloat(area.width), height: Number.parseFloat(area.height) };
   });
-  // 戻るボタンは 1 つだけで置くので、縦も横も 44px。並んだボタン（下のツールバー、上のバー）は、縦は 44px、横は見た目より広く、
-  // 隣のボタンとの間隔の半分まで（44px にすると隣に重なり、見えているボタンの端を押すと隣が反応する）。
-  const backArea = await touchAreaOf(".phone-back");
-  expect(backArea.width).toBeGreaterThanOrEqual(44);
-  expect(backArea.height).toBeGreaterThanOrEqual(44);
-  for (const selector of [".editor-bar .tool", ".phone-top .icon-button"]) {
+  // 戻るボタンと、並んだボタン（下のツールバー、上のバー）は、縦も横も 44px。並んだボタンは 44px おきに置くので、横に 44px に
+  // 広げても隣とは重ならない（重なると、見えているボタンの端を押したときに隣が反応する）。
+  for (const selector of [".phone-back", ".editor-bar .tool", ".phone-top .icon-button"]) {
     const area = await touchAreaOf(selector);
-    const visibleWidth = (await page.locator(selector).first().boundingBox())!.width;
-    expect(area.width, selector).toBeGreaterThan(visibleWidth);
+    expect(area.width, selector).toBeGreaterThanOrEqual(44);
     expect(area.height, selector).toBeGreaterThanOrEqual(44);
   }
   const toolbar = page.locator(".editor-bar");

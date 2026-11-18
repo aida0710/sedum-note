@@ -1,4 +1,5 @@
-// アプリに入っているテーマ。light と dark は、選ばれた案C の色。
+// アプリに入っているテーマ。light と dark は、選ばれた案C の色。light の背景・左の列・線・タグは、文字と選択中の行と同じく
+// わずかに青みのあるグレーにする（グレーの系統を 1 つにそろえ、青の accent とダークのテーマに合わせるため）。
 
 import type { Theme } from "./themeColors";
 
@@ -9,8 +10,8 @@ export const LIGHT_THEME: BuiltInTheme = {
   id: "light",
   scheme: "light",
   colors: {
-    canvas: "#f7f7f5", panel: "#ffffff", sidebar: "#f1f1ee", line: "#e4e4df", text: "#1f2328", muted: "#63676e",
-    accent: "#2f6fde", accentSoft: "#e6eefc", selected: "#e9edf5", tag: "#f0efe9", ok: "#187733", danger: "#cf222e",
+    canvas: "#f7f7f8", panel: "#ffffff", sidebar: "#f1f2f4", line: "#e3e5e9", text: "#1f2328", muted: "#63676e",
+    accent: "#2f6fde", accentSoft: "#e6eefc", selected: "#e9edf5", tag: "#eff1f4", ok: "#187733", danger: "#cf222e",
   },
 };
 

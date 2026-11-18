@@ -41,7 +41,7 @@ test("設定からこのデバイスのデータを消すと、入力の直後�
   await expect(page.getByRole("heading", { name: "メモを始める" })).toBeVisible();
   expect(await storedRecordCount(page)).toBe(0);
   // 表示の設定も消えて、テーマが既定（ライト）に戻る。
-  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim())).toBe("#f7f7f5");
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim())).toBe("#f7f7f8");
 });
 
 test("パスフレーズを忘れても、ロック解除の画面からデータを消して始め直せる", async ({ page }) => {
